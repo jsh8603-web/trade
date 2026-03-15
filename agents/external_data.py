@@ -428,8 +428,11 @@ class ExternalDataAgent:
                 # 매크로/ETH/뉴스 보너스 추가
                 fusion_result = self._enhance_fusion(fusion_result, results)
                 return fusion_result
+            else:
+                logging.warning(f"[fusion] calculate_external_signal.py 실패: {fusion_result.get('error', '?')} → 인라인 폴백")
 
         # 인라인 폴백
+        logging.info("[fusion] 인라인 fusion 사용 (스크립트 미사용)")
         return self._inline_fusion(results)
 
     def _enhance_fusion(self, fusion: dict, results: dict) -> dict:

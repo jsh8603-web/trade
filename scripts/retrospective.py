@@ -96,6 +96,8 @@ def _update_window(window: str, hours: int, extra_filter: dict = None):
         return 0
 
     updated = 0
+    # 배치 수집: 먼저 모든 가격을 조회한 후, 일괄 업데이트
+    patches = []
     for row in r.json():
         decision_price = row.get("current_price", 0)
         if not decision_price:
@@ -110,25 +112,28 @@ def _update_window(window: str, hours: int, extra_filter: dict = None):
         price_after = get_historical_price(target_time)
         if not price_after:
             continue
+        time.sleep(0.15)  # Upbit API rate limit
 
         outcome_pct = round((price_after - decision_price) / decision_price * 100, 3)
         decision_type = row.get("decision", "")
         was_correct = _evaluate_correctness(decision_type, outcome_pct, window)
 
-        patch = {
+        patches.append((row["id"], {
             price_col: price_after,
             outcome_col: outcome_pct,
             correct_col: was_correct,
             "aftermath_updated_at": now.isoformat(),
-        }
+        }))
+
+    # 일괄 업데이트 (개별 PATCH — Supabase REST는 배치 PATCH 미지원이므로 최소 대기)
+    for row_id, patch in patches:
         requests.patch(
-            f"{SUPABASE_URL}/rest/v1/decisions?id=eq.{row['id']}",
+            f"{SUPABASE_URL}/rest/v1/decisions?id=eq.{row_id}",
             headers={**supabase_headers(), "Prefer": "return=minimal"},
             json=patch,
             timeout=10,
         )
         updated += 1
-        time.sleep(0.2)  # Rate limit for Upbit API
 
     return updated
 

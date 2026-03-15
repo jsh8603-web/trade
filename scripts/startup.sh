@@ -25,14 +25,28 @@ log "=== Startup begin ==="
 # --- 0.1 오래된 데이터 자동 정리 ---
 find "$PROJECT_DIR/data/snapshots" -maxdepth 1 -type d -mtime +7 -exec rm -rf {} + 2>/dev/null
 find "$PROJECT_DIR/data/charts" -name "*.png" -mtime +7 -delete 2>/dev/null
+# 로그 로테이션: 10MB 초과 시 1MB로 truncate, 30일 이상 개별 로그 삭제
 find "$LOG_DIR" -name "*.log" -size +10M -exec truncate -s 1M {} \; 2>/dev/null
+find "$LOG_DIR/executions" -name "*.log" -mtime +30 -delete 2>/dev/null
+find "$LOG_DIR/claude_responses" -name "*.txt" -mtime +30 -delete 2>/dev/null
+find "$LOG_DIR/short_term" -name "scalp_24h_*.log" -mtime +14 -delete 2>/dev/null
+find "$LOG_DIR/short_term" -name "random_*.log" -mtime +14 -delete 2>/dev/null
+find "$LOG_DIR/short_term" -name "trader_*.log" -mtime +14 -delete 2>/dev/null
 log "Cleanup: old snapshots/charts/logs trimmed"
 
 # --- 1. 기존 세션 정리 ---
 tmux kill-session -t "$TMUX_SESSION" 2>/dev/null || true
 # 기존 대시보드 프로세스 정리
 lsof -i :$DASHBOARD_PORT -t 2>/dev/null | xargs kill -9 2>/dev/null || true
-sleep 1
+sleep 3
+
+# 포트 해제 확인 (TIME_WAIT 대기)
+for i in $(seq 1 10); do
+    if ! lsof -i :$DASHBOARD_PORT -t >/dev/null 2>&1; then
+        break
+    fi
+    sleep 1
+done
 
 # --- 2. tmux 세션 생성 ---
 tmux new-session -d -s "$TMUX_SESSION" -n dashboard -c "$PROJECT_DIR"

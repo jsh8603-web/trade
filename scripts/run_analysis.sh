@@ -28,9 +28,13 @@ if [ -f .env ]; then
   set -a; source .env; set +a
 fi
 
-# Python 가상환경 활성화
-if [ -f .venv/bin/activate ]; then
-  source .venv/bin/activate
+# Python 실행파일 결정 (venv 직접 사용, activate 불필요)
+if [ -f ".venv/Scripts/python.exe" ]; then
+    PYTHON=".venv/Scripts/python.exe"
+elif [ -f ".venv/bin/python" ]; then
+    PYTHON=".venv/bin/python"
+else
+    PYTHON="python3"
 fi
 
 # 긴급 정지 확인
@@ -46,55 +50,55 @@ mkdir -p "$SNAPSHOT_DIR" "logs/executions"
 echo "[$(date)] 데이터 수집 시작..." >&2
 
 # 1. 시장 데이터 수집
-python3 scripts/collect_market_data.py > "${SNAPSHOT_DIR}/market_data.json" 2>/dev/null \
+"$PYTHON" scripts/collect_market_data.py > "${SNAPSHOT_DIR}/market_data.json" 2>/dev/null \
   || echo '{"error":"market_data 수집 실패"}' > "${SNAPSHOT_DIR}/market_data.json"
 
 # 2. Fear & Greed Index 수집
-python3 scripts/collect_fear_greed.py > "${SNAPSHOT_DIR}/fear_greed.json" 2>/dev/null \
+"$PYTHON" scripts/collect_fear_greed.py > "${SNAPSHOT_DIR}/fear_greed.json" 2>/dev/null \
   || echo '{"error":"fear_greed 수집 실패"}' > "${SNAPSHOT_DIR}/fear_greed.json"
 
 # 3. 뉴스 수집 + 압축 (토큰 절감: 10-15KB → 2-4KB)
-python3 scripts/collect_news.py > "${SNAPSHOT_DIR}/news_full.json" 2>/dev/null \
+"$PYTHON" scripts/collect_news.py > "${SNAPSHOT_DIR}/news_full.json" 2>/dev/null \
   || echo '{"error":"news 수집 실패"}' > "${SNAPSHOT_DIR}/news_full.json"
-python3 scripts/summarize_news.py "${SNAPSHOT_DIR}/news_full.json" > "${SNAPSHOT_DIR}/news.json" 2>/dev/null \
+"$PYTHON" scripts/summarize_news.py "${SNAPSHOT_DIR}/news_full.json" > "${SNAPSHOT_DIR}/news.json" 2>/dev/null \
   || cp "${SNAPSHOT_DIR}/news_full.json" "${SNAPSHOT_DIR}/news.json"
 
 # 4. 차트 캡처
-python3 scripts/capture_chart.py > "${SNAPSHOT_DIR}/chart_paths.json" 2>/dev/null \
+"$PYTHON" scripts/capture_chart.py > "${SNAPSHOT_DIR}/chart_paths.json" 2>/dev/null \
   || echo '{"error":"chart 캡처 실패"}' > "${SNAPSHOT_DIR}/chart_paths.json"
 
 # 5. 포트폴리오 조회
-python3 scripts/get_portfolio.py > "${SNAPSHOT_DIR}/portfolio.json" 2>/dev/null \
+"$PYTHON" scripts/get_portfolio.py > "${SNAPSHOT_DIR}/portfolio.json" 2>/dev/null \
   || echo '{"error":"portfolio 조회 실패"}' > "${SNAPSHOT_DIR}/portfolio.json"
 
 # 6. AI 복합 시그널 수집
-python3 scripts/collect_ai_signal.py > "${SNAPSHOT_DIR}/ai_signal.json" 2>/dev/null \
+"$PYTHON" scripts/collect_ai_signal.py > "${SNAPSHOT_DIR}/ai_signal.json" 2>/dev/null \
   || echo '{"error":"ai_signal 수집 실패"}' > "${SNAPSHOT_DIR}/ai_signal.json"
 
 # 7. 온체인 데이터 수집 (Binance 선물 + mempool)
-python3 scripts/collect_onchain_data.py > "${SNAPSHOT_DIR}/onchain.json" 2>/dev/null \
+"$PYTHON" scripts/collect_onchain_data.py > "${SNAPSHOT_DIR}/onchain.json" 2>/dev/null \
   || echo '{"error":"onchain 수집 실패"}' > "${SNAPSHOT_DIR}/onchain.json"
 
 # 8. 고래 추적 (mempool.space — 블록체인 대규모 이동, 무료)
-python3 scripts/whale_tracker.py > "${SNAPSHOT_DIR}/whale_tracker.json" 2>/dev/null \
+"$PYTHON" scripts/whale_tracker.py > "${SNAPSHOT_DIR}/whale_tracker.json" 2>/dev/null \
   || echo '{"error":"whale_tracker 수집 실패"}' > "${SNAPSHOT_DIR}/whale_tracker.json"
 
 # 9. 바이낸스 심리 지표 + 김치 프리미엄 (무료, 키 불필요)
-python3 scripts/binance_sentiment.py > "${SNAPSHOT_DIR}/binance_sentiment.json" 2>/dev/null \
+"$PYTHON" scripts/binance_sentiment.py > "${SNAPSHOT_DIR}/binance_sentiment.json" 2>/dev/null \
   || echo '{"error":"binance_sentiment 수집 실패"}' > "${SNAPSHOT_DIR}/binance_sentiment.json"
 
 # 11. CoinGecko 거래량 이상 감지 (crypto-signals, 무료)
-python3 scripts/collect_crypto_signals.py > "${SNAPSHOT_DIR}/crypto_signals.json" 2>/dev/null \
+"$PYTHON" scripts/collect_crypto_signals.py > "${SNAPSHOT_DIR}/crypto_signals.json" 2>/dev/null \
   || echo '{"error":"crypto_signals 수집 실패"}' > "${SNAPSHOT_DIR}/crypto_signals.json"
 
 # 12. CoinMarketCap (MCMP 대체 - 글로벌/매크로 지표)
-python3 scripts/collect_coinmarketcap.py > "${SNAPSHOT_DIR}/coinmarketcap.json" 2>/dev/null \
+"$PYTHON" scripts/collect_coinmarketcap.py > "${SNAPSHOT_DIR}/coinmarketcap.json" 2>/dev/null \
   || echo '{"error":"coinmarketcap 수집 실패"}' > "${SNAPSHOT_DIR}/coinmarketcap.json"
 
 echo "[$(date)] 데이터 수집 완료. 외부 시그널 종합 중..." >&2
 
 # 10. 외부 지표 종합 점수 산출 (Data Fusion)
-python3 scripts/calculate_external_signal.py "${SNAPSHOT_DIR}" > "${SNAPSHOT_DIR}/external_signal.json" 2>/dev/null \
+"$PYTHON" scripts/calculate_external_signal.py "${SNAPSHOT_DIR}" > "${SNAPSHOT_DIR}/external_signal.json" 2>/dev/null \
   || echo '{"error":"external_signal 산출 실패"}' > "${SNAPSHOT_DIR}/external_signal.json"
 
 echo "[$(date)] 프롬프트 생성 중..." >&2
@@ -115,7 +119,7 @@ COINMARKETCAP=$(cat "${SNAPSHOT_DIR}/coinmarketcap.json")
 
 # RAG: 현재 시장과 유사한 과거 경험 조회 (벡터 유사도 Top 3)
 PAST_DECISIONS="[]"
-RAG_OUTPUT=$(python3 scripts/recall_rag.py --json --top 3 2>/dev/null) || true
+RAG_OUTPUT=$("$PYTHON" scripts/recall_rag.py --json --top 3 2>/dev/null) || true
 if [ -n "$RAG_OUTPUT" ] && [ "$RAG_OUTPUT" != "[]" ]; then
   PAST_DECISIONS="$RAG_OUTPUT"
   echo "  RAG: 유사 과거 경험 조회 완료" >&2
@@ -168,7 +172,7 @@ if [ -f data/orchestrator_state.json ]; then
 fi
 
 # ETH/BTC 비율 및 도미넌스 데이터 수집
-ETH_DATA=$(python3 -c "
+ETH_DATA=$("$PYTHON" -c "
 import requests, json, statistics
 try:
     btc = requests.get('https://api.upbit.com/v1/ticker', params={'markets': 'KRW-BTC'}, timeout=5).json()[0]
@@ -379,10 +383,10 @@ $(date '+%Y-%m-%d %H:%M:%S KST')
 8. 결정을 내린 후, 아래 순서대로 실행하세요:
 
    a) 결정이 매수 또는 매도인 경우:
-      python3 scripts/execute_trade.py [bid|ask] KRW-BTC [금액|수량]
+      "$PYTHON" scripts/execute_trade.py [bid|ask] KRW-BTC [금액|수량]
 
    b) 텔레그램 알림 전송:
-      python3 scripts/notify_telegram.py trade "[결정 요약]" "[상세 근거]"
+      "$PYTHON" scripts/notify_telegram.py trade "[결정 요약]" "[상세 근거]"
 
 9. 최종 결과를 JSON 형식으로 출력하세요. 반드시 다음 필드를 포함:
    - decision, confidence, reason, buy_score (점수 내역)
