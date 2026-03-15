@@ -482,6 +482,9 @@ def execute(side: str, market: str, amount: str):
 def _record_trade_to_db(result: dict, source: str = "manual"):
     """매매 결과를 DB에 기록 (수동 매매 포함 모든 경로)"""
     try:
+        from utils.machine import skip_trade_db
+        if skip_trade_db("decisions"):
+            return
         url = os.environ.get("SUPABASE_URL", "")
         key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
         if not url or not key:

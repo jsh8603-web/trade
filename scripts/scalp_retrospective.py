@@ -233,6 +233,10 @@ def update_best_worst_30m(now: datetime, current_price: float) -> int:
 
 
 def main():
+    from utils.machine import skip_trade_db
+    if skip_trade_db("scalp_trade_log"):
+        print("[scalp_retrospective] worker 머신 — 사후추적 스킵")
+        return
     if not SUPABASE_URL or not SUPABASE_KEY:
         log.error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 미설정")
         sys.exit(1)

@@ -623,6 +623,9 @@ class ExternalDataAgent:
 
     def _save_signal_to_db(self, results: dict, external_signal: dict) -> None:
         """외부 시그널 데이터를 Supabase external_signal_log 테이블에 저장한다."""
+        from utils.machine import skip_trade_db
+        if skip_trade_db("external_signal_log"):
+            return
         url = os.getenv("SUPABASE_URL", "")
         key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
         if not url or not key:

@@ -345,6 +345,9 @@ def save_execution_log(
     phases_completed: list | None = None,
 ) -> bool:
     """execution_logs 테이블에 파이프라인 실행 기록을 저장한다."""
+    from utils.machine import skip_trade_db
+    if skip_trade_db("execution_logs"):
+        return False
     supabase_url = os.environ.get("SUPABASE_URL", "")
     supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
     if not supabase_url or not supabase_key:
@@ -387,14 +390,10 @@ def save_execution_log(
 
 
 def save_market_data_record(market_data: dict, external_data: dict) -> bool:
-    """market_data 테이블에 시장 데이터 스냅샷을 저장한다.
-
-    모든 수집된 지표를 포함:
-    - 가격, 거래량, 변화율
-    - RSI, SMA20 기술지표
-    - FGI 값/분류
-    - 뉴스 감성 점수
-    """
+    """market_data 테이블에 시장 데이터 스냅샷을 저장한다."""
+    from utils.machine import skip_trade_db
+    if skip_trade_db("market_data"):
+        return False
     supabase_url = os.environ.get("SUPABASE_URL", "")
     supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
     if not supabase_url or not supabase_key:
@@ -758,9 +757,10 @@ def main():
         pass
         
     # Phase 5: Supabase 기록 (decisions + market_data + execution_logs)
+    from utils.machine import skip_trade_db
     supabase_url = os.environ.get("SUPABASE_URL", "")
     supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-    if supabase_url and supabase_key:
+    if supabase_url and supabase_key and not skip_trade_db("decisions"):
         log("Phase 5: Supabase 기록...")
 
         # 5a. decisions 테이블

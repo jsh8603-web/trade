@@ -465,6 +465,10 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == "report":
         report()
     else:
+        from utils.machine import skip_trade_db
+        if skip_trade_db("decisions"):
+            print("[retrospective] worker 머신 — 사후추적 스킵")
+            return
         update_decisions()
         update_scalp_aftermath()
         update_signal_attempts()

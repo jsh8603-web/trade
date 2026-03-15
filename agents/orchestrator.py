@@ -796,6 +796,9 @@ class Orchestrator:
 
     def _record_switch_to_db(self, switch_info: dict, market_state: dict) -> None:
         """전환 이력을 Supabase에 기록한다."""
+        from utils.machine import skip_trade_db
+        if skip_trade_db("agent_switches"):
+            return
         url = os.getenv("SUPABASE_URL", "")
         key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
         if not url or not key:

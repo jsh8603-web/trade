@@ -47,6 +47,9 @@ class KimchirangDB:
 
     def _post(self, table: str, row: dict) -> bool:
         """동기 POST (asyncio.to_thread에서 호출)"""
+        from utils.machine import skip_trade_db
+        if skip_trade_db(table):
+            return False
         if not self._enabled or self._session is None:
             return False
         try:

@@ -416,6 +416,9 @@ class BaseStrategyAgent(ABC):
         DB 저장 실패가 매매 로직에 영향을 주지 않도록 전체를 try/except로 감싼다.
         """
         try:
+            from utils.machine import skip_trade_db
+            if skip_trade_db("buy_score_detail"):
+                return
             supabase_url = os.getenv("SUPABASE_URL", "")
             supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
             if not supabase_url or not supabase_key:

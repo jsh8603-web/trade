@@ -206,6 +206,10 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 def db_insert(table: str, data: dict):
     """Supabase REST API로 데이터 삽입 (실패해도 봇에 영향 없음, 에러 로깅)"""
     _log = logging.getLogger("short_term")
+    from utils.machine import skip_trade_db
+    if skip_trade_db(table):
+        _backup_to_local(table, data)
+        return
     if not SUPABASE_URL or not SUPABASE_KEY:
         _log.warning(f"[DB] {table} 삽입 스킵 — SUPABASE 환경변수 미설정")
         return

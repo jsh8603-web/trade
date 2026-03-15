@@ -225,6 +225,9 @@ def supabase_headers():
 
 def supabase_post(table: str, row: dict) -> dict | None:
     """Supabase 테이블에 INSERT. 실패 시 stderr에 로그."""
+    from utils.machine import skip_trade_db
+    if skip_trade_db(table):
+        return None
     try:
         r = requests.post(
             f"{SUPABASE_URL}/rest/v1/{table}",
@@ -730,6 +733,9 @@ def update_past_performance():
         groups.setdefault(pl_rounded, []).append(str(d["id"]))
 
     # 같은 profit_loss 값을 가진 결정들을 한 번에 업데이트
+    from utils.machine import skip_trade_db
+    if skip_trade_db("decisions"):
+        return
     for pl_value, ids in groups.items():
         id_filter = ",".join(f"'{i}'" for i in ids)
         try:
@@ -745,6 +751,9 @@ def update_past_performance():
 
 def mark_feedback_applied():
     """프롬프트에 주입된 미반영 피드백을 applied=true로 갱신."""
+    from utils.machine import skip_trade_db
+    if skip_trade_db("feedback"):
+        return
     try:
         r = requests.get(
             f"{SUPABASE_URL}/rest/v1/feedback?applied=eq.false&select=id",
