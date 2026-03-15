@@ -71,7 +71,9 @@ def sma(prices: list[float], period: int) -> float | None:
     return sum(window) / len(window)
 
 
-def ema(prices: list[float], period: int) -> float:
+def ema(prices: list[float], period: int) -> float | None:
+    if not prices:
+        return None
     k = 2 / (period + 1)
     value = prices[0]
     for p in prices[1:]:
@@ -335,7 +337,7 @@ def main(market: str = "KRW-BTC"):
             "sma_20": round(sma(closes, 20), 2) if sma(closes, 20) is not None else None,
             "sma_50": round(sma(closes, 50), 2) if sma(closes, 50) is not None else None,
             "sma_200": round(sma(closes, 200), 2) if sma(closes, 200) is not None else None,
-            "ema_10": round(ema(closes, 10), 2),
+            "ema_10": round(ema(closes, 10), 2) if ema(closes, 10) is not None else None,
             "ema_50": round(ema(closes, 50), 2) if len(closes) >= 50 else None,
             "ema_200": round(ema(closes, 200), 2) if len(closes) >= 200 else None,
             "rsi_14": round(rsi(closes, 14), 2),

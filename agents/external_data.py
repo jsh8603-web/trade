@@ -40,7 +40,6 @@ PYTHON = sys.executable
 def _fetch_nvt_signal(timeout: int = 10) -> dict:
     """blockchain.com API에서 NVT Signal 계산 (market_cap / tx_volume)"""
     try:
-        import requests
         mc_r = requests.get(
             "https://api.blockchain.info/charts/market-cap?timespan=1days&format=json",
             timeout=timeout,
@@ -223,7 +222,6 @@ def _load_supabase(endpoint: str, params: dict) -> list | dict:
         return []
 
     try:
-        import requests
         resp = requests.get(
             f"{url}/rest/v1/{endpoint}",
             params=params,

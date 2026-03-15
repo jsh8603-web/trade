@@ -571,7 +571,8 @@ class BaseStrategyAgent(ABC):
 
     def _is_weekend(self) -> bool:
         import datetime
-        return datetime.datetime.now().weekday() >= 5
+        KST = datetime.timezone(datetime.timedelta(hours=9))
+        return datetime.datetime.now(KST).weekday() >= 5
 
     def _calculate_trade_amount(self, total_krw: float, external_bonus: int = 0) -> int:
         """1회 매매 금액을 계산한다."""

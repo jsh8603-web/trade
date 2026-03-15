@@ -32,13 +32,24 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 mkdir -p "$(dirname "$LOG_FILE")" "$PROJECT_DIR/data"
 
+# .env 로드 (한 번만, 스크립트 시작 시)
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a; source "$PROJECT_DIR/.env" 2>/dev/null; set +a
+fi
+
+# Python 실행파일 결정 (venv 직접 사용)
+if [ -f "$PROJECT_DIR/.venv/bin/python" ]; then
+    PYTHON="$PROJECT_DIR/.venv/bin/python"
+else
+    PYTHON="python3"
+fi
+
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
 }
 
 send_telegram() {
-    source "$PROJECT_DIR/.env" 2>/dev/null
-    [ -z "$TELEGRAM_BOT_TOKEN" ] && return
+    [ -z "${TELEGRAM_BOT_TOKEN:-}" ] && return
     curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
         -d "chat_id=${TELEGRAM_USER_ID}" \
         --data-urlencode "text=$1" \
@@ -270,7 +281,7 @@ full_rebuild() {
 # =============================================================================
 
 # 1. 텔레그램 수동 재연결(/rc, /reconnect) 명령 확인
-if python3 "$PROJECT_DIR/scripts/check_telegram_cmd.py"; then
+if "$PYTHON" "$PROJECT_DIR/scripts/check_telegram_cmd.py"; then
     log "ACTION: Telegram /reconnect command received"
     save_health "manual_restart" "User requested via Telegram"
     fast_restart "User requested via Telegram"
