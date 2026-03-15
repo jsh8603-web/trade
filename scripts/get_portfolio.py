@@ -110,7 +110,7 @@ def main():
         "total_eval": total_eval,
         "total_invested": total_invested + krw_balance,
         "total_profit_loss_pct": round(
-            (total_eval - total_invested - krw_balance) / max(total_invested, 1) * 100,
+            (sum(h["eval_amount"] for h in holdings) - total_invested) / max(total_invested, 1) * 100,
             2,
         )
         if total_invested > 0

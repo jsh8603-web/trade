@@ -24,7 +24,10 @@ FGI_API = "https://api.alternative.me/fng/"
 def main():
     r = requests.get(FGI_API, params={"limit": "7", "format": "json"}, timeout=10)
     r.raise_for_status()
-    data = r.json()["data"]
+    data = r.json().get("data", [])
+
+    if not data:
+        raise RuntimeError("FGI API가 빈 데이터를 반환했습니다")
 
     history = [
         {

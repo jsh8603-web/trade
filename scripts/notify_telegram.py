@@ -41,7 +41,8 @@ def escape_md(text: str) -> str:
     return re.sub(r"([_*\[\]()~`>#+\-=|{}.!\\])", r"\\\1", text)
 
 
-def send_message(msg_type: str, title: str, body: str):
+def send_message(msg_type: str, title: str, body: str, max_retries: int = 3):
+    import time
     bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
     user_id = os.environ.get("TELEGRAM_USER_ID")
     if not bot_token or not user_id:
@@ -51,20 +52,28 @@ def send_message(msg_type: str, title: str, body: str):
     emoji = EMOJI.get(msg_type, "\U0001f4ac")
     text = f"{emoji} *{escape_md(title)}*\n\n{escape_md(body)}\n\n_{escape_md(ts)}_"
 
-    r = requests.post(
-        f"{TELEGRAM_API.format(token=bot_token)}/sendMessage",
-        json={
-            "chat_id": user_id,
-            "text": text,
-            "parse_mode": "MarkdownV2",
-        },
-        timeout=10,
-    )
-
-    if not r.ok:
-        raise RuntimeError(f"텔레그램 전송 실패: {r.text}")
-
-    return {"success": True, "type": msg_type, "title": title}
+    for attempt in range(max_retries):
+        try:
+            r = requests.post(
+                f"{TELEGRAM_API.format(token=bot_token)}/sendMessage",
+                json={
+                    "chat_id": user_id,
+                    "text": text,
+                    "parse_mode": "MarkdownV2",
+                },
+                timeout=10,
+            )
+            if r.ok:
+                return {"success": True, "type": msg_type, "title": title}
+            if attempt < max_retries - 1 and r.status_code >= 500:
+                time.sleep(2 ** attempt)
+                continue
+            raise RuntimeError(f"텔레그램 전송 실패: {r.text}")
+        except requests.exceptions.Timeout:
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            raise RuntimeError("텔레그램 전송 타임아웃 (재시도 소진)")
 
 
 def send_photo(image_path: str, caption: str):

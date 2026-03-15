@@ -34,17 +34,19 @@ def api_get(path: str, params: dict | None = None, max_retries: int = 3) -> dict
     url = f"{UPBIT_API}{path}"
     if params:
         url += "?" + "&".join(f"{k}={v}" for k, v in params.items())
+    last_response = None
     for attempt in range(max_retries):
-        r = requests.get(url, timeout=10)
-        if r.status_code == 429:
+        last_response = requests.get(url, timeout=10)
+        if last_response.status_code == 429:
             wait = 2 ** attempt
             print(f"[rate_limit] 429 received, retrying in {wait}s...", file=sys.stderr)
             time.sleep(wait)
             continue
-        r.raise_for_status()
-        return r.json()
-    r.raise_for_status()
-    return r.json()
+        last_response.raise_for_status()
+        return last_response.json()
+    # 모든 재시도 실패 (마지막 응답이 429 등)
+    last_response.raise_for_status()
+    return last_response.json()
 
 
 def calc_rsi(candles: list[dict], period: int = 14) -> float | None:
@@ -395,9 +397,10 @@ def compute_composite_score(
     mega_b = whale.get("mega_whale_buy", 0)
     mega_s = whale.get("mega_whale_sell", 0)
 
-    # 대형 고래(5000만원+)는 가중치 2배
-    weighted_buy = wb + mega_b  # 대형 고래는 이미 wb에 포함 + 추가 가중
-    weighted_sell = ws + mega_s
+    # 대형 고래(5000만원+)는 이미 whale_buy에 포함되므로 추가 가중만 부여
+    # wb에서 mega를 빼고, mega에 2배 가중치 적용
+    weighted_buy = (wb - mega_b) + mega_b * 2  # 일반고래 + 대형고래*2
+    weighted_sell = (ws - mega_s) + mega_s * 2
 
     if weighted_buy > weighted_sell and (wb + ws) >= 2:
         pts = min(int((weighted_buy - weighted_sell) * 5), 15)

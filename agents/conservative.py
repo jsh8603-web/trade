@@ -110,6 +110,8 @@ class ConservativeAgent(BaseStrategyAgent):
                         agent_name=f"{self.emoji} {self.name}",
                     )
                 elif action == "dca":
+                    if btc_holding.get("balance", 0) <= 0:
+                        return Decision(decision="hold", reason="DCA 불가: BTC 미보유", confidence=0.3, buy_score=buy_score, trade_params={}, external_signal=external_signal, agent_name=f"{self.emoji} {self.name}")
                     total_krw = portfolio.get("krw_balance", 0)
                     dca_amount = min(
                         int(btc_holding.get("avg_buy_price", 0) * btc_holding.get("balance", 0) * self.dca_max_ratio),

@@ -231,7 +231,11 @@ def main():
 
     elif args.command == "log":
         files = [f.strip() for f in args.files.split(",") if f.strip()]
-        details = json.loads(args.details)
+        try:
+            details = json.loads(args.details)
+        except json.JSONDecodeError as e:
+            print(f"ERROR: --details 값이 올바른 JSON이 아닙니다: {e}", file=sys.stderr)
+            sys.exit(1)
         log_change(
             severity=args.severity,
             category=args.category,

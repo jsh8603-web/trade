@@ -141,31 +141,40 @@ def _budget_queries(usage: dict) -> list:
     return adjusted
 
 
-def fetch_news(api_key: str, query: str, max_results: int = 5):
-    r = requests.post(
-        TAVILY_API,
-        json={
-            "api_key": api_key,
-            "query": query,
-            "search_depth": "advanced",
-            "include_answer": False,
-            "max_results": max_results,
-            "topic": "news",
-            "days": 1,
-        },
-        timeout=30,
-    )
+def fetch_news(api_key: str, query: str, max_results: int = 5, max_retries: int = 3):
+    import time
+    for attempt in range(max_retries):
+        r = requests.post(
+            TAVILY_API,
+            json={
+                "api_key": api_key,
+                "query": query,
+                "search_depth": "advanced",
+                "include_answer": False,
+                "max_results": max_results,
+                "topic": "news",
+                "days": 1,
+            },
+            timeout=30,
+        )
+        if r.status_code == 429:
+            wait = 2 ** attempt
+            print(f"[rate_limit] Tavily 429, retrying in {wait}s...", file=sys.stderr)
+            time.sleep(wait)
+            continue
+        r.raise_for_status()
+        return [
+            {
+                "title": a.get("title", ""),
+                "url": a.get("url", ""),
+                "content": (a.get("content", "") or "")[:500],
+                "published_date": a.get("published_date", ""),
+                "score": a.get("score", 0),
+            }
+            for a in r.json().get("results", [])
+        ]
     r.raise_for_status()
-    return [
-        {
-            "title": a.get("title", ""),
-            "url": a.get("url", ""),
-            "content": (a.get("content", "") or "")[:500],
-            "published_date": a.get("published_date", ""),
-            "score": a.get("score", 0),
-        }
-        for a in r.json().get("results", [])
-    ]
+    return []
 
 
 def main():
@@ -189,13 +198,16 @@ def main():
 
     all_articles = {}
     for q in queries:
-        articles = fetch_news(api_key, q["query"], q["max_results"])
-        api_calls += 1
-        for a in articles:
-            a["category"] = q["category"]
-        for a in articles:
-            if a["url"] not in all_articles:
-                all_articles[a["url"]] = a
+        try:
+            articles = fetch_news(api_key, q["query"], q["max_results"])
+            api_calls += 1
+            for a in articles:
+                a["category"] = q["category"]
+            for a in articles:
+                if a["url"] not in all_articles:
+                    all_articles[a["url"]] = a
+        except Exception as e:
+            print(f"[warning] 뉴스 수집 실패 ({q['category']}): {e}", file=sys.stderr)
 
     # API 호출 수 기준으로 사용량 기록 (실제 성공한 호출만 카운트)
     usage["count"] += api_calls

@@ -198,17 +198,16 @@ def _get_last_trade_time():
 def _get_btc_position_ratio() -> float | None:
     """현재 BTC 포지션 비율(0~1)을 조회한다. 실패 시 None."""
     try:
-        sys.path.insert(0, str(PROJECT_DIR))
-        from scripts.get_portfolio import main as _portfolio_main
-        # get_portfolio.main()은 stdout에 JSON을 출력하므로, 직접 API 호출로 대체
-        import io
-        old_stdout = sys.stdout
-        sys.stdout = buf = io.StringIO()
-        try:
-            _portfolio_main()
-        finally:
-            sys.stdout = old_stdout
-        portfolio = json.loads(buf.getvalue())
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, str(PROJECT_DIR / "scripts" / "get_portfolio.py")],
+            capture_output=True, text=True, timeout=15,
+            cwd=str(PROJECT_DIR),
+        )
+        if result.returncode != 0:
+            print(f"[warning] get_portfolio.py 실패: {result.stderr[:200]}", file=sys.stderr)
+            return None
+        portfolio = json.loads(result.stdout)
         total_eval = portfolio.get("total_eval", 0)
         if total_eval <= 0:
             return 0.0
@@ -332,19 +331,14 @@ def execute(side: str, market: str, amount: str):
     if side == "ask":
         try:
             sell_volume = float(amount)
-            ratio = _get_btc_position_ratio()
-            if ratio is not None:
-                # 보유량 직접 확인
-                sys.path.insert(0, str(PROJECT_DIR))
-                import io as _io
-                from scripts.get_portfolio import main as _pf_main
-                old_stdout = sys.stdout
-                sys.stdout = buf = _io.StringIO()
-                try:
-                    _pf_main()
-                finally:
-                    sys.stdout = old_stdout
-                pf = json.loads(buf.getvalue())
+            import subprocess
+            pf_result = subprocess.run(
+                [sys.executable, str(PROJECT_DIR / "scripts" / "get_portfolio.py")],
+                capture_output=True, text=True, timeout=15,
+                cwd=str(PROJECT_DIR),
+            )
+            if pf_result.returncode == 0:
+                pf = json.loads(pf_result.stdout)
                 for h in pf.get("holdings", []):
                     if h.get("currency") == "BTC":
                         held = h.get("balance", 0)
@@ -362,7 +356,21 @@ def execute(side: str, market: str, amount: str):
         except Exception as e:
             print(f"[warning] 매도 보유량 검증 실패 (계속 진행): {e}", file=sys.stderr)
 
-    # 3) 매수 금액 상한 확인 (ET-08: float 비교로 수정)
+    # 3) 금액 숫자 검증
+    try:
+        float(amount)
+    except (ValueError, TypeError):
+        return {
+            "success": False,
+            "dry_run": False,
+            "side": side,
+            "market": market,
+            "amount": amount,
+            "error": f"유효하지 않은 금액: '{amount}'",
+            "timestamp": ts,
+        }
+
+    # 3b) 매수 금액 상한 확인
     max_amount = int(os.environ.get("MAX_TRADE_AMOUNT", "100000"))
     if side == "bid" and float(amount) > max_amount:
         return {

@@ -272,12 +272,22 @@ def check_lock() -> bool:
     try:
         lock_data = json.loads(LOCK_FILE.read_text())
         lock_time = datetime.fromisoformat(lock_data.get("timestamp", ""))
-        # 10분 이상 된 락은 stale로 간주
-        if (datetime.now(KST) - lock_time).total_seconds() > 600:
-            log.warning("stale 락파일 발견 -- 무시")
+        age = (datetime.now(KST) - lock_time).total_seconds()
+        lock_pid = lock_data.get("pid", 0)
+        # PID 생존 확인
+        pid_alive = False
+        if lock_pid > 0:
+            try:
+                os.kill(lock_pid, 0)
+                pid_alive = True
+            except (OSError, ProcessLookupError):
+                pid_alive = False
+        # 10분 이상이거나 프로세스 사망 시 stale
+        if age > 600 or (lock_pid > 0 and not pid_alive):
+            log.warning(f"stale 락파일 제거 (age={age:.0f}s, pid={lock_pid}, alive={pid_alive})")
             LOCK_FILE.unlink(missing_ok=True)
             return True
-        log.warning(f"정규 매매 실행 중: {lock_data.get('process', 'unknown')}")
+        log.warning(f"정규 매매 실행 중: {lock_data.get('process', 'unknown')} (pid={lock_pid})")
         return False
     except Exception:
         return True

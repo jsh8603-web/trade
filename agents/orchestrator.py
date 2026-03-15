@@ -59,7 +59,8 @@ def _release_lock(lock_path: str):
 
 def _load_state() -> dict:
     lock_path = str(STATE_FILE) + ".lock"
-    if not _acquire_lock(lock_path):
+    _lock_acquired = _acquire_lock(lock_path)
+    if not _lock_acquired:
         print("[orchestrator] WARNING: state lock 획득 실패, 락 없이 진행", file=sys.stderr)
     try:
         with open(STATE_FILE, encoding="utf-8") as f:
@@ -73,19 +74,22 @@ def _load_state() -> dict:
             "switch_history": [],
         }
     finally:
-        _release_lock(lock_path)
+        if _lock_acquired:
+            _release_lock(lock_path)
 
 
 def _save_state(state: dict) -> None:
     lock_path = str(STATE_FILE) + ".lock"
-    if not _acquire_lock(lock_path):
+    _lock_acquired = _acquire_lock(lock_path)
+    if not _lock_acquired:
         print("[orchestrator] WARNING: state lock 획득 실패, 락 없이 진행", file=sys.stderr)
     try:
         STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
         with open(STATE_FILE, "w", encoding="utf-8") as f:
             json.dump(state, f, ensure_ascii=False, indent=2)
     finally:
-        _release_lock(lock_path)
+        if _lock_acquired:
+            _release_lock(lock_path)
 
 
 class Orchestrator:
@@ -126,18 +130,18 @@ class Orchestrator:
         """
         # ── 긴급정지 확인 (사용자 수동 > 감독 자동) ──
         if os.getenv("EMERGENCY_STOP", "false").lower() == "true":
+            from agents.base_agent import Decision as Dec
             return {
-                "active_agent": f"🚨 긴급정지",
-                "decision": {
-                    "decision": "hold",
-                    "reason": "사용자 EMERGENCY_STOP 활성화 -- 모든 매매 차단",
-                    "confidence": 1.0,
-                    "buy_score": {},
-                    "trade_params": {},
-                    "external_signal_summary": {},
-                    "agent_name": "🚨 사용자 긴급정지",
-                    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S+09:00"),
-                },
+                "active_agent": "🚨 긴급정지",
+                "decision": Dec(
+                    decision="hold",
+                    reason="사용자 EMERGENCY_STOP 활성화 -- 모든 매매 차단",
+                    confidence=1.0,
+                    buy_score={},
+                    trade_params={},
+                    external_signal={},
+                    agent_name="🚨 사용자 긴급정지",
+                ).to_dict(),
                 "switch": None,
                 "market_state": {},
             }
@@ -154,22 +158,22 @@ class Orchestrator:
                     "시장 안정화 확인 -- 자동 긴급정지 해제"
                 )
             else:
+                from agents.base_agent import Decision as Dec
                 return {
-                    "active_agent": f"🚨 감독 자동긴급정지",
-                    "decision": {
-                        "decision": "hold",
-                        "reason": (
+                    "active_agent": "🚨 감독 자동긴급정지",
+                    "decision": Dec(
+                        decision="hold",
+                        reason=(
                             f"감독 자동 긴급정지 활성 중 "
                             f"(사유: {auto_em.get('reason', '?')}, "
                             f"발동: {auto_em.get('activated_at', '?')})"
                         ),
-                        "confidence": 1.0,
-                        "buy_score": {},
-                        "trade_params": {},
-                        "external_signal_summary": {},
-                        "agent_name": "🚨 감독 자동긴급정지",
-                        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S+09:00"),
-                    },
+                        confidence=1.0,
+                        buy_score={},
+                        trade_params={},
+                        external_signal={},
+                        agent_name="🚨 감독 자동긴급정지",
+                    ).to_dict(),
                     "switch": None,
                     "market_state": {},
                     "auto_emergency": auto_em,
@@ -233,19 +237,19 @@ class Orchestrator:
                     "auto_emergency": emergency_trigger,
                 }
             else:
+                from agents.base_agent import Decision as Dec
                 return {
                     "active_agent": "🚨 감독 자동긴급정지",
                     "switch": None,
-                    "decision": {
-                        "decision": "hold",
-                        "reason": f"[감독 자동긴급정지] {emergency_trigger['reason']}",
-                        "confidence": 1.0,
-                        "buy_score": {},
-                        "trade_params": {},
-                        "external_signal_summary": {},
-                        "agent_name": "🚨 감독 자동긴급정지",
-                        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S+09:00"),
-                    },
+                    "decision": Dec(
+                        decision="hold",
+                        reason=f"[감독 자동긴급정지] {emergency_trigger['reason']}",
+                        confidence=1.0,
+                        buy_score={},
+                        trade_params={},
+                        external_signal={},
+                        agent_name="🚨 감독 자동긴급정지",
+                    ).to_dict(),
                     "market_state": market_state,
                     "drop_context": drop_context,
                     "auto_emergency": emergency_trigger,

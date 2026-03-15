@@ -34,7 +34,7 @@ class Decision:
     timestamp: str = field(default_factory=lambda: time.strftime("%Y-%m-%dT%H:%M:%S+09:00"))
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "decision": self.decision,
             "confidence": self.confidence,
             "reason": self.reason,
@@ -48,6 +48,13 @@ class Decision:
             "agent_name": self.agent_name,
             "timestamp": self.timestamp,
         }
+        # 감독 오버라이드/AI 거부권 메타데이터 보존
+        for attr in ("_orchestrator_override", "_override_reason", "_original_action",
+                      "_was_ai_vetoed", "_ai_veto_reason"):
+            val = getattr(self, attr, None)
+            if val is not None:
+                d[attr] = val
+        return d
 
 
 class BaseStrategyAgent(ABC):
@@ -461,8 +468,7 @@ class BaseStrategyAgent(ABC):
 
             # cycle_id 생성
             try:
-                import sys as _sys
-                _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+                sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
                 from scripts.cycle_id import get_or_create_cycle_id
                 _cycle_id = get_or_create_cycle_id("agent")
             except Exception:
