@@ -1115,11 +1115,62 @@ class ShortTermTrader:
 
     # ── 포지션 관리 ───────────────────────────────────
 
+    def _load_rl_exit_model(self):
+        """RL 청산 모델 로드 (PPO). 한 번만 로드하고 캐싱."""
+        if hasattr(self, '_rl_exit_model'):
+            return self._rl_exit_model
+        try:
+            from stable_baselines3 import PPO
+            model_path = Path(__file__).resolve().parent.parent / "data" / "scalp_models" / "ppo_exit_best" / "best_model"
+            if model_path.with_suffix(".zip").exists():
+                self._rl_exit_model = PPO.load(str(model_path))
+                log.info("RL 청산 모델 로드 완료 (PPO best)")
+                return self._rl_exit_model
+        except Exception as e:
+            log.warning(f"RL 청산 모델 로드 실패: {e}")
+        self._rl_exit_model = None
+        return None
+
+    def _rl_exit_decision(self, pos, pnl_pct: float, hold_min: float) -> int | None:
+        """RL 모델로 청산 결정. 0=HOLD, 1=TP, 2=SL. 실패 시 None."""
+        model = self._load_rl_exit_model()
+        if model is None:
+            return None
+
+        try:
+            import numpy as np
+            # 모멘텀 계산
+            prices = list(self.price_history) if self.price_history else [self.current_price]
+            mom_1m = (prices[-1] / prices[-2] - 1) * 100 if len(prices) >= 2 else 0
+            mom_5m = (prices[-1] / prices[-6] - 1) * 100 if len(prices) >= 6 else 0
+
+            # 전략 인코딩
+            strat_map = {"news": 0, "spike": 1, "whale": 2}
+            strategy_type = strat_map.get(pos.strategy, 1)
+
+            obs = np.array([
+                np.clip(pnl_pct, -10, 10),
+                min(hold_min, 15),
+                np.clip(mom_1m, -5, 5),
+                np.clip(mom_5m, -5, 5),
+                1.0,    # vol_ratio (실시간 미수집 시 기본값)
+                50.0,   # RSI (실시간 미수집 시 기본값)
+                0.5,    # BB 위치 (기본값)
+                float(strategy_type),
+            ], dtype=np.float32)
+
+            action, _ = model.predict(obs, deterministic=True)
+            return int(action)
+        except Exception as e:
+            log.warning(f"RL 청산 예측 실패: {e}")
+            return None
+
     def check_position_exit(self) -> list[tuple[Position, str]]:
-        """보유 포지션의 익절/손절/트레일링/시간제한 확인"""
+        """보유 포지션의 익절/손절/트레일링/시간제한 확인 (v7: RL 청산 통합)"""
         exits = []
         now = datetime.now(KST)
         fee_roundtrip = COMMISSION_PCT * 2  # 왕복 수수료 0.10%
+        use_rl = os.environ.get("USE_RL_EXIT", "true").lower() == "true"
 
         for pos in self.positions:
             if self.current_price <= 0:
@@ -1128,6 +1179,7 @@ class ShortTermTrader:
             raw_pnl = (self.current_price - pos.entry_price) / pos.entry_price * 100
             pnl_pct = raw_pnl - fee_roundtrip  # 수수료 차감 실질 수익률
             hold_sec = (now - pos.entry_time).total_seconds()
+            hold_min = hold_sec / 60
 
             # v5: 트레일링 스탑 업데이트
             if pnl_pct > pos.highest_pnl_pct:
@@ -1139,6 +1191,28 @@ class ShortTermTrader:
                     f"현재 {pnl_pct:+.2f}%, 최고 {pos.highest_pnl_pct:+.2f}%"
                 )
 
+            # === 안전장치 (RL보다 우선) ===
+            # 강제 손절 — 절대 한계
+            if pnl_pct <= -pos.stop_loss_pct:
+                exits.append((pos, f"손절 {pnl_pct:.2f}%"))
+                continue
+            # 시간 제한 — 절대 한계
+            if hold_sec > pos.max_hold_min * 60:
+                exits.append((pos, f"시간 제한 {pos.max_hold_min}분 (현재 {pnl_pct:+.2f}%)"))
+                continue
+
+            # === v7: RL 청산 판단 ===
+            if use_rl:
+                rl_action = self._rl_exit_decision(pos, pnl_pct, hold_min)
+                if rl_action == 1:  # RL says TAKE_PROFIT
+                    exits.append((pos, f"RL 익절 {pnl_pct:+.2f}% (보유 {hold_min:.0f}분)"))
+                    continue
+                elif rl_action == 2:  # RL says STOP_LOSS
+                    exits.append((pos, f"RL 손절 {pnl_pct:+.2f}% (보유 {hold_min:.0f}분)"))
+                    continue
+                # rl_action == 0 (HOLD) or None → 기존 규칙으로 폴백
+
+            # === 기존 규칙 기반 (RL HOLD 또는 모델 없을 때) ===
             # 익절 (수수료 차감 후 기준)
             if pnl_pct >= pos.take_profit_pct:
                 exits.append((pos, f"익절 +{pnl_pct:.2f}% (수수료 후)"))
@@ -1147,15 +1221,9 @@ class ShortTermTrader:
                 drawdown = pos.highest_pnl_pct - pnl_pct
                 if drawdown >= TRAILING_STOP_DISTANCE_PCT:
                     exits.append((pos, f"트레일링 스탑: 최고 {pos.highest_pnl_pct:+.2f}% → 현재 {pnl_pct:+.2f}% (하락 {drawdown:.2f}%)"))
-            # 손절
-            elif pnl_pct <= -pos.stop_loss_pct:
-                exits.append((pos, f"손절 {pnl_pct:.2f}%"))
-            # 조기 손절 -- 15분 경과 + -0.3% 이하면 타임아웃 기다리지 않고 청산
+            # 조기 손절 -- 5분 경과 + -0.15% 이하
             elif hold_sec > EARLY_STOP_TIME_MIN * 60 and pnl_pct <= -EARLY_STOP_LOSS_PCT:
                 exits.append((pos, f"조기 손절: {hold_sec/60:.0f}분 경과 + {pnl_pct:+.2f}%"))
-            # 시간 제한
-            elif hold_sec > pos.max_hold_min * 60:
-                exits.append((pos, f"시간 제한 {pos.max_hold_min}분 (현재 {pnl_pct:+.2f}%)"))
 
         return exits
 

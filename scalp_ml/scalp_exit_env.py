@@ -154,27 +154,62 @@ class ScalpExitEnv(gym.Env):
         ], dtype=np.float32)
 
     def _find_signal_entry(self) -> int:
-        """실제 시그널과 유사한 진입 시점 찾기 (급등/급락/고래 모사)"""
+        """실제 시그널과 유사한 진입 시점 찾기 (v7: 강화된 필터)
+
+        실전 조건에 맞춤:
+        - 급등/급락: 5분간 0.5%+ 변동 + 거래량 2배+
+        - 방향성 확인: 3분 연속 같은 방향 캔들
+        - 최소 후행 수익: 진입 후 5분 내 0.15%+ 도달한 구간 우선
+        """
         max_start = len(self.all_candles) - MAX_HOLD - 5
-        # 최대 100번 시도
-        for _ in range(100):
+        candidates = []
+
+        for _ in range(300):
             idx = random.randint(30, max(31, max_start))
             prices = [c["trade_price"] for c in self.all_candles[idx-5:idx+1]]
             if len(prices) < 6:
                 continue
-            # 최근 5분 변동폭
-            change = abs(prices[-1] / prices[0] - 1) * 100
-            # 거래량 급증 확인
+
+            change = (prices[-1] / prices[0] - 1) * 100  # 방향 유지
+            abs_change = abs(change)
+
+            # 거래량 급증
             vols = [c["candle_acc_trade_volume"] for c in self.all_candles[idx-10:idx+1]]
             vol_avg = np.mean(vols[:5]) if len(vols) >= 10 else 1
             vol_recent = np.mean(vols[-3:]) if len(vols) >= 3 else 1
             vol_spike = vol_recent / max(vol_avg, 0.001)
 
-            # 시그널 조건: 변동 0.3%+ 또는 거래량 2배+
-            if change >= 0.3 or vol_spike >= 2.0:
-                return idx
+            # v7: 강화된 시그널 조건
+            if abs_change < 0.5 or vol_spike < 1.5:
+                continue
 
-        # 못 찾으면 랜덤
+            # 방향성 확인: 최근 3분 캔들 방향 일치
+            direction = 1 if change > 0 else -1
+            recent_3 = prices[-3:]
+            dir_count = sum(1 for i in range(1, len(recent_3))
+                          if (recent_3[i] - recent_3[i-1]) * direction > 0)
+            if dir_count < 1:
+                continue
+
+            # 진입 후 5분 내 최대 PnL 확인
+            future_prices = [c["trade_price"] for c in
+                           self.all_candles[idx:min(idx+6, len(self.all_candles))]]
+            entry_p = prices[-1]
+            best_future = max((p / entry_p - 1) * 100 for p in future_prices)
+            worst_future = min((p / entry_p - 1) * 100 for p in future_prices)
+
+            # 수익 가능성이 있는 구간만 (50% 확률로 필터)
+            score = abs_change * vol_spike
+            if best_future > FEE_PCT:
+                score += 5  # 수익 가능 구간 우선
+            candidates.append((score, idx))
+
+        if candidates:
+            # 상위 30%에서 랜덤 선택 (다양성 유지)
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            top_n = max(1, len(candidates) // 3)
+            return random.choice(candidates[:top_n])[1]
+
         return random.randint(30, max(31, max_start))
 
     def reset(self, seed=None, options=None):
@@ -190,12 +225,29 @@ class ScalpExitEnv(gym.Env):
         self._strategy = random.randint(0, 2)
         self._done = False
         self._total_reward = 0
+        self._peak_pnl = 0.0
 
         return self._compute_obs(), {}
+
+    def _future_pnl(self, from_step: int, lookahead: int = 3) -> float:
+        """from_step 이후 lookahead분간 최대 PnL (HOLD 가치 추정)"""
+        best = 0.0
+        for i in range(1, lookahead + 1):
+            idx = min(from_step + i, len(self._episode_candles) - 1)
+            p = self._episode_candles[idx]["trade_price"]
+            pnl = (p / self._entry_price - 1) * 100 - FEE_PCT
+            best = max(best, pnl)
+        return best
 
     def step(self, action: int):
         """
         action: 0=HOLD, 1=TAKE_PROFIT, 2=STOP_LOSS
+
+        v7 보상함수 개선:
+        - HOLD 중 수익 증가 시 양의 보상 (인내심 보상)
+        - 조기 청산 페널티 (hold < 3분이면 벌칙)
+        - 모멘텀 방향 반영 (상승 중 TP는 보너스, 하락 중 SL은 보너스)
+        - 미래 PnL 대비 현재 청산의 후회 비용
         """
         if self._done:
             return self._compute_obs(), 0.0, True, False, {}
@@ -207,40 +259,80 @@ class ScalpExitEnv(gym.Env):
         current_price = self._episode_candles[current_idx]["trade_price"]
         pnl_pct = (current_price / self._entry_price - 1) * 100 - FEE_PCT
 
+        # 이전 스텝 PnL (모멘텀 계산용)
+        prev_idx = max(current_idx - 1, 0)
+        prev_price = self._episode_candles[prev_idx]["trade_price"]
+        prev_pnl = (prev_price / self._entry_price - 1) * 100 - FEE_PCT
+        pnl_delta = pnl_pct - prev_pnl  # 이번 분 PnL 변화량
+
+        # 최고 PnL 추적 (트레일링 스톱 학습용)
+        if not hasattr(self, '_peak_pnl'):
+            self._peak_pnl = pnl_pct
+        self._peak_pnl = max(self._peak_pnl, pnl_pct)
+
         reward = 0.0
         terminated = False
         info = {}
 
         if action == 0:  # HOLD
-            reward = -0.002  # 시간 비용 (분당)
+            # v7: 모멘텀 기반 HOLD 보상
+            if pnl_pct > 0 and pnl_delta > 0:
+                # 수익 중 + 상승 중 → 인내심 보상
+                reward = 0.01 + pnl_delta * 0.5
+            elif pnl_pct > 0 and pnl_delta <= 0:
+                # 수익 중이나 하락 → 약간의 시간비용만
+                reward = -0.005
+            elif pnl_pct <= 0 and pnl_delta > 0:
+                # 손실 중이나 반등 → 약간 양의 보상
+                reward = 0.003
+            else:
+                # 손실 중 + 하락 → 시간비용 가중
+                reward = -0.01
 
             # 강제 청산 조건
             if hold_min >= MAX_HOLD:
-                # 타임아웃
-                reward = pnl_pct * 0.8  # 약간 벌칙
+                reward = pnl_pct * 0.8
                 terminated = True
                 info["exit_reason"] = "timeout"
             elif pnl_pct <= -SL_DEFAULT:
-                # 강제 손절
-                reward = pnl_pct * 1.2  # 벌칙 가중
+                reward = pnl_pct * 1.5  # 강제 손절 큰 벌칙
                 terminated = True
                 info["exit_reason"] = "forced_sl"
 
         elif action == 1:  # TAKE_PROFIT
-            reward = pnl_pct
-            if pnl_pct > 0:
-                reward *= 1.5  # 수익 시 보너스
+            # v7: 조기 청산 페널티 + 모멘텀 반영
+            if hold_min <= 1:
+                # 1분 이내 즉시 청산 = 큰 페널티
+                reward = pnl_pct * 0.3 - 0.05
+            elif pnl_pct > 0:
+                # 수익 청산
+                reward = pnl_pct * 2.0  # 수익 TP 큰 보너스
+                if pnl_pct >= TP_DEFAULT:
+                    reward += 0.1  # 목표 익절 달성 추가 보너스
+                if pnl_delta > 0:
+                    # 아직 상승 중인데 TP → 약간의 후회 비용
+                    future = self._future_pnl(current_idx)
+                    if future > pnl_pct + 0.05:
+                        reward -= 0.03  # 더 갈 수 있었는데 조기 청산
             else:
-                reward *= 0.8  # 손실 상태에서 TP는 그냥 청산
+                # 손실 상태에서 TP → 손절과 동일 취급
+                reward = pnl_pct * 0.8
             terminated = True
             info["exit_reason"] = "take_profit"
 
         elif action == 2:  # STOP_LOSS
-            reward = pnl_pct
-            if pnl_pct < -0.3:
-                reward += 0.1  # 큰 손실에서 빠른 손절 보상
+            # v7: 상황별 손절 보상
+            if pnl_pct < -0.15 and pnl_delta < 0:
+                # 하락 중 손절 → 현명한 판단
+                reward = pnl_pct + 0.15  # 손실 경감 보상
+            elif pnl_pct < -SL_DEFAULT * 0.8:
+                # 큰 손실 빠른 손절 → 좋은 판단
+                reward = pnl_pct + 0.1
             elif pnl_pct > 0:
-                reward *= 0.5  # 수익 상태에서 SL은 벌칙
+                # 수익 중 SL → 벌칙
+                reward = -0.1
+            else:
+                reward = pnl_pct * 0.8
             terminated = True
             info["exit_reason"] = "stop_loss"
 
