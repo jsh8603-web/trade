@@ -55,15 +55,18 @@ HEADERS = {
 }
 
 
-def log_to_db(machine: str, phase: str, status: str, metrics: dict = None, error: str = None):
+def log_to_db(machine: str, phase: str, status: str, metrics: dict = None, error: str = None,
+              plan: str = None):
     """훈련 진행상황을 DB에 기록"""
     try:
+        # phase 이름에 'w2_' 접두사가 있으면 자동으로 week2 plan 설정
+        plan_name = plan or ("week2_distributed" if phase.startswith("w2_") else "1week_distributed")
         row = {
             "task_type": "train_pytorch",
             "params": json.dumps({
                 "machine": machine,
                 "phase": phase,
-                "plan": "1week_distributed",
+                "plan": plan_name,
             }),
             "status": status,
             "assigned_worker": machine,
@@ -1173,20 +1176,32 @@ def _run_phases(machine: str, phases: list):
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="3대 분산 스캘핑 RL 훈련")
+    parser = argparse.ArgumentParser(description="3대 분산 RL 훈련")
     parser.add_argument("--machine", required=True,
                        choices=["mac-mini", "pc128", "pc36"],
                        help="이 머신의 역할")
+    parser.add_argument("--plan", default="week1",
+                       choices=["week1", "week2"],
+                       help="훈련 계획 (week1: 초단타 스캘핑, week2: 레짐+앙상블+보상해부)")
     parser.add_argument("--phase", type=int, default=0,
                        help="특정 phase부터 시작 (1-7, 0=전체)")
     args = parser.parse_args()
 
-    runners = {
-        "mac-mini": run_mac_mini,
-        "pc128": run_pc128,
-        "pc36": run_pc36,
-    }
+    if args.plan == "week1":
+        runners = {
+            "mac-mini": run_mac_mini,
+            "pc128": run_pc128,
+            "pc36": run_pc36,
+        }
+    else:
+        from scalp_ml.week2 import run_mac_mini_w2, run_pc128_w2, run_pc36_w2
+        runners = {
+            "mac-mini": run_mac_mini_w2,
+            "pc128": run_pc128_w2,
+            "pc36": run_pc36_w2,
+        }
 
+    log.info(f"Plan: {args.plan}, Machine: {args.machine}")
     runners[args.machine]()
 
 
