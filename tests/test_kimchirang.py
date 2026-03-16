@@ -1,5 +1,6 @@
 """Kimchirang 유닛 테스트"""
 
+import asyncio
 import json
 import os
 import sys
@@ -189,29 +190,30 @@ class TestExecutor:
         reason = executor._check_safety("exit")
         assert "포지션" in reason
 
-    @pytest.mark.asyncio
-    async def test_enter_dry_run(self, executor, snapshot):
-        with patch("kimchirang.state.save_position"):
-            result = await executor.enter(snapshot)
-            assert result.both_success
-            assert result.dry_run
-            assert executor.position.is_open
+    def test_enter_dry_run(self, executor, snapshot):
+        async def _run():
+            with patch("kimchirang.state.save_position"):
+                result = await executor.enter(snapshot)
+                assert result.both_success
+                assert result.dry_run
+                assert executor.position.is_open
+        asyncio.run(_run())
 
-    @pytest.mark.asyncio
-    async def test_exit_dry_run(self, executor, snapshot):
-        # 먼저 진입
-        with patch("kimchirang.state.save_position"):
-            await executor.enter(snapshot)
-            assert executor.position.is_open
-            # 청산
-            result = await executor.exit(snapshot)
-            assert result.both_success
-            assert not executor.position.is_open
+    def test_exit_dry_run(self, executor, snapshot):
+        async def _run():
+            with patch("kimchirang.state.save_position"):
+                await executor.enter(snapshot)
+                assert executor.position.is_open
+                result = await executor.exit(snapshot)
+                assert result.both_success
+                assert not executor.position.is_open
+        asyncio.run(_run())
 
-    @pytest.mark.asyncio
-    async def test_set_leverage_dry_run(self, executor):
-        ok = await executor.set_leverage()
-        assert ok is True
+    def test_set_leverage_dry_run(self, executor):
+        async def _run():
+            ok = await executor.set_leverage()
+            assert ok is True
+        asyncio.run(_run())
 
     def test_get_position_info(self, executor):
         info = executor.get_position_info()
@@ -296,14 +298,14 @@ class TestNotifier:
             n = mod.KimchirangNotifier()
             assert n._enabled is False
 
-    @pytest.mark.asyncio
-    async def test_notify_error_does_not_crash(self):
+    def test_notify_error_does_not_crash(self):
         from kimchirang.notifier import KimchirangNotifier
-        with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_USER_ID": ""}, clear=False):
-            n = KimchirangNotifier()
-            n._enabled = False
-            # 비활성 상태에서 호출해도 예외 없이 통과
-            await n.notify_error("test_phase", "test error")
+        async def _run():
+            with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_USER_ID": ""}, clear=False):
+                n = KimchirangNotifier()
+                n._enabled = False
+                await n.notify_error("test_phase", "test error")
+        asyncio.run(_run())
 
 
 # ============================================================
@@ -318,30 +320,31 @@ class TestDB:
             db = KimchirangDB(DBConfig())
             assert db._enabled is False
 
-    @pytest.mark.asyncio
-    async def test_record_trade_disabled_skips(self, snapshot):
+    def test_record_trade_disabled_skips(self, snapshot):
         from kimchirang.db import KimchirangDB
         from kimchirang.config import DBConfig
-        with patch.dict(os.environ, {"SUPABASE_URL": "", "SUPABASE_SERVICE_ROLE_KEY": ""}, clear=False):
-            db = KimchirangDB(DBConfig())
-            result = ExecutionResult(action="enter")
-            # 비활성 상태에서 호출해도 예외 없이 통과
-            await db.record_trade(result, snapshot)
+        async def _run():
+            with patch.dict(os.environ, {"SUPABASE_URL": "", "SUPABASE_SERVICE_ROLE_KEY": ""}, clear=False):
+                db = KimchirangDB(DBConfig())
+                result = ExecutionResult(action="enter")
+                await db.record_trade(result, snapshot)
+        asyncio.run(_run())
 
-    @pytest.mark.asyncio
-    async def test_record_trade_success(self, snapshot):
+    def test_record_trade_success(self, snapshot):
         from kimchirang.db import KimchirangDB
         from kimchirang.config import DBConfig
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "https://test.supabase.co",
-            "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            mock_resp = MagicMock(status_code=201, text="")
-            db._session.post = MagicMock(return_value=mock_resp)
-            result = ExecutionResult(action="enter", kp_at_execution=3.5)
-            await db.record_trade(result, snapshot, stats={"mid_kp": 1.9})
-            db._session.post.assert_called_once()
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "https://test.supabase.co",
+                "SUPABASE_SERVICE_ROLE_KEY": "test_key",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                mock_resp = MagicMock(status_code=201, text="")
+                db._session.post = MagicMock(return_value=mock_resp)
+                result = ExecutionResult(action="enter", kp_at_execution=3.5)
+                await db.record_trade(result, snapshot, stats={"mid_kp": 1.9})
+                db._session.post.assert_called_once()
+        asyncio.run(_run())
 
 
 # ============================================================
@@ -542,206 +545,209 @@ class TestRLBridge:
 class TestDBKPSnapshot:
     """record_kp_snapshot 이중 기록 테스트"""
 
-    @pytest.mark.asyncio
-    async def test_record_kp_snapshot_supabase_and_local(self, snapshot, tmp_path):
+    def test_record_kp_snapshot_supabase_and_local(self, snapshot, tmp_path):
         """Supabase POST + 로컬 JSONL 이중 기록"""
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "https://test.supabase.co",
-            "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            # 로컬 경로를 tmp_path로 변경
-            import kimchirang.db as db_mod
-            original_dir = db_mod.LOCAL_DATA_DIR
-            db_mod.LOCAL_DATA_DIR = str(tmp_path)
-            try:
-                stats = {
-                    "kp_ma_1m": 1.8,
-                    "kp_ma_5m": 1.9,
-                    "kp_z_score": 0.5,
-                    "kp_velocity": 0.002,
-                    "spread_cost": 0.2,
-                    "funding_rate": 0.0001,
-                }
-                mock_resp = MagicMock(status_code=201, text="")
-                db._session.post = MagicMock(return_value=mock_resp)
-                await db.record_kp_snapshot(snapshot, stats)
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "https://test.supabase.co",
+                "SUPABASE_SERVICE_ROLE_KEY": "test_key",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                import kimchirang.db as db_mod
+                original_dir = db_mod.LOCAL_DATA_DIR
+                db_mod.LOCAL_DATA_DIR = str(tmp_path)
+                try:
+                    stats = {
+                        "kp_ma_1m": 1.8,
+                        "kp_ma_5m": 1.9,
+                        "kp_z_score": 0.5,
+                        "kp_velocity": 0.002,
+                        "spread_cost": 0.2,
+                        "funding_rate": 0.0001,
+                    }
+                    mock_resp = MagicMock(status_code=201, text="")
+                    db._session.post = MagicMock(return_value=mock_resp)
+                    await db.record_kp_snapshot(snapshot, stats)
 
-                # Supabase POST 호출 확인
-                db._session.post.assert_called_once()
-                call_args = db._session.post.call_args
-                assert "kimchirang_kp_history" in str(call_args)
-                posted_row = call_args[1]["json"] if "json" in call_args[1] else call_args[0][0]
-                # row가 json= kwarg으로 전달됨
-                assert posted_row["mid_kp"] == snapshot.mid_kp
+                    db._session.post.assert_called_once()
+                    call_args = db._session.post.call_args
+                    assert "kimchirang_kp_history" in str(call_args)
+                    posted_row = call_args[1]["json"] if "json" in call_args[1] else call_args[0][0]
+                    assert posted_row["mid_kp"] == snapshot.mid_kp
 
-                # 로컬 JSONL 파일 확인
-                local_file = os.path.join(str(tmp_path), "kp_history.jsonl")
-                assert os.path.exists(local_file)
-                with open(local_file, "r", encoding="utf-8") as f:
-                    line = f.readline()
-                    data = json.loads(line)
-                    assert data["mid_kp"] == snapshot.mid_kp
-                    assert "_saved_at" in data
-            finally:
-                db_mod.LOCAL_DATA_DIR = original_dir
+                    local_file = os.path.join(str(tmp_path), "kp_history.jsonl")
+                    assert os.path.exists(local_file)
+                    with open(local_file, "r", encoding="utf-8") as f:
+                        line = f.readline()
+                        data = json.loads(line)
+                        assert data["mid_kp"] == snapshot.mid_kp
+                        assert "_saved_at" in data
+                finally:
+                    db_mod.LOCAL_DATA_DIR = original_dir
+        asyncio.run(_run())
 
-    @pytest.mark.asyncio
-    async def test_record_kp_snapshot_disabled_local_only(self, snapshot, tmp_path):
+    def test_record_kp_snapshot_disabled_local_only(self, snapshot, tmp_path):
         """Supabase 미설정 시 로컬만 기록"""
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "",
-            "SUPABASE_SERVICE_ROLE_KEY": "",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            import kimchirang.db as db_mod
-            original_dir = db_mod.LOCAL_DATA_DIR
-            db_mod.LOCAL_DATA_DIR = str(tmp_path)
-            try:
-                stats = {"kp_ma_5m": 1.5}
-                await db.record_kp_snapshot(snapshot, stats)
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "",
+                "SUPABASE_SERVICE_ROLE_KEY": "",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                import kimchirang.db as db_mod
+                original_dir = db_mod.LOCAL_DATA_DIR
+                db_mod.LOCAL_DATA_DIR = str(tmp_path)
+                try:
+                    stats = {"kp_ma_5m": 1.5}
+                    await db.record_kp_snapshot(snapshot, stats)
 
-                local_file = os.path.join(str(tmp_path), "kp_history.jsonl")
-                assert os.path.exists(local_file)
-                with open(local_file, "r", encoding="utf-8") as f:
-                    data = json.loads(f.readline())
-                    assert data["mid_kp"] == snapshot.mid_kp
-            finally:
-                db_mod.LOCAL_DATA_DIR = original_dir
+                    local_file = os.path.join(str(tmp_path), "kp_history.jsonl")
+                    assert os.path.exists(local_file)
+                    with open(local_file, "r", encoding="utf-8") as f:
+                        data = json.loads(f.readline())
+                        assert data["mid_kp"] == snapshot.mid_kp
+                finally:
+                    db_mod.LOCAL_DATA_DIR = original_dir
+        asyncio.run(_run())
 
 
 class TestDBRLModel:
     """record_rl_model 이중 기록 테스트"""
 
-    @pytest.mark.asyncio
-    async def test_record_rl_model_supabase_and_local(self, tmp_path):
+    def test_record_rl_model_supabase_and_local(self, tmp_path):
         """RL 모델 성과 기록 (이중 저장)"""
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "https://test.supabase.co",
-            "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            import kimchirang.db as db_mod
-            original_dir = db_mod.LOCAL_DATA_DIR
-            db_mod.LOCAL_DATA_DIR = str(tmp_path)
-            try:
-                model_info = {
-                    "model_type": "PPO",
-                    "version": "v1.0",
-                    "total_reward": 1523.4,
-                    "sharpe_ratio": 0.85,
-                    "max_drawdown": -3.2,
-                    "train_steps": 500000,
-                }
-                mock_resp = MagicMock(status_code=201, text="")
-                db._session.post = MagicMock(return_value=mock_resp)
-                await db.record_rl_model(model_info)
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "https://test.supabase.co",
+                "SUPABASE_SERVICE_ROLE_KEY": "test_key",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                import kimchirang.db as db_mod
+                original_dir = db_mod.LOCAL_DATA_DIR
+                db_mod.LOCAL_DATA_DIR = str(tmp_path)
+                try:
+                    model_info = {
+                        "model_type": "PPO",
+                        "version": "v1.0",
+                        "total_reward": 1523.4,
+                        "sharpe_ratio": 0.85,
+                        "max_drawdown": -3.2,
+                        "train_steps": 500000,
+                    }
+                    mock_resp = MagicMock(status_code=201, text="")
+                    db._session.post = MagicMock(return_value=mock_resp)
+                    await db.record_rl_model(model_info)
 
-                db._session.post.assert_called_once()
-                call_args = db._session.post.call_args
-                assert "kimchirang_rl_models" in str(call_args)
+                    db._session.post.assert_called_once()
+                    call_args = db._session.post.call_args
+                    assert "kimchirang_rl_models" in str(call_args)
 
-                local_file = os.path.join(str(tmp_path), "rl_models.jsonl")
-                assert os.path.exists(local_file)
-                with open(local_file, "r", encoding="utf-8") as f:
-                    data = json.loads(f.readline())
-                    assert data["model_type"] == "PPO"
-                    assert data["train_steps"] == 500000
-            finally:
-                db_mod.LOCAL_DATA_DIR = original_dir
+                    local_file = os.path.join(str(tmp_path), "rl_models.jsonl")
+                    assert os.path.exists(local_file)
+                    with open(local_file, "r", encoding="utf-8") as f:
+                        data = json.loads(f.readline())
+                        assert data["model_type"] == "PPO"
+                        assert data["train_steps"] == 500000
+                finally:
+                    db_mod.LOCAL_DATA_DIR = original_dir
+        asyncio.run(_run())
 
-    @pytest.mark.asyncio
-    async def test_record_rl_model_disabled_local_only(self, tmp_path):
+    def test_record_rl_model_disabled_local_only(self, tmp_path):
         """Supabase 미설정 시 로컬만 기록"""
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "",
-            "SUPABASE_SERVICE_ROLE_KEY": "",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            import kimchirang.db as db_mod
-            original_dir = db_mod.LOCAL_DATA_DIR
-            db_mod.LOCAL_DATA_DIR = str(tmp_path)
-            try:
-                model_info = {"model_type": "DQN", "version": "v2.0"}
-                await db.record_rl_model(model_info)
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "",
+                "SUPABASE_SERVICE_ROLE_KEY": "",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                import kimchirang.db as db_mod
+                original_dir = db_mod.LOCAL_DATA_DIR
+                db_mod.LOCAL_DATA_DIR = str(tmp_path)
+                try:
+                    model_info = {"model_type": "DQN", "version": "v2.0"}
+                    await db.record_rl_model(model_info)
 
-                local_file = os.path.join(str(tmp_path), "rl_models.jsonl")
-                assert os.path.exists(local_file)
-            finally:
-                db_mod.LOCAL_DATA_DIR = original_dir
+                    local_file = os.path.join(str(tmp_path), "rl_models.jsonl")
+                    assert os.path.exists(local_file)
+                finally:
+                    db_mod.LOCAL_DATA_DIR = original_dir
+        asyncio.run(_run())
 
 
 class TestDBLocalJSONL:
     """로컬 JSONL 이중 기록 공통 테스트"""
 
-    @pytest.mark.asyncio
-    async def test_local_jsonl_appends(self, snapshot, tmp_path):
+    def test_local_jsonl_appends(self, snapshot, tmp_path):
         """여러 번 기록 시 JSONL에 행 추가"""
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "",
-            "SUPABASE_SERVICE_ROLE_KEY": "",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            import kimchirang.db as db_mod
-            original_dir = db_mod.LOCAL_DATA_DIR
-            db_mod.LOCAL_DATA_DIR = str(tmp_path)
-            try:
-                stats = {"kp_ma_5m": 1.0}
-                await db.record_kp_snapshot(snapshot, stats)
-                await db.record_kp_snapshot(snapshot, stats)
-                await db.record_kp_snapshot(snapshot, stats)
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "",
+                "SUPABASE_SERVICE_ROLE_KEY": "",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                import kimchirang.db as db_mod
+                original_dir = db_mod.LOCAL_DATA_DIR
+                db_mod.LOCAL_DATA_DIR = str(tmp_path)
+                try:
+                    stats = {"kp_ma_5m": 1.0}
+                    await db.record_kp_snapshot(snapshot, stats)
+                    await db.record_kp_snapshot(snapshot, stats)
+                    await db.record_kp_snapshot(snapshot, stats)
 
-                local_file = os.path.join(str(tmp_path), "kp_history.jsonl")
-                with open(local_file, "r", encoding="utf-8") as f:
-                    lines = f.readlines()
-                    assert len(lines) == 3
-            finally:
-                db_mod.LOCAL_DATA_DIR = original_dir
+                    local_file = os.path.join(str(tmp_path), "kp_history.jsonl")
+                    with open(local_file, "r", encoding="utf-8") as f:
+                        lines = f.readlines()
+                        assert len(lines) == 3
+                finally:
+                    db_mod.LOCAL_DATA_DIR = original_dir
+        asyncio.run(_run())
 
-    @pytest.mark.asyncio
-    async def test_record_trade_local_jsonl(self, snapshot, tmp_path):
+    def test_record_trade_local_jsonl(self, snapshot, tmp_path):
         """record_trade도 로컬 JSONL에 기록"""
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "",
-            "SUPABASE_SERVICE_ROLE_KEY": "",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            import kimchirang.db as db_mod
-            original_dir = db_mod.LOCAL_DATA_DIR
-            db_mod.LOCAL_DATA_DIR = str(tmp_path)
-            try:
-                result = ExecutionResult(action="enter", kp_at_execution=3.5)
-                await db.record_trade(result, snapshot)
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "",
+                "SUPABASE_SERVICE_ROLE_KEY": "",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                import kimchirang.db as db_mod
+                original_dir = db_mod.LOCAL_DATA_DIR
+                db_mod.LOCAL_DATA_DIR = str(tmp_path)
+                try:
+                    result = ExecutionResult(action="enter", kp_at_execution=3.5)
+                    await db.record_trade(result, snapshot)
 
-                local_file = os.path.join(str(tmp_path), "trades.jsonl")
-                assert os.path.exists(local_file)
-                with open(local_file, "r", encoding="utf-8") as f:
-                    data = json.loads(f.readline())
-                    assert data["action"] == "enter"
-                    assert data["kp_at_execution"] == 3.5
-                    assert "_saved_at" in data
-            finally:
-                db_mod.LOCAL_DATA_DIR = original_dir
+                    local_file = os.path.join(str(tmp_path), "trades.jsonl")
+                    assert os.path.exists(local_file)
+                    with open(local_file, "r", encoding="utf-8") as f:
+                        data = json.loads(f.readline())
+                        assert data["action"] == "enter"
+                        assert data["kp_at_execution"] == 3.5
+                        assert "_saved_at" in data
+                finally:
+                    db_mod.LOCAL_DATA_DIR = original_dir
+        asyncio.run(_run())
 
-    @pytest.mark.asyncio
-    async def test_record_error_local_jsonl(self, tmp_path):
+    def test_record_error_local_jsonl(self, tmp_path):
         """record_error도 로컬 JSONL에 기록"""
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "",
-            "SUPABASE_SERVICE_ROLE_KEY": "",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            import kimchirang.db as db_mod
-            original_dir = db_mod.LOCAL_DATA_DIR
-            db_mod.LOCAL_DATA_DIR = str(tmp_path)
-            try:
-                await db.record_error("tick", "test error message")
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "",
+                "SUPABASE_SERVICE_ROLE_KEY": "",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                import kimchirang.db as db_mod
+                original_dir = db_mod.LOCAL_DATA_DIR
+                db_mod.LOCAL_DATA_DIR = str(tmp_path)
+                try:
+                    await db.record_error("tick", "test error message")
 
-                local_file = os.path.join(str(tmp_path), "errors.jsonl")
-                assert os.path.exists(local_file)
-                with open(local_file, "r", encoding="utf-8") as f:
-                    data = json.loads(f.readline())
-                    assert data["error_phase"] == "tick"
-                    assert "test error" in data["error_message"]
-            finally:
-                db_mod.LOCAL_DATA_DIR = original_dir
+                    local_file = os.path.join(str(tmp_path), "errors.jsonl")
+                    assert os.path.exists(local_file)
+                    with open(local_file, "r", encoding="utf-8") as f:
+                        data = json.loads(f.readline())
+                        assert data["error_phase"] == "tick"
+                        assert "test error" in data["error_message"]
+                finally:
+                    db_mod.LOCAL_DATA_DIR = original_dir
+        asyncio.run(_run())

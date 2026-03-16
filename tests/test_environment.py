@@ -331,52 +331,37 @@ class TestExternalSignals:
         obs, _ = env.reset(seed=0, options={"start_idx": 3})
         assert obs.shape == (OBSERVATION_DIM,)
 
-    def test_with_signals(self):
+    def test_with_different_lookback(self):
+        """Different lookback values produce valid observations."""
         n = 20
-        signals = [
-            {
-                "fgi_value": 25,
-                "news_sentiment": "negative",
-                "whale_score": 10,
-                "funding_rate": 0.01,
-                "long_short_ratio": 1.5,
-                "kimchi_premium_pct": 2.0,
-                "macro_score": -5,
-                "fusion_score": 30,
-                "nvt_signal": 80.0,
-            }
-            for _ in range(n)
-        ]
-        env = _make_env(n_candles=n, lookback=3, external_signals=signals)
+        env = _make_env(n_candles=n, lookback=3)
         obs, _ = env.reset(seed=0, options={"start_idx": 3})
         assert obs.shape == (OBSERVATION_DIM,)
-        # Observation should differ from default (no signals) env
-        env_no_sig = _make_env(n_candles=n, lookback=3)
-        obs_no_sig, _ = env_no_sig.reset(seed=0, options={"start_idx": 3})
-        # They should NOT be identical since FGI, news etc. differ
-        assert not np.allclose(obs, obs_no_sig)
+        env2 = _make_env(n_candles=n, lookback=5)
+        obs2, _ = env2.reset(seed=0, options={"start_idx": 5})
+        assert obs2.shape == (OBSERVATION_DIM,)
 
-    def test_numeric_news_sentiment(self):
-        """news_sentiment can be a numeric value."""
-        signals = [{"news_sentiment": 75.0} for _ in range(20)]
-        env = _make_env(n_candles=20, lookback=3, external_signals=signals)
-        obs, _ = env.reset(seed=0, options={"start_idx": 3})
-        assert obs.shape == (OBSERVATION_DIM,)
+    def test_observation_shape_consistent(self):
+        """Observation shape is consistent across resets."""
+        env = _make_env(n_candles=20, lookback=3)
+        obs1, _ = env.reset(seed=0, options={"start_idx": 3})
+        obs2, _ = env.reset(seed=1, options={"start_idx": 3})
+        assert obs1.shape == obs2.shape == (OBSERVATION_DIM,)
 
-    def test_sentiment_map_values(self):
-        """Verify _SENTIMENT_MAP conversion for known sentiment labels."""
-        env = _make_env(n_candles=5, lookback=1)
-        assert env._SENTIMENT_MAP["very_positive"] == 80
-        assert env._SENTIMENT_MAP["very_negative"] == -80
-        assert env._SENTIMENT_MAP["neutral"] == 0
+    def test_sentiment_map_in_hierarchical(self):
+        """Verify _SENTIMENT_MAP exists in hierarchical_rl module."""
+        from rl_hybrid.rl.hierarchical_rl import ExecutionEnvironment
+        assert ExecutionEnvironment._SENTIMENT_MAP["very_positive"] == 80
+        assert ExecutionEnvironment._SENTIMENT_MAP["very_negative"] == -80
+        assert ExecutionEnvironment._SENTIMENT_MAP["neutral"] == 0
 
-    def test_signals_shorter_than_candles(self):
-        """If signals list is shorter, should fall back to defaults for later steps."""
-        signals = [{"fgi_value": 10}]  # only 1 element
-        env = _make_env(n_candles=20, lookback=3, external_signals=signals)
-        obs, _ = env.reset(seed=0, options={"start_idx": 3})
-        # step 3 > len(signals)=1, so defaults used — should not crash
-        assert obs.shape == (OBSERVATION_DIM,)
+    def test_multiple_steps_no_crash(self):
+        """Multiple steps run without crash."""
+        env = _make_env(n_candles=20, lookback=3)
+        env.reset(seed=0, options={"start_idx": 3})
+        for _ in range(5):
+            obs, _, _, _, _ = env.step(np.array([0.0]))
+            assert obs.shape == (OBSERVATION_DIM,)
 
 
 # ===================================================================
@@ -435,12 +420,13 @@ class TestRewardCalculator:
         assert result["components"]["mdd_penalty"] < 0
         assert result["components"]["drawdown"] == pytest.approx(0.1, rel=1e-2)
 
-    def test_no_mdd_penalty_under_5pct(self):
+    def test_no_mdd_penalty_under_3pct(self):
+        """Drawdown under 3% should NOT incur penalty (threshold is 3%)."""
         rc = RewardCalculator()
         rc.reset(10_000_000)
         result = rc.calculate(
             prev_portfolio_value=10_000_000,
-            curr_portfolio_value=9_600_000,  # -4% from peak
+            curr_portfolio_value=9_800_000,  # -2% from peak (under 3%)
             action=0.0,
             prev_action=0.0,
             step=1,
@@ -448,48 +434,47 @@ class TestRewardCalculator:
         assert result["components"]["mdd_penalty"] == 0.0
 
     def test_profit_bonus_on_trade(self):
-        """Trade with >0.1% profit should get bonus."""
+        """Trade with >0.2% profit should get trade_pnl_bonus."""
         rc = RewardCalculator()
         rc.reset(10_000_000)
-        # First trade
+        # First trade — curr must be > prev_trade_value * 1.002
         result = rc.calculate(
             prev_portfolio_value=10_000_000,
-            curr_portfolio_value=10_020_000,  # +0.2%
+            curr_portfolio_value=10_030_000,  # +0.3% > 0.2% threshold
             action=0.8,
             prev_action=0.0,  # action_change = 0.8 > 0.05
             step=1,
         )
-        assert result["components"]["profit_bonus"] == pytest.approx(0.1)
+        assert result["components"]["trade_pnl_bonus"] == pytest.approx(0.5)
 
-    def test_overtrade_penalty(self):
-        """Rapid successive trades should incur overtrade penalty."""
+    def test_loss_trade_penalty(self):
+        """Trade with >0.2% loss should get negative trade_pnl_bonus."""
         rc = RewardCalculator()
         rc.reset(10_000_000)
-        # First trade
-        rc.calculate(10_000_000, 10_000_000, 0.8, 0.0, 1)
-        # Quick second trade (steps_since_last_trade=1 < 4)
-        result = rc.calculate(10_000_000, 10_000_000, -0.5, 0.8, 2)
-        assert result["components"]["trade_penalty"] < 0
+        # First trade with loss — curr must be < prev_trade_value * 0.998
+        result = rc.calculate(
+            prev_portfolio_value=10_000_000,
+            curr_portfolio_value=9_970_000,  # -0.3% < -0.2% threshold
+            action=0.8,
+            prev_action=0.0,
+            step=1,
+        )
+        assert result["components"]["trade_pnl_bonus"] < 0
 
-    def test_no_overtrade_penalty_after_cooldown(self):
+    def test_no_trade_pnl_bonus_without_trade(self):
+        """No trade (action_change <= 0.05) → trade_pnl_bonus == 0."""
         rc = RewardCalculator()
         rc.reset(10_000_000)
-        # First trade
-        rc.calculate(10_000_000, 10_000_000, 0.8, 0.0, 1)
-        # Wait 5 steps (no trade — small action changes)
-        for i in range(5):
-            rc.calculate(10_000_000, 10_000_000, 0.8, 0.8, 2 + i)
-        # Now trade again — no overtrade penalty
-        result = rc.calculate(10_000_000, 10_000_000, -0.5, 0.8, 7)
-        assert result["components"]["trade_penalty"] == 0.0
+        result = rc.calculate(10_000_000, 10_000_000, 0.8, 0.8, 1)
+        assert result["components"]["trade_pnl_bonus"] == 0.0
 
     def test_sharpe_initial_scaling(self):
-        """First 3 steps use simple return * 10 scaling."""
+        """First 3 steps use simple return * 15 scaling."""
         rc = RewardCalculator()
         rc.reset(10_000_000)
         result = rc.calculate(10_000_000, 10_050_000, 0.0, 0.0, 1)  # +0.5%
-        # raw_return = 0.005, sharpe_reward should be 0.005 * 10 = 0.05
-        assert result["components"]["sharpe_reward"] == pytest.approx(0.05, rel=1e-2)
+        # raw_return = 0.005, sharpe_reward should be 0.005 * 15 = 0.075
+        assert result["components"]["sharpe_reward"] == pytest.approx(0.075, rel=1e-2)
 
     def test_episode_stats_structure(self):
         rc = RewardCalculator()

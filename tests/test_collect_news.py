@@ -393,10 +393,10 @@ class TestErrorHandling:
     @patch("scripts.collect_news._load_usage")
     def test_main_quota_exhausted(self, mock_load, mock_budget, mock_save):
         """main() raises when monthly quota is exhausted."""
-        mock_load.return_value = {"month": "2026-03", "count": MONTHLY_LIMIT}
+        mock_load.return_value = {"month": "2026-03", "count": MONTHLY_LIMIT, "daily": {}}
         mock_budget.return_value = []
 
-        with pytest.raises(RuntimeError, match="월간 한도 소진"):
+        with pytest.raises(RuntimeError, match="한도 소진"):
             main()
 
 
@@ -414,7 +414,7 @@ class TestOutputFormat:
     @patch.dict(os.environ, {"TAVILY_API_KEY": "test-key"})
     def test_main_output_structure(self, mock_load, mock_save, mock_post, mock_dt, capsys):
         """main() prints valid JSON with expected top-level keys."""
-        mock_load.return_value = {"month": "2026-03", "count": 0}
+        mock_load.return_value = {"month": "2026-03", "count": 0, "daily": {}}
         mock_dt.now.return_value = datetime(2026, 3, 9, 12, 0)  # Monday
         mock_dt.side_effect = lambda *a, **kw: datetime(*a, **kw)
 
@@ -444,7 +444,7 @@ class TestOutputFormat:
     @patch.dict(os.environ, {"TAVILY_API_KEY": "test-key"})
     def test_tavily_usage_fields(self, mock_load, mock_save, mock_post, mock_dt, capsys):
         """tavily_usage section has required fields."""
-        mock_load.return_value = {"month": "2026-03", "count": 10}
+        mock_load.return_value = {"month": "2026-03", "count": 10, "daily": {}}
         mock_dt.now.return_value = datetime(2026, 3, 9, 12, 0)
         mock_dt.side_effect = lambda *a, **kw: datetime(*a, **kw)
 
@@ -460,10 +460,10 @@ class TestOutputFormat:
         usage = output["tavily_usage"]
 
         assert "month" in usage
-        assert "api_calls_used" in usage
-        assert "limit" in usage
-        assert usage["limit"] == MONTHLY_LIMIT
-        assert "remaining" in usage
+        assert "monthly_used" in usage
+        assert "monthly_limit" in usage
+        assert usage["monthly_limit"] == MONTHLY_LIMIT
+        assert "monthly_remaining" in usage
         assert "this_run_calls" in usage
 
     @patch("scripts.collect_news.datetime")
@@ -473,7 +473,7 @@ class TestOutputFormat:
     @patch.dict(os.environ, {"TAVILY_API_KEY": "test-key"})
     def test_articles_have_category(self, mock_load, mock_save, mock_post, mock_dt, capsys):
         """Each article in output has a category field."""
-        mock_load.return_value = {"month": "2026-03", "count": 0}
+        mock_load.return_value = {"month": "2026-03", "count": 0, "daily": {}}
         mock_dt.now.return_value = datetime(2026, 3, 9, 12, 0)
         mock_dt.side_effect = lambda *a, **kw: datetime(*a, **kw)
 
@@ -498,7 +498,7 @@ class TestOutputFormat:
     @patch.dict(os.environ, {"TAVILY_API_KEY": "test-key"})
     def test_duplicate_urls_deduplicated(self, mock_load, mock_save, mock_post, mock_dt, capsys):
         """Articles with duplicate URLs are deduplicated."""
-        mock_load.return_value = {"month": "2026-03", "count": 0}
+        mock_load.return_value = {"month": "2026-03", "count": 0, "daily": {}}
         mock_dt.now.return_value = datetime(2026, 3, 9, 12, 0)
         mock_dt.side_effect = lambda *a, **kw: datetime(*a, **kw)
 
@@ -530,7 +530,7 @@ class TestOutputFormat:
     @patch.dict(os.environ, {"TAVILY_API_KEY": "test-key"})
     def test_usage_count_incremented(self, mock_load, mock_save, mock_post, mock_dt):
         """main() increments usage count by number of API calls made."""
-        mock_load.return_value = {"month": "2026-03", "count": 50}
+        mock_load.return_value = {"month": "2026-03", "count": 50, "daily": {}}
         mock_dt.now.return_value = datetime(2026, 3, 9, 12, 0)
         mock_dt.side_effect = lambda *a, **kw: datetime(*a, **kw)
 

@@ -272,18 +272,24 @@ class TestApiGetEdgeCases:
     @patch("collect_market_data.time.sleep")
     def test_429_backoff_increases(self, mock_sleep):
         """Verify exponential backoff wait times: 1, 2, 4s."""
-        mock_429 = MagicMock()
-        mock_429.status_code = 429
-        mock_429.raise_for_status.side_effect = Exception("429")
-        mock_session = MagicMock()
-        mock_session.get.return_value = mock_429
+        import collect_market_data as cmd
+        orig = cmd._THROTTLER_AVAILABLE
+        cmd._THROTTLER_AVAILABLE = False
+        try:
+            mock_429 = MagicMock()
+            mock_429.status_code = 429
+            mock_429.raise_for_status.side_effect = Exception("429")
+            mock_session = MagicMock()
+            mock_session.get.return_value = mock_429
 
-        with patch("collect_market_data._get_session", return_value=mock_session):
-            with pytest.raises(Exception):
-                api_get("/test", max_retries=3)
+            with patch("collect_market_data._get_session", return_value=mock_session):
+                with pytest.raises(Exception):
+                    api_get("/test", max_retries=3)
 
-        # sleep is called for each 429 retry: 2^0=1, 2^1=2, 2^2=4
-        assert mock_sleep.call_args_list == [call(1), call(2), call(4)]
+            # sleep is called for each 429 retry: 2^0=1, 2^1=2, 2^2=4
+            assert mock_sleep.call_args_list == [call(1), call(2), call(4)]
+        finally:
+            cmd._THROTTLER_AVAILABLE = orig
 
     def test_max_retries_one(self):
         """Single retry attempt."""
@@ -1099,11 +1105,12 @@ class TestSendMessageAdditional:
     """Additional send_message tests."""
 
     @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_USER_ID": "123"})
+    @patch("time.sleep")
     @patch("notify_telegram.requests.post")
-    def test_timeout_propagated(self, mock_post):
-        """Request timeout should propagate."""
+    def test_timeout_propagated(self, mock_post, mock_sleep):
+        """Request timeout should propagate as RuntimeError after retries."""
         mock_post.side_effect = requests.Timeout("timed out")
-        with pytest.raises(requests.Timeout):
+        with pytest.raises(RuntimeError, match="타임아웃"):
             send_message("trade", "title", "body")
 
     @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_USER_ID": "123"})

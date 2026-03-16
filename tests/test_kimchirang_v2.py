@@ -1,5 +1,6 @@
 """Kimchirang v2 유닛 테스트 -- RLBridge, KimchirangDB 이중 기록, DataFeeder"""
 
+import asyncio
 import json
 import os
 import sys
@@ -267,148 +268,151 @@ class TestRLBridgeMode:
 class TestKimchirangDBKPSnapshot:
     """record_kp_snapshot 로컬 JSONL 저장 확인"""
 
-    @pytest.mark.asyncio
-    async def test_kp_snapshot_local_saved(self, snapshot, local_data_dir):
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "",
-            "SUPABASE_SERVICE_ROLE_KEY": "",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            # 로컬 저장 경로를 tmp_path로 교체
-            with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
-                stats = {"kp_ma_1m": 1.5, "kp_ma_5m": 1.8, "kp_z_score": 0.3,
-                         "kp_velocity": 0.01, "spread_cost": 0.2, "funding_rate": 0.0001}
-                await db.record_kp_snapshot(snapshot, stats)
+    def test_kp_snapshot_local_saved(self, snapshot, local_data_dir):
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "",
+                "SUPABASE_SERVICE_ROLE_KEY": "",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
+                    stats = {"kp_ma_1m": 1.5, "kp_ma_5m": 1.8, "kp_z_score": 0.3,
+                             "kp_velocity": 0.01, "spread_cost": 0.2, "funding_rate": 0.0001}
+                    await db.record_kp_snapshot(snapshot, stats)
 
-                path = os.path.join(local_data_dir, "kp_history.jsonl")
-                assert os.path.exists(path)
-                with open(path, "r", encoding="utf-8") as f:
-                    line = f.readline()
-                    row = json.loads(line)
-                assert row["mid_kp"] == 1.9
-                assert row["entry_kp"] == 3.5
-                assert row["fx_rate"] == 1350.0
-                assert "_saved_at" in row
+                    path = os.path.join(local_data_dir, "kp_history.jsonl")
+                    assert os.path.exists(path)
+                    with open(path, "r", encoding="utf-8") as f:
+                        line = f.readline()
+                        row = json.loads(line)
+                    assert row["mid_kp"] == 1.9
+                    assert row["entry_kp"] == 3.5
+                    assert row["fx_rate"] == 1350.0
+                    assert "_saved_at" in row
+        asyncio.run(_run())
 
-    @pytest.mark.asyncio
-    async def test_kp_snapshot_stats_fields(self, snapshot, local_data_dir):
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "",
-            "SUPABASE_SERVICE_ROLE_KEY": "",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
-                stats = {"kp_ma_1m": 2.0, "kp_ma_5m": 2.5, "kp_z_score": -0.5,
-                         "kp_velocity": -0.02, "spread_cost": 0.15, "funding_rate": -0.001}
-                await db.record_kp_snapshot(snapshot, stats)
+    def test_kp_snapshot_stats_fields(self, snapshot, local_data_dir):
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "",
+                "SUPABASE_SERVICE_ROLE_KEY": "",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
+                    stats = {"kp_ma_1m": 2.0, "kp_ma_5m": 2.5, "kp_z_score": -0.5,
+                             "kp_velocity": -0.02, "spread_cost": 0.15, "funding_rate": -0.001}
+                    await db.record_kp_snapshot(snapshot, stats)
 
-                path = os.path.join(local_data_dir, "kp_history.jsonl")
-                with open(path, "r", encoding="utf-8") as f:
-                    row = json.loads(f.readline())
-                assert row["kp_ma_1m"] == 2.0
-                assert row["kp_z_score"] == -0.5
-                assert row["kp_velocity"] == -0.02
+                    path = os.path.join(local_data_dir, "kp_history.jsonl")
+                    with open(path, "r", encoding="utf-8") as f:
+                        row = json.loads(f.readline())
+                    assert row["kp_ma_1m"] == 2.0
+                    assert row["kp_z_score"] == -0.5
+                    assert row["kp_velocity"] == -0.02
+        asyncio.run(_run())
 
 
 class TestKimchirangDBRLModel:
     """record_rl_model 저장 확인"""
 
-    @pytest.mark.asyncio
-    async def test_rl_model_local_saved(self, local_data_dir):
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "",
-            "SUPABASE_SERVICE_ROLE_KEY": "",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
-                model_info = {
-                    "model_type": "PPO",
-                    "total_steps": 100000,
-                    "sharpe_ratio": 0.85,
-                    "total_return": 5.2,
-                    "mdd": 1.8,
-                }
-                await db.record_rl_model(model_info)
+    def test_rl_model_local_saved(self, local_data_dir):
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "",
+                "SUPABASE_SERVICE_ROLE_KEY": "",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
+                    model_info = {
+                        "model_type": "PPO",
+                        "total_steps": 100000,
+                        "sharpe_ratio": 0.85,
+                        "total_return": 5.2,
+                        "mdd": 1.8,
+                    }
+                    await db.record_rl_model(model_info)
 
-                path = os.path.join(local_data_dir, "rl_models.jsonl")
-                assert os.path.exists(path)
-                with open(path, "r", encoding="utf-8") as f:
-                    row = json.loads(f.readline())
-                assert row["model_type"] == "PPO"
-                assert row["total_steps"] == 100000
-                assert row["sharpe_ratio"] == 0.85
-                assert "_saved_at" in row
+                    path = os.path.join(local_data_dir, "rl_models.jsonl")
+                    assert os.path.exists(path)
+                    with open(path, "r", encoding="utf-8") as f:
+                        row = json.loads(f.readline())
+                    assert row["model_type"] == "PPO"
+                    assert row["total_steps"] == 100000
+                    assert row["sharpe_ratio"] == 0.85
+                    assert "_saved_at" in row
+        asyncio.run(_run())
 
-    @pytest.mark.asyncio
-    async def test_rl_model_supabase_attempted(self, local_data_dir):
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "https://test.supabase.co",
-            "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
-                mock_resp = MagicMock(status_code=201, text="")
-                db._session.post = MagicMock(return_value=mock_resp)
-                await db.record_rl_model({"model_type": "DQN", "steps": 50000})
-                db._session.post.assert_called_once()
-                call_args = db._session.post.call_args
-                assert "kimchirang_rl_models" in str(call_args)
+    def test_rl_model_supabase_attempted(self, local_data_dir):
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "https://test.supabase.co",
+                "SUPABASE_SERVICE_ROLE_KEY": "test_key",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
+                    mock_resp = MagicMock(status_code=201, text="")
+                    db._session.post = MagicMock(return_value=mock_resp)
+                    await db.record_rl_model({"model_type": "DQN", "steps": 50000})
+                    db._session.post.assert_called_once()
+                    call_args = db._session.post.call_args
+                    assert "kimchirang_rl_models" in str(call_args)
+        asyncio.run(_run())
 
 
 class TestKimchirangDBSupabaseFallback:
     """Supabase 실패 시 로컬만 저장되는지"""
 
-    @pytest.mark.asyncio
-    async def test_supabase_fail_local_still_saved(self, snapshot, local_data_dir):
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "https://test.supabase.co",
-            "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
-                # Supabase 500 에러 시뮬레이션
-                db._session.post = MagicMock(return_value=MagicMock(status_code=500, text="Internal Server Error"))
-                stats = {"kp_ma_1m": 1.0, "kp_ma_5m": 1.2}
-                await db.record_kp_snapshot(snapshot, stats)
+    def test_supabase_fail_local_still_saved(self, snapshot, local_data_dir):
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "https://test.supabase.co",
+                "SUPABASE_SERVICE_ROLE_KEY": "test_key",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
+                    db._session.post = MagicMock(return_value=MagicMock(status_code=500, text="Internal Server Error"))
+                    stats = {"kp_ma_1m": 1.0, "kp_ma_5m": 1.2}
+                    await db.record_kp_snapshot(snapshot, stats)
 
-                # 로컬 파일은 여전히 존재
-                path = os.path.join(local_data_dir, "kp_history.jsonl")
-                assert os.path.exists(path)
-                with open(path, "r", encoding="utf-8") as f:
-                    row = json.loads(f.readline())
-                assert row["mid_kp"] == 1.9
+                    path = os.path.join(local_data_dir, "kp_history.jsonl")
+                    assert os.path.exists(path)
+                    with open(path, "r", encoding="utf-8") as f:
+                        row = json.loads(f.readline())
+                    assert row["mid_kp"] == 1.9
+        asyncio.run(_run())
 
-    @pytest.mark.asyncio
-    async def test_supabase_exception_local_still_saved(self, snapshot, local_data_dir):
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "https://test.supabase.co",
-            "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
-                # 네트워크 오류 시뮬레이션
-                db._session.post = MagicMock(side_effect=ConnectionError("Network unreachable"))
-                stats = {"kp_ma_1m": 1.0}
-                await db.record_kp_snapshot(snapshot, stats)
+    def test_supabase_exception_local_still_saved(self, snapshot, local_data_dir):
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "https://test.supabase.co",
+                "SUPABASE_SERVICE_ROLE_KEY": "test_key",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
+                    db._session.post = MagicMock(side_effect=ConnectionError("Network unreachable"))
+                    stats = {"kp_ma_1m": 1.0}
+                    await db.record_kp_snapshot(snapshot, stats)
 
-                path = os.path.join(local_data_dir, "kp_history.jsonl")
-                assert os.path.exists(path)
+                    path = os.path.join(local_data_dir, "kp_history.jsonl")
+                    assert os.path.exists(path)
+        asyncio.run(_run())
 
-    @pytest.mark.asyncio
-    async def test_supabase_disabled_local_only(self, snapshot, local_data_dir):
+    def test_supabase_disabled_local_only(self, snapshot, local_data_dir):
         """Supabase 미설정 시 로컬만 저장"""
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "",
-            "SUPABASE_SERVICE_ROLE_KEY": "",
-        }, clear=False):
-            db = KimchirangDB(DBConfig())
-            assert db._enabled is False
-            with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
-                result = ExecutionResult(action="enter", kp_at_execution=3.5)
-                await db.record_trade(result, snapshot)
+        async def _run():
+            with patch.dict(os.environ, {
+                "SUPABASE_URL": "",
+                "SUPABASE_SERVICE_ROLE_KEY": "",
+            }, clear=False):
+                db = KimchirangDB(DBConfig())
+                assert db._enabled is False
+                with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
+                    result = ExecutionResult(action="enter", kp_at_execution=3.5)
+                    await db.record_trade(result, snapshot)
 
-                path = os.path.join(local_data_dir, "trades.jsonl")
-                assert os.path.exists(path)
+                    path = os.path.join(local_data_dir, "trades.jsonl")
+                    assert os.path.exists(path)
+        asyncio.run(_run())
 
 
 class TestKimchirangDBSaveLocal:
@@ -560,93 +564,91 @@ class TestMarketStateDataAge:
 class TestFXFeederFallback:
     """FXFeeder fallback 동작"""
 
-    @pytest.mark.asyncio
-    async def test_fallback_uses_existing_rate(self, config):
+    def test_fallback_uses_existing_rate(self, config):
         """모든 외부 소스 실패 시 기존 환율 유지 (10분 이내)"""
-        state = MarketState()
-        state.fx_rate = 1350.0
-        state.fx_updated_at = time.time() - 300  # 5분 전 (10분 이내)
-        feeder = FXFeeder(config, state)
+        async def _run():
+            state = MarketState()
+            state.fx_rate = 1350.0
+            state.fx_updated_at = time.time() - 300  # 5분 전 (10분 이내)
+            feeder = FXFeeder(config, state)
 
-        # _fetch_rate 내부의 두 aiohttp 호출 모두 실패하도록 aiohttp 자체를 에러 발생시킴
-        original_fetch = feeder._fetch_rate
+            async def patched_fetch():
+                if state.fx_rate > 0 and time.time() - state.fx_updated_at < 600:
+                    return state.fx_rate
+                return None
 
-        async def patched_fetch():
-            # 소스1, 소스2 모두 실패하면 소스3(기존 값 유지) 로직에 도달
-            # 직접 소스3 로직만 테스트
-            if state.fx_rate > 0 and time.time() - state.fx_updated_at < 600:
-                return state.fx_rate
-            return None
+            feeder._fetch_rate = patched_fetch
+            rate = await feeder._fetch_rate()
+            assert rate == 1350.0
+        asyncio.run(_run())
 
-        feeder._fetch_rate = patched_fetch
-        rate = await feeder._fetch_rate()
-        assert rate == 1350.0
-
-    @pytest.mark.asyncio
-    async def test_fallback_expired_returns_none(self, config):
+    def test_fallback_expired_returns_none(self, config):
         """기존 환율이 10분 초과 시 None 반환"""
-        state = MarketState()
-        state.fx_rate = 1350.0
-        state.fx_updated_at = time.time() - 700  # 11분 전 (10분 초과)
-        feeder = FXFeeder(config, state)
+        async def _run():
+            state = MarketState()
+            state.fx_rate = 1350.0
+            state.fx_updated_at = time.time() - 700  # 11분 전 (10분 초과)
+            feeder = FXFeeder(config, state)
 
-        async def patched_fetch():
-            if state.fx_rate > 0 and time.time() - state.fx_updated_at < 600:
-                return state.fx_rate
-            return None
+            async def patched_fetch():
+                if state.fx_rate > 0 and time.time() - state.fx_updated_at < 600:
+                    return state.fx_rate
+                return None
 
-        feeder._fetch_rate = patched_fetch
-        rate = await feeder._fetch_rate()
-        assert rate is None
+            feeder._fetch_rate = patched_fetch
+            rate = await feeder._fetch_rate()
+            assert rate is None
+        asyncio.run(_run())
 
-    @pytest.mark.asyncio
-    async def test_fallback_no_existing_rate(self, config):
+    def test_fallback_no_existing_rate(self, config):
         """기존 환율 없을 때 None 반환"""
-        state = MarketState()
-        # fx_rate = 0 (기본), fx_updated_at = 0 (기본)
-        feeder = FXFeeder(config, state)
+        async def _run():
+            state = MarketState()
+            feeder = FXFeeder(config, state)
 
-        async def patched_fetch():
-            if state.fx_rate > 0 and time.time() - state.fx_updated_at < 600:
-                return state.fx_rate
-            return None
+            async def patched_fetch():
+                if state.fx_rate > 0 and time.time() - state.fx_updated_at < 600:
+                    return state.fx_rate
+                return None
 
-        feeder._fetch_rate = patched_fetch
-        rate = await feeder._fetch_rate()
-        assert rate is None
+            feeder._fetch_rate = patched_fetch
+            rate = await feeder._fetch_rate()
+            assert rate is None
+        asyncio.run(_run())
 
-    @pytest.mark.asyncio
-    async def test_run_updates_state_on_valid_rate(self, config):
+    def test_run_updates_state_on_valid_rate(self, config):
         """run()에서 유효한 환율을 받으면 state를 갱신하는지"""
-        state = MarketState()
-        feeder = FXFeeder(config, state)
-        feeder._running = False  # 루프 1회만 실행
-
-        async def mock_fetch():
-            feeder._running = False  # 1회만
-            return 1380.0
-
-        feeder._fetch_rate = mock_fetch
-        # fx_update_interval_sec을 0으로 설정하면 sleep(0)
-        config.trading.fx_update_interval_sec = 0
-        await feeder.run()
-        assert state.fx_rate == 1380.0
-        assert state.fx_available is True
-
-    @pytest.mark.asyncio
-    async def test_run_ignores_invalid_rate(self, config):
-        """run()에서 비정상 환율(< 1000)을 무시하는지"""
-        state = MarketState()
-        feeder = FXFeeder(config, state)
-
-        async def mock_fetch():
+        async def _run():
+            state = MarketState()
+            feeder = FXFeeder(config, state)
             feeder._running = False
-            return 500.0  # 비정상
 
-        feeder._fetch_rate = mock_fetch
-        config.trading.fx_update_interval_sec = 0
-        await feeder.run()
-        assert state.fx_rate == 0.0  # 갱신 안됨
+            async def mock_fetch():
+                feeder._running = False
+                return 1380.0
+
+            feeder._fetch_rate = mock_fetch
+            config.trading.fx_update_interval_sec = 0
+            await feeder.run()
+            assert state.fx_rate == 1380.0
+            assert state.fx_available is True
+        asyncio.run(_run())
+
+    def test_run_ignores_invalid_rate(self, config):
+        """run()에서 비정상 환율(< 1000)을 무시하는지"""
+        async def _run():
+            state = MarketState()
+            feeder = FXFeeder(config, state)
+
+            async def mock_fetch():
+                feeder._running = False
+                return 500.0  # 비정상
+
+            feeder._fetch_rate = mock_fetch
+            config.trading.fx_update_interval_sec = 0
+            await feeder.run()
+            assert state.fx_rate == 0.0  # 갱신 안됨
+        asyncio.run(_run())
 
 
 class TestOrderBookProperties:

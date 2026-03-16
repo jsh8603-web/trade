@@ -50,6 +50,9 @@ def _set_env(monkeypatch, **kwargs):
         "EMERGENCY_STOP": "false",
         "DRY_RUN": "false",
         "MAX_TRADE_AMOUNT": "100000",
+        "MAX_DAILY_TRADES": "100",
+        "MIN_TRADE_INTERVAL_HOURS": "0",
+        "MAX_POSITION_RATIO": "1.0",
         "UPBIT_ACCESS_KEY": "test_access_key",
         "UPBIT_SECRET_KEY": "test_secret_key",
     }
@@ -64,10 +67,18 @@ def _set_env(monkeypatch, **kwargs):
 
 @pytest.fixture(autouse=True)
 def _patch_lock_file(tmp_path, monkeypatch):
-    """Redirect LOCK_FILE to a temp directory for every test."""
+    """Redirect LOCK_FILE to a temp directory for every test and mock safety checks."""
     lock = tmp_path / "data" / "trading.lock"
     import scripts.execute_trade as mod
     monkeypatch.setattr(mod, "LOCK_FILE", lock)
+    # Mock safety check functions to prevent reading real data files
+    monkeypatch.setattr(mod, "_get_daily_trades", lambda: {"date": "2099-01-01", "count": 0})
+    monkeypatch.setattr(mod, "_get_last_trade_time", lambda: None)
+    monkeypatch.setattr(mod, "_get_btc_position_ratio", lambda: 0.0)
+    monkeypatch.setattr(mod, "_increment_daily_trades", lambda: None)
+    monkeypatch.setattr(mod, "_update_last_trade_time", lambda: None)
+    # Mock open orders check to prevent real API calls
+    monkeypatch.setattr(mod, "check_open_orders_and_cancel", lambda market, side: None)
 
 
 @pytest.fixture
@@ -163,7 +174,7 @@ class TestAcquireLock:
             return original_kill(pid, sig)
 
         monkeypatch.setattr(os, "kill", fake_kill)
-        with pytest.raises(RuntimeError, match="다른 매매 프로세스 실행 중"):
+        with pytest.raises(TimeoutError, match="다른 매매 프로세스 실행 중"):
             acquire_lock()
 
     # 9. Corrupt JSON

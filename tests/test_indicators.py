@@ -236,7 +236,7 @@ class TestBollinger:
         result = bollinger(prices, period)
 
         mid = sum(prices[-period:]) / period  # 12.0
-        var = sum((p - mid) ** 2 for p in prices[-period:]) / period
+        var = sum((p - mid) ** 2 for p in prices[-period:]) / (period - 1)  # sample variance
         sd = var ** 0.5
 
         assert result["middle"] == pytest.approx(mid, abs=0.01)
@@ -423,22 +423,37 @@ class TestCalcATR:
 
 
 class TestApiGet:
-    @patch("collect_market_data.requests.get")
-    def test_success_on_first_try(self, mock_get):
+    """api_get uses session.get() internally, so we mock _get_session."""
+
+    @pytest.fixture(autouse=True)
+    def _reset_session(self):
+        """Reset module-level session and disable throttler for clean tests."""
+        import collect_market_data as mod
+        mod._session = None
+        self._orig_throttler = mod._THROTTLER_AVAILABLE
+        mod._THROTTLER_AVAILABLE = False
+        yield
+        mod._THROTTLER_AVAILABLE = self._orig_throttler
+        mod._session = None
+
+    @patch("collect_market_data._get_session")
+    def test_success_on_first_try(self, mock_get_session):
+        mock_session = MagicMock()
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"price": 100}
         mock_resp.raise_for_status.return_value = None
-        mock_get.return_value = mock_resp
+        mock_session.get.return_value = mock_resp
+        mock_get_session.return_value = mock_session
 
         result = api_get("/ticker", {"markets": "KRW-BTC"})
         assert result == {"price": 100}
-        assert mock_get.call_count == 1
+        assert mock_session.get.call_count == 1
 
     @patch("collect_market_data.time.sleep")
-    @patch("collect_market_data.requests.get")
-    def test_429_retry_then_success(self, mock_get, mock_sleep):
-        # First call returns 429, second succeeds
+    @patch("collect_market_data._get_session")
+    def test_429_retry_then_success(self, mock_get_session, mock_sleep):
+        mock_session = MagicMock()
         mock_429 = MagicMock()
         mock_429.status_code = 429
 
@@ -447,46 +462,50 @@ class TestApiGet:
         mock_ok.json.return_value = {"data": "ok"}
         mock_ok.raise_for_status.return_value = None
 
-        mock_get.side_effect = [mock_429, mock_ok]
+        mock_session.get.side_effect = [mock_429, mock_ok]
+        mock_get_session.return_value = mock_session
 
         result = api_get("/ticker", max_retries=3)
         assert result == {"data": "ok"}
-        assert mock_get.call_count == 2
+        assert mock_session.get.call_count == 2
         mock_sleep.assert_called_once_with(1)  # 2^0 = 1
 
     @patch("collect_market_data.time.sleep")
-    @patch("collect_market_data.requests.get")
-    def test_429_all_retries_fail(self, mock_get, mock_sleep):
+    @patch("collect_market_data._get_session")
+    def test_429_all_retries_fail(self, mock_get_session, mock_sleep):
+        mock_session = MagicMock()
         mock_429 = MagicMock()
         mock_429.status_code = 429
         mock_429.raise_for_status.side_effect = Exception("429 Too Many Requests")
-        mock_get.return_value = mock_429
+        mock_session.get.return_value = mock_429
+        mock_get_session.return_value = mock_session
 
-        # After all retries exhausted, raise_for_status is called and raises
         with pytest.raises(Exception):
             api_get("/ticker", max_retries=3)
-        # Loop runs max_retries times, then raise_for_status on last response
-        assert mock_get.call_count == 3
+        assert mock_session.get.call_count == 3
 
-    @patch("collect_market_data.requests.get")
-    def test_connection_error_returns_exception(self, mock_get):
+    @patch("collect_market_data._get_session")
+    def test_connection_error_returns_exception(self, mock_get_session):
         import requests as req
-        mock_get.side_effect = req.ConnectionError("Connection refused")
+        mock_session = MagicMock()
+        mock_session.get.side_effect = req.ConnectionError("Connection refused")
+        mock_get_session.return_value = mock_session
 
         with pytest.raises(req.ConnectionError):
             api_get("/ticker")
 
-    @patch("collect_market_data.requests.get")
-    def test_500_error_no_retry(self, mock_get):
+    @patch("collect_market_data._get_session")
+    def test_500_error_no_retry(self, mock_get_session):
+        mock_session = MagicMock()
         mock_resp = MagicMock()
         mock_resp.status_code = 500
         mock_resp.raise_for_status.side_effect = Exception("500 Server Error")
-        mock_get.return_value = mock_resp
+        mock_session.get.return_value = mock_resp
+        mock_get_session.return_value = mock_session
 
         with pytest.raises(Exception, match="500"):
             api_get("/ticker", max_retries=3)
-        # 500 is not 429, so raise_for_status is called immediately — only 1 call
-        assert mock_get.call_count == 1
+        assert mock_session.get.call_count == 1
 
 
 # ── collect_eth_btc_ratio() ─────────────────────────────

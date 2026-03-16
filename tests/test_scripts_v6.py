@@ -213,6 +213,7 @@ class TestPositionExitLogicV6:
                 "UPBIT_ACCESS_KEY": "test",
                 "UPBIT_SECRET_KEY": "test",
                 "DRY_RUN": "true",
+                "USE_RL_EXIT": "false",
             }):
                 from short_term_trader import ShortTermTrader, Position
                 bot = object.__new__(ShortTermTrader)
@@ -231,6 +232,9 @@ class TestPositionExitLogicV6:
                     entry_time=entry_time,
                     trailing_stop_active=trailing_active,
                     highest_pnl_pct=highest_pnl,
+                    stop_loss_pct=0.25,
+                    take_profit_pct=0.30,
+                    max_hold_min=15,
                 )
                 bot.positions.append(pos)
                 return bot, pos

@@ -142,16 +142,16 @@ class TestConfiguration:
         assert MIN_PROFIT_AFTER_FEE == pytest.approx(0.15)
 
     def test_spike_threshold(self):
-        assert SPIKE_THRESHOLD_PCT == 0.5
+        assert SPIKE_THRESHOLD_PCT == 0.8
 
     def test_spike_window_sec(self):
         assert SPIKE_WINDOW_SEC == 300
 
     def test_whale_threshold_krw(self):
-        assert WHALE_THRESHOLD_KRW == 20_000_000
+        assert WHALE_THRESHOLD_KRW == 200_000_000
 
     def test_whale_ratio_threshold(self):
-        assert WHALE_RATIO_THRESHOLD == 0.6
+        assert WHALE_RATIO_THRESHOLD == 0.85
 
     def test_sell_pressure_block_ratio(self):
         assert SELL_PRESSURE_BLOCK_RATIO == 4.0
@@ -250,7 +250,9 @@ class TestCanTrade:
 
     def test_daily_limit_blocks(self):
         trader = _make_trader()
-        trader.daily_trade_count = SHORT_TERM_MAX_DAILY
+        # dry_run=True uses SHORT_TERM_MAX_DAILY_DRYRUN (40)
+        from scripts.short_term_trader import SHORT_TERM_MAX_DAILY_DRYRUN
+        trader.daily_trade_count = SHORT_TERM_MAX_DAILY_DRYRUN
         ok, reason = trader.can_trade()
         assert ok is False
         assert reason == "daily_limit"
@@ -282,7 +284,7 @@ class TestTradeSize:
     def test_amount_capped_at_max_trade(self, mock_db, mock_tg):
         trader = _make_trader(dry_run=True)
         signal = TradeSignal(
-            strategy="news", action="buy", confidence=0.8,
+            strategy="news", action="buy", confidence=0.95,  # >=0.85 for 100% Kelly
             reason="test", suggested_amount=999_999,
         )
         trader.execute_entry(signal)
@@ -330,14 +332,12 @@ class TestNewsSignal:
         trader.news_sentiment_score = 0.2  # Below 0.3 threshold
         assert trader.check_news_signal() is None
 
-    def test_strong_positive_returns_buy(self):
+    def test_strong_positive_returns_none_v5(self):
+        """v5: news buy signals disabled — positive news returns None."""
         trader = _make_trader()
         trader.news_sentiment_score = 0.5
         sig = trader.check_news_signal()
-        assert sig is not None
-        assert sig.action == "buy"
-        assert sig.strategy == "news"
-        assert sig.confidence == pytest.approx(0.5)
+        assert sig is None  # Buy signals disabled in v5
 
     def test_strong_negative_returns_sell(self):
         trader = _make_trader()
@@ -347,19 +347,19 @@ class TestNewsSignal:
         assert sig.action == "sell"
         assert sig.strategy == "news"
 
-    def test_boundary_positive_returns_buy(self):
+    def test_boundary_positive_returns_none_v5(self):
+        """v5: news buy signals disabled — moderate positive returns None."""
         trader = _make_trader()
         trader.news_sentiment_score = 0.4
         sig = trader.check_news_signal()
-        assert sig is not None
-        assert sig.action == "buy"
+        assert sig is None  # Buy signals disabled in v5
 
-    def test_boundary_negative_returns_sell(self):
+    def test_moderate_negative_returns_none(self):
+        """Moderate negative (-0.4) is above sell threshold (-0.5) → None."""
         trader = _make_trader()
         trader.news_sentiment_score = -0.4
         sig = trader.check_news_signal()
-        assert sig is not None
-        assert sig.action == "sell"
+        assert sig is None  # -0.4 > -0.5, so no sell signal
 
 
 # ===========================================================================
@@ -447,10 +447,10 @@ class TestWhaleSignal:
     def test_strong_buy_whales_returns_buy(self):
         trader = _make_trader()
         now = time.time()
-        # 3 buy whales, 0 sell
+        # 3 buy whales at 100M each = 300M total (> 200M threshold), 100% buy ratio (> 85%)
         for i in range(3):
             trader.whale_recent.append({
-                "side": "BID", "krw": 50_000_000, "time": now - 10 + i,
+                "side": "BID", "krw": 100_000_000, "time": now - 10 + i,
             })
         sig = trader.check_whale_signal()
         assert sig is not None
@@ -462,7 +462,7 @@ class TestWhaleSignal:
         now = time.time()
         for i in range(3):
             trader.whale_recent.append({
-                "side": "ASK", "krw": 50_000_000, "time": now - 10 + i,
+                "side": "ASK", "krw": 100_000_000, "time": now - 10 + i,
             })
         sig = trader.check_whale_signal()
         assert sig is not None
@@ -471,9 +471,10 @@ class TestWhaleSignal:
     def test_mixed_whales_below_threshold_returns_none(self):
         trader = _make_trader()
         now = time.time()
-        # 50/50 split — neither side reaches 70%
+        # 50/50 split — neither side reaches 85%
+        trader.whale_recent.append({"side": "BID", "krw": 100_000_000, "time": now})
+        trader.whale_recent.append({"side": "ASK", "krw": 100_000_000, "time": now})
         trader.whale_recent.append({"side": "BID", "krw": 50_000_000, "time": now})
-        trader.whale_recent.append({"side": "ASK", "krw": 50_000_000, "time": now})
         sig = trader.check_whale_signal()
         assert sig is None
 
@@ -542,9 +543,10 @@ class TestErrorCounter:
 
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
+    @patch("scripts.short_term_trader.acquire_lock", return_value=True)
     @patch("scripts.short_term_trader.check_lock", return_value=True)
     @patch("scripts.short_term_trader.upbit_order")
-    def test_auth_error_triggers_immediate_stop(self, mock_order, mock_lock, mock_db, mock_tg):
+    def test_auth_error_triggers_immediate_stop(self, mock_order, mock_lock, mock_acq, mock_db, mock_tg):
         """Auth errors (jwt_verification etc) trigger immediate emergency stop."""
         mock_order.return_value = {
             "ok": False,
@@ -552,6 +554,8 @@ class TestErrorCounter:
         }
         trader = _make_trader(dry_run=False)
         trader.consecutive_errors = 0
+        # Skip safety filter HTTP calls
+        trader._last_context_update = time.time()
 
         signal = TradeSignal(
             strategy="whale", action="buy", confidence=0.9, reason="test",
@@ -631,8 +635,9 @@ class TestLockFile:
         fake_lock = tmp_path / "trading.lock"
         monkeypatch.setattr("scripts.short_term_trader.LOCK_FILE", fake_lock)
         ts = datetime.now(KST) - timedelta(minutes=1)
+        # Use current PID so check_lock sees it as alive (not stale)
         fake_lock.write_text(json.dumps({
-            "process": "cron_run", "pid": 99999, "timestamp": ts.isoformat(),
+            "process": "cron_run", "pid": os.getpid(), "timestamp": ts.isoformat(),
         }))
         assert check_lock() is False
 
@@ -642,7 +647,7 @@ class TestLockFile:
         acquire_lock("test_bot")
         assert fake_lock.exists()
         data = json.loads(fake_lock.read_text())
-        assert data["owner"] == "test_bot"
+        assert data["process"] == "test_bot"
         assert data["pid"] == os.getpid()
 
         release_lock()
@@ -719,6 +724,11 @@ class TestExecuteEntryDryRun:
     @patch("scripts.short_term_trader.db_insert")
     def test_dry_run_creates_position(self, mock_db, mock_tg):
         trader = _make_trader(dry_run=True)
+        # Bypass safety filter HTTP calls and ensure filters pass
+        trader._last_context_update = time.time()
+        trader._market_trend = "uptrend"
+        trader._rsi = 50
+        trader._fgi = 50
         signal = TradeSignal(
             strategy="whale", action="buy", confidence=0.7,
             reason="whale buy 80%",
@@ -729,7 +739,8 @@ class TestExecuteEntryDryRun:
         assert pos.strategy == "whale"
         assert pos.entry_price == 100_000_000
         assert trader.daily_trade_count == 1
-        assert trader.used_budget == 200_000
+        # Kelly sizing: confidence=0.7 -> frac=0.7 -> kelly_max = 200000*0.7 = 140000
+        assert trader.used_budget == 140_000
 
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
@@ -1208,12 +1219,12 @@ class TestWebSocketMessageHandling:
         """Trades >= WHALE_THRESHOLD_KRW should be added to whale_recent."""
         trader = _make_trader()
 
-        # Simulate a whale trade (50M KRW)
+        # Simulate a whale trade (must exceed WHALE_THRESHOLD_KRW = 200M)
         trade = {
             "price": 100_000_000,
-            "volume": 0.5,
+            "volume": 2.5,
             "side": "BID",
-            "krw": 50_000_000,
+            "krw": 250_000_000,
             "time": time.time(),
         }
         trader.trade_history.append(trade)
@@ -1335,13 +1346,16 @@ class TestErrorCounterEdgeCases:
 
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
+    @patch("scripts.short_term_trader.acquire_lock", return_value=True)
     @patch("scripts.short_term_trader.check_lock", return_value=True)
     @patch("scripts.short_term_trader.upbit_order")
-    def test_generic_exception_increments_error_counter(self, mock_order, mock_lock, mock_db, mock_tg):
+    def test_generic_exception_increments_error_counter(self, mock_order, mock_lock, mock_acq, mock_db, mock_tg):
         """Generic exception during order should increment errors."""
         mock_order.side_effect = Exception("connection reset")
         trader = _make_trader(dry_run=False)
         trader.consecutive_errors = 0
+        # Skip safety filter HTTP calls
+        trader._last_context_update = time.time()
 
         signal = TradeSignal(strategy="whale", action="buy", confidence=0.9, reason="test")
         trader.execute_entry(signal)
@@ -1424,7 +1438,7 @@ class TestLockFileEdgeCases:
         acquire_lock("test_process")
         assert fake_lock.exists()
         data = json.loads(fake_lock.read_text())
-        assert data["owner"] == "test_process"
+        assert data["process"] == "test_process"
 
     def test_release_lock_no_file(self, tmp_path, monkeypatch):
         """release_lock on non-existent file should not raise."""
@@ -1575,9 +1589,15 @@ class TestStrategyLoop:
         import asyncio
 
         trader = _make_trader(dry_run=True)
-        pos = _make_position(entry_price=100_000_000)
+        # Entry time must be older than GRACE_PERIOD_SEC (180s) to allow signal-based exit
+        pos = _make_position(
+            entry_price=100_000_000,
+            entry_time=datetime.now(KST) - timedelta(minutes=5),
+        )
         trader.positions.append(pos)
         trader.current_price = 100_200_000  # Within bounds (no auto-exit)
+        # Skip market context HTTP calls
+        trader._last_context_update = time.time()
 
         # Strong negative news -> sell signal
         trader.news_sentiment_score = -0.6
@@ -1914,8 +1934,9 @@ class TestSendTelegramException:
 
 class TestExecuteEntryBlockReason:
     def test_block_reason_logged_once(self):
+        from scripts.short_term_trader import SHORT_TERM_MAX_DAILY_DRYRUN
         trader = _make_trader(dry_run=True)
-        trader.daily_trade_count = SHORT_TERM_MAX_DAILY  # trigger daily_limit
+        trader.daily_trade_count = SHORT_TERM_MAX_DAILY_DRYRUN  # trigger daily_limit (dry_run uses DRYRUN limit)
 
         signal = TradeSignal(
             strategy="spike", action="buy", confidence=0.9,
@@ -1932,6 +1953,7 @@ class TestExecuteEntryBlockReason:
         assert trader._last_block_reason == {"daily_limit"}
 
     def test_different_block_reasons_both_logged(self):
+        from scripts.short_term_trader import SHORT_TERM_MAX_DAILY_DRYRUN
         trader = _make_trader(dry_run=True)
         trader._last_block_reason = set()
 
@@ -1944,9 +1966,9 @@ class TestExecuteEntryBlockReason:
         trader.execute_entry(signal)
         assert "budget_limit" in trader._last_block_reason
 
-        # Second: daily limit (reset budget, set daily limit)
+        # Second: daily limit (reset budget, set daily limit with DRYRUN limit)
         trader.used_budget = 0
-        trader.daily_trade_count = SHORT_TERM_MAX_DAILY
+        trader.daily_trade_count = SHORT_TERM_MAX_DAILY_DRYRUN
         trader.execute_entry(signal)
         assert "daily_limit" in trader._last_block_reason
         assert len(trader._last_block_reason) == 2
@@ -1985,10 +2007,9 @@ class TestLiveEntrySuccess:
 # ===========================================================================
 
 class TestRunMethod:
-    @pytest.mark.asyncio
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    async def test_run_startup_and_cancelled(self, mock_sound, mock_tg):
+    def test_run_startup_and_cancelled(self, mock_sound, mock_tg):
         import asyncio
 
         trader = _make_trader(dry_run=True)
@@ -1997,18 +2018,22 @@ class TestRunMethod:
         async def _cancel():
             raise asyncio.CancelledError()
 
-        with patch.object(trader, "ws_ticker", side_effect=_cancel), \
-             patch.object(trader, "ws_trades", side_effect=_cancel), \
-             patch.object(trader, "scan_news", side_effect=_cancel), \
-             patch.object(trader, "strategy_loop", side_effect=_cancel), \
-             patch.object(trader, "status_reporter", side_effect=_cancel), \
-             patch.object(trader, "strategy_alert_monitor", side_effect=_cancel), \
-             patch.object(trader, "print_summary") as mock_summary, \
-             patch("scripts.short_term_trader.db_insert"):
-            # Mock signal handler registration to avoid issues in test
-            loop = asyncio.get_event_loop()
-            with patch.object(loop, "add_signal_handler"):
-                await trader.run()
+        summary_mock = MagicMock()
+
+        async def _run():
+            with patch.object(trader, "ws_combined", side_effect=_cancel), \
+                 patch.object(trader, "scan_news", side_effect=_cancel), \
+                 patch.object(trader, "strategy_loop", side_effect=_cancel), \
+                 patch.object(trader, "status_reporter", side_effect=_cancel), \
+                 patch.object(trader, "strategy_alert_monitor", side_effect=_cancel), \
+                 patch.object(trader, "settlement_reporter", side_effect=_cancel), \
+                 patch.object(trader, "print_summary", summary_mock), \
+                 patch("scripts.short_term_trader.db_insert"):
+                loop = asyncio.get_event_loop()
+                with patch.object(loop, "add_signal_handler"):
+                    await trader.run()
+
+        asyncio.run(_run())
 
         # send_telegram called at startup
         assert mock_tg.call_count >= 1
@@ -2016,7 +2041,7 @@ class TestRunMethod:
         assert "단타봇 시작" in startup_msg
 
         # print_summary called in finally
-        mock_summary.assert_called_once()
+        summary_mock.assert_called_once()
 
 
 # ===========================================================================
@@ -2378,14 +2403,22 @@ class TestExecuteEntryAmountEdgeCasesExtra:
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
     def test_suggested_amount_capped_at_max_trade(self, mock_db, mock_tg):
-        """signal.suggested_amount > SHORT_TERM_MAX_TRADE -> capped."""
+        """signal.suggested_amount > SHORT_TERM_MAX_TRADE -> capped by Kelly."""
         trader = _make_trader(dry_run=True)
+        # Bypass safety filter HTTP calls and ensure filters pass
+        trader._last_context_update = time.time()
+        trader._market_trend = "uptrend"
+        trader._rsi = 50
+        trader._fgi = 50
+        # Use high confidence to maximize Kelly fraction
         signal = TradeSignal(
-            strategy="whale", action="buy", confidence=0.8,
+            strategy="whale", action="buy", confidence=0.95,
             reason="test", suggested_amount=500_000,
         )
         trader.execute_entry(signal)
         assert len(trader.positions) == 1
+        # confidence=0.95 -> frac=1.0 -> kelly_max=SHORT_TERM_MAX_TRADE (200000)
+        # amount = min(500000, 200000) = 200000
         assert trader.positions[0].amount_krw == SHORT_TERM_MAX_TRADE
 
     @patch("scripts.short_term_trader.send_telegram")
@@ -2458,23 +2491,23 @@ class TestDbInsertEdgeCasesExtra:
 
 
 # ===========================================================================
-# 41. Async WebSocket: ws_ticker (lines 314-335)
+# 41. Async WebSocket: ws_combined - ticker messages
 # ===========================================================================
 
 class TestWsTicker:
-    """Tests for the ws_ticker async WebSocket method."""
+    """Tests for ticker-type messages via ws_combined."""
 
     @patch("scripts.short_term_trader.db_insert")
     def test_ticker_updates_price_and_history(self, mock_db):
-        """Messages with trade_price update current_price and price_history."""
+        """Ticker messages update current_price and price_history."""
         import asyncio
 
         trader = _make_trader()
         trader.running = True
 
         messages = [
-            json.dumps({"trade_price": 101_000_000}),
-            json.dumps({"trade_price": 102_000_000}),
+            json.dumps({"type": "ticker", "trade_price": 101_000_000}),
+            json.dumps({"type": "ticker", "trade_price": 102_000_000}),
         ]
 
         msg_index = 0
@@ -2503,7 +2536,7 @@ class TestWsTicker:
 
         async def run():
             with patch("scripts.short_term_trader.websockets.connect", return_value=FakeWS()):
-                await trader.ws_ticker()
+                await trader.ws_combined()
 
         asyncio.run(run())
 
@@ -2514,7 +2547,7 @@ class TestWsTicker:
 
     @patch("scripts.short_term_trader.db_insert")
     def test_ticker_reconnects_on_exception(self, mock_db):
-        """WebSocket ticker should reconnect after exception."""
+        """WebSocket should reconnect after exception."""
         import asyncio
         from unittest.mock import AsyncMock
 
@@ -2546,7 +2579,7 @@ class TestWsTicker:
         async def run():
             with patch("scripts.short_term_trader.websockets.connect", return_value=FailFirstWS()):
                 with patch("asyncio.sleep", new_callable=AsyncMock):
-                    await trader.ws_ticker()
+                    await trader.ws_combined()
 
         asyncio.run(run())
         assert connect_count == 2
@@ -2568,7 +2601,7 @@ class TestWsTicker:
 
             async def __anext__(self):
                 trader.running = False
-                return json.dumps({"trade_price": 105_000_000})
+                return json.dumps({"type": "ticker", "trade_price": 105_000_000})
 
             async def __aenter__(self):
                 return self
@@ -2578,18 +2611,18 @@ class TestWsTicker:
 
         async def run():
             with patch("scripts.short_term_trader.websockets.connect", return_value=StopAfterFirstWS()):
-                await trader.ws_ticker()
+                await trader.ws_combined()
 
         asyncio.run(run())
         assert trader.running is False
 
 
 # ===========================================================================
-# 42. Async WebSocket: ws_trades (lines 339-384)
+# 42. Async WebSocket: ws_combined - trade messages
 # ===========================================================================
 
 class TestWsTrades:
-    """Tests for the ws_trades async WebSocket method."""
+    """Tests for trade-type messages via ws_combined."""
 
     @patch("scripts.short_term_trader.db_insert")
     def test_trades_appended_to_history(self, mock_db):
@@ -2601,11 +2634,13 @@ class TestWsTrades:
 
         messages = [
             json.dumps({
+                "type": "trade",
                 "trade_price": 100_000_000,
                 "trade_volume": 0.001,
                 "ask_bid": "BID",
             }),
             json.dumps({
+                "type": "trade",
                 "trade_price": 100_100_000,
                 "trade_volume": 0.002,
                 "ask_bid": "ASK",
@@ -2638,7 +2673,7 @@ class TestWsTrades:
 
         async def run():
             with patch("scripts.short_term_trader.websockets.connect", return_value=FakeWS()):
-                await trader.ws_trades()
+                await trader.ws_combined()
 
         asyncio.run(run())
 
@@ -2656,9 +2691,11 @@ class TestWsTrades:
         trader.running = True
 
         whale_price = 100_000_000
-        whale_volume = 0.5  # 0.5 BTC = 50M KRW (above 30M threshold)
+        # WHALE_THRESHOLD_KRW is 200M, so need volume > 2.0 BTC
+        whale_volume = 2.5  # 2.5 BTC = 250M KRW (above 200M threshold)
         messages = [
             json.dumps({
+                "type": "trade",
                 "trade_price": whale_price,
                 "trade_volume": whale_volume,
                 "ask_bid": "BID",
@@ -2691,7 +2728,7 @@ class TestWsTrades:
 
         async def run():
             with patch("scripts.short_term_trader.websockets.connect", return_value=FakeWS()):
-                await trader.ws_trades()
+                await trader.ws_combined()
 
         asyncio.run(run())
 
@@ -2712,7 +2749,7 @@ class TestWsTrades:
 
     @patch("scripts.short_term_trader.db_insert")
     def test_trades_reconnects_on_exception(self, mock_db):
-        """WebSocket trades should reconnect after exception."""
+        """WebSocket should reconnect after exception."""
         import asyncio
         from unittest.mock import AsyncMock
 
@@ -2744,7 +2781,7 @@ class TestWsTrades:
         async def run():
             with patch("scripts.short_term_trader.websockets.connect", return_value=FailFirstWS()):
                 with patch("asyncio.sleep", new_callable=AsyncMock):
-                    await trader.ws_trades()
+                    await trader.ws_combined()
 
         asyncio.run(run())
         assert connect_count == 2
@@ -2759,6 +2796,7 @@ class TestWsTrades:
 
         messages = [
             json.dumps({
+                "type": "trade",
                 "trade_price": 100_000_000,
                 "trade_volume": 0.001,
                 "ask_bid": "BID",
@@ -2791,7 +2829,7 @@ class TestWsTrades:
 
         async def run():
             with patch("scripts.short_term_trader.websockets.connect", return_value=FakeWS()):
-                await trader.ws_trades()
+                await trader.ws_combined()
 
         asyncio.run(run())
 
@@ -3179,9 +3217,10 @@ class TestExecuteEntryLivePathDeep:
 
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
+    @patch("scripts.short_term_trader.acquire_lock", return_value=True)
     @patch("scripts.short_term_trader.check_lock", return_value=True)
     @patch("scripts.short_term_trader.upbit_order")
-    def test_ok_false_non_auth_below_threshold_increments(self, mock_order, mock_lock, mock_db, mock_tg):
+    def test_ok_false_non_auth_below_threshold_increments(self, mock_order, mock_lock, mock_acq, mock_db, mock_tg):
         """ok=False, non-auth, errors < 5 -> increment only (lines 775-777)."""
         mock_order.return_value = {
             "ok": False,
@@ -3189,6 +3228,8 @@ class TestExecuteEntryLivePathDeep:
         }
         trader = _make_trader(dry_run=False)
         trader.consecutive_errors = 2
+        # Skip safety filter HTTP calls
+        trader._last_context_update = time.time()
 
         signal = TradeSignal(strategy="whale", action="buy", confidence=0.9, reason="funds test")
         trader.execute_entry(signal)

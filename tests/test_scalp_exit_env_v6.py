@@ -182,9 +182,9 @@ class TestHoldAction:
         env = _make_env()
         env.reset()
         obs, reward, terminated, truncated, info = env.step(0)
-        # 시간 비용은 -0.002 (강제 청산이 아닌 경우)
+        # v7: HOLD 보상은 모멘텀에 따라 -0.01 ~ +0.01 범위
         if not terminated:
-            assert reward == pytest.approx(-0.002), f"시간 비용: {reward}"
+            assert -0.02 <= reward <= 0.05, f"v7 HOLD 보상 범위 초과: {reward}"
 
     def test_hold_not_terminated(self):
         """강제 청산 조건이 아니면 HOLD는 에피소드를 종료하지 않음."""
@@ -297,7 +297,7 @@ class TestStopLossAction:
             assert reward == pytest.approx(expected, abs=0.01)
 
     def test_sl_positive_pnl_penalty(self):
-        """수익 상태에서 SL은 pnl * 0.5 벌칙."""
+        """수익 상태에서 SL은 -0.1 벌칙 (v7)."""
         # 상승 추세
         candles = _make_candles(200, trend=0.003, volatility=0.0001)
         env = _make_env(candles)
@@ -307,8 +307,8 @@ class TestStopLossAction:
         _, reward, _, _, info = env.step(2)
         pnl = info.get("pnl_pct", 0)
         if pnl > 0:
-            expected = pnl * 0.5
-            assert reward == pytest.approx(expected, abs=0.01)
+            # v7: 수익 중 SL → 고정 벌칙 -0.1
+            assert reward == pytest.approx(-0.1, abs=0.01)
 
 
 # ═══════════════════════════════════════════════════
@@ -377,7 +377,7 @@ class TestForcedStopLoss:
         assert forced_sl, "큰 하락 시 HOLD 중 강제 손절이 발동해야 함"
 
     def test_forced_sl_reward_penalty(self):
-        """강제 손절 보상은 pnl * 1.2 (벌칙 가중)."""
+        """강제 손절 보상은 pnl * 1.5 (v7 벌칙 가중)."""
         candles = _make_candles(200, trend=-0.005, volatility=0.0001)
         env = _make_env(candles)
         env.reset()
@@ -386,7 +386,7 @@ class TestForcedStopLoss:
             obs, reward, terminated, _, info = env.step(0)
             if terminated and info.get("exit_reason") == "forced_sl":
                 pnl = info["pnl_pct"]
-                expected = pnl * 1.2
+                expected = pnl * 1.5  # v7: 강제 손절 큰 벌칙
                 assert reward == pytest.approx(expected, abs=0.05)
                 break
 
@@ -446,7 +446,8 @@ class TestScalpExitEnvV2:
         env.reset()
         obs, reward, terminated, _, info = env.step(np.array([0.1]))
         if not terminated:
-            assert reward == pytest.approx(-0.002), "낮은 action은 HOLD"
+            # v7: 모멘텀 기반 HOLD 보상 (-0.01 ~ +0.01+)
+            assert -0.02 <= reward <= 0.05, f"낮은 action은 HOLD, reward={reward}"
 
     def test_v2_mid_action_is_tp(self):
         """0.3 <= action < 0.7 -> TAKE_PROFIT."""

@@ -59,6 +59,9 @@ def _set_env(monkeypatch, **kwargs):
         "EMERGENCY_STOP": "false",
         "DRY_RUN": "false",
         "MAX_TRADE_AMOUNT": "100000",
+        "MAX_DAILY_TRADES": "6",
+        "MIN_TRADE_INTERVAL_HOURS": "4",
+        "MAX_POSITION_RATIO": "0.5",
         "UPBIT_ACCESS_KEY": "test_access",
         "UPBIT_SECRET_KEY": "test_secret",
     }
@@ -71,11 +74,18 @@ def _set_env(monkeypatch, **kwargs):
 
 @pytest.fixture(autouse=True)
 def _patch_lock_and_project(tmp_path, monkeypatch):
-    """Redirect LOCK_FILE and PROJECT_DIR to temp for every test."""
+    """Redirect LOCK_FILE and PROJECT_DIR to temp for every test.
+    Also mock safety-check helpers so real-trade tests don't hit file/subprocess."""
     lock = tmp_path / "data" / "trading.lock"
     import scripts.execute_trade as mod
     monkeypatch.setattr(mod, "LOCK_FILE", lock)
     monkeypatch.setattr(mod, "PROJECT_DIR", tmp_path)
+    # Default: no daily trades used, no last trade, no position ratio issue
+    monkeypatch.setattr(mod, "_get_daily_trades", lambda: {"date": "2099-01-01", "count": 0})
+    monkeypatch.setattr(mod, "_get_last_trade_time", lambda: None)
+    monkeypatch.setattr(mod, "_get_btc_position_ratio", lambda: 0.0)
+    monkeypatch.setattr(mod, "_increment_daily_trades", lambda: None)
+    monkeypatch.setattr(mod, "_update_last_trade_time", lambda: None)
 
 
 @pytest.fixture
@@ -574,9 +584,13 @@ class TestRecordTradeToDb:
         mock_post.assert_called_once()
         row = mock_post.call_args[1]["json"]
         assert row["decision"] == "매수"
-        assert row["execution_status"] == "success"
         assert row["source"] == "agent"
-        assert row["order_uuid"] == "order-123"
+        assert row["execution_attempted"] is True
+        # execution_result is a JSON string containing order info
+        import json as _json
+        exec_result = _json.loads(row["execution_result"])
+        assert exec_result["order_uuid"] == "order-123"
+        assert exec_result["status"] == "success"
 
     @patch("scripts.execute_trade.requests.post")
     def test_records_failed_trade(self, mock_post, monkeypatch):
@@ -599,8 +613,7 @@ class TestRecordTradeToDb:
 
         row = mock_post.call_args[1]["json"]
         assert row["decision"] == "매도"
-        assert row["execution_status"] == "failed"
-        assert row["execution_error"] == "잔고 부족"
+        assert row["execution_attempted"] is False
 
     @patch("scripts.execute_trade.requests.post")
     def test_retries_without_dry_run_column(self, mock_post, monkeypatch):

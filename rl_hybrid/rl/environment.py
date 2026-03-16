@@ -174,6 +174,8 @@ class BitcoinTradingEnv(gym.Env):
         )
         if self.reward_version in ("v7", "v8"):
             calc_kwargs["price"] = price
+            calc_kwargs.pop("btc_ratio", None)
+            calc_kwargs.pop("price_change", None)
         reward_info = self.reward_calc.calculate(**calc_kwargs)
 
         self.prev_action = action_val

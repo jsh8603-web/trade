@@ -93,8 +93,8 @@ class TestV6OutputFormat:
     def test_all_required_component_keys_present(self, calc):
         result = calc.calculate(10_000_000, 10_100_000, action=0.5, prev_action=0.5, step=0)
         expected = {
-            "raw_return", "sharpe_reward", "mdd_penalty",
-            "profit_bonus", "drawdown", "trade_penalty", "total_trades",
+            "raw_return", "pnl_reward", "direction_reward", "sharpe_reward",
+            "mdd_penalty", "trade_pnl_bonus", "drawdown", "total_trades",
         }
         assert expected == set(result["components"].keys())
 
@@ -126,11 +126,11 @@ class TestV6OutputFormat:
         assert sharpe == pytest.approx(-1.5)  # 클리핑 하한 도달
 
     def test_reward_is_sum_of_numeric_components(self, calc):
-        """reward == sharpe + mdd_penalty + profit_bonus + trade_penalty."""
+        """reward == pnl_reward + direction_reward + sharpe + mdd_penalty + trade_pnl_bonus."""
         calc.steps_since_last_trade = 100  # 과매매 페널티 방지
         result = calc.calculate(10_000_000, 9_000_000, action=0.8, prev_action=0.0, step=0)
         c = result["components"]
-        expected = c["sharpe_reward"] + c["mdd_penalty"] + c["profit_bonus"] + c["trade_penalty"]
+        expected = c["pnl_reward"] + c["direction_reward"] + c["sharpe_reward"] + c["mdd_penalty"] + c["trade_pnl_bonus"]
         assert result["reward"] == pytest.approx(expected, abs=1e-9)
 
     def test_raw_return_calculated_correctly(self, calc):
@@ -183,14 +183,14 @@ class TestV6Reset:
 class TestSharpeReward:
 
     def test_insufficient_history_uses_simple_scaling_v6(self):
-        """히스토리 < 3이면 latest_return * 10 반환."""
+        """히스토리 < 3이면 latest_return * 15 반환."""
         rc = RewardCalculator(risk_free_rate=0.0)
         rc.reset(10_000_000)
         # 0개 수익 히스토리로 첫 번째 호출
         result = rc.calculate(10_000_000, 10_050_000, action=0.5, prev_action=0.5, step=0)
         # returns_history에 raw_return(0.005)이 추가된 직후 compute됨
-        # n=1 < 3 → simple scaling: 0.005 * 10 = 0.05
-        assert result["components"]["sharpe_reward"] == pytest.approx(0.005 * 10, rel=1e-3)
+        # n=1 < 3 → simple scaling: 0.005 * 15 = 0.075
+        assert result["components"]["sharpe_reward"] == pytest.approx(0.005 * 15, rel=1e-3)
 
     def test_insufficient_history_uses_simple_scaling_v7(self):
         rc = RewardCalculatorV7(risk_free_rate=0.0)
@@ -237,13 +237,13 @@ class TestSharpeReward:
         assert result["components"]["sharpe_reward"] < 0
 
     def test_zero_std_returns_mean_scaling_v6(self):
-        """모든 수익률 동일 → std ≈ 0 → mean * 10."""
+        """모든 수익률 동일 → std ≈ 0 → mean * 15."""
         rc = RewardCalculator(risk_free_rate=0.0)
         rc.reset(10_000_000)
         for _ in range(5):
             rc.returns_history.append(0.01)
         sharpe = rc._compute_sharpe_reward(0.01)
-        assert sharpe == pytest.approx(0.01 * 10, abs=1e-9)
+        assert sharpe == pytest.approx(0.01 * 15, abs=1e-9)
 
     def test_zero_std_flat_returns_gives_zero_reward_v6(self):
         """수익률 0 연속 → sharpe_reward == 0."""
@@ -340,7 +340,7 @@ class TestV8UniqueFeatures:
             prev_action=0.8,  # 변화 없음
             step=0,
         )
-        assert result["components"]["holding_bonus"] == pytest.approx(0.04)
+        assert result["components"]["holding_bonus"] == pytest.approx(0.02)
 
     def test_no_holding_bonus_when_losing(self, calc):
         """손실 중인 포지션 유지 → holding_bonus == 0."""
@@ -448,8 +448,9 @@ class TestV8UniqueFeatures:
         result = calc.calculate(10_000_000, 10_100_000, action=0.5, prev_action=0.5, step=0)
         expected_keys = {
             "raw_return", "sharpe_reward", "trend_reward", "pnl_reward",
-            "mdd_penalty", "profit_bonus", "trade_incentive", "holding_bonus",
-            "loss_penalty", "inactivity_penalty", "drawdown", "total_trades",
+            "diversity_reward", "mdd_penalty", "profit_bonus", "trade_incentive",
+            "holding_bonus", "loss_penalty", "inactivity_penalty", "drawdown",
+            "total_trades",
         }
         assert expected_keys == set(result["components"].keys())
 
@@ -911,26 +912,26 @@ class TestIntegration:
             assert env.btc_balance == 0.0
             assert env.trade_count == 0
 
-    def test_v8_inactivity_penalty_triggers_after_36_steps(self):
-        """36 스텝 이상 거래 없으면 inactivity_penalty < 0."""
+    def test_v8_inactivity_penalty_triggers_after_6_steps(self):
+        """6 스텝 이상 거래 없으면 inactivity_penalty < 0."""
         rc = RewardCalculatorV8(risk_free_rate=0.0)
         rc.reset(10_000_000)
-        rc.steps_since_trade = 37  # 이미 37 스텝 비활동
+        rc.steps_since_trade = 7  # 이미 7 스텝 비활동 (> 6)
         result = rc.calculate(
             10_000_000, 10_000_000,
             action=0.1, prev_action=0.1,  # 거래 없음 (change < 0.05)
-            step=37,
+            step=7,
         )
         assert result["components"]["inactivity_penalty"] < 0
 
-    def test_v8_no_inactivity_penalty_before_36_steps(self):
-        """36 스텝 이하 비활동 → inactivity_penalty == 0."""
+    def test_v8_no_inactivity_penalty_before_6_steps(self):
+        """6 스텝 이하 비활동 → inactivity_penalty == 0."""
         rc = RewardCalculatorV8(risk_free_rate=0.0)
         rc.reset(10_000_000)
-        rc.steps_since_trade = 10
+        rc.steps_since_trade = 5  # <= 6
         result = rc.calculate(
             10_000_000, 10_000_000,
             action=0.1, prev_action=0.1,
-            step=10,
+            step=5,
         )
         assert result["components"]["inactivity_penalty"] == pytest.approx(0.0)

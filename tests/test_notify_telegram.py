@@ -236,23 +236,27 @@ class TestSendMessageErrors:
     @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_USER_ID": "123"})
     @patch("notify_telegram.requests.post")
     def test_api_400(self, mock_post):
-        mock_post.return_value = MagicMock(ok=False, text="Bad Request")
+        mock_post.return_value = MagicMock(ok=False, status_code=400, text="Bad Request")
         with pytest.raises(RuntimeError, match="텔레그램 전송 실패"):
             send_message("trade", "t", "b")
 
     @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_USER_ID": "123"})
+    @patch("time.sleep")
     @patch("notify_telegram.requests.post")
-    def test_api_500(self, mock_post):
-        mock_post.return_value = MagicMock(ok=False, text="Internal Server Error")
+    def test_api_500(self, mock_post, mock_sleep):
+        # 500 triggers retries; all 3 attempts fail => RuntimeError on last attempt
+        mock_post.return_value = MagicMock(ok=False, status_code=500, text="Internal Server Error")
         with pytest.raises(RuntimeError, match="텔레그램 전송 실패"):
             send_message("trade", "t", "b")
 
     @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_USER_ID": "123"})
+    @patch("time.sleep")
     @patch("notify_telegram.requests.post")
-    def test_network_timeout(self, mock_post):
+    def test_network_timeout(self, mock_post, mock_sleep):
         import requests
         mock_post.side_effect = requests.Timeout("timeout")
-        with pytest.raises(requests.Timeout):
+        # Code catches Timeout internally and raises RuntimeError after retries
+        with pytest.raises(RuntimeError, match="타임아웃"):
             send_message("trade", "t", "b")
 
 

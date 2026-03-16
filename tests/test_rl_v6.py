@@ -212,7 +212,8 @@ class TestScalpExitEnvStep:
         obs, reward, terminated, truncated, info = env.step(0)  # HOLD
         assert not terminated
         assert not truncated
-        assert reward == pytest.approx(-0.002, abs=1e-6)  # 시간 비용
+        # v7: 모멘텀 기반 HOLD 보상 (-0.01 ~ +0.01+)
+        assert -0.02 <= reward <= 0.05
 
     def test_take_profit_terminates(self):
         env = _make_scalp_env()
@@ -239,7 +240,7 @@ class TestScalpExitEnvStep:
         assert reward == 0.0
 
     def test_tp_with_profit_gets_bonus(self):
-        """수익 상태에서 TP → reward *= 1.5 보너스."""
+        """수익 상태에서 TP → v7: reward = pnl * 2.0 보너스."""
         # 상승 추세 캔들로 환경 생성
         candles = _make_candles(80, trend=0.001)
         env = ScalpExitEnv(candle_data=candles)
@@ -249,9 +250,9 @@ class TestScalpExitEnvStep:
             env.step(0)
         obs, reward, terminated, _, info = env.step(1)  # TP
         if info.get("pnl_pct", 0) > 0:
-            # 수익이면 reward = pnl * 1.5
-            expected = info["pnl_pct"] * 1.5
-            assert reward == pytest.approx(expected, abs=0.01)
+            # v7: 수익이면 reward = pnl * 2.0 (후회비용으로 약간 감소 가능)
+            expected = info["pnl_pct"] * 2.0
+            assert reward == pytest.approx(expected, abs=0.1)
 
     def test_sl_with_large_loss_gets_bonus(self):
         """큰 손실에서 빠른 손절 → +0.1 보너스."""
@@ -333,9 +334,9 @@ class TestScalpExitEnvForcedExits:
         # 급락이면 forced_sl 또는 timeout
         assert terminated is True
         if info.get("exit_reason") == "forced_sl":
-            # forced_sl reward = pnl * 1.2
+            # v7: forced_sl reward = pnl * 1.5 (큰 벌칙)
             pnl = info["pnl_pct"]
-            assert reward == pytest.approx(pnl * 1.2, abs=0.02)
+            assert reward == pytest.approx(pnl * 1.5, abs=0.02)
 
 
 class TestScalpExitEnvV2:

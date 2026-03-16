@@ -797,17 +797,24 @@ class TestCooldownExtended:
         assert orch._is_on_cooldown() is False
 
     def test_cooldown_3_switches_4h_cooldown_at_3h(self):
-        """당일 3회 전환 → 4시간 쿨다운, 3시간 경과 → 아직 쿨다운."""
-        today = datetime.now(KST).strftime("%Y-%m-%d")
-        three_hours_ago = (datetime.now(KST) - timedelta(hours=3)).isoformat()
+        """당일 3회 전환 → 4시간 쿨다운, 마지막 전환 1분 전 → 아직 쿨다운.
+
+        자정 경계 문제 방지: 모든 전환을 1분 전으로 설정하여
+        어떤 시간대에서도 반드시 '오늘'로 인식되도록 한다.
+        """
+        now = datetime.now(KST)
+        one_min_ago = (now - timedelta(minutes=1)).isoformat()
+        two_min_ago = (now - timedelta(minutes=2)).isoformat()
+        three_min_ago = (now - timedelta(minutes=3)).isoformat()
         orch = _make_orchestrator(state_overrides={
-            "last_switch_time": three_hours_ago,
+            "last_switch_time": one_min_ago,
             "switch_history": [
-                {"timestamp": f"{today}T01:00:00+09:00"},
-                {"timestamp": f"{today}T05:00:00+09:00"},
-                {"timestamp": three_hours_ago},
+                {"timestamp": three_min_ago},
+                {"timestamp": two_min_ago},
+                {"timestamp": one_min_ago},
             ],
         })
+        # 3회 전환 → 4시간 쿨다운, 1분 경과 → 아직 쿨다운
         assert orch._is_on_cooldown() is True
 
     def test_cooldown_3_switches_4h_cooldown_expired(self):
