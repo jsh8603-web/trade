@@ -91,7 +91,7 @@ def get_rl_advisory(market_data: dict, external_data: dict,
                 info_path = PROJECT_DIR / "data" / "rl_models" / "best" / "model_info.json"
                 if info_path.exists():
                     try:
-                        with open(info_path) as f:
+                        with open(info_path, encoding="utf-8") as f:
                             model_info = json.load(f)
                         algo = model_info.get("algorithm", "ppo")
                     except (json.JSONDecodeError, KeyError):
@@ -866,7 +866,7 @@ def main():
     user_bias = 0.0
     if state_file.exists():
         try:
-            with open(state_file, "r") as f:
+            with open(state_file, "r", encoding="utf-8") as f:
                 state = json.load(f)
                 user_bias = state.get("feedback_bias", 0.0)
         except Exception:
@@ -1197,11 +1197,28 @@ def main():
     except Exception as e:
         log(f"Phase 6.7 Self-tuning 스킵: {e}")
 
+    # Phase 7-12: 공유 캐시로 Supabase 조회 최적화 (4~5회 → 1회)
+    _cached_7d = None   # 7일 buy/sell 결정
+    _cached_14d = None  # 14일 전체 결정
+    _cached_30d = None  # 30일 전체 결정
+    try:
+        from scripts.phase_cache import prefetch_decisions, get_cached_decisions, invalidate as _invalidate_cache
+        log("Phase 7-12 캐시: Supabase decisions 프리로드...")
+        if prefetch_decisions(max_days=30):
+            _cached_7d = get_cached_decisions(days=7, buy_sell_only=True)
+            _cached_14d = get_cached_decisions(days=14, buy_sell_only=False)
+            _cached_30d = get_cached_decisions(days=30, buy_sell_only=False)
+            log(f"  캐시 로드: 7d={len(_cached_7d or [])}건, 14d={len(_cached_14d or [])}건, 30d={len(_cached_30d or [])}건")
+        else:
+            log("  캐시 프리로드 실패 — 각 Phase에서 개별 조회")
+    except Exception as e:
+        log(f"  캐시 프리로드 예외: {e}")
+
     # Phase 7: Feedback Hub 전체 분석 (비동기 — 다음 사이클에 반영)
     try:
         from scripts.feedback_hub import run_full_analysis
         log("Phase 7: Feedback Hub 분석...")
-        fb_result = run_full_analysis()
+        fb_result = run_full_analysis(cached_decisions=_cached_14d)
         if fb_result:
             cal = fb_result.get("calibration", {})
             rl_scores = fb_result.get("rl_model_scores", {})
@@ -1215,9 +1232,12 @@ def main():
     try:
         from scripts.dynamic_risk import update_risk
         log("Phase 8: 동적 리스크 조절...")
-        risk = update_risk()
+        risk = update_risk(cached_decisions=_cached_7d)
         if risk:
-            log(f"  리스크: {risk.get('risk_level')} (Sharpe={risk.get('sharpe_7d', 0):.2f}, 조정액={risk.get('adjusted_amount'):,}원)")
+            _sharpe = risk.get('sharpe_7d')
+            _sharpe_str = f"{_sharpe:.2f}" if _sharpe is not None else "N/A"
+            _adj_amt = risk.get('adjusted_amount', 0) or 0
+            log(f"  리스크: {risk.get('risk_level')} (Sharpe={_sharpe_str}, 조정액={_adj_amt:,}원)")
     except Exception as e:
         log(f"Phase 8 동적 리스크 예외: {e}")
 
@@ -1225,7 +1245,7 @@ def main():
     try:
         from scripts.strategy_health import check_health
         log("Phase 9: 전략 건강검진...")
-        health = check_health()
+        health = check_health(cached_decisions=_cached_7d)
         if health:
             status = health.get("status", "UNKNOWN")
             wr = health.get("win_rate_7d", 0)
@@ -1262,13 +1282,19 @@ def main():
     try:
         from scripts.regime_learner import learn_weights
         log("Phase 12: 레짐 가중치 학습...")
-        learn_result = learn_weights()
+        learn_result = learn_weights(cached_decisions=_cached_30d)
         if learn_result:
             updated = sum(1 for v in learn_result.get("sample_counts", {}).values() if v >= 5)
             total = len(learn_result.get("sample_counts", {}))
             log(f"  학습: {updated}/{total} 레짐 가중치 업데이트 (충분한 데이터)")
     except Exception as e:
         log(f"Phase 12 레짐 학습 예외: {e}")
+
+    # Phase 캐시 해제
+    try:
+        _invalidate_cache()
+    except Exception:
+        pass
 
     log("═══ 에이전트 모드 완료 ═══")
     print(json.dumps(output, ensure_ascii=False, indent=2))

@@ -59,6 +59,7 @@ def _load_state() -> dict:
     return {
         "confidence_bias": 0.0,         # confidence 보정값 (-0.2 ~ +0.2)
         "rl_model_scores": {},           # 모델별 정확도 {model: {accuracy, samples, active}}
+        "disabled_rl_models": [],        # 비활성화된 RL 모델 목록
         "calibration_history": [],       # 최근 10회 보정 이력
         "regime_weights": {},            # 레짐별 모델 가중치
         "last_updated": None,
@@ -66,18 +67,26 @@ def _load_state() -> dict:
 
 
 def _save_state(state: dict):
-    """feedback hub 상태를 저장한다."""
+    """feedback hub 상태를 저장한다 (atomic write)."""
     state["last_updated"] = datetime.now(KST).isoformat()
-    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        from scripts.atomic_write import atomic_json_save
+        atomic_json_save(STATE_FILE, state)
+    except ImportError:
+        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 # ============================================================
 # 1. Confidence Calibration
 # ============================================================
 
-def calibrate_confidence(days: int = 14) -> dict:
+def calibrate_confidence(days: int = 14, cached_decisions: list[dict] | None = None) -> dict:
     """예측 confidence와 실제 결과를 비교하여 보정 계수를 계산한다.
+
+    Args:
+        days: 분석 기간 (일)
+        cached_decisions: phase_cache에서 전달받은 캐시 데이터 (None이면 직접 조회)
 
     Returns:
         {
@@ -87,27 +96,41 @@ def calibrate_confidence(days: int = 14) -> dict:
             "buckets": {conf_range: {predicted: X, actual: Y, count: N}}
         }
     """
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return {"confidence_bias": 0.0, "calibration_error": 0.0, "samples": 0}
+    rows = None
+    if cached_decisions is not None:
+        # 캐시에서 was_correct_4h이 null이 아닌 것만 필터
+        rows = [d for d in cached_decisions if d.get("was_correct_4h") is not None]
 
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-
-    try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/decisions",
-            headers=_headers(),
-            params={
-                "select": "confidence,decision,was_correct_4h,outcome_4h_pct",
-                "created_at": f"gte.{cutoff}",
-                "was_correct_4h": "not.is.null",
-                "limit": "200",
-            },
-            timeout=10,
-        )
-        if r.status_code != 200 or not r.json():
+    if rows is None:
+        if not SUPABASE_URL or not SUPABASE_KEY:
             return {"confidence_bias": 0.0, "calibration_error": 0.0, "samples": 0}
 
-        rows = r.json()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+        try:
+            r = requests.get(
+                f"{SUPABASE_URL}/rest/v1/decisions",
+                headers=_headers(),
+                params={
+                    "select": "confidence,decision,was_correct_4h,outcome_4h_pct",
+                    "created_at": f"gte.{cutoff}",
+                    "was_correct_4h": "not.is.null",
+                    "limit": "200",
+                },
+                timeout=10,
+            )
+            if r.status_code != 200 or not r.json():
+                return {"confidence_bias": 0.0, "calibration_error": 0.0, "samples": 0}
+
+            rows = r.json()
+        except Exception as e:
+            print(f"[feedback_hub] calibration 예외: {e}", file=sys.stderr)
+            return {"confidence_bias": 0.0, "calibration_error": 0.0, "samples": 0}
+
+    if not rows:
+        return {"confidence_bias": 0.0, "calibration_error": 0.0, "samples": 0}
+
+    try:
 
         # confidence 구간별 실제 정확도 계산
         buckets = {
@@ -255,34 +278,53 @@ def score_rl_models(days: int = 14) -> dict:
 # 3. RAG Quality Feedback
 # ============================================================
 
-def evaluate_rag_quality(days: int = 14) -> dict:
+def evaluate_rag_quality(days: int = 14, cached_decisions: list[dict] | None = None) -> dict:
     """RAG recall이 매매 품질에 기여했는지 평가한다.
 
     RAG를 사용한 결정 vs 미사용 결정의 정확도 차이를 비교.
+
+    Args:
+        days: 분석 기간 (일)
+        cached_decisions: phase_cache에서 전달받은 캐시 데이터 (None이면 직접 조회)
     """
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return {"rag_benefit": 0.0, "samples": 0}
+    rows = None
+    if cached_decisions is not None:
+        rows = [
+            d for d in cached_decisions
+            if d.get("was_correct_4h") is not None and d.get("source") == "agent"
+        ]
 
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-
-    try:
-        # 모든 결정 (RAG 사용 여부 구분은 market_data_snapshot에서)
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/decisions",
-            headers=_headers(),
-            params={
-                "select": "was_correct_4h,market_data_snapshot,source",
-                "created_at": f"gte.{cutoff}",
-                "was_correct_4h": "not.is.null",
-                "source": "eq.agent",
-                "limit": "200",
-            },
-            timeout=10,
-        )
-        if r.status_code != 200:
+    if rows is None:
+        if not SUPABASE_URL or not SUPABASE_KEY:
             return {"rag_benefit": 0.0, "samples": 0}
 
-        rows = r.json()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+        try:
+            r = requests.get(
+                f"{SUPABASE_URL}/rest/v1/decisions",
+                headers=_headers(),
+                params={
+                    "select": "was_correct_4h,market_data_snapshot,source",
+                    "created_at": f"gte.{cutoff}",
+                    "was_correct_4h": "not.is.null",
+                    "source": "eq.agent",
+                    "limit": "200",
+                },
+                timeout=10,
+            )
+            if r.status_code != 200:
+                return {"rag_benefit": 0.0, "samples": 0}
+
+            rows = r.json()
+        except Exception as e:
+            print(f"[feedback_hub] RAG quality 예외: {e}", file=sys.stderr)
+            return {"rag_benefit": 0.0, "samples": 0}
+
+    if not rows:
+        return {"rag_benefit": 0.0, "samples": 0}
+
+    try:
         rag_correct, rag_total = 0, 0
         no_rag_correct, no_rag_total = 0, 0
 
@@ -292,8 +334,10 @@ def evaluate_rag_quality(days: int = 14) -> dict:
             if isinstance(snapshot, str):
                 try:
                     snapshot = json.loads(snapshot)
-                except json.JSONDecodeError:
+                except (json.JSONDecodeError, TypeError):
                     snapshot = {}
+            if not isinstance(snapshot, dict):
+                snapshot = {}
 
             # snapshot에 rl_advisory가 있으면 RAG도 사용했을 가능성 높음
             has_rag = bool(snapshot.get("snapshot_dir"))
@@ -327,12 +371,16 @@ def evaluate_rag_quality(days: int = 14) -> dict:
 # 4. Full Analysis & State Update
 # ============================================================
 
-def run_full_analysis() -> dict:
-    """전체 분석을 실행하고 보정 파라미터를 업데이트한다."""
+def run_full_analysis(cached_decisions: list[dict] | None = None) -> dict:
+    """전체 분석을 실행하고 보정 파라미터를 업데이트한다.
+
+    Args:
+        cached_decisions: phase_cache에서 전달받은 캐시 데이터 (None이면 직접 조회)
+    """
     state = _load_state()
 
     # 1) Confidence 보정
-    cal = calibrate_confidence(14)
+    cal = calibrate_confidence(14, cached_decisions=cached_decisions)
     state["confidence_bias"] = cal["confidence_bias"]
 
     # 보정 이력 유지 (최근 10회)
@@ -354,7 +402,7 @@ def run_full_analysis() -> dict:
     state["disabled_rl_models"] = disabled_models
 
     # 3) RAG 품질
-    rag = evaluate_rag_quality(14)
+    rag = evaluate_rag_quality(14, cached_decisions=cached_decisions)
     state["rag_quality"] = rag
 
     _save_state(state)

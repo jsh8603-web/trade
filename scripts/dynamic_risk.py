@@ -80,7 +80,7 @@ def _fetch_recent_decisions(days: int = 7) -> list[dict]:
         if r.status_code == 200:
             return r.json()
     except Exception as e:
-        print(f"[dynamic_risk] Supabase 조회 실패: {e}")
+        print(f"[dynamic_risk] Supabase 조회 실패: {e}", file=sys.stderr)
 
     return []
 
@@ -166,14 +166,17 @@ def _determine_risk_level(sharpe: float | None) -> tuple[str, float]:
         return "BOOST", 1.2      # +20%
 
 
-def update_risk() -> dict:
+def update_risk(cached_decisions: list[dict] | None = None) -> dict:
     """
     동적 리스크를 재계산하고 상태 파일에 저장한다.
+
+    Args:
+        cached_decisions: phase_cache에서 전달받은 캐시 데이터 (None이면 직접 조회)
 
     Returns:
         리스크 상태 딕셔너리
     """
-    decisions = _fetch_recent_decisions(days=7)
+    decisions = cached_decisions if cached_decisions is not None else _fetch_recent_decisions(days=7)
     sharpe = _calculate_sharpe(decisions)
     win_rate = _calculate_win_rate(decisions)
     consec_losses = _count_consecutive_losses(decisions)
@@ -216,15 +219,12 @@ def update_risk() -> dict:
         "last_updated": datetime.now(KST).isoformat(),
     }
 
-    # 저장
+    # 저장 (atomic write)
     try:
-        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        STATE_FILE.write_text(
-            json.dumps(state, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        from scripts.atomic_write import atomic_json_save
+        atomic_json_save(STATE_FILE, state)
     except OSError as e:
-        print(f"[dynamic_risk] 상태 저장 실패: {e}")
+        print(f"[dynamic_risk] 상태 저장 실패: {e}", file=sys.stderr)
 
     return state
 

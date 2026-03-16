@@ -32,6 +32,7 @@ from dotenv import load_dotenv
 import requests
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
 STATE_FILE = PROJECT_DIR / "data" / "strategy_health.json"
@@ -97,10 +98,14 @@ def _calc_consecutive_losses(decisions: list[dict]) -> int:
 
 def _calc_sharpe(decisions: list[dict]) -> float:
     """outcome_4h_pct 기반 샤프비를 계산한다."""
-    outcomes = [
-        d["outcome_4h_pct"] for d in decisions
-        if d.get("outcome_4h_pct") is not None
-    ]
+    outcomes = []
+    for d in decisions:
+        pct = d.get("outcome_4h_pct")
+        if pct is not None:
+            try:
+                outcomes.append(float(pct))
+            except (ValueError, TypeError):
+                pass
     if len(outcomes) < 2:
         return 0.0
     mean = sum(outcomes) / len(outcomes)
@@ -180,16 +185,17 @@ def _generate_suggestion(
     return " / ".join(suggestions) if suggestions else "정상 운영 중"
 
 
-def check_health(quiet: bool = False) -> dict | None:
+def check_health(quiet: bool = False, cached_decisions: list[dict] | None = None) -> dict | None:
     """전략 건강검진을 수행한다.
 
     Args:
         quiet: True이면 텔레그램 알림을 보내지 않는다.
+        cached_decisions: phase_cache에서 전달받은 캐시 데이터 (None이면 직접 조회)
 
     Returns:
         건강 상태 딕셔너리 또는 데이터 부족 시 None.
     """
-    decisions_7d = _fetch_recent_decisions(days=7)
+    decisions_7d = cached_decisions if cached_decisions is not None else _fetch_recent_decisions(days=7)
 
     if not decisions_7d:
         result = {
@@ -226,10 +232,14 @@ def check_health(quiet: bool = False) -> dict | None:
     sharpe_7d = _calc_sharpe(decisions_7d)
     total_trades_7d = len(decisions_7d)
 
-    outcomes = [
-        d["outcome_4h_pct"] for d in decisions_7d
-        if d.get("outcome_4h_pct") is not None
-    ]
+    outcomes = []
+    for d in decisions_7d:
+        pct = d.get("outcome_4h_pct")
+        if pct is not None:
+            try:
+                outcomes.append(float(pct))
+            except (ValueError, TypeError):
+                pass
     avg_roi_7d = sum(outcomes) / len(outcomes) if outcomes else 0.0
 
     # 에이전트별 승률
@@ -275,12 +285,18 @@ def check_health(quiet: bool = False) -> dict | None:
 
 
 def _save_state(state: dict):
-    """건강 상태를 JSON 파일에 저장한다."""
-    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    STATE_FILE.write_text(
-        json.dumps(state, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    """건강 상태를 JSON 파일에 저장한다 (atomic write)."""
+    try:
+        from scripts.atomic_write import atomic_json_save
+        atomic_json_save(STATE_FILE, state)
+    except ImportError:
+        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        STATE_FILE.write_text(
+            json.dumps(state, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except OSError as e:
+        print(f"[strategy_health] 상태 저장 실패: {e}", file=sys.stderr)
 
 
 def _send_telegram_alert(health: dict):

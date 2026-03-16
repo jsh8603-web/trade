@@ -139,17 +139,27 @@ def _normalize_weights(weights: dict[str, float]) -> dict[str, float]:
     if total <= 0:
         # 균등 분배
         n = len(weights)
+        if n == 0:
+            return {}
         return {k: round(1.0 / n, 4) for k in weights}
     return {k: round(v / total, 4) for k, v in weights.items()}
 
 
-def learn_weights(days: int = 30) -> dict | None:
+def learn_weights(days: int = 30, cached_decisions: list[dict] | None = None) -> dict | None:
     """과거 매매 결과를 분석하여 레짐별 최적 모델 가중치를 학습한다.
+
+    Args:
+        days: 분석 기간 (일)
+        cached_decisions: phase_cache에서 전달받은 캐시 데이터 (None이면 직접 조회)
 
     Returns:
         저장된 전체 상태 dict 또는 실패 시 None
     """
-    rows = _fetch_decisions(days)
+    if cached_decisions is not None:
+        # 캐시에서 was_correct_4h not null 필터 (regime_learner 조건과 동일)
+        rows = [d for d in cached_decisions if d.get("was_correct_4h") is not None]
+    else:
+        rows = _fetch_decisions(days)
     if not rows:
         print("[regime_learner] 데이터 없음 — 학습 스킵", file=sys.stderr)
         return None
@@ -260,6 +270,9 @@ def learn_weights(days: int = 30) -> dict | None:
     }
 
     try:
+        from scripts.atomic_write import atomic_json_save
+        atomic_json_save(WEIGHTS_FILE, result)
+    except ImportError:
         WEIGHTS_FILE.parent.mkdir(parents=True, exist_ok=True)
         WEIGHTS_FILE.write_text(
             json.dumps(result, ensure_ascii=False, indent=2),

@@ -100,6 +100,11 @@ class TestScriptsImports:
         "scripts.weekly_retrain",
         "scripts._db_check",
         "scripts.web_server",
+        "scripts.dynamic_risk",
+        "scripts.strategy_health",
+        "scripts.alert_aggregator",
+        "scripts.model_retrainer",
+        "scripts.regime_learner",
     ]
 
     @pytest.mark.parametrize("module_name", SCRIPT_MODULES)
@@ -348,3 +353,72 @@ class TestRequirementsTxt:
             assert mod is not None, (
                 f"{pkg_name} ({import_name})를 임포트할 수 없습니다"
             )
+
+
+# ---------------------------------------------------------------------------
+# 9. Phase 8-12 모듈 함수 임포트 검증
+# ---------------------------------------------------------------------------
+class TestPhase8to12Imports:
+    """run_agents.py Phase 8-12에서 사용하는 함수들이 임포트 가능한지 검증"""
+
+    def test_dynamic_risk_exports(self):
+        """Phase 8: dynamic_risk에서 update_risk, get_adjusted_max_amount 임포트"""
+        from scripts.dynamic_risk import update_risk, get_adjusted_max_amount
+        assert callable(update_risk)
+        assert callable(get_adjusted_max_amount)
+
+    def test_strategy_health_exports(self):
+        """Phase 9: strategy_health에서 check_health 임포트"""
+        from scripts.strategy_health import check_health
+        assert callable(check_health)
+
+    def test_alert_aggregator_exports(self):
+        """Phase 10: alert_aggregator에서 aggregate_and_send 임포트"""
+        from scripts.alert_aggregator import aggregate_and_send
+        assert callable(aggregate_and_send)
+
+    def test_model_retrainer_exports(self):
+        """Phase 11: model_retrainer에서 check_and_queue, process_queue 임포트"""
+        from scripts.model_retrainer import check_and_queue, process_queue
+        assert callable(check_and_queue)
+        assert callable(process_queue)
+
+    def test_regime_learner_exports(self):
+        """Phase 12: regime_learner에서 learn_weights 임포트"""
+        from scripts.regime_learner import learn_weights
+        assert callable(learn_weights)
+
+
+# ---------------------------------------------------------------------------
+# 10. 순환 임포트 검증
+# ---------------------------------------------------------------------------
+class TestNoCircularImports:
+    """관련 모듈 쌍 간 순환 임포트가 없는지 검증"""
+
+    def test_feedback_and_model_retrainer(self):
+        """feedback <-> model_retrainer 순환 임포트 없음"""
+        import scripts.feedback
+        import scripts.model_retrainer
+        assert scripts.feedback is not None
+        assert scripts.model_retrainer is not None
+
+    def test_regime_detector_and_regime_learner(self):
+        """regime_detector <-> regime_learner 순환 임포트 없음"""
+        import scripts.regime_detector
+        import scripts.regime_learner
+        assert scripts.regime_detector is not None
+        assert scripts.regime_learner is not None
+
+    def test_dynamic_risk_and_execute_trade(self):
+        """dynamic_risk <-> execute_trade 순환 임포트 없음"""
+        import scripts.dynamic_risk
+        import scripts.execute_trade
+        assert scripts.dynamic_risk is not None
+        assert scripts.execute_trade is not None
+
+    def test_alert_aggregator_and_strategy_health(self):
+        """alert_aggregator <-> strategy_health 순환 임포트 없음"""
+        import scripts.alert_aggregator
+        import scripts.strategy_health
+        assert scripts.alert_aggregator is not None
+        assert scripts.strategy_health is not None

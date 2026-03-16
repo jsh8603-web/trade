@@ -66,10 +66,14 @@ def _load_json(path: Path) -> dict | None:
 
 
 def _save_json(path: Path, data: dict) -> None:
-    """JSON 파일을 안전하게 저장한다."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2, default=str)
+    """JSON 파일을 안전하게 저장한다 (atomic write)."""
+    try:
+        from scripts.atomic_write import atomic_json_save
+        atomic_json_save(path, data)
+    except ImportError:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2, default=str)
 
 
 def _load_alert_state() -> dict:
@@ -134,11 +138,15 @@ def _collect_strategy_health_alerts() -> list[dict]:
         return alerts
 
     status = data.get("status", "GREEN")
-    win_rate = data.get("win_rate", 0)
+    win_rate = data.get("win_rate_7d", data.get("win_rate", 0))
     consecutive_losses = data.get("consecutive_losses", 0)
     detail_parts = []
     if win_rate:
-        detail_parts.append(f"승률 {win_rate}%")
+        # win_rate is 0~1 ratio, display as percentage
+        if isinstance(win_rate, (int, float)) and win_rate <= 1:
+            detail_parts.append(f"승률 {win_rate:.0%}")
+        else:
+            detail_parts.append(f"승률 {win_rate}%")
     if consecutive_losses:
         detail_parts.append(f"연패 {consecutive_losses}회")
     detail = ", ".join(detail_parts) if detail_parts else "상세 정보 없음"
@@ -166,21 +174,23 @@ def _collect_dynamic_risk_alerts() -> list[dict]:
         return alerts
 
     risk_level = data.get("risk_level", "NORMAL")
-    sharpe = data.get("sharpe", 0)
-    trade_amount = data.get("trade_amount", 0)
-    win_rate = data.get("win_rate", 0)
+    sharpe = data.get("sharpe_7d")  # can be None
+    trade_amount = data.get("adjusted_amount", 0)
+    win_rate = data.get("win_rate_7d", 0)  # 0~1 ratio
+
+    sharpe_str = f"{sharpe:.2f}" if sharpe is not None else "N/A"
 
     if risk_level == "CRITICAL":
         alerts.append(_make_alert("CRITICAL", "dynamic_risk",
-                                  f"동적 리스크 CRITICAL — Sharpe {sharpe:.2f}"))
+                                  f"동적 리스크 CRITICAL — Sharpe {sharpe_str}"))
     elif risk_level == "LOW":
-        detail = f"Sharpe {sharpe:.2f}"
+        detail = f"Sharpe {sharpe_str}"
         if trade_amount:
             detail += f", 매매액 {trade_amount:,.0f}원"
         alerts.append(_make_alert("HIGH", "dynamic_risk", f"동적 리스크 LOW — {detail}"))
-    elif risk_level == "NORMAL" and win_rate and win_rate < 45:
+    elif risk_level == "NORMAL" and win_rate and win_rate < 0.45:
         alerts.append(_make_alert("MEDIUM", "dynamic_risk",
-                                  f"리스크 NORMAL이나 승률 {win_rate}% 저조"))
+                                  f"리스크 NORMAL이나 승률 {win_rate:.0%} 저조"))
 
     return alerts
 
@@ -204,45 +214,63 @@ def _collect_emergency_alerts() -> list[dict]:
     return alerts
 
 
+# Sentinel 결과 캐시 (5분 TTL)
+_sentinel_cache: dict = {"data": None, "ts": 0.0}
+_SENTINEL_CACHE_TTL = 300  # 5분
+
+
 def _collect_sentinel_alerts() -> list[dict]:
-    """sentinel.py를 실행하여 점검 결과에서 알림을 수집한다."""
+    """sentinel.py를 실행하여 점검 결과에서 알림을 수집한다.
+
+    결과를 5분간 캐시하여 반복 호출 시 API 재호출을 방지한다.
+    """
+    import time as _time
     alerts = []
 
     if not SENTINEL_SCRIPT.exists():
         return alerts
 
-    try:
-        result = subprocess.run(
-            [sys.executable, str(SENTINEL_SCRIPT)],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            cwd=str(PROJECT_DIR),
-        )
-        output = result.stdout.strip()
-        if not output:
+    # 캐시 확인
+    now = _time.monotonic()
+    if _sentinel_cache["data"] is not None and (now - _sentinel_cache["ts"]) < _SENTINEL_CACHE_TTL:
+        sentinel_data = _sentinel_cache["data"]
+    else:
+        try:
+            result = subprocess.run(
+                [sys.executable, str(SENTINEL_SCRIPT)],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                cwd=str(PROJECT_DIR),
+            )
+            output = result.stdout.strip()
+            if not output:
+                return alerts
+
+            sentinel_data = json.loads(output)
+            _sentinel_cache["data"] = sentinel_data
+            _sentinel_cache["ts"] = now
+        except subprocess.TimeoutExpired:
+            alerts.append(_make_alert("HIGH", "sentinel", "Sentinel 점검 타임아웃 (60s)"))
+            return alerts
+        except (json.JSONDecodeError, OSError) as e:
+            alerts.append(_make_alert("MEDIUM", "sentinel", f"Sentinel 파싱 실패: {e}"))
             return alerts
 
-        sentinel_data = json.loads(output)
-        checks = sentinel_data.get("checks", [])
+    checks = sentinel_data.get("checks", [])
 
-        for check in checks:
-            component = check.get("component", "unknown")
-            status = check.get("status", "OK")
-            message = check.get("message", "")
+    for check in checks:
+        component = check.get("component", "unknown")
+        status = check.get("status", "OK")
+        message = check.get("message", "")
 
-            if status == "CRITICAL":
-                alerts.append(_make_alert("CRITICAL", f"sentinel_{component}", message))
-            elif status == "ERROR":
-                alerts.append(_make_alert("HIGH", f"sentinel_{component}", message))
-            elif status == "WARNING":
-                # 디스크/메모리/stale lock 경고
-                alerts.append(_make_alert("HIGH", f"sentinel_{component}", message))
-
-    except subprocess.TimeoutExpired:
-        alerts.append(_make_alert("HIGH", "sentinel", "Sentinel 점검 타임아웃 (60s)"))
-    except (json.JSONDecodeError, OSError) as e:
-        alerts.append(_make_alert("MEDIUM", "sentinel", f"Sentinel 파싱 실패: {e}"))
+        if status == "CRITICAL":
+            alerts.append(_make_alert("CRITICAL", f"sentinel_{component}", message))
+        elif status == "ERROR":
+            alerts.append(_make_alert("HIGH", f"sentinel_{component}", message))
+        elif status == "WARNING":
+            # 디스크/메모리/stale lock 경고
+            alerts.append(_make_alert("HIGH", f"sentinel_{component}", message))
 
     return alerts
 
@@ -280,26 +308,35 @@ def _should_send(tier: str, alert_key: str, state: dict) -> bool:
     if tier == "CRITICAL":
         last_sent_str = state.get("last_critical_sent")
         if last_sent_str:
-            last_sent = datetime.fromisoformat(last_sent_str)
-            if now - last_sent < CRITICAL_INTERVAL:
-                return False
+            try:
+                last_sent = datetime.fromisoformat(last_sent_str)
+                if now - last_sent < CRITICAL_INTERVAL:
+                    return False
+            except (ValueError, TypeError):
+                pass  # corrupted timestamp → allow sending
         return True
 
     elif tier == "HIGH":
         last_sent_str = state.get("last_high_sent")
         if last_sent_str:
-            last_sent = datetime.fromisoformat(last_sent_str)
-            if now - last_sent < HIGH_INTERVAL:
-                return False
+            try:
+                last_sent = datetime.fromisoformat(last_sent_str)
+                if now - last_sent < HIGH_INTERVAL:
+                    return False
+            except (ValueError, TypeError):
+                pass
         return True
 
     elif tier == "MEDIUM":
         last_sent_str = state.get("last_medium_sent")
         if last_sent_str:
-            last_sent = datetime.fromisoformat(last_sent_str)
-            # 같은 날 이미 전송했으면 스킵
-            if last_sent.date() == now.date():
-                return False
+            try:
+                last_sent = datetime.fromisoformat(last_sent_str)
+                # 같은 날 이미 전송했으면 스킵
+                if last_sent.date() == now.date():
+                    return False
+            except (ValueError, TypeError):
+                pass
         # 08:00 KST 이후에만 전송
         return now.hour >= MEDIUM_HOUR
 
@@ -323,9 +360,12 @@ def _reset_stale_history(state: dict) -> None:
     for key, entry in history.items():
         last_sent_str = entry.get("last_sent")
         if last_sent_str:
-            last_sent = datetime.fromisoformat(last_sent_str)
-            if now - last_sent > timedelta(hours=24):
-                stale_keys.append(key)
+            try:
+                last_sent = datetime.fromisoformat(last_sent_str)
+                if now - last_sent > timedelta(hours=24):
+                    stale_keys.append(key)
+            except (ValueError, TypeError):
+                stale_keys.append(key)  # corrupted timestamp → treat as stale
     for key in stale_keys:
         del history[key]
 

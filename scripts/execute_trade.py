@@ -53,7 +53,7 @@ def acquire_lock(timeout=15):
         # stale lock 검사: 타임아웃 초과 또는 프로세스 사망 시 강제 해제
         if LOCK_FILE.exists():
             try:
-                data = json.loads(LOCK_FILE.read_text())
+                data = json.loads(LOCK_FILE.read_text(encoding="utf-8"))
                 lock_time = datetime.fromisoformat(data.get("timestamp") or data.get("time", ""))
                 age = (datetime.now(KST) - lock_time).total_seconds()
                 lock_pid = data.get("pid", 0)
@@ -377,7 +377,7 @@ def execute(side: str, market: str, amount: str):
     try:
         from scripts.dynamic_risk import get_adjusted_max_amount
         dynamic_max = get_adjusted_max_amount()
-        if dynamic_max and dynamic_max < max_amount:
+        if dynamic_max is not None and dynamic_max < max_amount:
             max_amount = dynamic_max
     except Exception:
         pass  # fallback to env value

@@ -36,9 +36,6 @@ AGENTS = {
 }
 
 
-import time as _time
-
-
 def _acquire_lock(lock_path: str, retries: int = 10, wait: float = 0.1):
     for _ in range(retries):
         try:
@@ -46,7 +43,7 @@ def _acquire_lock(lock_path: str, retries: int = 10, wait: float = 0.1):
             os.close(fd)
             return True
         except FileExistsError:
-            _time.sleep(wait)
+            time.sleep(wait)
     return False
 
 
@@ -274,20 +271,24 @@ class Orchestrator:
         original_threshold = agent.buy_score_threshold
         if warmup_threshold is not None:
             agent.buy_score_threshold = warmup_threshold
-            from datetime import datetime, timezone, timedelta
-            kst = timezone(timedelta(hours=9))
-            started_dt = datetime.fromisoformat(self.state["transition_started"])
-            if started_dt.tzinfo is None:
-                started_dt = started_dt.replace(tzinfo=kst)
-            elapsed = (datetime.now(kst) - started_dt).total_seconds() / 60.0
-            duration = self.state.get("transition_duration_min", 30)
-            w_new, w_old = self.get_transition_weight()
-            print(
-                f"[전환 워밍업] {self.state['transition_from']}→{self._active_agent_name} "
-                f"({elapsed:.0f}분/{duration}분, 신규 {w_new:.0%}) "
-                f"임계값: {original_threshold}→{warmup_threshold} (블렌딩)",
-                file=sys.stderr,
-            )
+            try:
+                from datetime import datetime, timezone, timedelta
+                kst = timezone(timedelta(hours=9))
+                started_dt = datetime.fromisoformat(self.state["transition_started"])
+                if started_dt.tzinfo is None:
+                    started_dt = started_dt.replace(tzinfo=kst)
+                elapsed = (datetime.now(kst) - started_dt).total_seconds() / 60.0
+                duration = self.state.get("transition_duration_min", 30)
+                w_new, w_old = self.get_transition_weight()
+                print(
+                    f"[전환 워밍업] {self.state['transition_from']}→{self._active_agent_name} "
+                    f"({elapsed:.0f}분/{duration}분, 신규 {w_new:.0%}) "
+                    f"임계값: {original_threshold}→{warmup_threshold} (블렌딩)",
+                    file=sys.stderr,
+                )
+            except (ValueError, TypeError, KeyError) as e:
+                print(f"[orchestrator] 워밍업 로그 출력 실패 (transition_started 파싱 오류): {e}", file=sys.stderr)
+                self._clear_transition()
 
         decision = agent.decide(market_data, external_signal, portfolio,
                                 drop_context=drop_context)
@@ -751,6 +752,8 @@ class Orchestrator:
         self._active_agent_name = switch_info["to"]
         self.state["active_agent"] = switch_info["to"]
         self.state["last_switch_time"] = switch_info["timestamp"]
+        if "switch_history" not in self.state:
+            self.state["switch_history"] = []
         self.state["switch_history"].append(switch_info)
         self.state["switch_history"] = self.state["switch_history"][-30:]
         _save_state(self.state)
@@ -797,8 +800,10 @@ class Orchestrator:
             now = datetime.now(kst)
             elapsed_min = (now - started_dt).total_seconds() / 60.0
             duration = self.state.get("transition_duration_min", 30)
+            if not duration or duration <= 0:
+                duration = 30
 
-            if elapsed_min >= duration:
+            if elapsed_min < 0 or elapsed_min >= duration:
                 # 전환 완료
                 self._clear_transition()
                 return (1.0, 0.0)

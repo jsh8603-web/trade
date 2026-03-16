@@ -21,6 +21,7 @@ feedback_hub에서 비활성화된 RL 모델을 감지하고, 재훈련 큐에 �
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import sys
@@ -32,6 +33,8 @@ from dotenv import load_dotenv
 import requests
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
 KST = timezone(timedelta(hours=9))
@@ -79,11 +82,15 @@ def _load_queue() -> dict:
 
 
 def _save_queue(data: dict):
-    """model_retrain_queue.json 저장"""
-    QUEUE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    QUEUE_FILE.write_text(
-        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    """model_retrain_queue.json 저장 (atomic write)"""
+    try:
+        from scripts.atomic_write import atomic_json_save
+        atomic_json_save(QUEUE_FILE, data)
+    except ImportError:
+        QUEUE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        QUEUE_FILE.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
 
 def _load_feedback_state() -> dict:
@@ -101,12 +108,16 @@ def _load_feedback_state() -> dict:
 
 
 def _save_feedback_state(state: dict):
-    """feedback_hub_state.json 저장"""
+    """feedback_hub_state.json 저장 (atomic write)"""
     state["last_updated"] = _now_kst()
-    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    STATE_FILE.write_text(
-        json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    try:
+        from scripts.atomic_write import atomic_json_save
+        atomic_json_save(STATE_FILE, state)
+    except ImportError:
+        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        STATE_FILE.write_text(
+            json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
 
 # ============================================================
@@ -257,6 +268,8 @@ def check_and_queue() -> dict:
         if not skip_reason and last_updated:
             try:
                 updated_dt = datetime.fromisoformat(last_updated)
+                if updated_dt.tzinfo is None:
+                    updated_dt = updated_dt.replace(tzinfo=KST)
                 hours_since = (datetime.now(KST) - updated_dt).total_seconds() / 3600
                 if hours_since < MIN_DISABLED_HOURS:
                     skip_reason = f"비활성화 {hours_since:.1f}h 경과 (최소 {MIN_DISABLED_HOURS}h)"
@@ -269,6 +282,8 @@ def check_and_queue() -> dict:
                 if hist.get("model_name") == model_name:
                     try:
                         last_attempt = datetime.fromisoformat(hist["queued_at"])
+                        if last_attempt.tzinfo is None:
+                            last_attempt = last_attempt.replace(tzinfo=KST)
                         hours_ago = (datetime.now(KST) - last_attempt).total_seconds() / 3600
                         if hours_ago < MIN_RETRAIN_INTERVAL_HOURS:
                             skip_reason = f"마지막 시도 {hours_ago:.1f}h 전 (최소 {MIN_RETRAIN_INTERVAL_HOURS}h)"
@@ -663,7 +678,6 @@ if __name__ == "__main__":
         except Exception:
             pass
 
-    import argparse
     parser = argparse.ArgumentParser(description="RL 모델 자동 재훈련 큐 관리자")
     parser.add_argument("--status", action="store_true", help="큐 상태 조회")
     args = parser.parse_args()
