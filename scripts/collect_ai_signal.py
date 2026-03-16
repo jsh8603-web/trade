@@ -29,14 +29,35 @@ import requests
 UPBIT_API = "https://api.upbit.com/v1"
 RATE_LIMIT_WAIT = 0.15  # Upbit API rate limit 대응
 
+# ── Predictive API Throttler ────────────────────────────
+try:
+    from scripts.api_throttler import record_call as _record_call, should_throttle as _should_throttle
+    _THROTTLER_AVAILABLE = True
+except ImportError:
+    _THROTTLER_AVAILABLE = False
+
 
 def api_get(path: str, params: dict | None = None, max_retries: int = 3) -> dict | list:
+    # Predictive throttle check
+    if _THROTTLER_AVAILABLE:
+        should_wait, delay = _should_throttle("upbit")
+        if should_wait:
+            print(f"[throttle] upbit pre-throttle {delay:.1f}s", file=sys.stderr)
+            time.sleep(delay)
+
     url = f"{UPBIT_API}{path}"
     if params:
         url += "?" + "&".join(f"{k}={v}" for k, v in params.items())
     last_response = None
     for attempt in range(max_retries):
+        t0 = time.time()
         last_response = requests.get(url, timeout=10)
+        latency_ms = (time.time() - t0) * 1000
+
+        # Record call for throttler
+        if _THROTTLER_AVAILABLE:
+            _record_call("upbit", last_response.status_code, latency_ms)
+
         if last_response.status_code == 429:
             wait = 2 ** attempt
             print(f"[rate_limit] 429 received, retrying in {wait}s...", file=sys.stderr)

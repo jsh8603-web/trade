@@ -1079,7 +1079,7 @@ def main():
                 },
                 errors={"pipeline_errors": pipeline_errors} if pipeline_errors else None,
                 raw_output=json.dumps(output, ensure_ascii=False)[:10000],
-                phases_completed=["phase1", "phase2", "phase2.5", "phase3", "phase4", "phase5"],
+                phases_completed=["phase1", "phase2", "phase2.5", "phase3", "phase4", "phase5", "phase13"],
             )
         except Exception as e:
             log(f"execution_logs 기록 예외: {e}")
@@ -1289,6 +1289,55 @@ def main():
             log(f"  학습: {updated}/{total} 레짐 가중치 업데이트 (충분한 데이터)")
     except Exception as e:
         log(f"Phase 12 레짐 학습 예외: {e}")
+
+    # Phase 13: API 건강 점검 (Predictive Throttler)
+    try:
+        from scripts.api_throttler import get_api_health, get_throttle_stats
+        log("Phase 13: API 건강 점검...")
+        api_health = get_api_health()
+        overall = api_health.get("overall", "unknown")
+        degraded_apis = [
+            name for name, info in api_health.items()
+            if name != "overall" and isinstance(info, dict) and info.get("status") != "healthy"
+        ]
+        if degraded_apis:
+            log(f"  API 건강: {overall} — 주의: {', '.join(degraded_apis)}")
+            pipeline_errors.append({
+                "phase": "phase13",
+                "source": "api_health",
+                "error": f"degraded APIs: {degraded_apis}",
+            })
+        else:
+            log(f"  API 건강: {overall}")
+
+        # 통계 요약 로그
+        stats = get_throttle_stats()
+        for api_name, s in stats.items():
+            if s.get("calls_last_5min", 0) > 0:
+                log(f"  {api_name}: {s['calls_last_5min']}calls/5m, "
+                    f"429={s['rate_429_5min']:.1%}, lat={s['avg_latency_ms']:.0f}ms")
+    except Exception as e:
+        log(f"Phase 13 API 건강 점검 예외: {e}")
+
+    # Phase 14: RL 모델 다양성 검증
+    try:
+        from scripts.model_diversity import check_diversity, get_diversity_summary
+        log("Phase 14: RL 모델 다양성 검증...")
+        diversity = check_diversity(cached_decisions=_cached_7d)
+        if diversity:
+            d_score = diversity.get("diversity_score", 0)
+            d_samples = diversity.get("sample_count", 0)
+            d_summary = get_diversity_summary(diversity)
+            log(f"  다양성: {d_score}/100 [{d_summary['status']}] ({d_samples}건)")
+            output["diversity_score"] = d_score
+            for detail in d_summary.get("details", []):
+                log(f"    {detail}")
+            if d_score < 40:
+                log("  [!] 다양성 위험 — 모델 중복/편향 심각")
+        else:
+            log("  RL 어드바이저리 데이터 없음 — 스킵")
+    except Exception as e:
+        log(f"Phase 14 모델 다양성 예외: {e}")
 
     # Phase 캐시 해제
     try:

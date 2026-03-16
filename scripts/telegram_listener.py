@@ -38,6 +38,8 @@ import requests
 from dotenv import load_dotenv
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
 KST = timezone(timedelta(hours=9))
@@ -50,6 +52,8 @@ HEADERS = {
     "Authorization": f"Bearer {SUPABASE_KEY}",
     "Content-Type": "application/json",
 }
+
+from scripts.nl_feedback import extract_feedback, save_feedback_to_db
 
 POLL_INTERVAL = 3
 CLEANUP_INTERVAL = 3600
@@ -251,6 +255,32 @@ def handle_command(chat_id: str, text: str, sender: dict | None):
     return False
 
 
+# ── 자연어 피드백 추출 ──────────────────────────────
+
+def _try_nl_feedback(chat_id: str, text: str, sender: dict | None):
+    """owner 역할 메시지에서 자연어 피드백을 추출하여 DB에 저장한다."""
+    if not sender or sender.get("role") != "owner":
+        return
+    try:
+        entry = extract_feedback(text, sender["name"])
+        if not entry:
+            return
+        saved = save_feedback_to_db(entry)
+        status = "DB 저장 완료" if saved else "DB 저장 실패"
+        reply = (
+            f"\u2705 피드백 등록: {entry['type']} "
+            f"(confidence: {entry['confidence']})\n"
+            f"action: {entry['action']}\n"
+            f"{status}"
+        )
+        send_telegram(chat_id, reply)
+        ts = datetime.now(KST).strftime("%H:%M:%S")
+        print(f"[{ts}] NL피드백 감지: {entry['type']} / {entry['action']} "
+              f"(confidence={entry['confidence']}) from {sender['name']}", flush=True)
+    except Exception as e:
+        print(f"NL피드백 오류: {e}", flush=True)
+
+
 # ── 일반 메시지 처리 (텔레그램에서 온 메시지) ──────────
 
 def handle_plain_message(chat_id: str, text: str, sender: dict | None):
@@ -281,7 +311,8 @@ def handle_plain_message(chat_id: str, text: str, sender: dict | None):
                                      worker_name=sender["name"])
                     return
 
-    # 매칭 안 되면 기록만
+    # 매칭 안 되면 기록만 — 이후 자연어 피드백 추출 시도
+    _try_nl_feedback(chat_id, text, sender)
 
 
 # ── 키보드 입력 처리 (터미널에서 직접 타이핑) ──────────

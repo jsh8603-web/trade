@@ -30,6 +30,13 @@ UPBIT_API = "https://api.upbit.com/v1"
 # 커넥션 재사용을 위한 세션
 _session: requests.Session | None = None
 
+# ── Predictive API Throttler ────────────────────────────
+try:
+    from scripts.api_throttler import record_call as _record_call, should_throttle as _should_throttle
+    _THROTTLER_AVAILABLE = True
+except ImportError:
+    _THROTTLER_AVAILABLE = False
+
 
 def _get_session() -> requests.Session:
     """모듈 레벨 requests.Session을 반환한다 (커넥션 풀 재사용)."""
@@ -40,15 +47,29 @@ def _get_session() -> requests.Session:
     return _session
 
 
-# ── API 호출 (Exponential Backoff 포함) ─────────────────
+# ── API 호출 (Exponential Backoff + Predictive Throttling) ─
 def api_get(path: str, params: dict | None = None, max_retries: int = 3) -> dict | list:
+    # Predictive throttle check
+    if _THROTTLER_AVAILABLE:
+        should_wait, delay = _should_throttle("upbit")
+        if should_wait:
+            print(f"[throttle] upbit pre-throttle {delay:.1f}s", file=sys.stderr)
+            time.sleep(delay)
+
     session = _get_session()
     url = f"{UPBIT_API}{path}"
     if params:
         url += "?" + "&".join(f"{k}={v}" for k, v in params.items())
     r = None
     for attempt in range(max_retries):
+        t0 = time.time()
         r = session.get(url, timeout=10)
+        latency_ms = (time.time() - t0) * 1000
+
+        # Record call for throttler
+        if _THROTTLER_AVAILABLE:
+            _record_call("upbit", r.status_code, latency_ms)
+
         if r.status_code == 429:
             wait = 2 ** attempt  # 1s, 2s, 4s
             print(f"[rate_limit] 429 received, retrying in {wait}s...", file=sys.stderr)
