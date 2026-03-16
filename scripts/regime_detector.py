@@ -156,8 +156,15 @@ def detect_regime(
     gap = sorted_scores[0] - sorted_scores[1] if len(sorted_scores) > 1 else sorted_scores[0]
     confidence = min(1.0, gap / 50.0 + 0.3)  # 최소 0.3
 
-    # 해당 레짐의 모델 가중치
-    weights = DEFAULT_REGIME_WEIGHTS.get(best_regime, DEFAULT_REGIME_WEIGHTS["sideways"])
+    # 해당 레짐의 모델 가중치 — 학습된 가중치 우선 사용
+    weights = None
+    try:
+        from scripts.regime_learner import get_learned_weights
+        weights = get_learned_weights(best_regime)
+    except Exception:
+        pass
+    if not weights:
+        weights = DEFAULT_REGIME_WEIGHTS.get(best_regime, DEFAULT_REGIME_WEIGHTS["sideways"])
 
     return {
         "regime": best_regime,

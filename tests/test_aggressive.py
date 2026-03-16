@@ -208,10 +208,10 @@ class TestAggressiveSell:
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_stop_loss_3pct(self, agent):
         """일반 손절 -3%."""
-        md = _md(fgi=50, rsi=50)
+        # FGI/RSI 높게 → 바닥 시그널 없음 → DCA 아닌 즉시 손절
+        md = _md(fgi=80, rsi=75)
         port = _port(btc_balance=0.01, profit_pct=-3.5, total_eval=1000000)
         decision = agent.decide(md, _ext(), port)
-        # At -3.5% with no bottom signals → stop loss sell
         assert decision.decision == "sell"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})

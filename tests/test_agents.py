@@ -144,8 +144,8 @@ class TestBaseAgentBuyScore:
             fgi=10, rsi=70, sma_deviation=5.0,
             news_negative=True, external_bonus=0,
         )
-        # FGI 10 <= 30*0.5=15 → 30+5=35
-        assert score["fgi"]["score"] == 35
+        # FGI 10 <= 30*0.5=15 → 30+5=35, 또한 10 <= 20 → +5 극공포 보너스 = 40
+        assert score["fgi"]["score"] == 40
 
     def test_fgi_partial(self, conservative):
         """FGI가 임계값 초과 10 이내면 부분 점수 50%.
@@ -255,12 +255,24 @@ class TestBaseAgentEvaluateSell:
         assert result["type"] == "target_profit"
 
     def test_target_profit_deferred_by_ai(self, conservative):
-        """목표 수익이지만 AI 강세면 유예."""
-        result = conservative.evaluate_sell(
-            profit_pct=16.0, current_fgi=50, current_rsi=50,
-            buy_score={}, ai_signal_score=25,
-        )
-        assert result["action"] == "hold_defer"
+        """목표 수익이지만 AI 강세면 유예 (첫 유예 시)."""
+        import json
+        from pathlib import Path
+        state_file = Path(__file__).resolve().parent.parent / "data" / "agent_state.json"
+        # 기존 상태 백업 후 deferred=false로 설정
+        backup = state_file.read_text(encoding="utf-8") if state_file.exists() else None
+        try:
+            state = json.loads(backup) if backup else {}
+            state["deferred_target_profit"] = False
+            state_file.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+            result = conservative.evaluate_sell(
+                profit_pct=16.0, current_fgi=50, current_rsi=50,
+                buy_score={}, ai_signal_score=25,
+            )
+            assert result["action"] == "hold_defer"
+        finally:
+            if backup is not None:
+                state_file.write_text(backup, encoding="utf-8")
 
     def test_fgi_overbought_sell(self, conservative):
         """FGI 과열 시 매도."""

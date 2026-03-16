@@ -206,7 +206,7 @@ class TestAnalyzeWhaleTrades:
     @patch("collect_ai_signal.api_get")
     def test_large_bid_trades_whale_signal_buy(self, mock_api):
         trades = (
-            [self._make_trade("BID", 0.05, 50_000_000)] * 5  # 5 whale BID (2.5M each)
+            [self._make_trade("BID", 0.5, 50_000_000)] * 5  # 5 whale BID (25M each, > 10M threshold)
             + [self._make_trade("ASK", 0.001, 50_000_000)] * 50  # small ASK
         )
         mock_api.return_value = trades

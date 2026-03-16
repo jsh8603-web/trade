@@ -104,8 +104,8 @@ class TestCalculateBuyScore:
             fgi=10, rsi=70, sma_deviation=5.0,
             news_negative=True, external_bonus=0,
         )
-        # 10 <= 35*0.5=17.5 → 30+5=35
-        assert score["fgi"]["score"] == 35
+        # 10 <= 35*0.5=17.5 → 30+5=35, 또한 10 <= 20 → +5 극공포 보너스 = 40
+        assert score["fgi"]["score"] == 40
 
     def test_fgi_at_exactly_half_threshold(self, conservative):
         """FGI가 정확히 임계의 50%일 때 극단 보너스."""
@@ -114,7 +114,7 @@ class TestCalculateBuyScore:
             fgi=half, rsi=70, sma_deviation=5.0,
             news_negative=True, external_bonus=0,
         )
-        assert score["fgi"]["score"] == 35  # 30 + 5
+        assert score["fgi"]["score"] == 40  # 30 + 5(극단) + 5(극공포 FGI≤20)
 
     def test_fgi_just_above_half_threshold(self, conservative):
         """FGI가 임계의 50% 바로 위면 극단 보너스 없이 만점만."""
@@ -124,7 +124,8 @@ class TestCalculateBuyScore:
             news_negative=True, external_bonus=0,
         )
         # 18 <= 35 → full points 30 (no extreme bonus since 18 > 17.5)
-        assert score["fgi"]["score"] == 30
+        # 하지만 18 <= 20 → 극공포 보너스 +5 = 35
+        assert score["fgi"]["score"] == 35
 
     def test_fgi_partial(self, conservative):
         """FGI가 임계값 초과 10 이내면 부분 점수 50%."""
@@ -338,11 +339,22 @@ class TestEvaluateSell:
         assert result["type"] == "target_profit"
 
     def test_target_profit_deferred_by_ai(self, conservative):
-        result = conservative.evaluate_sell(
-            profit_pct=16.0, current_fgi=50, current_rsi=50,
-            buy_score={}, ai_signal_score=25,
-        )
-        assert result["action"] == "hold_defer"
+        import json
+        from pathlib import Path as _P
+        sf = _P(__file__).resolve().parent.parent / "data" / "agent_state.json"
+        backup = sf.read_text(encoding="utf-8") if sf.exists() else None
+        try:
+            st = json.loads(backup) if backup else {}
+            st["deferred_target_profit"] = False
+            sf.write_text(json.dumps(st, ensure_ascii=False, indent=2), encoding="utf-8")
+            result = conservative.evaluate_sell(
+                profit_pct=16.0, current_fgi=50, current_rsi=50,
+                buy_score={}, ai_signal_score=25,
+            )
+            assert result["action"] == "hold_defer"
+        finally:
+            if backup is not None:
+                sf.write_text(backup, encoding="utf-8")
 
     def test_target_profit_not_deferred_low_ai(self, conservative):
         """AI 시그널이 20 이하면 유예하지 않음."""
@@ -455,15 +467,15 @@ class TestEvaluateSell:
         assert result["type"] == "hybrid_forced"
 
     def test_ai_minus_20_boundary(self, conservative):
-        """AI -20은 극단 매도가 아님 (< -20 이어야 함)."""
+        """AI -20은 극단 매도가 아님 (< -20 이어야 함), 하지만 DCA 요건(ai>=0)도 미충족 → sell."""
         buy_score = {"fgi": {"score": 30}, "rsi": {"score": 25},
                      "sma": {"score": 25}, "news": {"score": 0}}
         result = conservative.evaluate_sell(
             profit_pct=-6.0, current_fgi=20, current_rsi=25,
             buy_score=buy_score, ai_signal_score=-20,
         )
-        # -20 is NOT < -20, so DCA should proceed
-        assert result["action"] == "dca"
+        # conditions_met=3, ai=-20: not >= 0 (no DCA), not < -20 (no forced) → else sell
+        assert result["action"] == "sell"
 
     # ── 캐스케이딩 위험 ──
 

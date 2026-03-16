@@ -372,6 +372,16 @@ def execute(side: str, market: str, amount: str):
 
     # 3b) 매수 금액 상한 확인
     max_amount = int(os.environ.get("MAX_TRADE_AMOUNT", "100000"))
+
+    # 동적 리스크 조절 적용
+    try:
+        from scripts.dynamic_risk import get_adjusted_max_amount
+        dynamic_max = get_adjusted_max_amount()
+        if dynamic_max and dynamic_max < max_amount:
+            max_amount = dynamic_max
+    except Exception:
+        pass  # fallback to env value
+
     if side == "bid" and float(amount) > max_amount:
         return {
             "success": False,

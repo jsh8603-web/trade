@@ -1653,6 +1653,7 @@ class TestLearningAndPerformanceCombined:
         orch._learning_data = None
         orch._performance = {}
         orch.state["feedback_bias"] = "conservative"
+        orch.state["feedback_bias_set_at"] = time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
         # danger=41 + feedback(+10) = 51 → moderate→conservative
         ms = _make_market_state(
             danger_score=41, opportunity_score=10,
@@ -1668,6 +1669,7 @@ class TestLearningAndPerformanceCombined:
         orch._learning_data = None
         orch._performance = {}
         orch.state["feedback_bias"] = "aggressive"
+        orch.state["feedback_bias_set_at"] = time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
         # opportunity=32 + feedback(+10) = 42 → moderate→aggressive (40~59 range)
         ms = _make_market_state(
             danger_score=10, opportunity_score=32,

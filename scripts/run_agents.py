@@ -1211,6 +1211,65 @@ def main():
     except Exception as e:
         log(f"Phase 7 Feedback Hub 예외: {e}")
 
+    # Phase 8: 동적 리스크 조절
+    try:
+        from scripts.dynamic_risk import update_risk
+        log("Phase 8: 동적 리스크 조절...")
+        risk = update_risk()
+        if risk:
+            log(f"  리스크: {risk.get('risk_level')} (Sharpe={risk.get('sharpe_7d', 0):.2f}, 조정액={risk.get('adjusted_amount'):,}원)")
+    except Exception as e:
+        log(f"Phase 8 동적 리스크 예외: {e}")
+
+    # Phase 9: 전략 건강검진
+    try:
+        from scripts.strategy_health import check_health
+        log("Phase 9: 전략 건강검진...")
+        health = check_health()
+        if health:
+            status = health.get("status", "UNKNOWN")
+            wr = health.get("win_rate_7d", 0)
+            log(f"  건강: {status} (승률 {wr:.0%}, 연패 {health.get('consecutive_losses', 0)}회)")
+    except Exception as e:
+        log(f"Phase 9 전략 건강검진 예외: {e}")
+
+    # Phase 10: 알림 집계
+    try:
+        from scripts.alert_aggregator import aggregate_and_send
+        log("Phase 10: 알림 집계...")
+        alert_result = aggregate_and_send()
+        if alert_result:
+            sent = alert_result.get("sent_count", 0)
+            suppressed = alert_result.get("suppressed_count", 0)
+            log(f"  알림: {sent}건 전송, {suppressed}건 억제")
+    except Exception as e:
+        log(f"Phase 10 알림 집계 예외: {e}")
+
+    # Phase 11: RL 모델 자동 재훈련
+    try:
+        from scripts.model_retrainer import check_and_queue, process_queue
+        log("Phase 11: RL 모델 재훈련 큐...")
+        queue_result = check_and_queue()
+        if queue_result and queue_result.get("queued", 0) > 0:
+            log(f"  재훈련 큐: {queue_result['queued']}개 모델 추가")
+            proc_result = process_queue()
+            if proc_result:
+                log(f"  처리: {proc_result.get('processed', 0)}개 완료, {proc_result.get('failed', 0)}개 실패")
+    except Exception as e:
+        log(f"Phase 11 RL 재훈련 예외: {e}")
+
+    # Phase 12: 레짐 가중치 학습
+    try:
+        from scripts.regime_learner import learn_weights
+        log("Phase 12: 레짐 가중치 학습...")
+        learn_result = learn_weights()
+        if learn_result:
+            updated = sum(1 for v in learn_result.get("sample_counts", {}).values() if v >= 5)
+            total = len(learn_result.get("sample_counts", {}))
+            log(f"  학습: {updated}/{total} 레짐 가중치 업데이트 (충분한 데이터)")
+    except Exception as e:
+        log(f"Phase 12 레짐 학습 예외: {e}")
+
     log("═══ 에이전트 모드 완료 ═══")
     print(json.dumps(output, ensure_ascii=False, indent=2))
 

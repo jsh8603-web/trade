@@ -68,6 +68,9 @@ def _load_state() -> dict:
     except (FileNotFoundError, json.JSONDecodeError):
         return {
             "active_agent": "conservative",
+            "transition_from": None,
+            "transition_started": None,
+            "transition_duration_min": None,
             "last_switch_time": None,
             "last_trade_time": None,
             "consecutive_losses": 0,
@@ -101,6 +104,13 @@ class Orchestrator:
     PHASE_NEUTRAL = "neutral"             # FGI 36~60
     PHASE_GREED = "greed"                 # FGI 61~80
     PHASE_EXTREME_GREED = "extreme_greed" # FGI > 80
+
+    # ── 에이전트별 매수 임계값 (워밍업 블렌딩용) ──
+    AGENT_THRESHOLDS = {
+        "conservative": 60,
+        "moderate": 50,
+        "aggressive": 40,
+    }
 
     def __init__(self):
         self.state = _load_state()
@@ -258,8 +268,33 @@ class Orchestrator:
 
         # 활성 에이전트에게 위임 (drop_context 전달)
         agent = self.active_agent
+
+        # ── 워밍업 전환: 매수 임계값 블렌딩 ──
+        warmup_threshold = self._get_warmup_threshold(agent)
+        original_threshold = agent.buy_score_threshold
+        if warmup_threshold is not None:
+            agent.buy_score_threshold = warmup_threshold
+            from datetime import datetime, timezone, timedelta
+            kst = timezone(timedelta(hours=9))
+            started_dt = datetime.fromisoformat(self.state["transition_started"])
+            if started_dt.tzinfo is None:
+                started_dt = started_dt.replace(tzinfo=kst)
+            elapsed = (datetime.now(kst) - started_dt).total_seconds() / 60.0
+            duration = self.state.get("transition_duration_min", 30)
+            w_new, w_old = self.get_transition_weight()
+            print(
+                f"[전환 워밍업] {self.state['transition_from']}→{self._active_agent_name} "
+                f"({elapsed:.0f}분/{duration}분, 신규 {w_new:.0%}) "
+                f"임계값: {original_threshold}→{warmup_threshold} (블렌딩)",
+                file=sys.stderr,
+            )
+
         decision = agent.decide(market_data, external_signal, portfolio,
                                 drop_context=drop_context)
+
+        # 워밍업 임계값 복원
+        if warmup_threshold is not None:
+            agent.buy_score_threshold = original_threshold
 
         # 사용자 피드백 오버라이드: 강제 관망 / confidence 임계값
         if self.state.get("force_hold_cycles", 0) > 0 and decision.decision in ("buy", "sell"):
@@ -708,12 +743,103 @@ class Orchestrator:
         return False
 
     def _do_switch(self, switch_info: dict) -> None:
+        # 워밍업 전환: 즉시 교체 대신 30분 소프트 전환
+        self.state["transition_from"] = switch_info["from"]
+        self.state["transition_started"] = switch_info["timestamp"]
+        self.state["transition_duration_min"] = 30
+
         self._active_agent_name = switch_info["to"]
         self.state["active_agent"] = switch_info["to"]
         self.state["last_switch_time"] = switch_info["timestamp"]
         self.state["switch_history"].append(switch_info)
         self.state["switch_history"] = self.state["switch_history"][-30:]
         _save_state(self.state)
+
+        print(
+            f"[orchestrator] 워밍업 전환 시작: {switch_info['from']}→{switch_info['to']} "
+            f"(30분 소프트 전환)",
+            file=sys.stderr,
+        )
+
+    # ── 워밍업 전환 (Soft Transition) ────────────────────
+
+    def _in_transition(self) -> bool:
+        """현재 워밍업 전환 중인지 확인한다."""
+        try:
+            return (
+                self.state.get("transition_from") is not None
+                and self.state.get("transition_started") is not None
+                and self.state.get("transition_duration_min") is not None
+            )
+        except (TypeError, KeyError):
+            # 상태 파일 손상 시 전환 필드 정리
+            self._clear_transition()
+            return False
+
+    def get_transition_weight(self) -> tuple[float, float]:
+        """워밍업 전환 중 (신규 에이전트 가중치, 기존 에이전트 가중치)를 반환한다.
+
+        전환 중이 아니면 (1.0, 0.0)을 반환한다.
+        선형 블렌딩: 시작 (0.3, 0.7) → 종료 (1.0, 0.0), 30분간.
+        """
+        if not self._in_transition():
+            return (1.0, 0.0)
+
+        try:
+            from datetime import datetime, timezone, timedelta
+
+            kst = timezone(timedelta(hours=9))
+            started_str = self.state["transition_started"]
+            started_dt = datetime.fromisoformat(started_str)
+            if started_dt.tzinfo is None:
+                started_dt = started_dt.replace(tzinfo=kst)
+
+            now = datetime.now(kst)
+            elapsed_min = (now - started_dt).total_seconds() / 60.0
+            duration = self.state.get("transition_duration_min", 30)
+
+            if elapsed_min >= duration:
+                # 전환 완료
+                self._clear_transition()
+                return (1.0, 0.0)
+
+            # 선형 블렌딩: 0분→0.3, duration분→1.0
+            new_weight = 0.3 + 0.7 * (elapsed_min / duration)
+            new_weight = max(0.3, min(1.0, new_weight))
+            old_weight = 1.0 - new_weight
+            return (round(new_weight, 4), round(old_weight, 4))
+
+        except (ValueError, TypeError, KeyError):
+            # 파싱 실패 시 전환 필드 정리
+            self._clear_transition()
+            return (1.0, 0.0)
+
+    def _clear_transition(self) -> None:
+        """워밍업 전환 상태를 초기화한다."""
+        self.state["transition_from"] = None
+        self.state["transition_started"] = None
+        self.state["transition_duration_min"] = None
+        _save_state(self.state)
+
+    def _get_warmup_threshold(self, agent: "BaseStrategyAgent") -> int | None:
+        """워밍업 전환 중이면 블렌딩된 매수 임계값을 반환한다.
+
+        전환 중이 아니면 None을 반환 (원래 임계값 사용).
+        """
+        if not self._in_transition():
+            return None
+
+        w_new, w_old = self.get_transition_weight()
+
+        transition_from = self.state.get("transition_from", "")
+        old_threshold = self.AGENT_THRESHOLDS.get(transition_from)
+        new_threshold = self.AGENT_THRESHOLDS.get(self._active_agent_name)
+
+        if old_threshold is None or new_threshold is None:
+            return None
+
+        blended = w_new * new_threshold + w_old * old_threshold
+        return round(blended)
 
     # ── DB 학습 ────────────────────────────────────
 
