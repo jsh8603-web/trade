@@ -186,6 +186,11 @@ def run_health_cycle(verbose: bool = False) -> dict:
             for h in heal_results:
                 comp = h.get("component", "")
                 healings[comp] = h
+            # 복구 완료 후 매매 자동 재개 시도
+            if heal_results:
+                resumed = healer.resume_trading_if_healed(heal_results)
+                if resumed and verbose:
+                    print("[lifeline] 매매 자동 재개 완료", file=sys.stderr)
         except Exception as e:
             print(f"[lifeline] 치유 실패: {e}", file=sys.stderr)
     elif verbose:

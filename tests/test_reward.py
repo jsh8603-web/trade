@@ -1,4 +1,4 @@
-"""Unit tests for rl_hybrid/rl/reward.py — RewardCalculator"""
+"""Unit tests for rl_hybrid/rl/reward.py — RewardCalculator v8"""
 
 import math
 import numpy as np
@@ -32,8 +32,8 @@ class TestInitAndReset:
     def test_default_init(self):
         rc = RewardCalculator()
         assert rc.window_size == 20
-        assert rc.max_drawdown_penalty == 2.0
-        assert rc.overtrade_penalty == 0.05
+        assert rc.max_drawdown_penalty == 3.0
+        assert rc.pnl_scale == 100.0
         assert rc.total_trades == 0
         assert rc.steps_since_last_trade == 0
         assert len(rc.returns_history) == 0
@@ -43,12 +43,12 @@ class TestInitAndReset:
             window_size=10,
             risk_free_rate=0.0,
             max_drawdown_penalty=5.0,
-            overtrade_penalty=0.1,
+            pnl_scale=50.0,
         )
         assert rc.window_size == 10
         assert rc.risk_free_rate == 0.0
         assert rc.max_drawdown_penalty == 5.0
-        assert rc.overtrade_penalty == 0.1
+        assert rc.pnl_scale == 50.0
 
     def test_reset_clears_state(self):
         rc = RewardCalculator()
@@ -83,7 +83,6 @@ class TestReturnSign:
         return rc
 
     def test_positive_return_gives_positive_reward(self, calc):
-        # No action change → no trade penalties/bonuses
         result = calc.calculate(100_000, 101_000, action=0.5, prev_action=0.5, step=0)
         assert result["components"]["raw_return"] > 0
         assert result["reward"] > 0
@@ -98,6 +97,66 @@ class TestReturnSign:
         assert math.isclose(result["components"]["raw_return"], 0.05)
 
 
+# ── PnL Reward ──────────────────────────────────────────────────────────
+
+class TestPnlReward:
+    def test_pnl_scales_with_return(self):
+        rc = RewardCalculator(risk_free_rate=0.0, pnl_scale=100.0)
+        rc.reset(100_000)
+        result = rc.calculate(100_000, 101_000, action=0.5, prev_action=0.5, step=0)
+        # 1% return * 100 = 1.0, clipped to [-1.5, 1.5]
+        assert result["components"]["pnl_reward"] == pytest.approx(1.0)
+
+    def test_pnl_clipped_upper(self):
+        rc = RewardCalculator(risk_free_rate=0.0, pnl_scale=100.0)
+        rc.reset(100_000)
+        # 5% return * 100 = 5.0, clipped to 1.5
+        result = rc.calculate(100_000, 105_000, action=0.5, prev_action=0.5, step=0)
+        assert result["components"]["pnl_reward"] == 1.5
+
+    def test_pnl_clipped_lower(self):
+        rc = RewardCalculator(risk_free_rate=0.0, pnl_scale=100.0)
+        rc.reset(100_000)
+        result = rc.calculate(100_000, 95_000, action=0.5, prev_action=0.5, step=0)
+        assert result["components"]["pnl_reward"] == -1.5
+
+
+# ── Direction Reward ────────────────────────────────────────────────────
+
+class TestDirectionReward:
+    def test_correct_direction_positive(self):
+        rc = RewardCalculator(risk_free_rate=0.0)
+        rc.reset(100_000)
+        # btc_ratio=0.8 (BTC heavy) + price_change=0.01 (up) → alignment positive
+        result = rc.calculate(100_000, 101_000, action=0.5, prev_action=0.5, step=0,
+                              btc_ratio=0.8, price_change=0.01)
+        assert result["components"]["direction_reward"] > 0
+
+    def test_wrong_direction_negative(self):
+        rc = RewardCalculator(risk_free_rate=0.0)
+        rc.reset(100_000)
+        # btc_ratio=0.8 (BTC heavy) + price_change=-0.01 (down) → alignment negative
+        result = rc.calculate(100_000, 99_000, action=0.5, prev_action=0.5, step=0,
+                              btc_ratio=0.8, price_change=-0.01)
+        assert result["components"]["direction_reward"] < 0
+
+    def test_no_direction_when_small_change(self):
+        rc = RewardCalculator(risk_free_rate=0.0)
+        rc.reset(100_000)
+        # price_change < 0.001 → no direction reward
+        result = rc.calculate(100_000, 100_050, action=0.5, prev_action=0.5, step=0,
+                              btc_ratio=0.8, price_change=0.0005)
+        assert result["components"]["direction_reward"] == 0.0
+
+    def test_direction_clipped(self):
+        rc = RewardCalculator(risk_free_rate=0.0)
+        rc.reset(100_000)
+        result = rc.calculate(100_000, 110_000, action=0.5, prev_action=0.5, step=0,
+                              btc_ratio=1.0, price_change=0.10)
+        assert result["components"]["direction_reward"] <= 0.5
+        assert result["components"]["direction_reward"] >= -0.5
+
+
 # ── MDD Penalty ──────────────────────────────────────────────────────────
 
 class TestMDDPenalty:
@@ -107,14 +166,14 @@ class TestMDDPenalty:
         rc.reset(100_000)
         return rc
 
-    def test_no_penalty_below_5pct_drawdown(self, calc):
-        # Push peak to 100k, then drop by 4% → no penalty
+    def test_no_penalty_below_3pct_drawdown(self, calc):
         calc.peak_value = 100_000
-        result = calc.calculate(100_000, 96_000, action=0.5, prev_action=0.5, step=0)
+        # 2% drawdown → below 3% threshold
+        result = calc.calculate(100_000, 98_000, action=0.5, prev_action=0.5, step=0)
         assert result["components"]["mdd_penalty"] == 0
-        assert result["components"]["drawdown"] == pytest.approx(0.04)
+        assert result["components"]["drawdown"] == pytest.approx(0.02)
 
-    def test_penalty_above_5pct_drawdown(self, calc):
+    def test_penalty_above_3pct_drawdown(self, calc):
         calc.peak_value = 100_000
         # 10% drawdown
         result = calc.calculate(100_000, 90_000, action=0.5, prev_action=0.5, step=0)
@@ -122,108 +181,58 @@ class TestMDDPenalty:
         expected_penalty = -dd * 2.0
         assert result["components"]["mdd_penalty"] == pytest.approx(expected_penalty)
 
-    def test_exact_5pct_boundary_no_penalty(self, calc):
+    def test_exact_3pct_boundary_no_penalty(self, calc):
         calc.peak_value = 100_000
-        result = calc.calculate(100_000, 95_000, action=0.5, prev_action=0.5, step=0)
-        # drawdown == 0.05 exactly → condition is > 0.05, so no penalty
+        result = calc.calculate(100_000, 97_000, action=0.5, prev_action=0.5, step=0)
+        # drawdown == 0.03 exactly → condition is > 0.03, so no penalty
         assert result["components"]["mdd_penalty"] == 0
 
     def test_peak_updates_upward(self, calc):
         calc.calculate(100_000, 110_000, action=0.5, prev_action=0.5, step=0)
         assert calc.peak_value == 110_000
-        # Peak should not decrease
         calc.calculate(110_000, 105_000, action=0.5, prev_action=0.5, step=1)
         assert calc.peak_value == 110_000
 
 
-# ── Profit Bonus ─────────────────────────────────────────────────────────
+# ── Trade PnL Bonus ─────────────────────────────────────────────────────
 
-class TestProfitBonus:
+class TestTradePnlBonus:
     @pytest.fixture
     def calc(self):
         rc = RewardCalculator(risk_free_rate=0.0)
         rc.reset(100_000)
-        # Avoid overtrade penalty: set steps_since_last_trade high
-        rc.steps_since_last_trade = 100
         return rc
 
-    def test_profit_bonus_on_trade_with_profit(self, calc):
-        # action_change > 0.05, raw_return > 0.001
-        result = calc.calculate(
-            100_000, 100_200, action=0.8, prev_action=0.0, step=0
-        )
-        assert result["components"]["profit_bonus"] == 0.1
+    def test_profit_trade_bonus(self, calc):
+        # prev_trade_value=100_000, curr=100_300 → 0.3% > 0.2% → bonus +0.5
+        result = calc.calculate(100_000, 100_300, action=0.8, prev_action=0.0, step=0)
+        assert result["components"]["trade_pnl_bonus"] == 0.5
+
+    def test_loss_trade_penalty(self, calc):
+        # curr < prev_trade_value by >0.2% → penalty -0.2
+        result = calc.calculate(100_000, 99_700, action=0.8, prev_action=0.0, step=0)
+        assert result["components"]["trade_pnl_bonus"] == -0.2
+
+    def test_small_trade_no_bonus(self, calc):
+        # Within ±0.2% → no bonus/penalty
+        result = calc.calculate(100_000, 100_100, action=0.8, prev_action=0.0, step=0)
+        assert result["components"]["trade_pnl_bonus"] == 0.0
 
     def test_no_bonus_when_no_trade(self, calc):
         # action_change <= 0.05
-        result = calc.calculate(
-            100_000, 100_200, action=0.5, prev_action=0.5, step=0
-        )
-        assert result["components"]["profit_bonus"] == 0.0
-
-    def test_no_bonus_when_trade_but_no_profit(self, calc):
-        # action_change > 0.05 but raw_return <= 0.001
-        result = calc.calculate(
-            100_000, 100_050, action=0.8, prev_action=0.0, step=0
-        )
-        assert result["components"]["profit_bonus"] == 0.0
-
-    def test_no_bonus_on_loss_trade(self, calc):
-        result = calc.calculate(
-            100_000, 99_000, action=0.8, prev_action=0.0, step=0
-        )
-        assert result["components"]["profit_bonus"] == 0.0
+        result = calc.calculate(100_000, 100_300, action=0.5, prev_action=0.5, step=0)
+        assert result["components"]["trade_pnl_bonus"] == 0.0
 
     def test_trade_increments_total_trades(self, calc):
         assert calc.total_trades == 0
         calc.calculate(100_000, 100_100, action=0.8, prev_action=0.0, step=0)
         assert calc.total_trades == 1
-        calc.steps_since_last_trade = 100
         calc.calculate(100_100, 100_200, action=0.0, prev_action=0.8, step=1)
         assert calc.total_trades == 2
 
     def test_no_trade_does_not_increment(self, calc):
         calc.calculate(100_000, 101_000, action=0.5, prev_action=0.5, step=0)
         assert calc.total_trades == 0
-
-
-# ── Overtrade Penalty ────────────────────────────────────────────────────
-
-class TestOvertradePenalty:
-    @pytest.fixture
-    def calc(self):
-        rc = RewardCalculator(overtrade_penalty=0.05, risk_free_rate=0.0)
-        rc.reset(100_000)
-        return rc
-
-    def test_penalty_when_trade_within_4_steps(self, calc):
-        # First trade
-        calc.calculate(100_000, 100_100, action=0.8, prev_action=0.0, step=0)
-        # steps_since_last_trade is now 0 (reset after trade)
-        # Second trade immediately (steps_since_last_trade will be 1 after increment)
-        result = calc.calculate(100_100, 100_200, action=0.0, prev_action=0.8, step=1)
-        assert result["components"]["trade_penalty"] == -0.05
-
-    def test_no_penalty_after_cooldown(self, calc):
-        # First trade
-        calc.calculate(100_000, 100_100, action=0.8, prev_action=0.0, step=0)
-        # Simulate 4+ steps without trade
-        calc.steps_since_last_trade = 5
-        result = calc.calculate(100_100, 100_200, action=0.0, prev_action=0.8, step=5)
-        assert result["components"]["trade_penalty"] == 0.0
-
-    def test_no_penalty_on_first_trade(self, calc):
-        # steps_since_last_trade starts at 0, after increment it becomes 1
-        # First trade: steps_since_last_trade incremented to 1, which is < 4 → penalty
-        # But from fresh reset steps_since_last_trade = 0, increment → 1 < 4 → penalty applies
-        # To truly avoid penalty on first trade, we need >= 4 steps since reset
-        calc.steps_since_last_trade = 10  # Simulate warmup
-        result = calc.calculate(100_000, 100_100, action=0.8, prev_action=0.0, step=10)
-        assert result["components"]["trade_penalty"] == 0.0
-
-    def test_no_penalty_when_no_trade(self, calc):
-        result = calc.calculate(100_000, 100_100, action=0.5, prev_action=0.5, step=0)
-        assert result["components"]["trade_penalty"] == 0.0
 
     def test_steps_since_last_trade_resets_on_trade(self, calc):
         calc.steps_since_last_trade = 10
@@ -236,79 +245,29 @@ class TestOvertradePenalty:
         assert calc.steps_since_last_trade == 6
 
 
-# ── Cooldown Period ──────────────────────────────────────────────────────
-
-class TestCooldownPeriod:
-    def test_cooldown_exactly_4_steps_no_penalty(self):
-        rc = RewardCalculator(overtrade_penalty=0.05, risk_free_rate=0.0)
-        rc.reset(100_000)
-        # First trade
-        rc.calculate(100_000, 100_100, action=0.8, prev_action=0.0, step=0)
-        # steps_since_last_trade = 0 after trade
-        # Simulate exactly 4 steps passing (no trades)
-        for i in range(1, 5):
-            rc.calculate(100_100, 100_100, action=0.5, prev_action=0.5, step=i)
-        # steps_since_last_trade should now be 4
-        assert rc.steps_since_last_trade == 4
-        # Next trade at step 5 → steps incremented to 5 before check → 5 >= 4 → no penalty
-        result = rc.calculate(100_100, 100_200, action=0.0, prev_action=0.8, step=5)
-        assert result["components"]["trade_penalty"] == 0.0
-
-    def test_trade_at_step_3_gets_penalty(self):
-        rc = RewardCalculator(overtrade_penalty=0.05, risk_free_rate=0.0)
-        rc.reset(100_000)
-        rc.steps_since_last_trade = 100  # avoid initial penalty
-        rc.calculate(100_000, 100_100, action=0.8, prev_action=0.0, step=0)
-        # 3 hold steps
-        for i in range(1, 4):
-            rc.calculate(100_100, 100_100, action=0.5, prev_action=0.5, step=i)
-        assert rc.steps_since_last_trade == 3
-        # Trade again → increment to 4... wait, 3+1=4 which is not < 4
-        # Actually after 3 holds, steps_since_last_trade = 3
-        # On next calculate, it increments to 4 first, then checks < 4 → 4 is NOT < 4
-        # So 3 hold steps is enough. Let's test with 2 hold steps instead.
-
-    def test_trade_at_step_2_gets_penalty(self):
-        rc = RewardCalculator(overtrade_penalty=0.05, risk_free_rate=0.0)
-        rc.reset(100_000)
-        rc.steps_since_last_trade = 100
-        rc.calculate(100_000, 100_100, action=0.8, prev_action=0.0, step=0)
-        # 2 hold steps
-        for i in range(1, 3):
-            rc.calculate(100_100, 100_100, action=0.5, prev_action=0.5, step=i)
-        assert rc.steps_since_last_trade == 2
-        # Trade → increment to 3 < 4 → penalty
-        result = rc.calculate(100_100, 100_200, action=0.0, prev_action=0.8, step=3)
-        assert result["components"]["trade_penalty"] == -0.05
-
-
 # ── Differential Sharpe Ratio ────────────────────────────────────────────
 
 class TestDifferentialSharpe:
     def test_early_steps_use_simple_scaling(self):
         rc = RewardCalculator(risk_free_rate=0.0)
         rc.reset(100_000)
-        # Steps 0,1 → len(returns_history) < 3
+        # len(returns_history) < 3 → raw * 15
         r1 = rc.calculate(100_000, 101_000, action=0.5, prev_action=0.5, step=0)
         raw = 0.01
-        assert r1["components"]["sharpe_reward"] == pytest.approx(raw * 10)
+        assert r1["components"]["sharpe_reward"] == pytest.approx(raw * 15)
 
     def test_sharpe_with_enough_history(self):
         rc = RewardCalculator(risk_free_rate=0.0)
         rc.reset(100_000)
-        # Fill 3 returns to trigger Sharpe calculation
         rc.returns_history.append(0.01)
         rc.returns_history.append(0.02)
-        # Third return via calculate
         result = rc.calculate(100_000, 101_500, action=0.5, prev_action=0.5, step=2)
         sharpe_rw = result["components"]["sharpe_reward"]
-        # With positive mean, Sharpe should be positive (risk_free=0)
         assert sharpe_rw > 0
 
     def test_sharpe_clipped_upper(self):
         rc = RewardCalculator(risk_free_rate=0.0)
         rc.reset(100_000)
-        # Need varied returns with high mean to produce large Sharpe
         rc.returns_history.extend([0.4, 0.5, 0.6, 0.45, 0.55])
         result = rc._compute_sharpe_reward(0.5)
         assert result <= 1.5
@@ -323,12 +282,11 @@ class TestDifferentialSharpe:
     def test_zero_std_returns_scaled_mean(self):
         rc = RewardCalculator(risk_free_rate=0.0)
         rc.reset(100_000)
-        # All identical returns → std ≈ 0
         for _ in range(5):
             rc.returns_history.append(0.01)
         result = rc._compute_sharpe_reward(0.01)
-        # std < 1e-8 branch: mean_return * 10
-        assert result == pytest.approx(0.01 * 10)
+        # std < 1e-8 branch: mean_return * 15
+        assert result == pytest.approx(0.01 * 15)
 
 
 # ── Episode Stats ────────────────────────────────────────────────────────
@@ -378,7 +336,6 @@ class TestEpisodeStats:
         rc.returns_history.append(0.05)
         stats = rc.get_episode_stats(105_000, 100_000)
         assert stats["total_return_pct"] == pytest.approx(5.0)
-        # std with single element → 0
         assert stats["std_return"] == 0
         assert stats["sharpe_ratio"] == 0
 
@@ -403,11 +360,12 @@ class TestCalculateReturnStructure:
         assert "components" in result
         expected_comp_keys = {
             "raw_return",
+            "pnl_reward",
+            "direction_reward",
             "sharpe_reward",
             "mdd_penalty",
-            "profit_bonus",
+            "trade_pnl_bonus",
             "drawdown",
-            "trade_penalty",
             "total_trades",
         }
         assert set(result["components"].keys()) == expected_comp_keys
@@ -415,10 +373,9 @@ class TestCalculateReturnStructure:
     def test_reward_is_sum_of_components(self):
         rc = RewardCalculator(risk_free_rate=0.0)
         rc.reset(100_000)
-        rc.steps_since_last_trade = 100
         result = rc.calculate(100_000, 90_000, action=0.8, prev_action=0.0, step=0)
         c = result["components"]
-        expected = c["sharpe_reward"] + c["mdd_penalty"] + c["profit_bonus"] + c["trade_penalty"]
+        expected = c["pnl_reward"] + c["direction_reward"] + c["sharpe_reward"] + c["mdd_penalty"] + c["trade_pnl_bonus"]
         assert result["reward"] == pytest.approx(expected)
 
 
@@ -463,19 +420,17 @@ class TestEdgeCases:
         rc.reset(100_000)
         result = rc.calculate(100_000, 100_200, action=0.54, prev_action=0.5, step=0)
         assert rc.total_trades == 0
-        assert result["components"]["profit_bonus"] == 0.0
+        assert result["components"]["trade_pnl_bonus"] == 0.0
 
     def test_action_change_just_above_005(self):
         rc = RewardCalculator(risk_free_rate=0.0)
         rc.reset(100_000)
-        rc.steps_since_last_trade = 100
         result = rc.calculate(100_000, 100_200, action=0.5501, prev_action=0.5, step=0)
         assert rc.total_trades == 1
 
     def test_large_positive_return_no_overflow(self):
         rc = RewardCalculator(risk_free_rate=0.0)
         rc.reset(100_000)
-        # 100% gain
         result = rc.calculate(100_000, 200_000, action=0.5, prev_action=0.5, step=0)
         assert result["components"]["raw_return"] == pytest.approx(1.0)
         assert np.isfinite(result["reward"])
@@ -484,7 +439,6 @@ class TestEdgeCases:
         rc = RewardCalculator(risk_free_rate=0.0)
         rc.reset(100_000)
         for i in range(5):
-            rc.steps_since_last_trade = 100
             action = 0.8 if i % 2 == 0 else 0.0
             prev_action = 0.0 if i % 2 == 0 else 0.8
             rc.calculate(100_000, 100_100, action=action, prev_action=prev_action, step=i)

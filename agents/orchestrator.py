@@ -186,6 +186,7 @@ class Orchestrator:
 
         # 사용자 피드백 반영
         self._apply_feedback(external_data.get("sources", {}).get("user_feedback", []))
+        self._apply_feedback_overrides()
 
         # 성과 리뷰 반영
         self._performance = external_data.get("sources", {}).get("performance_review", {})
@@ -259,6 +260,29 @@ class Orchestrator:
         agent = self.active_agent
         decision = agent.decide(market_data, external_signal, portfolio,
                                 drop_context=drop_context)
+
+        # 사용자 피드백 오버라이드: 강제 관망 / confidence 임계값
+        if self.state.get("force_hold_cycles", 0) > 0 and decision.decision in ("buy", "sell"):
+            decision = Decision(
+                decision="hold",
+                reason=f"[사용자 피드백] 강제 관망 ({self.state['force_hold_cycles']+1}사이클 남음) | 원래: {decision.decision}",
+                confidence=decision.confidence,
+                buy_score=decision.buy_score,
+                trade_params={},
+                external_signal=decision.external_signal,
+                agent_name=decision.agent_name,
+            )
+        conf_threshold = self.state.get("confidence_threshold_override")
+        if conf_threshold and decision.decision == "buy" and decision.confidence < conf_threshold:
+            decision = Decision(
+                decision="hold",
+                reason=f"[사용자 피드백] confidence {decision.confidence:.2f} < 임계값 {conf_threshold} | 원래: {decision.reason}",
+                confidence=decision.confidence,
+                buy_score=decision.buy_score,
+                trade_params={},
+                external_signal=decision.external_signal,
+                agent_name=decision.agent_name,
+            )
 
         # 감독 오버라이드: 에이전트 결정을 최종 검증
         decision = self._override_decision(decision, drop_context, market_state)
@@ -508,12 +532,13 @@ class Orchestrator:
         elif perf_adj < 0:
             opportunity += abs(perf_adj)
 
-        # 사용자 피드백 바이어스 반영
+        # 사용자 피드백 바이어스 반영 (7일 half-life 감쇠)
         fb_bias = self.state.get("feedback_bias")
-        if fb_bias == "conservative":
-            danger += 10
-        elif fb_bias == "aggressive":
-            opportunity += 10
+        fb_strength = self._get_feedback_bias_strength()
+        if fb_bias == "conservative" and fb_strength > 0:
+            danger += int(10 * fb_strength)
+        elif fb_bias == "aggressive" and fb_strength > 0:
+            opportunity += int(10 * fb_strength)
 
         target = self._decide_target(current, ms, danger, opportunity)
 
@@ -858,18 +883,66 @@ class Orchestrator:
     # ── 피드백 & 성과 ────────────────────────────
 
     def _apply_feedback(self, feedback_list: list) -> None:
-        """사용자 피드백을 전략 전환 판단에 반영한다."""
+        """사용자 피드백을 전략 전환 판단에 반영한다 (7일 half-life 감쇠 적용)."""
         if not feedback_list:
             return
         for fb in feedback_list:
             content = (fb.get("content", "") or "").lower()
-            # 사용자가 전략 전환 관련 피드백을 남겼으면 반영
+            # 사용자가 전략 전환 관련 피드백을 남겼으면 반영 (타임스탬프 포함)
             if "보수" in content or "conservative" in content or "안전" in content:
                 self.state["feedback_bias"] = "conservative"
+                self.state["feedback_bias_set_at"] = time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
             elif "공격" in content or "aggressive" in content:
                 self.state["feedback_bias"] = "aggressive"
+                self.state["feedback_bias_set_at"] = time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
             elif "보통" in content or "moderate" in content:
                 self.state["feedback_bias"] = "moderate"
+                self.state["feedback_bias_set_at"] = time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
+
+    def _get_feedback_bias_strength(self) -> float:
+        """피드백 바이어스의 감쇠된 강도를 반환한다 (7일 half-life).
+
+        Returns:
+            0.0~1.0 (1.0 = 방금 설정, 0.0 = 만료)
+        """
+        set_at = self.state.get("feedback_bias_set_at")
+        if not set_at:
+            # 타임스탬프 없는 레거시 바이어스 → 약한 강도
+            return 0.3 if self.state.get("feedback_bias") else 0.0
+
+        try:
+            from datetime import datetime, timezone, timedelta
+            KST = timezone(timedelta(hours=9))
+            set_time = datetime.fromisoformat(set_at)
+            now = datetime.now(KST)
+            elapsed_days = (now - set_time).total_seconds() / 86400
+            # 7일 half-life: strength = 0.5^(days/7)
+            import math
+            strength = math.pow(0.5, elapsed_days / 7.0)
+            # 0.1 미만이면 만료 처리
+            if strength < 0.1:
+                self.state.pop("feedback_bias", None)
+                self.state.pop("feedback_bias_set_at", None)
+                return 0.0
+            return strength
+        except Exception:
+            return 0.3
+
+    def _apply_feedback_overrides(self) -> None:
+        """orchestrator_state.json의 피드백 오버라이드를 반영한다.
+
+        scripts/feedback.py say 명령으로 설정된 오버라이드:
+        - force_hold_cycles: 강제 관망 (사이클마다 1씩 차감)
+        - confidence_threshold_override: 높은 confidence만 매매 허용
+        - min_trade_interval_override: 매매 간격 확대
+        """
+        # force_hold_cycles 소진
+        force_hold = self.state.get("force_hold_cycles", 0)
+        if force_hold > 0:
+            self.state["force_hold_cycles"] = force_hold - 1
+            _save_state(self.state)
+
+        # force_retrain 플래그는 continuous_learner가 소비
 
     def _get_performance_adjustment(self) -> int:
         """성과가 나쁘면 위험도를 높이고, 좋으면 기회 점수를 높인다."""
@@ -898,7 +971,9 @@ class Orchestrator:
         for d in past_decisions:
             pl = d.get("profit_loss")
             decision = d.get("decision", "")
-            if decision in ("buy", "sell", "매수", "매도") and pl is not None and float(pl) < 0:
+            if decision not in ("buy", "sell", "매수", "매도"):
+                continue  # hold 등 비매매 결정은 건너뜀
+            if pl is not None and float(pl) < 0:
                 count += 1
             else:
                 break

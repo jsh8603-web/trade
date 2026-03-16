@@ -68,7 +68,12 @@ def _evaluate_correctness(decision_type: str, outcome_pct: float, window: str) -
 
 
 def _update_window(window: str, hours: int, extra_filter: dict = None):
-    """특정 시간 윈도우의 aftermath 업데이트"""
+    """특정 시간 윈도우의 aftermath 업데이트.
+
+    Returns:
+        (updated_count, outcomes_list)
+        outcomes_list: [{"created_at": str, "outcome_pct": float}, ...]
+    """
     now = datetime.now(KST)
     cutoff = (now - timedelta(hours=hours)).isoformat()
 
@@ -93,9 +98,10 @@ def _update_window(window: str, hours: int, extra_filter: dict = None):
     )
     if not r.ok:
         print(f"[retrospective] {window} 조회 실패: {r.status_code}", file=sys.stderr)
-        return 0
+        return 0, []
 
     updated = 0
+    outcomes = []
     # 배치 수집: 먼저 모든 가격을 조회한 후, 일괄 업데이트
     patches = []
     for row in r.json():
@@ -124,6 +130,10 @@ def _update_window(window: str, hours: int, extra_filter: dict = None):
             correct_col: was_correct,
             "aftermath_updated_at": now.isoformat(),
         }))
+        outcomes.append({
+            "created_at": row["created_at"],
+            "outcome_pct": outcome_pct,
+        })
 
     # 일괄 업데이트 (개별 PATCH — Supabase REST는 배치 PATCH 미지원이므로 최소 대기)
     for row_id, patch in patches:
@@ -135,17 +145,31 @@ def _update_window(window: str, hours: int, extra_filter: dict = None):
         )
         updated += 1
 
-    return updated
+    return updated, outcomes
 
 
 def update_decisions():
-    """미평가 결정들의 aftermath 업데이트"""
-    updated_1h = _update_window("1h", 1)
-    updated_4h = _update_window("4h", 4, extra_filter={"price_1h_after": "not.is.null"})
-    updated_24h = _update_window("24h", 24, extra_filter={"price_4h_after": "not.is.null"})
+    """미평가 결정들의 aftermath 업데이트.
 
+    Returns:
+        {"1h": int, "4h": int, "24h": int, "updated": int,
+         "outcomes": [{"timestamp": str, "outcome_4h_pct": float}, ...]}
+    """
+    updated_1h, outcomes_1h = _update_window("1h", 1)
+    updated_4h, outcomes_4h = _update_window("4h", 4, extra_filter={"price_1h_after": "not.is.null"})
+    updated_24h, outcomes_24h = _update_window("24h", 24, extra_filter={"price_4h_after": "not.is.null"})
+
+    # 4h outcomes를 온라인 버퍼 백필 형식으로 변환
+    buffer_outcomes = [
+        {"timestamp": o["created_at"], "outcome_4h_pct": o["outcome_pct"]}
+        for o in outcomes_4h
+        if o.get("outcome_pct") is not None
+    ]
+
+    total = updated_1h + updated_4h + updated_24h
     print(f"[retrospective] 업데이트 완료: 1h={updated_1h}, 4h={updated_4h}, 24h={updated_24h}")
-    return {"1h": updated_1h, "4h": updated_4h, "24h": updated_24h}
+    return {"1h": updated_1h, "4h": updated_4h, "24h": updated_24h,
+            "updated": total, "outcomes": buffer_outcomes}
 
 
 def update_scalp_aftermath():

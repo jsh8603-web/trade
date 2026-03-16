@@ -110,6 +110,30 @@ EARLY_STOP_TIME_MIN = 5  # 조기 손절 판단 시작 시간 (v6: 15→5, 고�
 # 5. 중복 진입 방지: 같은 전략으로 동시 1포지션만 (v5: 2→1, 집중)
 MAX_SAME_STRATEGY_POSITIONS = 1
 
+# ── Kelly Criterion 단타용 포지션 사이징 ──────────────────
+
+def _kelly_short_term(confidence: float) -> float:
+    """단타 시그널의 confidence로 SHORT_TERM_MAX_TRADE를 스케일링한다.
+
+    strategy.md 테이블 준수 (Half-Kelly):
+      ≥0.85 → 100%, 0.70~0.84 → 70%, 0.55~0.69 → 50%, <0.55 → 30%
+
+    Returns:
+        스케일링된 최대 매매 금액
+    """
+    if confidence >= 0.85:
+        frac = 1.0
+    elif confidence >= 0.70:
+        frac = 0.7
+    elif confidence >= 0.55:
+        frac = 0.5
+    else:
+        frac = 0.3
+
+    amount = int(SHORT_TERM_MAX_TRADE * frac)
+    return max(5000, amount)  # Upbit 최소 주문
+
+
 # ── 로깅 설정 ──────────────────────────────────────────
 
 logging.basicConfig(
@@ -185,7 +209,11 @@ def upbit_order(side: str, market: str, amount: str) -> dict:
     qs = urlencode(body)
     headers = upbit_auth_header(qs)
     r = requests.post(f"{UPBIT_API}/orders", json=body, headers=headers, timeout=10)
-    return {"ok": r.ok, "data": r.json()}
+    try:
+        data = r.json()
+    except (ValueError, requests.exceptions.JSONDecodeError):
+        data = {"error": {"name": "parse_error", "message": r.text[:200]}}
+    return {"ok": r.ok, "data": data}
 
 
 def get_current_price(market: str = MARKET) -> float:
@@ -206,10 +234,12 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 def db_insert(table: str, data: dict):
     """Supabase REST API로 데이터 삽입 (실패해도 봇에 영향 없음, 에러 로깅)"""
     _log = logging.getLogger("short_term")
-    from utils.machine import skip_trade_db
+    from utils.machine import skip_trade_db, get_machine_name
     if skip_trade_db(table):
         _backup_to_local(table, data)
         return
+    # 머신 태그 자동 추가 (중복 방지 + 머신별 성과 비교)
+    data.setdefault("machine_name", get_machine_name())
     if not SUPABASE_URL or not SUPABASE_KEY:
         _log.warning(f"[DB] {table} 삽입 스킵 — SUPABASE 환경변수 미설정")
         return
@@ -282,8 +312,16 @@ def check_lock() -> bool:
         pid_alive = False
         if lock_pid > 0:
             try:
-                os.kill(lock_pid, 0)
-                pid_alive = True
+                if os.name == "nt":
+                    import ctypes
+                    kernel32 = ctypes.windll.kernel32
+                    handle = kernel32.OpenProcess(0x100000, False, lock_pid)
+                    if handle:
+                        kernel32.CloseHandle(handle)
+                        pid_alive = True
+                else:
+                    os.kill(lock_pid, 0)
+                    pid_alive = True
             except (OSError, ProcessLookupError):
                 pid_alive = False
         # 10분 이상이거나 프로세스 사망 시 stale
@@ -675,76 +713,68 @@ class ShortTermTrader:
 
     # ── WebSocket 수신 ────────────────────────────────
 
-    async def ws_ticker(self):
-        """실시간 가격 수신"""
+    async def ws_combined(self):
+        """실시간 가격+체결 통합 수신 (단일 WebSocket 연결)"""
+        backoff = 1
         while self.running:
             try:
                 async with websockets.connect(UPBIT_WS, ping_interval=30) as ws:
                     subscribe = [
-                        {"ticket": f"ticker-{uuid.uuid4().hex[:8]}"},
+                        {"ticket": f"combined-{uuid.uuid4().hex[:8]}"},
                         {"type": "ticker", "codes": [MARKET]},
-                    ]
-                    await ws.send(json.dumps(subscribe))
-                    log.info("WebSocket ticker 연결됨")
-
-                    async for msg in ws:
-                        if not self.running:
-                            break
-                        data = json.loads(msg)
-                        self.current_price = data.get("trade_price", self.current_price)
-                        self.price_history.append({
-                            "price": self.current_price,
-                            "time": time.time(),
-                        })
-            except Exception as e:
-                log.warning(f"WebSocket ticker 재연결: {e}")
-                await asyncio.sleep(3)
-
-    async def ws_trades(self):
-        """실시간 체결 수신"""
-        while self.running:
-            try:
-                async with websockets.connect(UPBIT_WS, ping_interval=30) as ws:
-                    subscribe = [
-                        {"ticket": f"trade-{uuid.uuid4().hex[:8]}"},
                         {"type": "trade", "codes": [MARKET]},
                     ]
                     await ws.send(json.dumps(subscribe))
-                    log.info("WebSocket trade 연결됨")
+                    log.info("WebSocket 통합 연결됨 (ticker+trade)")
+                    backoff = 1  # 연결 성공 시 backoff 리셋
 
                     async for msg in ws:
                         if not self.running:
                             break
                         data = json.loads(msg)
-                        trade = {
-                            "price": data.get("trade_price", 0),
-                            "volume": data.get("trade_volume", 0),
-                            "side": data.get("ask_bid", ""),
-                            "krw": data.get("trade_price", 0) * data.get("trade_volume", 0),
-                            "time": time.time(),
-                        }
-                        self.trade_history.append(trade)
+                        msg_type = data.get("type", "")
 
-                        # 고래 감지
-                        if trade["krw"] >= WHALE_THRESHOLD_KRW:
-                            self.whale_recent.append(trade)
-                            side_kr = '매수' if trade['side'] == 'BID' else '매도'
-                            log.info(
-                                f"고래 감지: {side_kr} "
-                                f"{trade['krw']/10000:.0f}만원 @ {trade['price']:,.0f}"
-                            )
-                            # DB 기록
-                            buy_c = sum(1 for w in self.whale_recent if w.get("side") == "BID")
-                            sell_c = sum(1 for w in self.whale_recent if w.get("side") == "ASK")
-                            db_insert("whale_detections", {
-                                "side": trade["side"],
-                                "volume": trade["volume"],
-                                "price": int(trade["price"]),
-                                "krw_amount": int(trade["krw"]),
-                                "detected_at": datetime.now(KST).isoformat(),
-                                "whale_buy_count": buy_c,
-                                "whale_sell_count": sell_c,
+                        if msg_type == "ticker":
+                            self.current_price = data.get("trade_price", self.current_price)
+                            self.price_history.append({
+                                "price": self.current_price,
+                                "time": time.time(),
                             })
+
+                        elif msg_type == "trade":
+                            trade = {
+                                "price": data.get("trade_price", 0),
+                                "volume": data.get("trade_volume", 0),
+                                "side": data.get("ask_bid", ""),
+                                "krw": data.get("trade_price", 0) * data.get("trade_volume", 0),
+                                "time": time.time(),
+                            }
+                            self.trade_history.append(trade)
+
+                            # 고래 감지
+                            if trade["krw"] >= WHALE_THRESHOLD_KRW:
+                                self.whale_recent.append(trade)
+                                side_kr = '매수' if trade['side'] == 'BID' else '매도'
+                                log.info(
+                                    f"고래 감지: {side_kr} "
+                                    f"{trade['krw']/10000:.0f}만원 @ {trade['price']:,.0f}"
+                                )
+                                # DB 기록
+                                buy_c = sum(1 for w in self.whale_recent if w.get("side") == "BID")
+                                sell_c = sum(1 for w in self.whale_recent if w.get("side") == "ASK")
+                                db_insert("whale_detections", {
+                                    "side": trade["side"],
+                                    "volume": trade["volume"],
+                                    "price": int(trade["price"]),
+                                    "krw_amount": int(trade["krw"]),
+                                    "detected_at": datetime.now(KST).isoformat(),
+                                    "whale_buy_count": buy_c,
+                                    "whale_sell_count": sell_c,
+                                })
+            except Exception as e:
+                log.warning(f"WebSocket 재연결 ({backoff}s): {e}")
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2, 30)  # 지수 백오프, 최대 30초
             except Exception as e:
                 log.warning(f"WebSocket trade 재연결: {e}")
                 await asyncio.sleep(3)
@@ -798,9 +828,10 @@ class ShortTermTrader:
 
                 for feed_url in self.RSS_FEEDS:
                     try:
-                        r = requests.get(feed_url, timeout=10, headers={
-                            "User-Agent": "Mozilla/5.0 (crypto-bot)"
-                        })
+                        r = await asyncio.to_thread(
+                            requests.get, feed_url, timeout=10,
+                            headers={"User-Agent": "Mozilla/5.0 (crypto-bot)"}
+                        )
                         if not r.ok:
                             continue
 
@@ -1196,7 +1227,9 @@ class ShortTermTrader:
         # 시그널 통과 -- generated 기록
         self.log_signal_attempt(signal.strategy, "generated", signal=signal)
 
-        amount = min(signal.suggested_amount, SHORT_TERM_MAX_TRADE)
+        # Kelly 사이징: confidence에 비례하여 최대 금액 조절
+        kelly_max = _kelly_short_term(signal.confidence)
+        amount = min(signal.suggested_amount, kelly_max)
         amount = min(amount, SHORT_TERM_BUDGET - self.used_budget)
 
         if amount < 5000:  # Upbit 최소 주문
@@ -1294,7 +1327,9 @@ class ShortTermTrader:
         )
 
         if not self.dry_run:
-            acquire_lock("short_term_exit")
+            if not acquire_lock("short_term_exit"):
+                log.warning("매도 락 획득 실패 — 매도 보류")
+                return
             try:
                 result = upbit_order("ask", MARKET, f"{pos.btc_qty:.8f}")
                 if not result["ok"]:
@@ -1981,8 +2016,7 @@ class ShortTermTrader:
         )
 
         tasks = [
-            asyncio.create_task(self.ws_ticker()),
-            asyncio.create_task(self.ws_trades()),
+            asyncio.create_task(self.ws_combined()),
             asyncio.create_task(self.scan_news()),
             asyncio.create_task(self.strategy_loop()),
             asyncio.create_task(self.status_reporter()),

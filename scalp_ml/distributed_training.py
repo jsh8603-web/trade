@@ -320,14 +320,22 @@ def _daemon_collector():
 
             # DB에도 5분마다 기록
             if now.minute % 5 == 0 and now.second < 61:
-                db_insert("scalp_market_snapshot", {
-                    "price": row.get("price"),
-                    "volume_1m": row.get("volume"),
-                    "rsi_1m": None,
-                    "ob_imbalance": row.get("ob_imbalance_5"),
-                    "trade_intensity": row.get("trade_intensity"),
-                    "spread_bps": row.get("spread_bps"),
-                })
+                try:
+                    requests.post(
+                        f"{SUPABASE_URL}/rest/v1/scalp_market_snapshot",
+                        json={
+                            "price": row.get("price"),
+                            "volume_1m": row.get("volume"),
+                            "rsi_1m": None,
+                            "ob_imbalance": row.get("ob_imbalance_5"),
+                            "trade_intensity": row.get("trade_intensity"),
+                            "spread_bps": row.get("spread_bps"),
+                        },
+                        headers=HEADERS,
+                        timeout=5,
+                    )
+                except Exception:
+                    pass
 
             time.sleep(60)
 
@@ -512,8 +520,8 @@ def _find_current_rank(results: list) -> int:
     """현재 봇 파라미터의 순위 찾기"""
     current = {
         "spike_pct": 0.8, "spike_window": 300,
-        "whale_krw": 50_000_000, "whale_ratio": 0.70,
-        "tp_pct": 0.20, "sl_pct": 1.2, "max_hold": 30,
+        "whale_krw": 200_000_000, "whale_ratio": 0.85,
+        "tp_pct": 0.30, "sl_pct": 0.25, "max_hold": 15,
     }
     for i, r in enumerate(results):
         p = r.get("params", {})

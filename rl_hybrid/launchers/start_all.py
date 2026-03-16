@@ -226,8 +226,11 @@ def start_all(
             with_offline_rl=with_offline_rl,
         )
 
+    # 8. Lifeline Watchdog (10분 간격 시스템 점검 + 자동 복구)
+    start_watchdog()
+
     total = len(processes)
-    print(f"\n전체 {total}개 노드 + 학습 스케줄러 실행 중.")
+    print(f"\n전체 {total}개 노드 + 학습 스케줄러 + watchdog 실행 중.")
     print("  - Main Brain:          글로벌 PPO 트레이너 + 오케스트레이션")
     print("  - LLM Worker:          Gemini 분석 + RAG 파이프라인")
     print("  - Trading Worker:      매매 실행 + 안전장치")
@@ -261,6 +264,83 @@ def stop_all():
             print(f"  [{name}] 강제 종료 (PID={proc.pid})")
         finally:
             log_file.close()
+
+
+def _watchdog_loop():
+    """Lifeline watchdog — 10분 간격으로 시스템 점검 + 자동 복구."""
+    while True:
+        time.sleep(600)  # 10분
+        try:
+            from scripts.lifeline.sentinel import run_all_checks
+            from scripts.lifeline.healer import Healer
+            from scripts.lifeline.diagnostician import Diagnostician
+
+            # 1) 전체 점검
+            checks = run_all_checks()
+            overall = checks.get("overall_status", "OK")
+
+            if overall in ("ERROR", "CRITICAL"):
+                print(f"  [watchdog] 시스템 점검 결과: {overall}")
+
+                # 2) 진단 + 복구
+                diagnostician = Diagnostician()
+                diagnoses = diagnostician.diagnose_all(checks.get("checks", []))
+                healer = Healer()
+                results = healer.heal_all(diagnoses)
+
+                healed = sum(1 for r in results if r["success"] and r["action_taken"] not in ("none", "alert_only"))
+                failed = sum(1 for r in results if not r["success"])
+                print(f"  [watchdog] 복구 결과: 성공 {healed}, 실패 {failed}")
+
+                # 3) 텔레그램 알림 (ERROR/CRITICAL만)
+                if failed > 0:
+                    try:
+                        subprocess.run(
+                            [PYTHON, os.path.join(PROJECT_ROOT, "scripts", "notify_telegram.py"),
+                             "error", f"Watchdog: {overall}",
+                             f"점검 결과: {overall}, 복구 {healed}건, 실패 {failed}건"],
+                            cwd=PROJECT_ROOT, check=False, timeout=30,
+                            **subprocess_kwargs(),
+                        )
+                    except Exception:
+                        pass
+
+        except Exception as e:
+            print(f"  [watchdog] 점검 예외: {e}")
+
+    # 죽은 프로세스 자동 재시작
+        for name, proc, log_file in processes:
+            ret = proc.poll()
+            if ret is not None:
+                print(f"  [watchdog] {name} 종료 감지 (code={ret}) → 재시작 시도")
+                try:
+                    # 로그 파일 재열기
+                    log_file_path = log_file.name
+                    log_file.close()
+                    new_log = open(log_file_path, "a", encoding="utf-8")
+
+                    # 원래 커맨드로 재시작
+                    new_proc = subprocess.Popen(
+                        proc.args,
+                        cwd=PROJECT_ROOT,
+                        stdout=new_log,
+                        stderr=subprocess.STDOUT,
+                        **subprocess_kwargs(),
+                    )
+                    # processes 리스트 업데이트
+                    idx = processes.index((name, proc, log_file))
+                    processes[idx] = (name, new_proc, new_log)
+                    print(f"  [watchdog] {name} 재시작 완료 (PID={new_proc.pid})")
+                except Exception as e:
+                    print(f"  [watchdog] {name} 재시작 실패: {e}")
+
+
+def start_watchdog():
+    """Lifeline watchdog 스레드를 시작한다."""
+    t = threading.Thread(target=_watchdog_loop, daemon=True, name="lifeline-watchdog")
+    t.start()
+    print("  [watchdog] Lifeline watchdog 시작 (10분 간격)")
+    return t
 
 
 def monitor():

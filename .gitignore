@@ -25,6 +25,17 @@ data/agent_state.json
 data/trading.lock
 data/auto_emergency.json
 data/db_fallback/
+data/db_backup/
+data/candles_cache/
+data/scalp_models/
+data/scalp_snapshots/
+data/week2_models/
+data/kimchirang/
+data/kimchirang_state.json
+data/kimchirang_state.bak
+data/kimchirang.pid
+data/short_term.lock
+*.pkl
 logs/
 
 # === Supabase 로컬 설정 ===

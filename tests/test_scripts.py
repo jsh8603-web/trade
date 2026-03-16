@@ -782,8 +782,10 @@ class TestCheckOpenOrders:
 class TestRecordTradeToDb:
     """Test DB recording function."""
 
+    @patch("utils.machine.skip_trade_db", return_value=False)
+    @patch("utils.machine.get_machine_name", return_value="test-machine")
     @patch("scripts.execute_trade.requests.post")
-    def test_records_successful_trade(self, mock_post, monkeypatch):
+    def test_records_successful_trade(self, mock_post, _mock_name, _mock_skip, monkeypatch):
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
 
@@ -807,12 +809,18 @@ class TestRecordTradeToDb:
 
         posted_data = mock_post.call_args[1]["json"]
         assert posted_data["decision"] == "매수"
-        assert posted_data["execution_status"] == "success"
         assert posted_data["source"] == "agent"
-        assert posted_data["order_uuid"] == "test-uuid"
+        assert posted_data["machine_name"] == "test-machine"
+        # execution_result is a JSON string containing order info
+        import json as _json
+        exec_result = _json.loads(posted_data["execution_result"])
+        assert exec_result["order_uuid"] == "test-uuid"
+        assert exec_result["status"] == "success"
 
+    @patch("utils.machine.skip_trade_db", return_value=False)
+    @patch("utils.machine.get_machine_name", return_value="test-machine")
     @patch("scripts.execute_trade.requests.post")
-    def test_records_failed_trade(self, mock_post, monkeypatch):
+    def test_records_failed_trade(self, mock_post, _mock_name, _mock_skip, monkeypatch):
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
 
@@ -833,8 +841,8 @@ class TestRecordTradeToDb:
 
         posted_data = mock_post.call_args[1]["json"]
         assert posted_data["decision"] == "매도"
-        assert posted_data["execution_status"] == "failed"
-        assert posted_data["execution_error"] == "insufficient funds"
+        assert posted_data["source"] == "manual"
+        assert posted_data["machine_name"] == "test-machine"
 
     def test_no_db_env_does_not_crash(self, monkeypatch):
         """Missing SUPABASE env vars should silently return."""

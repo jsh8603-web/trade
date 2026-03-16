@@ -194,21 +194,20 @@ def simulate_realistic_external(candle: dict, candles: list[dict],
                 dt = datetime.fromtimestamp(ts_num / 1000 if ts_num > 1e12 else ts_num, tz=timezone.utc)
         except (ValueError, OSError, TypeError):
             dt = None
-        if dt is None:
-            return external_data
-        hour = dt.hour
-        weekday = dt.weekday()
-        is_weekend = weekday >= 5
+        if dt is not None:
+            hour = dt.hour
+            weekday = dt.weekday()
+            is_weekend = weekday >= 5
 
-        # 주말: 거래량 감소 → FGI 안정, 김프 축소
-        if is_weekend:
-            fgi = fgi * 0.9 + 50 * 0.1  # 50쪽으로 수렴
-            kp *= 0.7
-            whale_score *= 0.5  # 고래 활동 감소
+            # 주말: 거래량 감소 → FGI 안정, 김프 축소
+            if is_weekend:
+                fgi = fgi * 0.9 + 50 * 0.1  # 50쪽으로 수렴
+                kp *= 0.7
+                whale_score *= 0.5  # 고래 활동 감소
 
-        # 야간(UTC 14-22 = KST 23-07): 거래량 감소
-        if 14 <= hour <= 22:
-            whale_score *= 0.6
+            # 야간(UTC 14-22 = KST 23-07): 거래량 감소
+            if 14 <= hour <= 22:
+                whale_score *= 0.6
 
     # ── Fusion 점수 ──
     fusion_score = (fgi - 50) * 0.2 + news_sentiment * 0.15 + whale_score * 0.15 + macro * 0.25 + (50 - rsi) * 0.1
@@ -355,12 +354,13 @@ class BitcoinTradingEnvV2(gym.Env):
         self.btc_balance = 0.0
         self.avg_buy_price = 0.0
         self.prev_action = 0.0
-        self.total_value_history = []
+        self.total_value_history = [self.initial_balance]
         self.action_history = []
         self.trade_count = 0
         self.steps_no_trade = 0
 
         self.reward_calc = RewardCalculator()
+        self.reward_calc.reset(self.initial_balance)
 
         obs = self._get_observation()
         self.regime = classify_regime(self.candles, self.current_step)
@@ -423,7 +423,6 @@ class BitcoinTradingEnvV2(gym.Env):
             self.steps_no_trade += 1
 
         self.action_history.append(action_val)
-        self.prev_action = action_val
 
         # 다음 스텝
         self.current_step += 1
@@ -445,6 +444,7 @@ class BitcoinTradingEnvV2(gym.Env):
             btc_ratio=btc_ratio,
             price_change=price_change,
         )
+        self.prev_action = action_val
         reward = reward_info["reward"] if isinstance(reward_info, dict) else float(reward_info)
 
         # [개선 1] 정책 붕괴 방지 — V2.2: 수익성 중심으로 재설계
@@ -535,6 +535,8 @@ class BitcoinTradingEnvV2(gym.Env):
         price = candle["close"]
 
         market_data = {
+            "current_price": price,
+            "change_rate_24h": candle.get("change_rate", 0),
             "ticker": {
                 "trade_price": price,
                 "signed_change_rate": candle.get("change_rate", 0),

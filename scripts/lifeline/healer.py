@@ -63,12 +63,18 @@ def _get_session() -> requests.Session:
     return _session
 
 
+# ── 재시작 제한 ──────────────────────────────────────────
+MAX_RESTARTS_PER_HOUR = 3
+
+
 class Healer:
     """진단 결과에 따라 자동 복구를 실행한다."""
 
     def __init__(self) -> None:
         self.dry_run = os.getenv("DRY_RUN", "true").lower() == "true"
         self.project_root = Path(__file__).resolve().parent.parent.parent
+        # 재시작 이력: {component: [timestamp, ...]}
+        self._restart_history: dict[str, list[float]] = {}
 
     def heal(self, diagnosis: dict) -> dict:
         """단일 진단 결과에 대해 복구 액션을 실행한다.
@@ -319,11 +325,38 @@ class Healer:
                 old = [f for f in data_dir.rglob("*.lock") if f.is_file() and f.stat().st_mtime < cutoff]
                 print(f"[healer][DRY_RUN] data/ 내 {STALE_LOCK_SECONDS}초 이상 .lock 파일: {len(old)}개", file=sys.stderr)
 
+    def _check_restart_rate(self, component: str) -> bool:
+        """시간당 재시작 횟수를 검사한다. 초과 시 False 반환."""
+        now = time.time()
+        history = self._restart_history.get(component, [])
+        # 1시간 이내 기록만 유지
+        history = [t for t in history if now - t < 3600]
+        self._restart_history[component] = history
+
+        if len(history) >= MAX_RESTARTS_PER_HOUR:
+            print(
+                f"[healer] {component} 재시작 제한 초과 "
+                f"({len(history)}/{MAX_RESTARTS_PER_HOUR}회/시간) → alert-only 모드",
+                file=sys.stderr,
+            )
+            return False
+        return True
+
+    def _record_restart(self, component: str) -> None:
+        """재시작 이력을 기록한다."""
+        self._restart_history.setdefault(component, []).append(time.time())
+
     def _restart_process(self, component: str) -> bool:
         """프로세스를 재시작한다.
 
+        시간당 최대 3회 재시작 (무한루프 방지).
+        초과 시 alert-only 모드로 전환한다.
         DRY_RUN 모드에서는 로그만 출력한다.
         """
+        # 재시작 제한 체크
+        if not self._check_restart_rate(component):
+            return False
+
         # 컴포넌트별 재시작 커맨드 매핑
         restart_commands = {
             "process": [
@@ -333,6 +366,13 @@ class Healer:
             "memory": [
                 sys.executable,
                 str(self.project_root / "scripts" / "run_agents.py"),
+            ],
+            "continuous_learning": [
+                sys.executable, "-m", "rl_hybrid.rl.continuous_learner",
+            ],
+            "main_brain": [
+                sys.executable,
+                str(self.project_root / "rl_hybrid" / "nodes" / "main_brain.py"),
             ],
         }
 
@@ -350,13 +390,17 @@ class Healer:
 
         try:
             print(f"[healer] 프로세스 재시작: {' '.join(cmd)}", file=sys.stderr)
-            subprocess.Popen(
-                cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                cwd=str(self.project_root),
-                **subprocess_kwargs(),
-            )
+            log_file = self.project_root / "logs" / f"{component}.log"
+            log_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(log_file, "a", encoding="utf-8") as lf:
+                subprocess.Popen(
+                    cmd,
+                    stdout=lf,
+                    stderr=subprocess.STDOUT,
+                    cwd=str(self.project_root),
+                    **subprocess_kwargs(),
+                )
+            self._record_restart(component)
             return True
         except OSError as e:
             print(f"[healer] 재시작 실패: {e}", file=sys.stderr)
@@ -586,6 +630,58 @@ class Healer:
 
         print(f"[healer] 로그 정리: {truncated}개 파일 truncate", file=sys.stderr)
         return True
+
+    def resume_trading_if_healed(self, heal_results: list[dict]) -> bool:
+        """복구 완료 후 매매 파이프라인을 자동 재개한다.
+
+        조건:
+        - 모든 복구가 성공
+        - auto_emergency.json이 존재하고 source가 'lifeline_healer'인 경우만 해제
+        - 사용자가 수동 설정한 EMERGENCY_STOP은 해제하지 않음
+        """
+        if not heal_results:
+            return False
+
+        # 복구 실패가 하나라도 있으면 재개하지 않음
+        if any(not r.get("success") for r in heal_results):
+            print("[healer] 복구 실패 항목 존재 → 매매 재개 보류", file=sys.stderr)
+            return False
+
+        # auto_emergency.json 확인
+        emergency_file = self.project_root / "data" / "auto_emergency.json"
+        if not emergency_file.exists():
+            return False
+
+        try:
+            em_data = json.loads(emergency_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return False
+
+        # Healer가 발동한 긴급정지만 해제 가능
+        if em_data.get("source") != "lifeline_healer":
+            print("[healer] auto_emergency는 healer 이외 소스 발동 → 해제 안 함", file=sys.stderr)
+            return False
+
+        if self.dry_run:
+            print("[healer][DRY_RUN] auto_emergency 해제 + 매매 재개 예정", file=sys.stderr)
+            return True
+
+        try:
+            emergency_file.unlink()
+            print("[healer] auto_emergency.json 해제 → 매매 재개", file=sys.stderr)
+
+            # 다음 스케줄 사이클에서 자동 실행되므로 별도 파이프라인 트리거 불필요
+            # 단, 즉시 재개가 필요한 경우 로그에 표시
+            resume_marker = self.project_root / "data" / "trading_resumed.json"
+            resume_marker.write_text(json.dumps({
+                "resumed_at": datetime.now(KST).isoformat(),
+                "reason": "Lifeline healer 복구 완료 후 자동 재개",
+                "healed_components": [r["component"] for r in heal_results],
+            }, ensure_ascii=False, indent=2), encoding="utf-8")
+            return True
+        except OSError as e:
+            print(f"[healer] 매매 재개 실패: {e}", file=sys.stderr)
+            return False
 
     # ── 헬퍼 ──────────────────────────────────────────────
 

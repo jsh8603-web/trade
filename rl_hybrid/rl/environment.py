@@ -159,12 +159,18 @@ class BitcoinTradingEnv(gym.Env):
         self.action_history.append(action_val)
 
         # 보상 계산
+        price_change = (next_price - price) / price if price > 0 else 0
+        btc_value = self.btc_balance * next_price
+        btc_ratio = btc_value / curr_value if curr_value > 0 else 0
+
         calc_kwargs = dict(
             prev_portfolio_value=prev_value,
             curr_portfolio_value=curr_value,
             action=action_val,
             prev_action=self.prev_action,
             step=self.current_step,
+            btc_ratio=btc_ratio,
+            price_change=price_change,
         )
         if self.reward_version in ("v7", "v8"):
             calc_kwargs["price"] = price

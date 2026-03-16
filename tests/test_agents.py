@@ -2264,9 +2264,19 @@ class TestOrchestratorConsecutiveLosses:
 
     def test_hold_not_counted(self):
         orch = self._make_orchestrator()
+        # hold is skipped; the buy with loss is the most recent trade → 1 consecutive loss
         count = orch._count_consecutive_losses([
             {"decision": "hold", "profit_loss": None},
             {"decision": "buy", "profit_loss": -2.0},
+        ])
+        assert count == 1
+
+    def test_hold_only_returns_zero(self):
+        orch = self._make_orchestrator()
+        # Only holds → no trades → 0 consecutive losses
+        count = orch._count_consecutive_losses([
+            {"decision": "hold", "profit_loss": None},
+            {"decision": "관망", "profit_loss": None},
         ])
         assert count == 0
 

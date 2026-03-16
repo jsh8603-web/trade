@@ -10,6 +10,7 @@ import os
 import sys
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -21,13 +22,18 @@ logger = logging.getLogger("rl.data_loader")
 UPBIT_API = "https://api.upbit.com/v1"
 CANDLE_LIMIT = 200  # API 1회 최대
 
+# 파일 캐시 디렉토리
+_PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
+_CACHE_DIR = _PROJECT_DIR / "data" / "candles_cache"
+
 
 class HistoricalDataLoader:
-    """과거 시장 데이터 로더"""
+    """과거 시장 데이터 로더 (메모리 + 파일 캐시)"""
 
     def __init__(self, market: str = "KRW-BTC"):
         self.market = market
-        self._cache: dict[str, np.ndarray] = {}
+        self._cache: dict[str, list] = {}
+        _CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     def load_candles(
         self,
@@ -46,8 +52,26 @@ class HistoricalDataLoader:
         """
         cache_key = f"{self.market}_{interval}_{days}"
         if cache_key in self._cache:
-            logger.info(f"캐시 사용: {cache_key}")
+            logger.info(f"메모리 캐시 사용: {cache_key}")
             return self._cache[cache_key]
+
+        # 파일 캐시 확인 (TTL: 1시간)
+        cache_file = _CACHE_DIR / f"{cache_key}.json"
+        cached_candles = self._load_file_cache(cache_file, max_age_hours=1)
+        if cached_candles is not None:
+            # 증분 업데이트: 캐시의 마지막 타임스탬프 이후 새 캔들만 가져오기
+            new_candles = self._fetch_incremental(cached_candles, interval)
+            if new_candles:
+                cached_candles.extend(new_candles)
+                # 요청 기간 초과분 제거 (앞쪽)
+                interval_map_tmp = {"1h": days * 24, "4h": days * 6, "1d": days}
+                max_candles = interval_map_tmp.get(interval, days * 24)
+                if len(cached_candles) > max_candles:
+                    cached_candles = cached_candles[-max_candles:]
+                self._save_file_cache(cache_file, cached_candles)
+                logger.info(f"증분 업데이트: +{len(new_candles)}개")
+            self._cache[cache_key] = cached_candles
+            return cached_candles
 
         interval_map = {
             "1h": ("minutes/60", days * 24),
@@ -101,8 +125,82 @@ class HistoricalDataLoader:
         all_candles.reverse()
         logger.info(f"캔들 로드 완료: {len(all_candles)}개 ({interval}, {days}일)")
 
+        # 파일 캐시 저장
+        if all_candles:
+            self._save_file_cache(cache_file, all_candles)
+
         self._cache[cache_key] = all_candles
         return all_candles
+
+    def _load_file_cache(self, path: Path, max_age_hours: float = 1) -> list[dict] | None:
+        """파일 캐시 로드 (TTL 초과 시 None)"""
+        try:
+            if not path.exists():
+                return None
+            age_hours = (time.time() - path.stat().st_mtime) / 3600
+            if age_hours > max_age_hours * 24:  # 완전 만료 = 24배 TTL
+                return None
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            logger.info(f"파일 캐시 로드: {path.name} ({len(data)}개, {age_hours:.1f}h)")
+            return data
+        except Exception as e:
+            logger.warning(f"파일 캐시 로드 실패: {e}")
+            return None
+
+    def _save_file_cache(self, path: Path, candles: list[dict]) -> None:
+        """파일 캐시 저장"""
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(candles, f, ensure_ascii=False)
+            logger.debug(f"파일 캐시 저장: {path.name} ({len(candles)}개)")
+        except Exception as e:
+            logger.warning(f"파일 캐시 저장 실패: {e}")
+
+    def _fetch_incremental(self, cached: list[dict], interval: str) -> list[dict]:
+        """캐시 마지막 이후 새 캔들만 가져오기"""
+        if not cached:
+            return []
+
+        interval_map = {
+            "1h": "minutes/60",
+            "4h": "minutes/240",
+            "1d": "days",
+        }
+        endpoint = interval_map.get(interval)
+        if not endpoint:
+            return []
+
+        last_ts = cached[-1].get("timestamp", "")
+        if not last_ts:
+            return []
+
+        url = f"{UPBIT_API}/candles/{endpoint}"
+        new_candles = []
+
+        try:
+            # 최근 캔들을 가져와서 캐시 이후 것만 필터링
+            resp = requests.get(url, params={
+                "market": self.market, "count": CANDLE_LIMIT
+            }, timeout=10)
+            resp.raise_for_status()
+
+            for c in reversed(resp.json()):  # 시간순 정렬
+                ts = c["candle_date_time_kst"]
+                if ts > last_ts:
+                    new_candles.append({
+                        "timestamp": ts,
+                        "open": float(c["opening_price"]),
+                        "high": float(c["high_price"]),
+                        "low": float(c["low_price"]),
+                        "close": float(c["trade_price"]),
+                        "volume": float(c["candle_acc_trade_volume"]),
+                        "volume_krw": float(c.get("candle_acc_trade_price", 0)),
+                    })
+        except Exception as e:
+            logger.warning(f"증분 캔들 로드 실패: {e}")
+
+        return new_candles
 
     def compute_indicators(self, candles: list[dict]) -> list[dict]:
         """캔들 데이터에 기술 지표 계산하여 추가

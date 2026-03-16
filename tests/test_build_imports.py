@@ -280,7 +280,7 @@ class TestEnvExampleDocumentation:
         assert self.ENV_EXAMPLE_PATH.exists(), (
             f".env.example 파일이 없습니다: {self.ENV_EXAMPLE_PATH}"
         )
-        self.env_content = self.ENV_EXAMPLE_PATH.read_text()
+        self.env_content = self.ENV_EXAMPLE_PATH.read_text(encoding="utf-8")
 
     @pytest.mark.parametrize("var_name", REQUIRED_VARS)
     def test_required_var_documented(self, var_name):
@@ -315,7 +315,7 @@ class TestRequirementsTxt:
         assert self.REQUIREMENTS_PATH.exists(), (
             f"requirements.txt 파일이 없습니다: {self.REQUIREMENTS_PATH}"
         )
-        self.req_content = self.REQUIREMENTS_PATH.read_text().lower()
+        self.req_content = self.REQUIREMENTS_PATH.read_text(encoding="utf-8").lower()
 
     @pytest.mark.parametrize("package", KEY_PACKAGES)
     def test_key_package_listed(self, package):

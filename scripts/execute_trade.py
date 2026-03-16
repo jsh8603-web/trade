@@ -510,16 +510,16 @@ def _record_trade_to_db(result: dict, source: str = "manual"):
         except Exception:
             _cycle_id = datetime.now(KST).strftime("%Y%m%d-%H%M") + f"-{source}"
 
+        from utils.machine import get_machine_name
         decision_row = {
             "decision": action_kr,
             "reason": f"[{source}] {result.get('market', 'KRW-BTC')} {result.get('amount', '')}",
             "confidence": 1.0 if source == "manual" else 0.5,
             "market": result.get("market", "KRW-BTC"),
-            "execution_status": "success" if result.get("success") else "failed",
-            "execution_error": result.get("error"),
             "dry_run": dry_run,
             "cycle_id": _cycle_id,
             "source": source,
+            "machine_name": get_machine_name(),
         }
 
         # 실행 추적 필드 추가
@@ -531,12 +531,16 @@ def _record_trade_to_db(result: dict, source: str = "manual"):
         elif not result.get("dry_run"):
             decision_row["execution_attempted"] = False
 
-        # 체결 정보 추가
+        # 체결 정보 추가 (execution_result JSON 필드에 저장)
         resp = result.get("response", {})
         if isinstance(resp, dict) and resp.get("uuid"):
-            decision_row["order_uuid"] = resp["uuid"]
-            decision_row["executed_price"] = int(float(resp.get("price", 0) or 0)) or None
-            decision_row["executed_volume"] = float(resp.get("volume", 0) or 0) or None
+            decision_row["execution_result"] = json.dumps({
+                "order_uuid": resp["uuid"],
+                "price": resp.get("price"),
+                "volume": resp.get("volume"),
+                "status": "success" if result.get("success") else "failed",
+                "error": result.get("error"),
+            }, ensure_ascii=False)
 
         r = requests.post(
             f"{url}/rest/v1/decisions",

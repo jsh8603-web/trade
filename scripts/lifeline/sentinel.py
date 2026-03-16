@@ -355,6 +355,69 @@ def check_junk_files() -> dict:
     return _result(component, "OK", "잔여 파일 없음", details)
 
 
+def check_core_processes() -> dict:
+    """핵심 백그라운드 프로세스(continuous_learning, main_brain 등)의 생존을 점검한다."""
+    component = "core_processes"
+
+    core_procs = [
+        {"name": "continuous_learning", "keyword": "continuous_learner"},
+        {"name": "main_brain", "keyword": "main_brain.py"},
+        {"name": "trading_worker", "keyword": "trading_worker.py"},
+    ]
+
+    alive = []
+    dead = []
+
+    for proc in core_procs:
+        found = False
+        try:
+            # Windows: tasklist / Unix: pgrep
+            if sys.platform == "win32":
+                import subprocess
+                result = subprocess.run(
+                    ["tasklist", "/FI", f"IMAGENAME eq python*", "/FO", "CSV"],
+                    capture_output=True, text=True, timeout=5,
+                )
+                # Windows에서는 커맨드라인 기반 필터가 어렵기 때문에
+                # PID 파일 기반으로 체크
+                pid_file = DATA_DIR / f"{proc['name']}.pid"
+                if pid_file.exists():
+                    try:
+                        pid = int(pid_file.read_text().strip())
+                        os.kill(pid, 0)
+                        found = True
+                    except (ValueError, OSError):
+                        pass
+            else:
+                import subprocess
+                result = subprocess.run(
+                    ["pgrep", "-f", proc["keyword"]],
+                    capture_output=True, text=True, timeout=5,
+                )
+                pids = [int(p) for p in result.stdout.strip().split("\n") if p.strip()]
+                if pids:
+                    found = True
+        except Exception:
+            pass
+
+        if found:
+            alive.append(proc["name"])
+        else:
+            dead.append(proc["name"])
+
+    details = {"alive": alive, "dead": dead}
+
+    if dead:
+        return _result(
+            component, "WARNING",
+            f"종료된 핵심 프로세스: {', '.join(dead)}",
+            details,
+        )
+    if not alive:
+        return _result(component, "OK", "핵심 프로세스 미실행 (단독 모드 가능)", details)
+    return _result(component, "OK", f"핵심 프로세스 {len(alive)}개 정상", details)
+
+
 def check_bot_processes() -> dict:
     """김치랑/초단타/대시보드 봇 프로세스 생존 여부를 점검한다."""
     component = "bot_processes"
@@ -474,6 +537,7 @@ def run_all_checks() -> dict:
         check_emergency_flags(),
         check_stale_locks(),
         check_junk_files(),
+        check_core_processes(),
         check_bot_processes(),
         check_git_status(),
         check_log_size(),

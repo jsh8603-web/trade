@@ -391,7 +391,7 @@ fi
 
 # ── Phase 6: 과거 전환 성과 평가 (학습 데이터 축적) ──
 echo "[$(date)] Phase 6: 전환 성과 평가..." >&2
-"$PYTHON" scripts/evaluate_switches.py 2>&2 || true
+"$PYTHON" scripts/evaluate_switches.py 2>&1 || true
 
 echo "[$(date)] ═══ 에이전트 모드 완료 ═══" >&2
 echo "$AGENT_RESULT"

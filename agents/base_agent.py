@@ -21,6 +21,63 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
+# ── Kelly Criterion 포지션 사이징 ──────────────────────────
+
+def kelly_position_size(
+    confidence: float,
+    base_amount: int,
+    win_rate: float = 0.5,
+    half_kelly: bool = True,
+) -> tuple[int, float]:
+    """Kelly Criterion 기반 포지션 사이징.
+
+    strategy.md 테이블 준수:
+      ≥0.85 → 100%, 0.70~0.84 → 70%, 0.55~0.69 → 50%, <0.55 → 30%
+    Half-Kelly 적용으로 과다 투자를 방지한다.
+
+    Args:
+        confidence: 매매 확신도 (0.0 ~ 1.0)
+        base_amount: 에이전트가 계산한 기본 매매 금액 (KRW)
+        win_rate: 과거 승률 (기본 0.5)
+        half_kelly: True이면 Kelly fraction을 절반으로 축소
+
+    Returns:
+        (최종 금액, kelly_fraction) 튜플
+    """
+    # 1) strategy.md 테이블 기반 confidence 배수
+    if confidence >= 0.85:
+        conf_multiplier = 1.0
+    elif confidence >= 0.70:
+        conf_multiplier = 0.7
+    elif confidence >= 0.55:
+        conf_multiplier = 0.5
+    else:
+        conf_multiplier = 0.3
+
+    # 2) Kelly 보정: 승률이 높으면 conf_multiplier를 부스트, 낮으면 감소
+    #    Kelly fraction = W - (1-W)/R, R=avg_win/avg_loss (1.0 가정)
+    #    win_rate=0.5 → kelly_f=0 → 보정 없음 (conf_multiplier 그대로)
+    #    win_rate=0.6 → kelly_f=0.2 → 약간 부스트
+    #    win_rate=0.7 → kelly_f=0.4 → 큰 부스트
+    avg_win_loss_ratio = 1.0
+    kelly_f = win_rate - (1 - win_rate) / avg_win_loss_ratio
+    kelly_f = max(0.0, min(1.0, kelly_f))
+
+    if half_kelly:
+        kelly_f *= 0.5
+
+    # 3) 최종 fraction: conf_multiplier를 기본으로, Kelly로 ±30% 보정
+    #    kelly_f > 0 → 부스트 (최대 +30%), kelly_f = 0 → 그대로
+    kelly_boost = kelly_f * 0.6  # 0~0.3 범위
+    final_fraction = conf_multiplier * (1.0 + kelly_boost)
+    final_fraction = max(0.3, min(1.0, final_fraction))  # 최소 30%, 최대 100%
+
+    amount = int(base_amount * final_fraction)
+    amount = max(5000, amount)  # Upbit 최소 주문 5000원
+
+    return amount, round(final_fraction, 4)
+
+
 @dataclass
 class Decision:
     """매매 결정 결과."""
@@ -545,6 +602,48 @@ class BaseStrategyAgent(ABC):
         except Exception as e:
             print(f"[base_agent] buy_score_detail 저장 예외: {e}", file=sys.stderr)
         return None
+
+    def _get_historical_win_rate(self, days: int = 30) -> float:
+        """Supabase decisions 테이블에서 최근 N일 에이전트별 승률을 조회한다.
+
+        데이터 부족 시 보수적 기본값 0.5를 반환한다.
+        """
+        try:
+            supabase_url = os.getenv("SUPABASE_URL", "")
+            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+            if not supabase_url or not supabase_key:
+                return 0.5
+
+            from datetime import datetime, timezone, timedelta
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+            resp = requests.get(
+                f"{supabase_url}/rest/v1/decisions",
+                params={
+                    "select": "profit_loss",
+                    "created_at": f"gte.{cutoff}",
+                    "decision": "in.(매수,매도)",
+                    "profit_loss": "not.is.null",
+                    "order": "created_at.desc",
+                    "limit": "100",
+                },
+                headers={
+                    "apikey": supabase_key,
+                    "Authorization": f"Bearer {supabase_key}",
+                },
+                timeout=5,
+            )
+            if resp.status_code != 200:
+                return 0.5
+
+            rows = resp.json()
+            if len(rows) < 3:
+                return 0.5  # 데이터 부족
+
+            wins = sum(1 for r in rows if (r.get("profit_loss") or 0) > 0)
+            return round(wins / len(rows), 4)
+        except Exception:
+            return 0.5
 
     @abstractmethod
     def decide(

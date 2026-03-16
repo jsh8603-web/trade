@@ -47,9 +47,11 @@ class KimchirangDB:
 
     def _post(self, table: str, row: dict) -> bool:
         """동기 POST (asyncio.to_thread에서 호출)"""
-        from utils.machine import skip_trade_db
+        from utils.machine import skip_trade_db, get_machine_name
         if skip_trade_db(table):
             return False
+        # 머신 태그 자동 추가
+        row.setdefault("machine_name", get_machine_name())
         if not self._enabled or self._session is None:
             return False
         try:

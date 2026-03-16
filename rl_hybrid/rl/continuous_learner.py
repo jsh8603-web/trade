@@ -109,13 +109,78 @@ class ContinuousLearner:
             self._thread.join(timeout=30)
         logger.info("지속 학습 중지")
 
+    def _should_train_now(self) -> tuple[bool, str]:
+        """훈련 게이트: 지금 학습해야 하는지 판단한다.
+
+        Returns:
+            (should_train, reason) 튜플
+        """
+        try:
+            from rl_hybrid.rl.rl_db_logger import get_recent_training_cycles
+
+            # 1) 최근 5회 훈련 결과 확인
+            recent = get_recent_training_cycles(limit=5)
+            if len(recent) >= 5:
+                improved_any = any(
+                    c.get("improved", False) or (c.get("avg_sharpe") or 0) > 0
+                    for c in recent
+                )
+                if not improved_any:
+                    # 5회 연속 개선 없음 → 간격 2배 확대
+                    self.retrain_interval = min(self.retrain_interval * 2, 48 * 3600)
+                    logger.info(f"최근 5회 개선 없음 → 학습 간격 {self.retrain_interval/3600:.0f}h로 확대")
+                    return False, "최근 5회 연속 개선 없음 — 간격 확대"
+
+            # 2) 예측 정확도 하락 감지
+            try:
+                from rl_hybrid.rl.rl_db_logger import get_model_prediction_accuracy
+                accuracy = get_model_prediction_accuracy()
+                if accuracy.get("total", 0) >= 10 and accuracy.get("accuracy", 1.0) < 0.35:
+                    logger.info(f"예측 정확도 하락 ({accuracy['accuracy']:.1%}) → 즉시 재학습")
+                    return True, f"예측 정확도 하락: {accuracy['accuracy']:.1%}"
+            except Exception:
+                pass
+
+            # 3) 새 시장 데이터 부족 체크
+            stats = self.collector.get_training_stats(days=7)
+            if stats.get("available") and stats.get("count", 0) - self._last_decision_count < 2:
+                return False, "새 데이터 부족 (2건 미만)"
+
+            # 4) 시장 변동성 급등 → 강제 실행
+            try:
+                import requests as _req
+                resp = _req.get(
+                    "https://api.upbit.com/v1/ticker",
+                    params={"markets": "KRW-BTC"},
+                    timeout=5,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data and isinstance(data, list):
+                        change_rate = abs(data[0].get("signed_change_rate", 0))
+                        if change_rate > 0.05:  # 5% 이상 변동
+                            logger.info(f"시장 변동성 급등 ({change_rate:.1%}) → 강제 재학습")
+                            return True, f"시장 변동성 급등: {change_rate:.1%}"
+            except Exception:
+                pass
+
+        except Exception as e:
+            logger.debug(f"훈련 게이트 판단 예외: {e}")
+
+        return True, "정상 스케줄"
+
     def _learning_loop(self):
         """주기적 재학습 루프"""
         while self._running:
             try:
                 now = time.time()
                 if now - self._last_retrain >= self.retrain_interval:
-                    self._retrain_cycle()
+                    should, reason = self._should_train_now()
+                    if should:
+                        logger.info(f"훈련 게이트 통과: {reason}")
+                        self._retrain_cycle()
+                    else:
+                        logger.info(f"훈련 게이트 스킵: {reason}")
                     self._last_retrain = now
             except Exception as e:
                 logger.error(f"학습 루프 에러: {e}", exc_info=True)

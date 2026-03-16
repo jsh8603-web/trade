@@ -52,7 +52,10 @@ def _action_to_direction(action: float) -> str:
 
 
 def get_rl_advisory(market_data: dict, external_data: dict,
-                    portfolio: dict, agent_state: dict) -> dict | None:
+                    portfolio: dict, agent_state: dict,
+                    regime_weights: dict | None = None,
+                    disabled_models: list | None = None,
+                    current_regime: str | None = None) -> dict | None:
     """Phase 2.5: RL 모델 어드바이저리 시그널 (다중 모델 앙상블).
 
     사용 가능한 모든 RL 모델의 시그널을 수집하고, 가중 평균 앙상블로
@@ -63,6 +66,7 @@ def get_rl_advisory(market_data: dict, external_data: dict,
       2. Decision Transformer -- data/rl_models/transformer/dt_model.pt
       3. Multi-Agent Consensus -- data/rl_models/multi_agent/
       4. Offline RL (CQL/BCQ) -- data/rl_models/offline/
+      5. Historical Regime Expert -- data/rl_models/historical/regime_{regime}_{algo}.zip
     """
     advisories = {}
 
@@ -182,12 +186,73 @@ def get_rl_advisory(market_data: dict, external_data: dict,
     except Exception as e:
         log(f"  Offline RL advisory 실패: {e}")
 
-    # ── 5. 앙상블: 사용 가능한 모든 시그널의 가중 평균 ──
+    # ── 5. Historical Regime Expert (7년 역사 데이터 전문 모델) ──
+    # 레짐별 최적 알고리즘: bull→SAC, bear→PPO, sideways→TD3, volatile→PPO
+    REGIME_BEST_ALGO = {
+        "bull_strong": "sac",
+        "bull_weak": "sac",
+        "bear_strong": "ppo",
+        "bear_weak": "ppo",
+        "sideways": "td3",
+        "volatile": "ppo",
+    }
+    try:
+        regime = current_regime or "sideways"
+        best_algo = REGIME_BEST_ALGO.get(regime, "ppo")
+        hist_model_path = str(PROJECT_DIR / "data" / "rl_models" / "historical" / f"regime_{regime}_{best_algo}")
+        hist_zip = PROJECT_DIR / "data" / "rl_models" / "historical" / f"regime_{regime}_{best_algo}.zip"
+
+        if hist_zip.exists() and obs is not None:
+            from rl_hybrid.rl.train import get_trader_class as _get_tc
+            HistTrader = _get_tc(best_algo)
+            hist_trader = HistTrader(env=None, model_path=hist_model_path)
+            hist_action = hist_trader.predict(obs)
+            advisories["historical"] = {
+                "action": round(float(hist_action), 4),
+                "source": f"historical_{regime}_{best_algo}",
+            }
+            log(f"  Historical({regime}/{best_algo}): action={hist_action:.4f}")
+        else:
+            # 레짐 모델 없으면 crisis 모델 시도
+            crisis_path = str(PROJECT_DIR / "data" / "rl_models" / "historical" / "crisis_sac")
+            crisis_zip = PROJECT_DIR / "data" / "rl_models" / "historical" / "crisis_sac.zip"
+            if crisis_zip.exists() and obs is not None:
+                from rl_hybrid.rl.train import get_trader_class as _get_tc2
+                CrisisTrader = _get_tc2("sac")
+                crisis_trader = CrisisTrader(env=None, model_path=crisis_path)
+                crisis_action = crisis_trader.predict(obs)
+                advisories["historical"] = {
+                    "action": round(float(crisis_action), 4),
+                    "source": "historical_crisis_sac",
+                }
+                log(f"  Historical(crisis/sac fallback): action={crisis_action:.4f}")
+    except Exception as e:
+        log(f"  Historical Regime Expert 실패: {e}")
+
+    # ── 5.5. Feedback Hub 비활성 모델 제거 ──
+    if disabled_models:
+        for dm in disabled_models:
+            if dm in advisories:
+                log(f"  Feedback Hub: {dm} 모델 비활성 → 앙상블에서 제외")
+                del advisories[dm]
+
+    # ── 5. 앙상블: 레짐 가중 평균 (또는 균등 평균) ──
     if not advisories:
         return None
 
-    actions = [v["action"] for v in advisories.values() if "action" in v]
-    ensemble_action = sum(actions) / len(actions) if actions else 0.0
+    if regime_weights:
+        # 레짐별 가중치 적용
+        weighted_sum = 0.0
+        weight_total = 0.0
+        for model_key, info in advisories.items():
+            w = regime_weights.get(model_key, 0.25)
+            weighted_sum += info["action"] * w
+            weight_total += w
+        ensemble_action = weighted_sum / weight_total if weight_total > 0 else 0.0
+        log(f"  앙상블: 레짐 가중 평균 (weights={regime_weights})")
+    else:
+        actions = [v["action"] for v in advisories.values() if "action" in v]
+        ensemble_action = sum(actions) / len(actions) if actions else 0.0
     ensemble_direction = _action_to_direction(ensemble_action)
 
     # ── 6. DB 기록: 앙상블 추론 결과 ──
@@ -618,6 +683,38 @@ def main():
         
     log("Phase 2 완료.")
 
+    # Phase 2.4: 시장 레짐 감지 + Feedback Hub confidence 보정
+    regime_info = None
+    try:
+        from scripts.regime_detector import detect_regime
+        regime_info = detect_regime(
+            rsi=market_data.get("indicators", {}).get("rsi_14"),
+            fgi=market_data.get("fear_greed", {}).get("value"),
+            change_rate_24h=market_data.get("ticker", {}).get("signed_change_rate"),
+            atr_pct=None,  # bollinger proxy는 detect_regime_from_market_data에서 계산
+        )
+        log(f"레짐 감지: {regime_info['regime']} ({regime_info['description']}, conf={regime_info['confidence']:.0%})")
+        output["regime"] = regime_info
+    except Exception as e:
+        log(f"Phase 2.4 레짐 감지 예외: {e}")
+
+    # Feedback Hub: confidence 자동 보정 + 비활성 RL 모델 체크
+    confidence_adj = 0.0
+    disabled_rl_models = []
+    try:
+        from scripts.feedback_hub import get_confidence_adjustment, get_disabled_rl_models
+        confidence_adj = get_confidence_adjustment()
+        disabled_rl_models = get_disabled_rl_models()
+        if confidence_adj != 0:
+            orig = output["decision"].get("confidence", 0.5)
+            adjusted = max(0.0, min(1.0, orig + confidence_adj))
+            output["decision"]["confidence"] = adjusted
+            log(f"Feedback Hub confidence 보정: {orig:.2f} → {adjusted:.2f} (adj={confidence_adj:+.3f})")
+        if disabled_rl_models:
+            log(f"Feedback Hub 비활성 RL 모델: {disabled_rl_models}")
+    except Exception as e:
+        log(f"Feedback Hub 보정 예외: {e}")
+
     # Phase 2.5: RL 모델 어드바이저리
     rl_advisory = None
     agent_state_for_rl = {}
@@ -629,7 +726,14 @@ def main():
             "opportunity_score": market_state.get("opportunity_score", 50),
             "consecutive_losses": market_state.get("consecutive_losses", 0),
         }
-        rl_advisory = get_rl_advisory(market_data, external_data, portfolio, agent_state_for_rl)
+        _regime_weights = regime_info.get("weights") if regime_info else None
+        _current_regime = regime_info.get("regime") if regime_info else None
+        rl_advisory = get_rl_advisory(
+            market_data, external_data, portfolio, agent_state_for_rl,
+            regime_weights=_regime_weights,
+            disabled_models=disabled_rl_models,
+            current_regime=_current_regime,
+        )
         if rl_advisory:
             sources = ", ".join(rl_advisory.get("sources", []))
             log(f"RL advisory: {rl_advisory['direction']} (action={rl_advisory['action']:.4f}, models=[{sources}])")
@@ -661,6 +765,48 @@ def main():
             log("RL advisory: 모델 없음 또는 비활성")
     except Exception as e:
         log(f"Phase 2.5 RL advisory 예외: {e}")
+
+    # Phase 2.6: Kelly Criterion 포지션 사이징
+    try:
+        agent_decision_type = output["decision"]["decision"]
+        if agent_decision_type in ("buy", "sell") and output["decision"].get("trade_params"):
+            from agents.base_agent import kelly_position_size
+
+            final_conf = output["decision"].get("confidence", 0.5)
+
+            # 승률 조회 (에이전트별)
+            win_rate = 0.5
+            try:
+                from agents.base_agent import BaseStrategyAgent
+                # orchestrator에서 활성 에이전트 가져오기
+                active = output.get("active_agent", "conservative")
+                agent_map = {
+                    "conservative": "agents.conservative",
+                    "moderate": "agents.moderate",
+                    "aggressive": "agents.aggressive",
+                }
+                if active in agent_map:
+                    mod = __import__(agent_map[active], fromlist=["*"])
+                    agent_cls = [c for c in dir(mod) if not c.startswith("_")]
+                    for name in agent_cls:
+                        obj = getattr(mod, name, None)
+                        if isinstance(obj, type) and issubclass(obj, BaseStrategyAgent) and obj is not BaseStrategyAgent:
+                            win_rate = obj()._get_historical_win_rate(30)
+                            break
+            except Exception:
+                pass
+
+            tp = output["decision"]["trade_params"]
+            if agent_decision_type == "buy" and tp.get("amount"):
+                base_amount = int(tp["amount"])
+                kelly_amount, kelly_frac = kelly_position_size(final_conf, base_amount, win_rate)
+                log(f"Kelly 사이징: {base_amount:,} → {kelly_amount:,}원 (conf={final_conf:.2f}, wr={win_rate:.2f}, frac={kelly_frac})")
+                tp["amount"] = kelly_amount
+                output["decision"]["kelly_applied"] = True
+                output["decision"]["kelly_fraction"] = kelly_frac
+                output["decision"]["kelly_base_amount"] = base_amount
+    except Exception as e:
+        log(f"Phase 2.6 Kelly 사이징 예외: {e}")
 
     agent_result_path = snapshot_dir / "agent_result.json"
     with open(agent_result_path, "w", encoding="utf-8") as f:
@@ -795,10 +941,15 @@ def main():
                     "buy_score": buy_score,
                     "external": ext_summary,
                     "rl_advisory": rl_advisory,
+                    "regime": regime_info.get("regime") if regime_info else None,
+                    "regime_confidence": regime_info.get("confidence") if regime_info else None,
+                    "kelly_fraction": dec.get("kelly_fraction"),
+                    "confidence_adj": confidence_adj,
                     "snapshot_dir": str(snapshot_dir),
                 }, ensure_ascii=False),
                 "cycle_id": _CYCLE_ID,
                 "source": "agent",
+                "machine_name": __import__("utils.machine", fromlist=["get_machine_name"]).get_machine_name(),
             }
             # 외부 정보 및 매수 점수와 직접 연결 (FK)
             if output.get("external_signal_id"):
@@ -855,8 +1006,8 @@ def main():
                             btc_price=market_data.get("ticker", {}).get("trade_price"),
                             rsi_14=market_data.get("indicators", {}).get("rsi_14"),
                             fgi=market_data.get("fear_greed", {}).get("value"),
-                            danger_score=market_state.get("danger_score"),
-                            opportunity_score=market_state.get("opportunity_score"),
+                            danger_score=result.get("market_state", {}).get("danger_score"),
+                            opportunity_score=result.get("market_state", {}).get("opportunity_score"),
                         )
                         log("RL prediction DB 기록 (decision_id 연결)")
                     except Exception as _rl_db_err:
@@ -933,10 +1084,69 @@ def main():
         except Exception as e:
             log(f"execution_logs 기록 예외: {e}")
 
+    # Phase 5.5: DRY_RUN/워커 임베딩 생성 (DB 미저장이어도 RAG 학습용 임베딩 생성)
+    dry_run = os.environ.get("DRY_RUN", "true").lower() == "true"
+    if dry_run or skip_trade_db("decisions"):
+        try:
+            from scripts.save_decision import generate_state_embedding
+            emb_data = {
+                "current_price": market_data.get("ticker", {}).get("trade_price"),
+                "change_rate_24h": market_data.get("ticker", {}).get("signed_change_rate"),
+                "rsi_14": market_data.get("indicators", {}).get("rsi_14"),
+                "sma_20": market_data.get("indicators", {}).get("sma_20"),
+                "fear_greed_value": market_data.get("fear_greed", {}).get("value"),
+                "volume_24h": market_data.get("ticker", {}).get("acc_trade_volume_24h"),
+                "news_sentiment": market_data.get("news", {}).get("overall_sentiment"),
+            }
+            emb_text, emb_vector = generate_state_embedding(emb_data)
+            if emb_vector:
+                # 로컬 캐시에 저장 (나중에 primary 머신에서 DB에 업로드)
+                emb_cache_dir = PROJECT_DIR / "data" / "embedding_cache"
+                emb_cache_dir.mkdir(parents=True, exist_ok=True)
+                emb_cache_file = emb_cache_dir / f"emb_{timestamp}.json"
+                with open(emb_cache_file, "w", encoding="utf-8") as ef:
+                    json.dump({
+                        "text": emb_text,
+                        "vector_dim": len(emb_vector),
+                        "decision": decision,
+                        "confidence": output["decision"].get("confidence"),
+                        "timestamp": timestamp,
+                        "dry_run": dry_run,
+                    }, ef, ensure_ascii=False)
+                log(f"DRY_RUN 임베딩 생성 → 캐시 저장 ({len(emb_vector)}d)")
+
+                # 캐시 정리 (최근 100개만 유지)
+                cached = sorted(emb_cache_dir.glob("emb_*.json"), key=lambda p: p.stat().st_mtime)
+                if len(cached) > 100:
+                    for old_f in cached[:-100]:
+                        old_f.unlink(missing_ok=True)
+        except Exception as e:
+            log(f"Phase 5.5 DRY_RUN 임베딩 예외: {e}")
+
     # Phase 6: 전환 성과 평가
     log("Phase 6: 전환 성과 평가...")
     subprocess.run([sys.executable, "scripts/evaluate_switches.py"], cwd=str(PROJECT_DIR), check=False, **subprocess_kwargs())
     
+    # Phase 6.3: 사후 추적 + 온라인 버퍼 outcome 백필
+    try:
+        from scripts.retrospective import update_decisions
+        log("Phase 6.3: 사후 추적 (retrospective)...")
+        retro_result = update_decisions()
+        if retro_result:
+            log(f"사후 추적: {retro_result.get('updated', 0)}건 업데이트")
+
+            # 온라인 버퍼에 outcome 백필
+            if retro_result.get("outcomes"):
+                try:
+                    from rl_hybrid.rl.online_buffer import OnlineExperienceBuffer
+                    buf_backfill = OnlineExperienceBuffer()
+                    buf_backfill.update_outcomes(retro_result["outcomes"])
+                    log(f"온라인 버퍼 outcome 백필: {len(retro_result['outcomes'])}건")
+                except Exception as be:
+                    log(f"온라인 버퍼 백필 예외: {be}")
+    except Exception as e:
+        log(f"Phase 6.3 사후 추적 예외: {e}")
+
     # Phase 6.5: RL 온라인 학습 버퍼
     if rl_advisory:
         try:
@@ -986,6 +1196,20 @@ def main():
                 log(f"Phase 6.7: {tuning_result.get('status', '?')} -- {tuning_result.get('message', 'N/A')}")
     except Exception as e:
         log(f"Phase 6.7 Self-tuning 스킵: {e}")
+
+    # Phase 7: Feedback Hub 전체 분석 (비동기 — 다음 사이클에 반영)
+    try:
+        from scripts.feedback_hub import run_full_analysis
+        log("Phase 7: Feedback Hub 분석...")
+        fb_result = run_full_analysis()
+        if fb_result:
+            cal = fb_result.get("calibration", {})
+            rl_scores = fb_result.get("rl_model_scores", {})
+            log(f"Feedback Hub: confidence 보정={cal.get('adjustment', 0):+.3f}, "
+                f"RL 모델 {len(rl_scores)}개 평가, "
+                f"비활성={fb_result.get('disabled_models', [])}")
+    except Exception as e:
+        log(f"Phase 7 Feedback Hub 예외: {e}")
 
     log("═══ 에이전트 모드 완료 ═══")
     print(json.dumps(output, ensure_ascii=False, indent=2))

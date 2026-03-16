@@ -381,6 +381,117 @@ def get_recent_training_cycles(
         return []
 
 
+def get_training_impact_analysis(days: int = 30) -> dict:
+    """훈련 효과 분석: 알고리즘별 훈련 후 PnL 변화를 추적한다.
+
+    rl_training_cycles + portfolio_snapshots를 조인하여
+    훈련 후 24h/72h 실제 성과를 분석한다.
+
+    Returns:
+        {
+            "algorithms": {algo: {"trainings": N, "avg_pnl_24h": X, "avg_pnl_72h": Y, "improved_rate": Z}},
+            "recommended_priority": [algo1, algo2, ...],  # 효과 큰 순
+            "skip_candidates": [algo, ...],  # 3회 이상 훈련 + 개선율 < 30%
+        }
+    """
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return {"algorithms": {}, "recommended_priority": [], "skip_candidates": []}
+
+    from datetime import timedelta
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+    try:
+        # 1) 최근 훈련 사이클 조회 (완료된 것만)
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/rl_training_cycles",
+            headers=_headers(),
+            params={
+                "select": "id,algorithm,module,avg_sharpe,avg_return_pct,completed_at,pnl_24h_after,pnl_72h_after",
+                "status": "eq.completed",
+                "created_at": f"gte.{cutoff}",
+                "order": "completed_at.desc",
+                "limit": "100",
+            },
+            timeout=10,
+        )
+        if r.status_code != 200:
+            logger.warning(f"훈련 사이클 조회 실패: {r.status_code}")
+            return {"algorithms": {}, "recommended_priority": [], "skip_candidates": []}
+
+        cycles = r.json()
+        if not cycles:
+            return {"algorithms": {}, "recommended_priority": [], "skip_candidates": []}
+
+        # 2) 알고리즘별 집계
+        algo_stats: dict[str, dict] = {}
+        for c in cycles:
+            algo = c.get("algorithm", "unknown")
+            if algo not in algo_stats:
+                algo_stats[algo] = {
+                    "trainings": 0,
+                    "pnl_24h_list": [],
+                    "pnl_72h_list": [],
+                    "sharpe_list": [],
+                    "improved_count": 0,
+                }
+            stats = algo_stats[algo]
+            stats["trainings"] += 1
+
+            pnl_24h = c.get("pnl_24h_after")
+            pnl_72h = c.get("pnl_72h_after")
+            sharpe = c.get("avg_sharpe")
+
+            if pnl_24h is not None:
+                stats["pnl_24h_list"].append(pnl_24h)
+                if pnl_24h > 0:
+                    stats["improved_count"] += 1
+            if pnl_72h is not None:
+                stats["pnl_72h_list"].append(pnl_72h)
+            if sharpe is not None:
+                stats["sharpe_list"].append(sharpe)
+
+        # 3) 요약 계산
+        algorithms = {}
+        for algo, stats in algo_stats.items():
+            pnl_24h_list = stats["pnl_24h_list"]
+            pnl_72h_list = stats["pnl_72h_list"]
+            n = stats["trainings"]
+            improved_rate = stats["improved_count"] / len(pnl_24h_list) if pnl_24h_list else 0.5
+
+            algorithms[algo] = {
+                "trainings": n,
+                "avg_pnl_24h": round(sum(pnl_24h_list) / len(pnl_24h_list), 4) if pnl_24h_list else None,
+                "avg_pnl_72h": round(sum(pnl_72h_list) / len(pnl_72h_list), 4) if pnl_72h_list else None,
+                "avg_sharpe": round(sum(stats["sharpe_list"]) / len(stats["sharpe_list"]), 4) if stats["sharpe_list"] else None,
+                "improved_rate": round(improved_rate, 4),
+                "data_points": len(pnl_24h_list),
+            }
+
+        # 4) 우선순위 정렬: improved_rate 기준 내림차순
+        ranked = sorted(
+            algorithms.items(),
+            key=lambda x: (x[1].get("improved_rate", 0), x[1].get("avg_pnl_24h") or 0),
+            reverse=True,
+        )
+        recommended_priority = [algo for algo, _ in ranked]
+
+        # 5) 스킵 후보: 3회 이상 훈련 + 개선율 < 30%
+        skip_candidates = [
+            algo for algo, s in algorithms.items()
+            if s["trainings"] >= 3 and s["data_points"] >= 3 and s["improved_rate"] < 0.3
+        ]
+
+        return {
+            "algorithms": algorithms,
+            "recommended_priority": recommended_priority,
+            "skip_candidates": skip_candidates,
+        }
+
+    except Exception as e:
+        logger.error(f"훈련 효과 분석 예외: {e}")
+        return {"algorithms": {}, "recommended_priority": [], "skip_candidates": []}
+
+
 def get_model_prediction_accuracy(version_id: str = None) -> dict:
     """모델 예측 정확도 조회"""
     if not SUPABASE_URL or not SUPABASE_KEY:
