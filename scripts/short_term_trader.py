@@ -65,9 +65,9 @@ SHORT_TERM_BUDGET = int(os.getenv("SHORT_TERM_BUDGET", "1000000"))  # 단타 전
 SHORT_TERM_MAX_TRADE = int(os.getenv("SHORT_TERM_MAX_TRADE", "300000"))  # 1회 최대 30만원
 SHORT_TERM_MAX_DAILY = int(os.getenv("SHORT_TERM_MAX_DAILY", "20"))  # 일일 최대 20회
 SHORT_TERM_MAX_DAILY_DRYRUN = int(os.getenv("SHORT_TERM_MAX_DAILY_DRYRUN", "40"))  # DRY_RUN 전용 일일 한도 40회
-SHORT_TERM_STOP_LOSS = float(os.getenv("SHORT_TERM_STOP_LOSS", "1.2"))  # 손절 1.2%
-SHORT_TERM_TAKE_PROFIT = float(os.getenv("SHORT_TERM_TAKE_PROFIT", "0.20"))  # 익절 0.20% (v5: 0.5→0.20, 달성 가능한 목표)
-SHORT_TERM_MAX_HOLD_MIN = int(os.getenv("SHORT_TERM_MAX_HOLD_MIN", "30"))  # 최대 보유 30분 (v5: 15→30, 타임아웃 승률 83%)
+SHORT_TERM_STOP_LOSS = float(os.getenv("SHORT_TERM_STOP_LOSS", "0.25"))  # 손절 0.25% (v6: 1.2→0.25, TP와 R:R 1.2 맞춤)
+SHORT_TERM_TAKE_PROFIT = float(os.getenv("SHORT_TERM_TAKE_PROFIT", "0.30"))  # 익절 0.30% (v6: 0.20→0.30, R:R 1.2 확보)
+SHORT_TERM_MAX_HOLD_MIN = int(os.getenv("SHORT_TERM_MAX_HOLD_MIN", "15"))  # 최대 보유 15분 (v6: 30→15, 고래 시그널은 빠르게 소진)
 COMMISSION_PCT = 0.05  # Upbit 수수료 0.05%
 MIN_PROFIT_AFTER_FEE = COMMISSION_PCT * 2 + 0.05  # 수수료 왕복 + 최소 마진 0.05% = 0.15%
 
@@ -79,8 +79,8 @@ SPIKE_THRESHOLD_PCT = 0.8  # 최근 N분 내 0.8% 변동 (v5: 0.5→0.8, 유의�
 SPIKE_WINDOW_SEC = 300  # 5분 윈도우
 
 # 고래 감지 기준
-WHALE_THRESHOLD_KRW = 50_000_000  # 5000만원 이상 (v5: 2000만→5000만, 대형 고래만)
-WHALE_RATIO_THRESHOLD = 0.75  # 금액 비율 75% 이상 (v5: 60→75, 강한 방향성)
+WHALE_THRESHOLD_KRW = 200_000_000  # 2억원 이상 (v6: 5000만→2억, 진짜 고래만)
+WHALE_RATIO_THRESHOLD = 0.85  # 금액 비율 85% 이상 (v6: 75→85, 강한 방향 합의)
 WHALE_RATIO_WINDOW_SEC = 180  # 비율 판정 윈도우 3분
 
 # 매도 압력 방패
@@ -90,12 +90,12 @@ SELL_PRESSURE_BLOCK_RATIO = 4.0  # 매도가 매수의 4배 이상이면 매수 
 GRACE_PERIOD_SEC = 180  # 3분
 
 # v5: 트레일링 스탑 설정
-TRAILING_STOP_ACTIVATE_PCT = 0.15  # 수수료 후 +0.15% 도달 시 트레일링 스탑 활성화
-TRAILING_STOP_DISTANCE_PCT = 0.10  # 최고점 대비 -0.10% 하락 시 청산
+TRAILING_STOP_ACTIVATE_PCT = 0.25  # 수수료 후 +0.25% 도달 시 트레일링 스탑 활성화 (v6: 0.15→0.25)
+TRAILING_STOP_DISTANCE_PCT = 0.15  # 최고점 대비 -0.15% 하락 시 청산 (v6: 0.10→0.15, 정상 되돌림 허용)
 
 # v5: 모멘텀 확인 — 진입 전 최근 60초 가격 상승 확인
 MOMENTUM_WINDOW_SEC = 60  # 모멘텀 판정 윈도우 60초
-MOMENTUM_MIN_PCT = 0.02  # 최소 +0.02% 상승 중이어야 진입
+MOMENTUM_MIN_PCT = 0.06  # 최소 +0.06% 상승 중이어야 진입 (v6: 0.02→0.06, 노이즈 필터)
 
 # ── v4 안전 필터 ─────────────────────────
 # 1. 하락 추세에서 whale 매수 차단
@@ -105,8 +105,8 @@ NEWS_BLOCK_THRESHOLD = -0.5  # 감성 점수 이하면 매수 금지
 # 3. 극공포 시 매수 차단
 FGI_BLOCK_THRESHOLD = 5  # FGI 5 미만이면 매수 금지
 # 4. 타임아웃 전 조기 손절
-EARLY_STOP_LOSS_PCT = 0.3  # 보유 시간 15분 경과 + -0.3% 이하면 조기 청산
-EARLY_STOP_TIME_MIN = 15  # 조기 손절 판단 시작 시간 (v5: 10→15, 보유 시간 확대에 맞춤)
+EARLY_STOP_LOSS_PCT = 0.15  # 보유 시간 5분 경과 + -0.15% 이하면 조기 청산 (v6: 0.3→0.15, 빠른 손절)
+EARLY_STOP_TIME_MIN = 5  # 조기 손절 판단 시작 시간 (v6: 15→5, 고래 시그널 유효기간 짧음)
 # 5. 중복 진입 방지: 같은 전략으로 동시 1포지션만 (v5: 2→1, 집중)
 MAX_SAME_STRATEGY_POSITIONS = 1
 
@@ -1028,7 +1028,7 @@ class ShortTermTrader:
         now = time.time()
         buy_krw, sell_krw, count = self._get_recent_whale_krw(now)
 
-        if count < 2:
+        if count < 3:  # v6: 2→3, 최소 3건의 고래 거래로 통계적 유의성 확보
             return None
 
         total_krw = buy_krw + sell_krw

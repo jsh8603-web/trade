@@ -87,7 +87,21 @@ def evaluate_pending_switches():
         created_at = sw.get("created_at", "")
 
         if not price_at:
-            # 전환 시 가격이 없으면 스킵
+            # 전환 시 가격이 없으면 → 평가 불가로 마킹하여 큐에서 제거
+            patch_resp = requests.patch(
+                f"{url}/rest/v1/agent_switches",
+                params={"id": f"eq.{sw_id}"},
+                json={
+                    "outcome": "neutral",
+                    "outcome_reason": "price_at_switch 누락 — 평가 불가",
+                    "evaluated_at": now.isoformat(),
+                },
+                headers={**headers, "Prefer": "return=minimal"},
+                timeout=5,
+            )
+            if patch_resp.status_code in (200, 204):
+                evaluated += 1
+                print(f"  스킵 마킹: {sw_id[:8]}... (가격 없음)")
             continue
 
         price_at = int(price_at)

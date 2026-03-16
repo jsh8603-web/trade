@@ -34,11 +34,11 @@ log = logging.getLogger("scalp_exit_env")
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 MODEL_DIR = PROJECT_DIR / "data" / "scalp_models"
 
-# 스캘핑 파라미터
+# 스캘핑 파라미터 (v6: 실전과 동일하게 맞춤)
 FEE_PCT = 0.1       # 왕복 수수료
-MAX_HOLD = 10        # 최대 보유 분
-TP_DEFAULT = 0.8     # 기본 익절
-SL_DEFAULT = 0.7     # 기본 손절
+MAX_HOLD = 15        # 최대 보유 분 (실전: SHORT_TERM_MAX_HOLD_MIN=15)
+TP_DEFAULT = 0.3     # 기본 익절 (실전: SHORT_TERM_TAKE_PROFIT=0.30)
+SL_DEFAULT = 0.25    # 기본 손절 (실전: SHORT_TERM_STOP_LOSS=0.25)
 
 
 @dataclass
