@@ -98,8 +98,13 @@ def log_training_start(
     obs_dim: int = 42,
     morl_enabled: bool = False,
     interval: str = "4h",
+    training_meta: dict = None,
 ) -> Optional[str]:
-    """훈련 시작 기록 — cycle_id 반환"""
+    """훈련 시작 기록 — cycle_id 반환
+
+    Args:
+        training_meta: 메타 결정 정보 (왜 이 훈련이 선택되었는지, 효과 분석 결과 등)
+    """
     cycle_id = str(uuid.uuid4())
     result = _post("rl_training_cycles", {
         "id": cycle_id,
@@ -113,6 +118,7 @@ def log_training_start(
         "obs_dim": obs_dim,
         "morl_enabled": morl_enabled,
         "interval": interval,
+        "training_meta": training_meta,
         "status": "running",
         "started_at": datetime.now(timezone.utc),
     })

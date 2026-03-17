@@ -109,13 +109,19 @@ def _maybe_wrap_morl(env, sys_config: SystemConfig):
         return env
 
 
-def _train_extra_stages(days: int, sys_config: SystemConfig) -> dict:
+def _train_extra_stages(days: int, sys_config: SystemConfig, impact_analysis: dict = None) -> dict:
     """Stage 2~6: 추가 RL 모듈 훈련 (각 단계 독립 실행, 실패해도 다음 진행)
+
+    Args:
+        days: 훈련 데이터 기간
+        sys_config: 시스템 설정
+        impact_analysis: 훈련 효과 분석 결과 (메타 결정 기록용)
 
     Returns:
         각 스테이지별 결과 딕셔너리
     """
     results = {}
+    impact_analysis = impact_analysis or {}
 
     # Stage 2: Offline RL (CQL) — 축적된 DB 데이터로 오프라인 학습
     logger.info("\n--- Stage 2: Offline RL (CQL) ---")
@@ -125,9 +131,16 @@ def _train_extra_stages(days: int, sys_config: SystemConfig) -> dict:
         t0 = time.time()
         try:
             from rl_hybrid.rl.rl_db_logger import log_training_start, log_training_complete
+            cql_info = impact_analysis.get("algorithms", {}).get("cql", {})
             offline_cycle_id = log_training_start(
                 cycle_type="weekly", algorithm="cql", module="offline_rl",
                 training_epochs=50, data_days=days,
+                training_meta={
+                    "gate_reason": "weekly_extra_stage",
+                    "stage": "offline_rl",
+                    "impact_improved_rate": cql_info.get("improved_rate"),
+                    "impact_avg_pnl_24h": cql_info.get("avg_pnl_24h"),
+                },
             )
         except Exception:
             pass
@@ -172,9 +185,16 @@ def _train_extra_stages(days: int, sys_config: SystemConfig) -> dict:
         t0 = time.time()
         try:
             from rl_hybrid.rl.rl_db_logger import log_training_start, log_training_complete
+            dt_info = impact_analysis.get("algorithms", {}).get("dt", {})
             dt_cycle_id = log_training_start(
                 cycle_type="weekly", algorithm="dt", module="decision_transformer",
                 training_epochs=50, data_days=days, interval="4h",
+                training_meta={
+                    "gate_reason": "weekly_extra_stage",
+                    "stage": "decision_transformer",
+                    "impact_improved_rate": dt_info.get("improved_rate"),
+                    "impact_avg_pnl_24h": dt_info.get("avg_pnl_24h"),
+                },
             )
         except Exception:
             pass
@@ -212,11 +232,18 @@ def _train_extra_stages(days: int, sys_config: SystemConfig) -> dict:
             t0 = time.time()
             try:
                 from rl_hybrid.rl.rl_db_logger import log_training_start, log_training_complete
+                ma_info = impact_analysis.get("algorithms", {}).get("multi_agent", {})
                 ma_cycle_id = log_training_start(
                     cycle_type="weekly", algorithm="multi_agent",
                     module="multi_agent_consensus",
                     training_steps=sys_config.multi_agent.scalping_steps + sys_config.multi_agent.swing_steps,
                     data_days=days,
+                    training_meta={
+                        "gate_reason": "weekly_extra_stage",
+                        "stage": "multi_agent_consensus",
+                        "impact_improved_rate": ma_info.get("improved_rate"),
+                        "impact_avg_pnl_24h": ma_info.get("avg_pnl_24h"),
+                    },
                 )
             except Exception:
                 pass
@@ -505,7 +532,19 @@ def weekly_retrain(days: int = 90, total_steps: int = 200_000, balance: float = 
         try:
             logger.info(f"\n--- 후보: {algo.upper()} scratch (스텝: {algo_steps:,}) ---")
 
-            # DB 로깅: 훈련 시작
+            # DB 로깅: 훈련 시작 + 메타 결정 기록
+            algo_info = impact_analysis.get("algorithms", {}).get(algo, {})
+            algo_meta = {
+                "gate_reason": "weekly_retrain",
+                "step_allocation": algo_steps,
+                "total_steps_budget": total_steps,
+                "skipped_algos": list(skip_algos),
+                "priority_rank": impact_analysis.get("recommended_priority", []).index(algo) + 1
+                    if algo in impact_analysis.get("recommended_priority", []) else None,
+                "impact_improved_rate": algo_info.get("improved_rate"),
+                "impact_avg_pnl_24h": algo_info.get("avg_pnl_24h"),
+                "impact_trainings": algo_info.get("trainings"),
+            }
             try:
                 from rl_hybrid.rl.rl_db_logger import log_training_start, log_training_complete
                 algo_cycle_id = log_training_start(
@@ -515,6 +554,7 @@ def weekly_retrain(days: int = 90, total_steps: int = 200_000, balance: float = 
                     training_steps=algo_steps,
                     data_days=days,
                     morl_enabled=use_morl,
+                    training_meta=algo_meta,
                 )
             except Exception:
                 pass
@@ -684,7 +724,7 @@ def weekly_retrain(days: int = 90, total_steps: int = 200_000, balance: float = 
     logger.info("  추가 RL 모듈 훈련 시작 (Stage 2~6)")
     logger.info(f"{'='*60}")
 
-    extra_results = _train_extra_stages(days, sys_config)
+    extra_results = _train_extra_stages(days, sys_config, impact_analysis=impact_analysis)
 
     # 최종 요약 메시지 (Stage 1 + Stage 2~6 통합)
     final_msg = _build_summary_message(stage1_msg, extra_results)

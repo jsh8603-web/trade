@@ -23,7 +23,6 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import signal
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -355,6 +354,106 @@ def check_junk_files() -> dict:
     return _result(component, "OK", "잔여 파일 없음", details)
 
 
+def _is_process_alive_by_keyword(keyword: str) -> tuple[bool, list[int]]:
+    """프로세스 키워드로 생존 여부를 점검한다 (크로스플랫폼).
+
+    Returns:
+        (alive, pids) — alive 여부와 매칭된 PID 리스트
+    """
+    pids: list[int] = []
+    try:
+        import psutil
+        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+            try:
+                cmdline = proc.info.get("cmdline") or []
+                cmdline_str = " ".join(cmdline)
+                if keyword in cmdline_str:
+                    pids.append(proc.info["pid"])
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
+        return (len(pids) > 0, pids)
+    except ImportError:
+        pass
+
+    # psutil 없을 때 fallback
+    try:
+        import subprocess as _sp
+        if sys.platform == "win32":
+            # Windows: WMIC로 커맨드라인 기반 검색
+            result = _sp.run(
+                ["wmic", "process", "where",
+                 f"commandline like '%{keyword}%'",
+                 "get", "processid"],
+                capture_output=True, text=True, timeout=10,
+            )
+            for line in result.stdout.strip().split("\n"):
+                line = line.strip()
+                if line.isdigit():
+                    pids.append(int(line))
+        else:
+            result = _sp.run(
+                ["pgrep", "-f", keyword],
+                capture_output=True, text=True, timeout=5,
+            )
+            for p in result.stdout.strip().split("\n"):
+                if p.strip().isdigit():
+                    pids.append(int(p.strip()))
+    except Exception:
+        pass
+
+    return (len(pids) > 0, pids)
+
+
+def check_process_alive(process_list: list[dict] | None = None) -> dict:
+    """핵심 프로세스의 생존 여부를 psutil/커맨드라인으로 점검한다.
+
+    Args:
+        process_list: [{"name": str, "keyword": str}, ...] 형태.
+            None이면 기본 핵심 프로세스 목록 사용.
+
+    Returns:
+        표준 점검 결과 dict (component="process_alive")
+    """
+    component = "process_alive"
+
+    if process_list is None:
+        process_list = [
+            {"name": "continuous_learning", "keyword": "continuous_learner"},
+            {"name": "main_brain", "keyword": "main_brain.py"},
+            {"name": "trading_worker", "keyword": "trading_worker.py"},
+            {"name": "llm_worker", "keyword": "llm_worker.py"},
+        ]
+
+    alive = []
+    dead = []
+
+    for proc_info in process_list:
+        name = proc_info["name"]
+        keyword = proc_info["keyword"]
+        found, pids = _is_process_alive_by_keyword(keyword)
+        if found:
+            alive.append({"name": name, "pids": pids})
+        else:
+            dead.append(name)
+
+    details = {
+        "alive": alive,
+        "dead": dead,
+        "alive_count": len(alive),
+        "dead_count": len(dead),
+    }
+
+    if dead:
+        return _result(
+            component, "WARNING",
+            f"종료된 프로세스 감지: {', '.join(dead)}",
+            details,
+        )
+    if not alive:
+        return _result(component, "OK", "프로세스 미실행 (단독 모드 가능)", details)
+    return _result(component, "OK", f"프로세스 {len(alive)}개 정상 실행 중", details)
+
+
 def check_core_processes() -> dict:
     """핵심 백그라운드 프로세스(continuous_learning, main_brain 등)의 생존을 점검한다."""
     component = "core_processes"
@@ -369,37 +468,7 @@ def check_core_processes() -> dict:
     dead = []
 
     for proc in core_procs:
-        found = False
-        try:
-            # Windows: tasklist / Unix: pgrep
-            if sys.platform == "win32":
-                import subprocess
-                result = subprocess.run(
-                    ["tasklist", "/FI", f"IMAGENAME eq python*", "/FO", "CSV"],
-                    capture_output=True, text=True, timeout=5,
-                )
-                # Windows에서는 커맨드라인 기반 필터가 어렵기 때문에
-                # PID 파일 기반으로 체크
-                pid_file = DATA_DIR / f"{proc['name']}.pid"
-                if pid_file.exists():
-                    try:
-                        pid = int(pid_file.read_text().strip())
-                        os.kill(pid, 0)
-                        found = True
-                    except (ValueError, OSError):
-                        pass
-            else:
-                import subprocess
-                result = subprocess.run(
-                    ["pgrep", "-f", proc["keyword"]],
-                    capture_output=True, text=True, timeout=5,
-                )
-                pids = [int(p) for p in result.stdout.strip().split("\n") if p.strip()]
-                if pids:
-                    found = True
-        except Exception:
-            pass
-
+        found, pids = _is_process_alive_by_keyword(proc["keyword"])
         if found:
             alive.append(proc["name"])
         else:
@@ -432,18 +501,10 @@ def check_bot_processes() -> dict:
     dead = []
 
     for bot in expected_bots:
-        try:
-            import subprocess
-            result = subprocess.run(
-                ["pgrep", "-f", bot["keyword"]],
-                capture_output=True, text=True, timeout=5,
-            )
-            pids = [int(p) for p in result.stdout.strip().split("\n") if p.strip()]
-            if pids:
-                alive.append({"name": bot["name"], "pids": pids})
-            else:
-                dead.append(bot["name"])
-        except Exception:
+        found, pids = _is_process_alive_by_keyword(bot["keyword"])
+        if found:
+            alive.append({"name": bot["name"], "pids": pids})
+        else:
             dead.append(bot["name"])
 
     details = {"alive": alive, "dead": dead}
@@ -533,6 +594,7 @@ def run_all_checks() -> dict:
         check_disk_space(),
         check_memory(),
         check_process(),
+        check_process_alive(),
         check_rl_models(),
         check_emergency_flags(),
         check_stale_locks(),

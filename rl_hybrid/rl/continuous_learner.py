@@ -178,7 +178,7 @@ class ContinuousLearner:
                     should, reason = self._should_train_now()
                     if should:
                         logger.info(f"훈련 게이트 통과: {reason}")
-                        self._retrain_cycle()
+                        self._retrain_cycle(gate_reason=reason)
                     else:
                         logger.info(f"훈련 게이트 스킵: {reason}")
                     self._last_retrain = now
@@ -187,10 +187,30 @@ class ContinuousLearner:
 
             time.sleep(60)  # 1분마다 체크
 
-    def _retrain_cycle(self):
-        """재학습 사이클 실행"""
+    def _retrain_cycle(self, gate_reason: str = "정상 스케줄"):
+        """재학습 사이클 실행
+
+        Args:
+            gate_reason: 훈련 게이트 통과 사유 (_should_train_now에서 전달)
+        """
         logger.info("=== 지속 학습 사이클 시작 ===")
         start = time.time()
+
+        # 메타 결정 정보 수집: 왜 이 훈련이 실행되었는지 기록
+        training_meta = {
+            "gate_reason": gate_reason,
+            "retrain_interval_h": round(self.retrain_interval / 3600, 1),
+        }
+        try:
+            from rl_hybrid.rl.rl_db_logger import get_recent_training_cycles
+            recent = get_recent_training_cycles(algorithm="ppo", limit=3)
+            if recent:
+                recent_sharpes = [c.get("avg_sharpe") for c in recent if c.get("avg_sharpe") is not None]
+                recent_improved = [c.get("improved") for c in recent if c.get("improved") is not None]
+                training_meta["recent_sharpes"] = recent_sharpes[:3]
+                training_meta["recent_improved"] = recent_improved[:3]
+        except Exception:
+            pass
 
         # DB 로깅: 훈련 시작
         cycle_id = None
@@ -204,6 +224,7 @@ class ContinuousLearner:
                 data_days=self.data_days,
                 obs_dim=self.trainer.model.obs_dim if hasattr(self.trainer.model, 'obs_dim') else 42,
                 morl_enabled=self._sys_config.multi_objective_rl.envelope_morl,
+                training_meta=training_meta,
             )
         except Exception as e:
             logger.debug(f"DB 훈련 시작 기록 실패: {e}")
@@ -473,7 +494,7 @@ class ContinuousLearner:
 
     def force_retrain(self):
         """수동 재학습 트리거"""
-        self._retrain_cycle()
+        self._retrain_cycle(gate_reason="수동 재학습 트리거")
 
     def get_status(self) -> dict:
         """학습 상태 조회"""

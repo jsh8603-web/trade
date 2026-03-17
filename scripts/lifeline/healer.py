@@ -546,23 +546,17 @@ class Healer:
             "dashboard": [sys.executable, "scripts/dashboard.py"],
         }
 
-        # 어떤 봇이 죽었는지 확인
-        dead_bots = []
+        # 크로스플랫폼 프로세스 생존 체크
         bot_keywords = {
             "kimchirang": "kimchirang.main",
             "short_term": "short_term_trader.py",
             "dashboard": "dashboard.py",
         }
 
+        dead_bots = []
         for name, keyword in bot_keywords.items():
-            try:
-                result = subprocess.run(
-                    ["pgrep", "-f", keyword],
-                    capture_output=True, text=True, timeout=5,
-                )
-                if not result.stdout.strip():
-                    dead_bots.append(name)
-            except Exception:
+            found = self._is_process_running(keyword)
+            if not found:
                 dead_bots.append(name)
 
         if not dead_bots:
@@ -570,6 +564,10 @@ class Healer:
             return True
 
         for bot_name in dead_bots:
+            # 재시작 제한 체크
+            if not self._check_restart_rate(bot_name):
+                continue
+
             cmd = bot_commands.get(bot_name)
             if not cmd:
                 continue
@@ -584,20 +582,62 @@ class Healer:
                     env["KR_DRY_RUN"] = env.get("KR_DRY_RUN", "true")
 
                 log_file = self.project_root / "logs" / f"{bot_name}.log"
-                with open(log_file, "a") as lf:
+                log_file.parent.mkdir(parents=True, exist_ok=True)
+                with open(log_file, "a", encoding="utf-8") as lf:
                     subprocess.Popen(
                         cmd,
                         stdout=lf,
                         stderr=subprocess.STDOUT,
                         cwd=str(self.project_root),
                         env=env,
+                        **subprocess_kwargs(),
                     )
+                self._record_restart(bot_name)
                 print(f"[healer] {bot_name} 재시작 완료", file=sys.stderr)
             except OSError as e:
                 print(f"[healer] {bot_name} 재시작 실패: {e}", file=sys.stderr)
                 return False
 
         return True
+
+    @staticmethod
+    def _is_process_running(keyword: str) -> bool:
+        """커맨드라인 키워드로 프로세스 생존 여부를 확인한다 (크로스플랫폼)."""
+        try:
+            import psutil
+            for proc in psutil.process_iter(["cmdline"]):
+                try:
+                    cmdline = proc.info.get("cmdline") or []
+                    if keyword in " ".join(cmdline):
+                        return True
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    continue
+            return False
+        except ImportError:
+            pass
+
+        # psutil fallback
+        try:
+            if sys.platform == "win32":
+                result = subprocess.run(
+                    ["wmic", "process", "where",
+                     f"commandline like '%{keyword}%'",
+                     "get", "processid"],
+                    capture_output=True, text=True, timeout=10,
+                )
+                for line in result.stdout.strip().split("\n"):
+                    if line.strip().isdigit():
+                        return True
+            else:
+                result = subprocess.run(
+                    ["pgrep", "-f", keyword],
+                    capture_output=True, text=True, timeout=5,
+                )
+                if result.stdout.strip():
+                    return True
+        except Exception:
+            pass
+        return False
 
     def _clean_large_logs(self, component: str) -> bool:
         """50MB 이상 로그 파일을 truncate한다."""

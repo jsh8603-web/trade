@@ -278,8 +278,49 @@ def stop_all():
             log_file.close()
 
 
+# ── Watchdog 재시작 제한 ──────────────────────────────────
+# {프로세스명: [재시작 타임스탬프, ...]}
+_watchdog_restart_history: dict[str, list[float]] = {}
+_WATCHDOG_MAX_RESTARTS_PER_HOUR = 3
+
+
+def _watchdog_check_restart_rate(name: str) -> bool:
+    """시간당 재시작 횟수를 검사한다. 초과 시 False 반환 (alert-only 전환)."""
+    now = time.time()
+    history = _watchdog_restart_history.get(name, [])
+    # 1시간 이내 기록만 유지
+    history = [t for t in history if now - t < 3600]
+    _watchdog_restart_history[name] = history
+
+    if len(history) >= _WATCHDOG_MAX_RESTARTS_PER_HOUR:
+        print(
+            f"  [watchdog] {name} 재시작 제한 초과 "
+            f"({len(history)}/{_WATCHDOG_MAX_RESTARTS_PER_HOUR}회/시간) → alert-only 모드",
+        )
+        return False
+    return True
+
+
+def _watchdog_record_restart(name: str) -> None:
+    """재시작 이력을 기록한다."""
+    _watchdog_restart_history.setdefault(name, []).append(time.time())
+
+
+def _watchdog_notify_telegram(title: str, body: str, level: str = "error") -> None:
+    """텔레그램 알림을 전송한다 (비동기, 실패 무시)."""
+    try:
+        subprocess.run(
+            [PYTHON, os.path.join(PROJECT_ROOT, "scripts", "notify_telegram.py"),
+             level, title, body],
+            cwd=PROJECT_ROOT, check=False, timeout=30,
+            **subprocess_kwargs(),
+        )
+    except Exception:
+        pass
+
+
 def _watchdog_loop():
-    """Lifeline watchdog — 10분 간격으로 시스템 점검 + 자동 복구."""
+    """Lifeline watchdog — 10분 간격으로 시스템 점검 + 자동 복구 + 프로세스 재시작."""
     while True:
         time.sleep(600)  # 10분
         try:
@@ -287,14 +328,14 @@ def _watchdog_loop():
             from scripts.lifeline.healer import Healer
             from scripts.lifeline.diagnostician import Diagnostician
 
-            # 1) 전체 점검
+            # ── 1) 전체 시스템 점검 ──
             checks = run_all_checks()
             overall = checks.get("overall_status", "OK")
 
             if overall in ("ERROR", "CRITICAL"):
                 print(f"  [watchdog] 시스템 점검 결과: {overall}")
 
-                # 2) 진단 + 복구
+                # ── 2) 진단 + 자동 복구 ──
                 diagnostician = Diagnostician()
                 diagnoses = diagnostician.diagnose_all(checks.get("checks", []))
                 healer = Healer()
@@ -304,27 +345,32 @@ def _watchdog_loop():
                 failed = sum(1 for r in results if not r["success"])
                 print(f"  [watchdog] 복구 결과: 성공 {healed}, 실패 {failed}")
 
-                # 3) 텔레그램 알림 (ERROR/CRITICAL만)
+                # ── 3) 텔레그램 알림 (실패 시) ──
                 if failed > 0:
-                    try:
-                        subprocess.run(
-                            [PYTHON, os.path.join(PROJECT_ROOT, "scripts", "notify_telegram.py"),
-                             "error", f"Watchdog: {overall}",
-                             f"점검 결과: {overall}, 복구 {healed}건, 실패 {failed}건"],
-                            cwd=PROJECT_ROOT, check=False, timeout=30,
-                            **subprocess_kwargs(),
-                        )
-                    except Exception:
-                        pass
+                    _watchdog_notify_telegram(
+                        f"Watchdog: {overall}",
+                        f"점검 결과: {overall}, 복구 {healed}건, 실패 {failed}건",
+                    )
 
         except Exception as e:
             print(f"  [watchdog] 점검 예외: {e}")
 
-    # 죽은 프로세스 자동 재시작
-        for name, proc, log_file in processes:
+        # ── 4) 죽은 프로세스 자동 재시작 ──
+        for i, (name, proc, log_file) in enumerate(processes):
             ret = proc.poll()
             if ret is not None:
                 print(f"  [watchdog] {name} 종료 감지 (code={ret}) → 재시작 시도")
+
+                # 재시작 제한 체크 (시간당 최대 3회)
+                if not _watchdog_check_restart_rate(name):
+                    _watchdog_notify_telegram(
+                        f"Watchdog: {name} 재시작 제한 초과",
+                        f"{name} 프로세스가 1시간 내 {_WATCHDOG_MAX_RESTARTS_PER_HOUR}회 이상 재시작됨.\n"
+                        f"수동 점검 필요.",
+                        level="error",
+                    )
+                    continue
+
                 try:
                     # 로그 파일 재열기
                     log_file_path = log_file.name
@@ -340,15 +386,28 @@ def _watchdog_loop():
                         **subprocess_kwargs(),
                     )
                     # processes 리스트 업데이트
-                    idx = processes.index((name, proc, log_file))
-                    processes[idx] = (name, new_proc, new_log)
+                    processes[i] = (name, new_proc, new_log)
+                    _watchdog_record_restart(name)
                     print(f"  [watchdog] {name} 재시작 완료 (PID={new_proc.pid})")
+
+                    # 재시작 성공 텔레그램 알림
+                    _watchdog_notify_telegram(
+                        f"Watchdog: {name} 재시작",
+                        f"{name} 프로세스 종료 감지 (exit code={ret}).\n"
+                        f"자동 재시작 완료 (새 PID={new_proc.pid}).",
+                        level="warning",
+                    )
                 except Exception as e:
                     print(f"  [watchdog] {name} 재시작 실패: {e}")
+                    _watchdog_notify_telegram(
+                        f"Watchdog: {name} 재시작 실패",
+                        f"{name} 재시작 중 오류 발생: {e}\n수동 점검 필요.",
+                        level="error",
+                    )
 
 
 def start_watchdog():
-    """Lifeline watchdog 스레드를 시작한다."""
+    """Lifeline watchdog 스레드를 시작한다 (10분 간격 점검 + 프로세스 재시작)."""
     t = threading.Thread(target=_watchdog_loop, daemon=True, name="lifeline-watchdog")
     t.start()
     print("  [watchdog] Lifeline watchdog 시작 (10분 간격)")
