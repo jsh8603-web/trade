@@ -106,10 +106,11 @@ class Position:
 
 # ── 유틸리티 함수 ──────────────────────────────────────
 
-def _get_upbit_candles(market="KRW-BTC", unit=1, count=30) -> list[dict]:
-    """업비트 분봉 조회"""
+def _get_upbit_candles(market="KRW-BTC", unit=1, count=100) -> list[dict]:
+    """업비트 분봉 조회 (기본 100개 → 5분봉 20개)"""
     url = f"https://api.upbit.com/v1/candles/minutes/{unit}"
-    r = requests.get(url, params={"market": market, "count": count}, timeout=10)
+    # Upbit 최대 200개, 100개면 5분봉 20개 생성 가능
+    r = requests.get(url, params={"market": market, "count": min(count, 200)}, timeout=10)
     if r.ok:
         return list(reversed(r.json()))  # 시간순 정렬
     return []
@@ -403,7 +404,7 @@ def main():
                 today_date = date.today()
 
             # 1분봉 30개 수집 → 5분봉 변환
-            candles = _get_upbit_candles(count=30)
+            candles = _get_upbit_candles(count=100)
             if not candles:
                 log.warning("캔들 데이터 수집 실패")
                 time.sleep(CHECK_INTERVAL)
