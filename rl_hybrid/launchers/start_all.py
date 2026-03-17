@@ -23,6 +23,18 @@ from datetime import datetime
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PYTHON = sys.executable
+
+# Windows cp949 인코딩 문제 방지
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 RL_HYBRID = os.path.join(PROJECT_ROOT, "rl_hybrid")
 
 sys.path.insert(0, PROJECT_ROOT)
