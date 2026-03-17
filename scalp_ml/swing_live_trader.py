@@ -67,7 +67,7 @@ CHECK_INTERVAL = 60            # 1분마다 체크
 MAX_HOLD_BARS = 12             # 최대 보유 12봉 = 60분
 FEE_PCT = 0.1                  # 왕복 수수료
 
-MODEL_PATH = PROJECT_DIR / "data" / "scalp_models" / "confirmed_swing" / "swing_dqn_r1"
+MODEL_PATH = PROJECT_DIR / "data" / "scalp_models" / "confirmed_swing" / "swing_dqn_r6"
 
 # 진입 조건
 ENTRY_MOM_THRESHOLD = 0.15     # 15분 모멘텀 최소
