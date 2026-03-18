@@ -77,7 +77,7 @@ def main():
         all_markets_r = requests.get(f"{UPBIT_API}/market/all", timeout=10)
         if all_markets_r.ok:
             known = {m["market"] for m in all_markets_r.json()}
-            valid_markets = [m for m in markets if m in known]
+            valid_markets = [m["market"] for m in all_markets_r.json() if m["market"] in markets]
 
         if valid_markets:
             r2 = requests.get(

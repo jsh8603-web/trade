@@ -420,6 +420,7 @@ def save_execution_log(
         return False
 
     has_errors = bool(errors and errors.get("pipeline_errors"))
+    from utils.machine import get_machine_name
     row = {
         "execution_mode": execution_mode,
         "duration_ms": duration_ms,
@@ -428,6 +429,7 @@ def save_execution_log(
         "cycle_id": _CYCLE_ID,
         "success": not has_errors,
         "execution_started_at": datetime.now(KST).isoformat(),
+        "machine_name": get_machine_name(),
     }
     if phases_completed:
         row["phases_completed"] = json.dumps(phases_completed, ensure_ascii=False)
@@ -474,6 +476,7 @@ def save_market_data_record(market_data: dict, external_data: dict) -> bool:
     volume_24h = ticker.get("acc_trade_volume_24h")
     change_rate = ticker.get("signed_change_rate")
 
+    from utils.machine import get_machine_name
     row = {
         "market": "KRW-BTC",
         "price": int(price) if price else 0,
@@ -485,6 +488,7 @@ def save_market_data_record(market_data: dict, external_data: dict) -> bool:
         "sma_20": int(indicators.get("sma_20")) if indicators.get("sma_20") else None,
         "news_sentiment": news.get("overall_sentiment", "neutral"),
         "cycle_id": _CYCLE_ID,
+        "machine_name": get_machine_name(),
     }
 
     try:

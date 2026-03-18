@@ -581,6 +581,7 @@ def save_market_context(
             "portfolio": portfolio,
             "agent_state": agent_state,
         }, ensure_ascii=False, default=str),
+        "machine_name": os.environ.get("MACHINE_NAME", "unknown"),
     }
 
     # None 값 제거 (Supabase는 NULL로 처리하지만 명시적 null 전송 방지)
