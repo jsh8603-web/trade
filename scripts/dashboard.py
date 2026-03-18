@@ -15,6 +15,7 @@ from scripts.hide_console import subprocess_kwargs
 import sys
 import socket
 import time
+import threading
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -26,19 +27,68 @@ load_dotenv(PROJECT_ROOT / ".env")
 app = Flask(__name__)
 VENV_PYTHON = str(PROJECT_ROOT / ".venv" / "bin" / "python3")
 
+# ── 데이터 캐시 (백그라운드 갱신) ─────────────────────────
+_cache: dict[str, dict] = {}       # key → {"data": ..., "ts": float}
+_cache_lock = threading.Lock()
+_CACHE_TTL = {                      # 캐시 유효 시간 (초)
+    "market": 60,
+    "portfolio": 30,
+    "fgi": 300,
+}
+
 
 def run_script(name, *args):
     """프로젝트 스크립트 실행 후 JSON 결과 반환"""
     try:
         r = subprocess.run(
             [VENV_PYTHON, str(PROJECT_ROOT / "scripts" / name), *args],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=45,
             env={**os.environ, "PYTHONPATH": str(PROJECT_ROOT)},
             **subprocess_kwargs(),
         )
         return json.loads(r.stdout) if r.returncode == 0 else {"error": r.stderr.strip()}
     except Exception as e:
         return {"error": str(e)}
+
+
+def _get_cached(cache_key: str, script_name: str) -> dict:
+    """캐시된 데이터 반환. 만료 시 백그라운드에서 갱신."""
+    now = time.time()
+    ttl = _CACHE_TTL.get(cache_key, 60)
+
+    with _cache_lock:
+        entry = _cache.get(cache_key)
+        if entry and (now - entry["ts"]) < ttl:
+            return entry["data"]
+        # 캐시 만료 또는 없음 — stale 데이터가 있으면 즉시 반환 + 백그라운드 갱신
+        if entry:
+            threading.Thread(
+                target=_refresh_cache, args=(cache_key, script_name), daemon=True
+            ).start()
+            return entry["data"]
+
+    # 최초 호출 — 동기로 가져옴
+    data = run_script(script_name)
+    with _cache_lock:
+        _cache[cache_key] = {"data": data, "ts": time.time()}
+    return data
+
+
+def _refresh_cache(cache_key: str, script_name: str):
+    """백그라운드에서 캐시 갱신."""
+    data = run_script(script_name)
+    if "error" not in data:
+        with _cache_lock:
+            _cache[cache_key] = {"data": data, "ts": time.time()}
+
+
+def _warm_cache():
+    """서버 시작 시 캐시 워밍업 (백그라운드)."""
+    scripts = [("market", "collect_market_data.py"),
+               ("portfolio", "get_portfolio.py"),
+               ("fgi", "collect_fear_greed.py")]
+    for key, script in scripts:
+        threading.Thread(target=_refresh_cache, args=(key, script), daemon=True).start()
 
 
 def get_local_ip():
@@ -349,17 +399,17 @@ p { color: #8b949e; font-size: 14px; margin-bottom: 24px; }
 
 @app.route("/api/market")
 def api_market():
-    return jsonify(run_script("collect_market_data.py"))
+    return jsonify(_get_cached("market", "collect_market_data.py"))
 
 
 @app.route("/api/portfolio")
 def api_portfolio():
-    return jsonify(run_script("get_portfolio.py"))
+    return jsonify(_get_cached("portfolio", "get_portfolio.py"))
 
 
 @app.route("/api/fgi")
 def api_fgi():
-    return jsonify(run_script("collect_fear_greed.py"))
+    return jsonify(_get_cached("fgi", "collect_fear_greed.py"))
 
 
 @app.route("/api/status")
@@ -485,4 +535,5 @@ if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 5555
     ip = get_local_ip()
     print(f"\n  Dashboard: http://{ip}:{port}\n")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    _warm_cache()
+    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)

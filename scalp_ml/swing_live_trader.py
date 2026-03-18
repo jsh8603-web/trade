@@ -379,7 +379,8 @@ def main():
     parser = argparse.ArgumentParser(description="Swing Live Trader")
     parser.add_argument("--hours", type=float, default=0, help="실행 시간 (0=무한)")
     parser.add_argument("--amount", type=int, default=TRADE_AMOUNT, help="기본 1회 매매 금액")
-    parser.add_argument("--dry-run", action="store_true", help="시뮬레이션 모드")
+    parser.add_argument("--dry-run", action="store_true", default=True, help="시뮬레이션 모드 (기본값: True)")
+    parser.add_argument("--live", action="store_true", help="실매매 모드 (명시적으로 지정해야 실매매)")
     parser.add_argument("--model", type=str, default=str(MODEL_PATH), help="모델 경로")
     parser.add_argument("--forever", action="store_true", help="무한 실행 (hours=0과 동일)")
     parser.add_argument("--max-positions", type=int, default=MAX_CONCURRENT_POSITIONS,
@@ -390,7 +391,7 @@ def main():
                         help="적극적 진입 (기본: True)")
     args = parser.parse_args()
 
-    dry_run = args.dry_run
+    dry_run = not args.live  # --live 명시 시에만 실매매
     base_amount = args.amount
     run_hours = args.hours
     model_path = args.model

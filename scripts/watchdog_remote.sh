@@ -29,7 +29,7 @@ MANUAL_INTERVENTION_FILE="$PROJECT_DIR/data/.rc_manual_intervention.json"
 HEALTHY_COUNT_FILE="$PROJECT_DIR/data/.rc_healthy_count"
 TMUX_SESSION="blockchain"
 TMUX_WINDOW="claude"
-KEEPALIVE_INTERVAL=240   # 4분 (10분 타임아웃의 40% → 안전 마진 최대화)
+KEEPALIVE_INTERVAL=540   # 9분 간격 킵얼라이브
 MAX_CONSECUTIVE_FAILS=3  # 3회 연속 실패 → startup.sh로 전체 재구축
 ESCALATION_PAUSE_SEC=1800  # 30분 (수동 개입 대기)
 

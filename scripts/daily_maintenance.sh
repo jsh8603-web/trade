@@ -39,5 +39,42 @@ $PYTHON scripts/db_cleanup.py >> "$LOG_FILE" 2>&1 || true
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] 일일 유지보수 완료" >> "$LOG_FILE"
 
+# 3. 브라우저/시스템 캐시 정리 (04:30 실행 시만)
+CURRENT_HOUR=$(date +%H)
+if [ "$CURRENT_HOUR" = "04" ]; then
+  echo "[$(date '+%H:%M:%S')] 캐시 정리 실행" >> "$LOG_FILE"
+  FREED=0
+
+  # npm 캐시
+  NPM_BEFORE=$(du -sm ~/.npm/_cacache 2>/dev/null | cut -f1 || echo 0)
+  npm cache clean --force >> "$LOG_FILE" 2>&1 || true
+  FREED=$((FREED + NPM_BEFORE))
+
+  # 브라우저 캐시
+  for DIR in \
+    "$HOME/Library/Caches/Google" \
+    "$HOME/Library/Caches/Microsoft Edge" \
+    "$HOME/Library/Caches/Google Earth" \
+    "$HOME/Library/Caches/com.google.antigravity.ShipIt"; do
+    if [ -d "$DIR" ]; then
+      SIZE=$(du -sm "$DIR" 2>/dev/null | cut -f1 || echo 0)
+      rm -rf "$DIR" 2>/dev/null
+      FREED=$((FREED + SIZE))
+    fi
+  done
+
+  # 김치랑 로그 truncate (10MB 초과 시)
+  KR_LOG="$PROJECT_DIR/logs/kimchirang.log"
+  if [ -f "$KR_LOG" ]; then
+    KR_SIZE=$(du -sm "$KR_LOG" 2>/dev/null | cut -f1 || echo 0)
+    if [ "$KR_SIZE" -gt 10 ]; then
+      tail -1000 "$KR_LOG" > "${KR_LOG}.tmp" && mv "${KR_LOG}.tmp" "$KR_LOG"
+      FREED=$((FREED + KR_SIZE - 1))
+    fi
+  fi
+
+  echo "[$(date '+%H:%M:%S')] 캐시 정리 완료: ~${FREED}MB 확보" >> "$LOG_FILE"
+fi
+
 # 오래된 로그 정리 (30일+)
 find "$LOG_DIR" -name "maintenance_*.log" -mtime +30 -delete 2>/dev/null || true
