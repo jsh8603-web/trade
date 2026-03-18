@@ -316,13 +316,63 @@ def _send_telegram(msg: str):
 
 
 def _save_trade_to_db(trade_data: dict):
-    """매매 기록을 Supabase decisions 테이블에 저장"""
+    """매매 기록을 Supabase decisions 테이블에 직접 저장.
+
+    worker 머신의 skip_trade_db를 우회한다 — R6 매매는 기준 자료이므로
+    모든 머신에서 기록해야 한다.
+    """
     try:
-        from scripts.save_decision import save_decision
-        save_decision(trade_data)
-        log.info(f"DB 기록 완료 (machine={MACHINE_NAME})")
+        supabase_url = os.getenv("SUPABASE_URL", "")
+        supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY",
+                                  os.getenv("SUPABASE_ANON_KEY", ""))
+        if not supabase_url or not supabase_key:
+            log.warning("DB 기록 실패: Supabase 환경변수 없음")
+            return
+
+        # confidence: 0~1 범위로 보장
+        raw_conf = float(trade_data.get("confidence", 0))
+        confidence = raw_conf / 100.0 if raw_conf > 1 else raw_conf
+
+        # decision 매핑
+        dec_map = {"buy": "매수", "sell": "매도", "hold": "관망"}
+        decision = dec_map.get(trade_data.get("decision", "hold"),
+                               trade_data.get("decision", "관망"))
+
+        row = {
+            "market": trade_data.get("market", "KRW-BTC"),
+            "decision": decision,
+            "confidence": round(confidence, 2),
+            "reason": trade_data.get("reason", ""),
+            "current_price": trade_data.get("current_price"),
+            "executed": trade_data.get("executed", False),
+            "source": trade_data.get("source", f"swing_dqn_r6_{MACHINE_NAME}"),
+            "trade_amount": trade_data.get("trade_amount"),
+            "rsi_value": trade_data.get("rsi_value"),
+            "execution_result": json.dumps(trade_data, ensure_ascii=False, default=str),
+            "market_data_snapshot": trade_data.get("market_data_snapshot", "{}"),
+        }
+
+        r = requests.post(
+            f"{supabase_url}/rest/v1/decisions",
+            headers={
+                "apikey": supabase_key,
+                "Authorization": f"Bearer {supabase_key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=representation",
+            },
+            json=row,
+            timeout=10,
+        )
+
+        if r.ok:
+            result = r.json()
+            rec_id = result[0].get("id", "?") if isinstance(result, list) and result else "?"
+            log.info(f"DB 기록 완료: id={rec_id} [{MACHINE_NAME}] {decision}")
+        else:
+            log.warning(f"DB 기록 실패 ({r.status_code}): {r.text[:200]}")
+
     except Exception as e:
-        log.warning(f"DB 기록 실패: {e}")
+        log.warning(f"DB 기록 예외: {e}")
 
 
 def main():
