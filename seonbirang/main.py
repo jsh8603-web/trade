@@ -32,10 +32,10 @@ logger = logging.getLogger("seonbirang.main")
 
 # 틱 간격 (초)
 TICK_INTERVAL = 60
-# 상태 보고 간격 (초) -- 2시간
-STATUS_INTERVAL = 7200
-# 스냅샷 DB 기록 간격 (초)
-SNAPSHOT_INTERVAL = 300
+# 상태 보고 간격 (초) -- 6시간 (테스트 중)
+STATUS_INTERVAL = 21600
+# 스냅샷 DB 기록 간격 (초) -- 6시간 (테스트 중, 이벤트 없으면 스킵)
+SNAPSHOT_INTERVAL = 21600
 
 
 class SeonbirangBot:
@@ -147,7 +147,7 @@ class SeonbirangBot:
         if self.feeder.needs_scan():
             await self.feeder.scan_universe()
 
-        # 2. 펀딩비 수확 엔진
+        # 2. 펀딩비 수확 엔진 — 이벤트 발생 시에만 알림+DB
         funding_actions = await self.funding.tick()
         for action in funding_actions:
             action["dry_run"] = self.config.safety.dry_run
@@ -160,7 +160,7 @@ class SeonbirangBot:
             except Exception as e:
                 logger.warning(f"DB 기록 실패: {e}")
 
-        # 3. 로테이션 엔진
+        # 3. 로테이션 엔진 — 이벤트 발생 시에만 알림+DB
         rotation_actions = await self.rotation.tick()
         for action in rotation_actions:
             action["dry_run"] = self.config.safety.dry_run
@@ -172,6 +172,9 @@ class SeonbirangBot:
                 await self.db.record_trade(action)
             except Exception as e:
                 logger.warning(f"DB 기록 실패: {e}")
+
+        # 이벤트 유무 추적
+        has_events = bool(funding_actions or rotation_actions)
 
         # 4. 포트폴리오 건강 체크
         health = self.risk.check_portfolio_health()
@@ -189,35 +192,43 @@ class SeonbirangBot:
                 f"미실현PnL:${health['total_unrealized_pnl']:+.2f}"
             )
 
-        # 6. 주기적 상태 보고 (텔레그램, 2시간)
+        # 6. 주기적 상태 보고 — 6시간 간격, 이벤트 없으면 스킵
         if now - self._last_status_time >= STATUS_INTERVAL:
-            self._last_status_time = now
-            try:
-                f_summary = self.funding.get_summary()
-                r_summary = self.rotation.get_summary()
-                data = self.feeder.get_all()
-                top_funding = self.selector.rank_by_funding(data)
-                top_momentum = self.selector.rank_by_momentum(data)
-                await self.notifier.notify_status(
-                    f_summary, r_summary,
-                    health=health,
-                    top_funding=top_funding,
-                    top_momentum=top_momentum,
-                )
-            except Exception as e:
-                logger.warning(f"상태 보고 실패: {e}")
+            if has_events:
+                self._last_status_time = now
+                try:
+                    f_summary = self.funding.get_summary()
+                    r_summary = self.rotation.get_summary()
+                    data = self.feeder.get_all()
+                    top_funding = self.selector.rank_by_funding(data)
+                    top_momentum = self.selector.rank_by_momentum(data)
+                    await self.notifier.notify_status(
+                        f_summary, r_summary,
+                        health=health,
+                        top_funding=top_funding,
+                        top_momentum=top_momentum,
+                    )
+                except Exception as e:
+                    logger.warning(f"상태 보고 실패: {e}")
+            else:
+                # 이벤트 없어도 타이머는 리셋 (다음 6시간까지 대기)
+                self._last_status_time = now
 
-        # 7. 주기적 DB 스냅샷
+        # 7. 주기적 DB 스냅샷 — 6시간 간격, 이벤트 없으면 스킵
         if now - self._last_snapshot_time >= SNAPSHOT_INTERVAL:
-            self._last_snapshot_time = now
-            try:
-                f_summary = self.funding.get_summary()
-                r_summary = self.rotation.get_summary()
-                balances = await self.executor.get_spot_balances()
-                total = balances.get("USDT", 0) + health["total_invested"]
-                await self.db.record_snapshot(total, f_summary, r_summary)
-            except Exception as e:
-                logger.warning(f"스냅샷 기록 실패: {e}")
+            if has_events:
+                self._last_snapshot_time = now
+                try:
+                    f_summary = self.funding.get_summary()
+                    r_summary = self.rotation.get_summary()
+                    balances = await self.executor.get_spot_balances()
+                    total = balances.get("USDT", 0) + health["total_invested"]
+                    await self.db.record_snapshot(total, f_summary, r_summary)
+                except Exception as e:
+                    logger.warning(f"스냅샷 기록 실패: {e}")
+            else:
+                # 이벤트 없어도 타이머는 리셋
+                self._last_snapshot_time = now
 
         # 8. 상태 저장
         save_state(self.state)
