@@ -633,8 +633,12 @@ fast_restart() {
             echo "$(date +%s)" > "$KEEPALIVE_FILE"
             reset_fail_count
             reset_rebuild_count
+            # 윈도우 이름에 시작 시간 표시 (예: rc@0635)
+            local rc_time_label
+            rc_time_label="rc@$(date '+%H%M')"
+            tmux rename-window -t "$TMUX_SESSION:$TMUX_WINDOW" "$rc_time_label" 2>/dev/null
             save_health "healthy" "Fast restart succeeded (RC attempt $rc_attempt)"
-            log "OK: Fast restart succeeded (RC attempt $rc_attempt). URL: $new_url"
+            log "OK: Fast restart succeeded (RC attempt $rc_attempt). Window: $rc_time_label URL: $new_url"
             send_telegram "🔄 RC 재시작 성공 ($reason)
 $new_url"
             return 0
@@ -763,9 +767,11 @@ cleanup_dead_sessions() {
         windows=$(tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}:#{window_name}' 2>/dev/null)
 
         while IFS=: read -r idx name; do
-            # "claude" 이름 윈도우만 정리 대상 (워치독이 생성한 RC용 윈도우)
+            # "claude" 또는 "rc@*" 이름 윈도우만 정리 대상 (워치독이 생성한 RC용 윈도우)
             # 그 외 모든 윈도우는 사용자 소유로 간주하고 건드리지 않음
-            [ "$name" != "claude" ] && continue
+            if [ "$name" != "claude" ] && ! echo "$name" | grep -q "^rc@"; then
+                continue
+            fi
 
             local pane_pid child_claude
             pane_pid=$(tmux list-panes -t "${TMUX_SESSION}:${idx}" -F '#{pane_pid}' 2>/dev/null | head -1)
@@ -859,8 +865,8 @@ find_rc_window() {
             reconnecting_window="$idx"
         fi
 
-        # 이름이 "claude"인 윈도우도 기록 (fallback)
-        if [ "$name" = "claude" ]; then
+        # 이름이 "claude" 또는 "rc@*"인 윈도우도 기록 (fallback)
+        if [ "$name" = "claude" ] || echo "$name" | grep -q "^rc@"; then
             claude_window="$idx"
         fi
     done <<< "$windows"
@@ -892,8 +898,8 @@ cleanup_dead_sessions
 # 0.5. RC 윈도우 자동 감지 (고정 윈도우명 대신 동적 탐색)
 TMUX_WINDOW=$(find_rc_window "$TMUX_SESSION")
 if [ -z "$TMUX_WINDOW" ]; then
-    # RC 윈도우를 못 찾으면 기본값 "claude" 사용
-    TMUX_WINDOW="claude"
+    # RC 윈도우를 못 찾으면 시간 포함 이름으로 생성
+    TMUX_WINDOW="rc@$(date '+%H%M')"
     log "WARN: No RC window found, using default: $TMUX_WINDOW"
 fi
 
@@ -975,6 +981,8 @@ case "$STATUS" in
             echo "$new_url" > "$REMOTE_URL_FILE"
             echo "$(date +%s)" > "$KEEPALIVE_FILE"
             reset_fail_count
+            # 윈도우 이름에 시작 시간 표시
+            tmux rename-window -t "$TMUX_SESSION:$TMUX_WINDOW" "rc@$(date '+%H%M')" 2>/dev/null
             save_health "healthy" "RC activated"
             log "OK: RC activated. URL: $new_url"
             send_telegram "✅ RC 활성화
@@ -996,7 +1004,9 @@ $new_url"
         reset_healthy_count
 
         if ! tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -q "^${TMUX_WINDOW}$"; then
-            tmux new-window -t "$TMUX_SESSION" -n "$TMUX_WINDOW" -c "$PROJECT_DIR"
+            local new_win_name="rc@$(date '+%H%M')"
+            tmux new-window -t "$TMUX_SESSION" -n "$new_win_name" -c "$PROJECT_DIR"
+            TMUX_WINDOW="$new_win_name"
             sleep 1
         fi
 
@@ -1023,3 +1033,54 @@ $new_url"
         full_rebuild
         ;;
 esac
+
+# =============================================================================
+# 대시보드 헬스체크 (1시간 간격)
+# =============================================================================
+DASHBOARD_CHECK_FILE="$PROJECT_DIR/data/.dashboard_last_check"
+DASHBOARD_CHECK_INTERVAL=3600  # 1시간
+DASHBOARD_PORT=5555
+
+dashboard_last_check=0
+[ -f "$DASHBOARD_CHECK_FILE" ] && dashboard_last_check=$(cat "$DASHBOARD_CHECK_FILE" 2>/dev/null)
+dashboard_now=$(date +%s)
+dashboard_elapsed=$((dashboard_now - dashboard_last_check))
+
+if [ "$dashboard_elapsed" -ge "$DASHBOARD_CHECK_INTERVAL" ]; then
+    echo "$dashboard_now" > "$DASHBOARD_CHECK_FILE"
+
+    # 1) HTTP 응답 확인
+    dashboard_http=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 "http://localhost:$DASHBOARD_PORT/" 2>/dev/null)
+
+    if [ "$dashboard_http" = "200" ]; then
+        log "DASHBOARD: OK (HTTP $dashboard_http)"
+    else
+        log "DASHBOARD: FAIL (HTTP $dashboard_http) — restarting"
+
+        # 기존 프로세스 정리
+        lsof -i :$DASHBOARD_PORT -t 2>/dev/null | xargs kill -9 2>/dev/null || true
+        sleep 2
+
+        # tmux dashboard 윈도우에서 재시작
+        if tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -q "^dashboard$"; then
+            tmux send-keys -t "$TMUX_SESSION:dashboard" C-c
+            sleep 1
+            tmux send-keys -t "$TMUX_SESSION:dashboard" "source .venv/bin/activate && PYTHONPATH=$PROJECT_DIR python scripts/dashboard.py $DASHBOARD_PORT" Enter
+        else
+            tmux new-window -t "$TMUX_SESSION" -n dashboard -c "$PROJECT_DIR"
+            sleep 1
+            tmux send-keys -t "$TMUX_SESSION:dashboard" "source .venv/bin/activate && PYTHONPATH=$PROJECT_DIR python scripts/dashboard.py $DASHBOARD_PORT" Enter
+        fi
+
+        sleep 5
+        # 재시작 확인
+        dashboard_http2=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 "http://localhost:$DASHBOARD_PORT/" 2>/dev/null)
+        if [ "$dashboard_http2" = "200" ]; then
+            log "DASHBOARD: Restart succeeded (HTTP $dashboard_http2)"
+            send_telegram "🖥️ 대시보드 자동 복구 완료 (port $DASHBOARD_PORT)"
+        else
+            log "DASHBOARD: Restart FAILED (HTTP $dashboard_http2)"
+            send_telegram "❌ 대시보드 복구 실패 — 수동 확인 필요 (port $DASHBOARD_PORT)"
+        fi
+    fi
+fi
