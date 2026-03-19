@@ -115,46 +115,49 @@ else
     tmux send-keys -t "$TMUX_SESSION:dashboard" "source .venv/bin/activate && PYTHONPATH=/Users/drj00/workspace/blockchain python scripts/dashboard.py $DASHBOARD_PORT" Enter
     log "Dashboard starting on port $DASHBOARD_PORT"
 
-    # 4. Claude Code 원격 세션 (윈도우 이름에 시작 시간 포함)
-    RC_WIN_NAME="rc@$(date '+%H%M')"
-    tmux new-window -t "$TMUX_SESSION" -n "$RC_WIN_NAME" -c "$PROJECT_DIR"
-    tmux send-keys -t "$TMUX_SESSION:$RC_WIN_NAME" "unset CLAUDECODE && claude --dangerously-skip-permissions" Enter
-    log "Claude Code starting..."
-
-    # Claude 초기화 대기 (v2.1.78+ 기준 30초 필요)
-    sleep 30
-
-    # /remote-control 실행 (/rc는 자동완성 메뉴 충돌)
-    tmux send-keys -t "$TMUX_SESSION:$RC_WIN_NAME" "/remote-control" Enter
-    sleep 5
-    # 자동완성 메뉴 선택
-    tmux send-keys -t "$TMUX_SESSION:$RC_WIN_NAME" Enter
-    log "Remote Control connecting..."
-
-    # remote-control 연결 대기 및 URL 추출
-    MAX_WAIT=120
-    WAITED=0
+    # 4. Claude Code 원격 세션 이중화 (2개 생성)
+    TARGET_RC=2
     REMOTE_URL=""
 
-    while [ $WAITED -lt $MAX_WAIT ]; do
+    for rc_num in $(seq 1 $TARGET_RC); do
+        RC_WIN_NAME="rc@$(date '+%H%M')-${rc_num}"
+        tmux new-window -t "$TMUX_SESSION" -n "$RC_WIN_NAME" -c "$PROJECT_DIR"
+        tmux send-keys -t "$TMUX_SESSION:$RC_WIN_NAME" "unset CLAUDECODE && claude --dangerously-skip-permissions" Enter
+        log "Claude Code #${rc_num} starting ($RC_WIN_NAME)..."
+
+        # Claude 초기화 대기
+        sleep 30
+
+        # /remote-control 실행
+        tmux send-keys -t "$TMUX_SESSION:$RC_WIN_NAME" "/remote-control" Enter
         sleep 5
-        WAITED=$((WAITED + 5))
+        tmux send-keys -t "$TMUX_SESSION:$RC_WIN_NAME" Enter
+        log "Remote Control #${rc_num} connecting..."
 
-        # tmux pane에서 URL 추출
-        PANE_OUTPUT=$(tmux capture-pane -t "$TMUX_SESSION:$RC_WIN_NAME" -p -S -30 2>/dev/null)
-        REMOTE_URL=$(echo "$PANE_OUTPUT" | grep -o 'https://claude.ai/code/session_[A-Za-z0-9]*' | tail -1)
+        # URL 대기 (최대 120초)
+        MAX_WAIT=120
+        WAITED=0
+        while [ $WAITED -lt $MAX_WAIT ]; do
+            sleep 5
+            WAITED=$((WAITED + 5))
+            PANE_OUTPUT=$(tmux capture-pane -t "$TMUX_SESSION:$RC_WIN_NAME" -p -S -30 2>/dev/null)
+            THIS_URL=$(echo "$PANE_OUTPUT" | grep -o 'https://claude.ai/code/session_[A-Za-z0-9]*' | tail -1)
+            if [ -n "$THIS_URL" ]; then
+                log "Remote Control #${rc_num} URL: $THIS_URL"
+                # 첫 번째 URL을 대표 URL로 저장
+                [ -z "$REMOTE_URL" ] && REMOTE_URL="$THIS_URL" && echo "$REMOTE_URL" > "$REMOTE_URL_FILE"
+                break
+            fi
+            log "Waiting for RC #${rc_num} URL... (${WAITED}s)"
+        done
 
-        if [ -n "$REMOTE_URL" ]; then
-            log "Remote Control URL: $REMOTE_URL"
-            echo "$REMOTE_URL" > "$REMOTE_URL_FILE"
-            break
+        if [ -z "$THIS_URL" ]; then
+            log "WARNING: RC #${rc_num} URL not captured after ${MAX_WAIT}s"
         fi
-
-        log "Waiting for remote URL... (${WAITED}s)"
     done
 
     if [ -z "$REMOTE_URL" ]; then
-        log "WARNING: Could not capture remote URL after ${MAX_WAIT}s"
+        log "WARNING: No remote URL captured"
         echo "https://claude.ai/code/pending" > "$REMOTE_URL_FILE"
     fi
 fi

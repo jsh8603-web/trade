@@ -35,6 +35,7 @@ TMUX_SESSION="blockchain"
 TMUX_WINDOW=""  # 동적으로 결정 (find_rc_window)
 KEEPALIVE_INTERVAL=240   # 4분 간격 킵얼라이브
 MAX_CONSECUTIVE_FAILS=3  # 3회 연속 실패 → startup.sh로 전체 재구축
+TARGET_RC_COUNT=2        # RC 세션 목표 개수 (이중화)
 ESCALATION_PAUSE_SEC=1800  # 30분 (수동 개입 대기)
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
@@ -884,7 +885,136 @@ find_rc_window() {
 }
 
 # =============================================================================
-# 메인 로직
+# 개별 RC 윈도우 건강검진 (윈도우 인덱스를 인자로 받음)
+# 반환값: healthy / zombie / disconnected / no_rc / no_claude / no_oauth
+# =============================================================================
+check_rc_window_health() {
+    local win_idx="$1"
+
+    # Claude 프로세스 살아있나?
+    local pane_pid claude_pid
+    pane_pid=$(tmux list-panes -t "$TMUX_SESSION:$win_idx" -F '#{pane_pid}' 2>/dev/null)
+    if [ -n "$pane_pid" ]; then
+        claude_pid=$(pgrep -P "$pane_pid" -f "claude" 2>/dev/null | head -1)
+        if [ -z "$claude_pid" ]; then
+            echo "no_claude"
+            return
+        fi
+    else
+        echo "no_claude"
+        return
+    fi
+
+    # 화면 텍스트 확인
+    local screen
+    screen=$(tmux capture-pane -t "$TMUX_SESSION:$win_idx" -p 2>/dev/null)
+
+    # rating 프롬프트 해소
+    if echo "$screen" | grep -q "1: Bad.*2: Fine.*3: Good.*0: Dismiss"; then
+        tmux send-keys -t "$TMUX_SESSION:$win_idx" "0" Enter 2>/dev/null
+        sleep 2
+        screen=$(tmux capture-pane -t "$TMUX_SESSION:$win_idx" -p 2>/dev/null)
+    fi
+
+    if echo "$screen" | grep -q "Remote Control reconnecting\|reconnecting"; then
+        echo "disconnected"
+        return
+    fi
+
+    if ! echo "$screen" | grep -q "Remote Control active"; then
+        echo "no_rc"
+        return
+    fi
+
+    # 좀비 감지
+    local cpu_usage
+    cpu_usage=$(ps -p "$claude_pid" -o %cpu= 2>/dev/null | tr -d ' ')
+    if [ -z "$cpu_usage" ]; then
+        echo "zombie"
+        return
+    fi
+
+    echo "healthy"
+}
+
+# =============================================================================
+# 개별 RC 윈도우에 킵얼라이브 전송
+# =============================================================================
+send_keepalive_to() {
+    local win_idx="$1"
+    # 메뉴 열려있으면 닫기
+    local pane_check
+    pane_check=$(tmux capture-pane -t "$TMUX_SESSION:$win_idx" -p -S -5 2>/dev/null)
+    if echo "$pane_check" | grep -q "Disconnect\|Show QR\|Enter to select"; then
+        tmux send-keys -t "$TMUX_SESSION:$win_idx" Escape
+        sleep 1
+    fi
+    tmux send-keys -t "$TMUX_SESSION:$win_idx" Space BSpace
+}
+
+# =============================================================================
+# 새 RC 세션 생성 (부족분 보충용)
+# =============================================================================
+create_new_rc_session() {
+    local win_name="rc@$(date '+%H%M')"
+    log "ACTION: Creating new RC session ($win_name) to maintain ${TARGET_RC_COUNT} sessions"
+
+    tmux new-window -t "$TMUX_SESSION" -n "$win_name" -c "$PROJECT_DIR"
+    sleep 1
+
+    # Claude 시작
+    tmux send-keys -t "$TMUX_SESSION:$win_name" "unset CLAUDECODE && claude --dangerously-skip-permissions" Enter
+    log "OK: Claude starting in $win_name..."
+
+    # 준비 대기 (최대 90초)
+    local ready=false wait_count=0
+    while [ $wait_count -lt 18 ]; do
+        sleep 5
+        wait_count=$((wait_count + 1))
+        local boot_screen
+        boot_screen=$(tmux capture-pane -t "$TMUX_SESSION:$win_name" -p -S -5 2>/dev/null)
+        if echo "$boot_screen" | grep -qE '❯\s*$|>\s*$|tips|Claude Code'; then
+            ready=true
+            log "OK: Claude ready in $win_name after $((wait_count * 5))s"
+            break
+        fi
+    done
+
+    if [ "$ready" = false ]; then
+        log "WARN: Claude not ready in $win_name after 90s"
+        return 1
+    fi
+
+    # /remote-control 활성화
+    tmux send-keys -t "$TMUX_SESSION:$win_name" "/remote-control" Enter
+    sleep 5
+    tmux send-keys -t "$TMUX_SESSION:$win_name" Enter
+    sleep 20
+
+    local screen new_url
+    screen=$(tmux capture-pane -t "$TMUX_SESSION:$win_name" -p 2>/dev/null)
+    new_url=$(echo "$screen" | grep -oE 'https://claude\.ai/code/[A-Za-z0-9_-]+' | head -1)
+
+    if echo "$screen" | grep -q "Remote Control active" && [ -n "$new_url" ]; then
+        log "OK: New RC session $win_name active. URL: $new_url"
+        send_telegram "✅ RC 이중화 세션 생성: $win_name
+$new_url"
+        return 0
+    else
+        log "ERROR: New RC session $win_name failed to activate"
+        # 실패한 윈도우 정리
+        local pane_pid
+        pane_pid=$(tmux list-panes -t "$TMUX_SESSION:$win_name" -F '#{pane_pid}' 2>/dev/null)
+        if [ -n "$pane_pid" ]; then
+            pgrep -P "$pane_pid" 2>/dev/null | xargs kill -9 2>/dev/null
+        fi
+        tmux kill-window -t "$TMUX_SESSION:$win_name" 2>/dev/null
+        return 1
+    fi
+}
+
+# =============================================================================
+# 메인 로직 — 다중 RC 세션 감시 (TARGET_RC_COUNT개 유지)
 # =============================================================================
 
 # 0. 에스컬레이션 대기 모드 확인 (무한 루프 방지)
@@ -895,15 +1025,17 @@ fi
 # 0.3. 죽은 세션 정리 (살아있는 세션은 절대 건드리지 않음)
 cleanup_dead_sessions
 
-# 0.5. RC 윈도우 자동 감지 (고정 윈도우명 대신 동적 탐색)
-TMUX_WINDOW=$(find_rc_window "$TMUX_SESSION")
-if [ -z "$TMUX_WINDOW" ]; then
-    # RC 윈도우를 못 찾으면 시간 포함 이름으로 생성
-    TMUX_WINDOW="rc@$(date '+%H%M')"
-    log "WARN: No RC window found, using default: $TMUX_WINDOW"
+# 0.5. tmux 세션 존재 확인
+if ! tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
+    log "WARN: tmux session not found"
+    save_health "no_tmux" "Running startup.sh"
+    full_rebuild
+    exit 0
 fi
 
 # 1. 텔레그램 수동 재연결(/rc, /reconnect) 명령 확인
+TMUX_WINDOW=$(find_rc_window "$TMUX_SESSION")
+[ -z "$TMUX_WINDOW" ] && TMUX_WINDOW="rc@$(date '+%H%M')"
 if "$PYTHON" "$PROJECT_DIR/scripts/check_telegram_cmd.py"; then
     log "ACTION: Telegram /reconnect command received"
     save_health "manual_restart" "User requested via Telegram"
@@ -911,128 +1043,145 @@ if "$PYTHON" "$PROJECT_DIR/scripts/check_telegram_cmd.py"; then
     exit 0
 fi
 
-STATUS=$(health_check)
+# 2. 모든 RC 윈도우 수집 (rc@ 또는 claude 이름 + RC active 화면 보유)
+LIVE_RC_WINDOWS=()
+SICK_RC_WINDOWS=()
 
-case "$STATUS" in
-    healthy)
-        # ✅ 정상 — 킵얼라이브 체크
-        LAST_PING=0
-        [ -f "$KEEPALIVE_FILE" ] && LAST_PING=$(cat "$KEEPALIVE_FILE" 2>/dev/null)
-        NOW=$(date +%s)
-        ELAPSED=$((NOW - LAST_PING))
+while IFS=: read -r idx name; do
+    # RC 관련 윈도우만 대상 (rc@* 또는 claude)
+    is_rc_win=false
+    if [ "$name" = "claude" ] || echo "$name" | grep -q "^rc@"; then
+        is_rc_win=true
+    fi
 
-        if [ "$ELAPSED" -ge "$KEEPALIVE_INTERVAL" ]; then
-            send_keepalive
-            save_health "healthy" "keepalive sent"
-            log "OK: Healthy (keepalive sent)"
-        else
-            REMAINING=$((KEEPALIVE_INTERVAL - ELAPSED))
-            save_health "healthy" "next keepalive in ${REMAINING}s"
-            log "OK: Healthy (next keepalive in ${REMAINING}s)"
-        fi
-        reset_fail_count
-        # 복구 감지: 연속 healthy 체크 시 에스컬레이션 상태 리셋
-        check_recovery
-        ;;
+    # 화면에 RC 텍스트가 있는 윈도우도 포함
+    local screen
+    screen=$(tmux capture-pane -t "$TMUX_SESSION:$idx" -p 2>/dev/null)
+    if echo "$screen" | grep -q "Remote Control"; then
+        is_rc_win=true
+    fi
 
-    zombie)
-        # 🧟 좀비 — "active" 표시인데 실제 작동 안 함
-        log "WARN: Zombie session detected — active but unresponsive"
-        save_health "zombie" "Forcing restart"
-        reset_healthy_count
+    [ "$is_rc_win" = false ] && continue
 
-        if ! fast_restart "zombie session detected"; then
-            if [ "$(get_fail_count)" -ge "$MAX_CONSECUTIVE_FAILS" ]; then
-                full_rebuild
+    # 개별 건강검진
+    local status
+    status=$(check_rc_window_health "$idx")
+
+    case "$status" in
+        healthy)
+            LIVE_RC_WINDOWS+=("$idx")
+            ;;
+        *)
+            SICK_RC_WINDOWS+=("$idx:$status")
+            ;;
+    esac
+done <<< "$(tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}:#{window_name}' 2>/dev/null)"
+
+live_count=${#LIVE_RC_WINDOWS[@]}
+sick_count=${#SICK_RC_WINDOWS[@]}
+
+log "RC STATUS: live=$live_count sick=$sick_count target=$TARGET_RC_COUNT"
+
+# 3. 살아있는 RC에 킵얼라이브 전송
+LAST_PING=0
+[ -f "$KEEPALIVE_FILE" ] && LAST_PING=$(cat "$KEEPALIVE_FILE" 2>/dev/null)
+NOW=$(date +%s)
+ELAPSED=$((NOW - LAST_PING))
+
+if [ "$ELAPSED" -ge "$KEEPALIVE_INTERVAL" ] && [ "$live_count" -gt 0 ]; then
+    for win_idx in "${LIVE_RC_WINDOWS[@]}"; do
+        send_keepalive_to "$win_idx"
+    done
+    echo "$NOW" > "$KEEPALIVE_FILE"
+    log "OK: Keepalive sent to $live_count RC session(s)"
+fi
+
+# 4. 병든 RC 윈도우 복구 시도
+for sick_entry in "${SICK_RC_WINDOWS[@]}"; do
+    local sick_idx="${sick_entry%%:*}"
+    local sick_status="${sick_entry#*:}"
+    local sick_name
+    sick_name=$(tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}:#{window_name}' 2>/dev/null | grep "^${sick_idx}:" | cut -d: -f2)
+
+    case "$sick_status" in
+        no_rc)
+            # Claude는 살아있는데 RC가 없음 → /remote-control 시도
+            log "WARN: Window $sick_idx ($sick_name): no RC — trying /remote-control"
+            dismiss_rating_prompt 2>/dev/null
+            tmux send-keys -t "$TMUX_SESSION:$sick_idx" "/remote-control" Enter
+            sleep 5
+            tmux send-keys -t "$TMUX_SESSION:$sick_idx" Enter
+            sleep 15
+            local screen new_url
+            screen=$(tmux capture-pane -t "$TMUX_SESSION:$sick_idx" -p 2>/dev/null)
+            if echo "$screen" | grep -q "Remote Control active"; then
+                tmux rename-window -t "$TMUX_SESSION:$sick_idx" "rc@$(date '+%H%M')" 2>/dev/null
+                log "OK: Window $sick_idx RC restored"
+                live_count=$((live_count + 1))
+            else
+                log "WARN: Window $sick_idx RC activation failed — killing"
+                TMUX_WINDOW="$sick_idx"
+                fast_restart "RC activation failed on window $sick_idx"
             fi
-        fi
-        ;;
+            ;;
+        zombie|disconnected)
+            # 좀비/끊김 → fast_restart
+            log "WARN: Window $sick_idx ($sick_name): $sick_status — restarting"
+            TMUX_WINDOW="$sick_idx"
+            fast_restart "$sick_status on window $sick_idx"
+            ;;
+        no_claude)
+            # Claude 프로세스 없음 → fast_restart
+            log "WARN: Window $sick_idx ($sick_name): no claude — restarting"
+            TMUX_WINDOW="$sick_idx"
+            fast_restart "no claude on window $sick_idx"
+            ;;
+    esac
+done
 
-    disconnected)
-        # 🔌 연결 끊김 (reconnecting 상태)
-        log "WARN: RC disconnected (reconnecting)"
-        save_health "disconnected" "Forcing restart"
-        reset_healthy_count
+# 5. RC 세션 수 부족 → 새로 생성하여 TARGET_RC_COUNT 유지
+# (복구 후 다시 카운트)
+live_count=0
+while IFS=: read -r idx name; do
+    is_rc=false
+    if [ "$name" = "claude" ] || echo "$name" | grep -q "^rc@"; then
+        is_rc=true
+    fi
+    screen=$(tmux capture-pane -t "$TMUX_SESSION:$idx" -p 2>/dev/null)
+    if echo "$screen" | grep -q "Remote Control active"; then
+        is_rc=true
+    fi
+    if [ "$is_rc" = true ]; then
+        local s
+        s=$(check_rc_window_health "$idx")
+        [ "$s" = "healthy" ] && live_count=$((live_count + 1))
+    fi
+done <<< "$(tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}:#{window_name}' 2>/dev/null)"
 
-        # graceful reconnect 폐기 → 바로 fast restart
-        if ! fast_restart "RC disconnected"; then
-            if [ "$(get_fail_count)" -ge "$MAX_CONSECUTIVE_FAILS" ]; then
-                full_rebuild
-            fi
-        fi
-        ;;
+if [ "$live_count" -lt "$TARGET_RC_COUNT" ]; then
+    deficit=$((TARGET_RC_COUNT - live_count))
+    log "WARN: Only $live_count/$TARGET_RC_COUNT RC sessions alive — creating $deficit more"
+    for i in $(seq 1 $deficit); do
+        create_new_rc_session
+    done
+fi
 
-    no_rc)
-        # ❌ RC 없음 — /rc 시도 후 실패하면 restart
-        log "WARN: No RC found. Trying /rc..."
-        save_health "no_rc" "Activating /rc"
-        reset_healthy_count
+# 6. 최종 상태 저장
+live_final=0
+while IFS=: read -r idx name; do
+    screen=$(tmux capture-pane -t "$TMUX_SESSION:$idx" -p 2>/dev/null)
+    if echo "$screen" | grep -q "Remote Control active"; then
+        live_final=$((live_final + 1))
+    fi
+done <<< "$(tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}:#{window_name}' 2>/dev/null)"
 
-        dismiss_rating_prompt 2>/dev/null
-        tmux send-keys -t "$TMUX_SESSION:$TMUX_WINDOW" "/remote-control" Enter
-        sleep 5
-        tmux send-keys -t "$TMUX_SESSION:$TMUX_WINDOW" Enter
-        sleep 15
-
-        screen=$(tmux capture-pane -t "$TMUX_SESSION:$TMUX_WINDOW" -p 2>/dev/null)
-        new_url=$(extract_url)
-
-        if echo "$screen" | grep -q "Remote Control active" && [ -n "$new_url" ]; then
-            echo "$new_url" > "$REMOTE_URL_FILE"
-            echo "$(date +%s)" > "$KEEPALIVE_FILE"
-            reset_fail_count
-            # 윈도우 이름에 시작 시간 표시
-            tmux rename-window -t "$TMUX_SESSION:$TMUX_WINDOW" "rc@$(date '+%H%M')" 2>/dev/null
-            save_health "healthy" "RC activated"
-            log "OK: RC activated. URL: $new_url"
-            send_telegram "✅ RC 활성화
-$new_url"
-        else
-            log "WARN: /rc failed. Doing fast restart."
-            if ! fast_restart "RC activation failed"; then
-                if [ "$(get_fail_count)" -ge "$MAX_CONSECUTIVE_FAILS" ]; then
-                    full_rebuild
-                fi
-            fi
-        fi
-        ;;
-
-    no_claude)
-        # ❌ Claude 프로세스 없음 → claude 윈도우 있으면 restart, 없으면 recreate
-        log "WARN: Claude process not found"
-        save_health "no_claude" "Starting Claude"
-        reset_healthy_count
-
-        if ! tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -q "^${TMUX_WINDOW}$"; then
-            local new_win_name="rc@$(date '+%H%M')"
-            tmux new-window -t "$TMUX_SESSION" -n "$new_win_name" -c "$PROJECT_DIR"
-            TMUX_WINDOW="$new_win_name"
-            sleep 1
-        fi
-
-        if ! fast_restart "Claude process not found"; then
-            if [ "$(get_fail_count)" -ge "$MAX_CONSECUTIVE_FAILS" ]; then
-                full_rebuild
-            fi
-        fi
-        ;;
-
-    no_oauth)
-        # 🔑 OAuth 미인증 — Transport 미연결 (RC active이지만 iPhone에 안 뜸)
-        log "WARN: OAuth token missing/expired — Transport not configured"
-        reset_healthy_count
-        run_rc_diagnostics "no_oauth detected"
-        attempt_oauth_login
-        ;;
-
-    no_tmux)
-        # ❌ tmux 세션 없음 → 전체 재구축
-        log "WARN: tmux session not found"
-        save_health "no_tmux" "Running startup.sh"
-        reset_healthy_count
-        full_rebuild
-        ;;
-esac
+if [ "$live_final" -ge "$TARGET_RC_COUNT" ]; then
+    save_health "healthy" "${live_final} RC sessions active"
+    reset_fail_count
+    check_recovery
+else
+    save_health "degraded" "${live_final}/${TARGET_RC_COUNT} RC sessions"
+fi
 
 # =============================================================================
 # 대시보드 헬스체크 (1시간 간격)
