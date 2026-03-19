@@ -1,0 +1,281 @@
+"""SeonbiRang Main -- 선비랑 메인 진입점 + 이벤트 루프
+
+실행:
+  python -m seonbirang.main              # 기본 (DRY_RUN=true)
+  SB_DRY_RUN=false python -m seonbirang.main  # 실매매
+"""
+
+import asyncio
+import logging
+import os
+import signal
+import sys
+import time
+import traceback
+
+PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_DIR not in sys.path:
+    sys.path.insert(0, PROJECT_DIR)
+
+from seonbirang.config import SeonbirangConfig
+from seonbirang.state import BotState, load_state, save_state
+from seonbirang.data_feeder import MultiCoinFeeder
+from seonbirang.coin_selector import CoinSelector
+from seonbirang.execution import BinanceExecutor
+from seonbirang.risk_manager import RiskManager
+from seonbirang.funding_engine import FundingEngine
+from seonbirang.rotation_engine import RotationEngine
+from seonbirang.notifier import SeonbirangNotifier
+from seonbirang.db import SeonbirangDB
+
+logger = logging.getLogger("seonbirang.main")
+
+# 틱 간격 (초)
+TICK_INTERVAL = 60
+# 상태 보고 간격 (초) -- 2시간
+STATUS_INTERVAL = 7200
+# 스냅샷 DB 기록 간격 (초)
+SNAPSHOT_INTERVAL = 300
+
+
+class SeonbirangBot:
+    """선비랑 메인 봇 클래스"""
+
+    MAX_CONSECUTIVE_ERRORS = 30
+
+    def __init__(self):
+        self.config = SeonbirangConfig()
+        self.state = load_state()
+        self.feeder = MultiCoinFeeder(self.config)
+        self.selector = CoinSelector(self.config)
+        self.executor = BinanceExecutor(self.config)
+        self.risk = RiskManager(self.config, self.state)
+        self.funding = FundingEngine(
+            self.config, self.state, self.feeder,
+            self.executor, self.selector, self.risk,
+        )
+        self.rotation = RotationEngine(
+            self.config, self.state, self.feeder,
+            self.executor, self.selector, self.risk,
+        )
+        self.notifier = SeonbirangNotifier()
+        self.db = SeonbirangDB(self.config.db)
+        self._running = False
+        self._tick_count = 0
+        self._consecutive_errors = 0
+        self._last_status_time = 0.0
+        self._last_snapshot_time = 0.0
+
+    async def run(self):
+        """메인 실행"""
+        self._running = True
+
+        # 설정 검증
+        errors = self.config.validate()
+        if errors and not self.config.safety.dry_run:
+            for e in errors:
+                logger.error(f"설정 오류: {e}")
+            return
+
+        summary = self.config.summary()
+        logger.info(summary)
+
+        # 컴포넌트 시작
+        await self.feeder.start()
+        await self.executor.start()
+
+        # 초기 데이터 대기
+        ready = await self.feeder.wait_ready(timeout=30)
+        if not ready:
+            logger.error("데이터 준비 실패 -- 중단")
+            await self._shutdown()
+            return
+
+        # BNB 잔고 확인
+        await self.executor.ensure_bnb_reserve()
+
+        # 시작 알림
+        await self.notifier.notify_startup(summary)
+
+        logger.info("=== 선비랑 (SeonbiRang) 시작 ===")
+
+        try:
+            await self._main_loop()
+        except asyncio.CancelledError:
+            logger.info("봇 중단 요청")
+        finally:
+            await self._shutdown()
+
+    async def _main_loop(self):
+        """메인 루프 (TICK_INTERVAL 간격)"""
+        while self._running:
+            try:
+                await self._tick()
+                self._consecutive_errors = 0
+            except (SystemExit, KeyboardInterrupt, MemoryError):
+                raise
+            except Exception as e:
+                self._consecutive_errors += 1
+                if self._consecutive_errors <= 3 or self._consecutive_errors % 10 == 0:
+                    logger.error(
+                        f"Tick 오류 ({self._consecutive_errors}회): {e}",
+                        exc_info=(self._consecutive_errors % 10 == 0),
+                    )
+                if self._consecutive_errors == self.MAX_CONSECUTIVE_ERRORS:
+                    try:
+                        await self.notifier.notify_error(
+                            "tick_loop",
+                            f"연속 {self.MAX_CONSECUTIVE_ERRORS}회 오류. 마지막: {str(e)[:200]}"
+                        )
+                    except Exception:
+                        pass
+
+            await asyncio.sleep(TICK_INTERVAL)
+
+    async def _tick(self):
+        """1분마다 실행되는 메인 로직"""
+        self._tick_count += 1
+        now = time.time()
+
+        # 긴급 정지 체크
+        if self.config.safety.emergency_stop:
+            if self._tick_count % 10 == 1:
+                logger.warning("EMERGENCY_STOP 활성화 -- 대기 중")
+            return
+
+        # 1. 유니버스 스캔 (필요 시)
+        if self.feeder.needs_scan():
+            await self.feeder.scan_universe()
+
+        # 2. 펀딩비 수확 엔진
+        funding_actions = await self.funding.tick()
+        for action in funding_actions:
+            action["dry_run"] = self.config.safety.dry_run
+            try:
+                await self.notifier.notify_action(action)
+            except Exception as e:
+                logger.warning(f"알림 실패: {e}")
+            try:
+                await self.db.record_trade(action)
+            except Exception as e:
+                logger.warning(f"DB 기록 실패: {e}")
+
+        # 3. 로테이션 엔진
+        rotation_actions = await self.rotation.tick()
+        for action in rotation_actions:
+            action["dry_run"] = self.config.safety.dry_run
+            try:
+                await self.notifier.notify_action(action)
+            except Exception as e:
+                logger.warning(f"알림 실패: {e}")
+            try:
+                await self.db.record_trade(action)
+            except Exception as e:
+                logger.warning(f"DB 기록 실패: {e}")
+
+        # 4. 포트폴리오 건강 체크
+        health = self.risk.check_portfolio_health()
+        if health.get("should_reduce"):
+            logger.warning(f"포트폴리오 드로다운 경고: {health['drawdown_pct']:.1f}%")
+
+        # 5. 주기적 로그
+        if self._tick_count % 5 == 0:
+            f_count = health["funding_count"]
+            r_count = health["rotation_count"]
+            logger.info(
+                f"[Tick {self._tick_count}] "
+                f"펀딩:{f_count} 로테이션:{r_count} "
+                f"거래:{health['trades_today']}건 "
+                f"미실현PnL:${health['total_unrealized_pnl']:+.2f}"
+            )
+
+        # 6. 주기적 상태 보고 (텔레그램, 2시간)
+        if now - self._last_status_time >= STATUS_INTERVAL:
+            self._last_status_time = now
+            try:
+                f_summary = self.funding.get_summary()
+                r_summary = self.rotation.get_summary()
+                data = self.feeder.get_all()
+                top_funding = self.selector.rank_by_funding(data)
+                top_momentum = self.selector.rank_by_momentum(data)
+                await self.notifier.notify_status(
+                    f_summary, r_summary,
+                    health=health,
+                    top_funding=top_funding,
+                    top_momentum=top_momentum,
+                )
+            except Exception as e:
+                logger.warning(f"상태 보고 실패: {e}")
+
+        # 7. 주기적 DB 스냅샷
+        if now - self._last_snapshot_time >= SNAPSHOT_INTERVAL:
+            self._last_snapshot_time = now
+            try:
+                f_summary = self.funding.get_summary()
+                r_summary = self.rotation.get_summary()
+                balances = await self.executor.get_spot_balances()
+                total = balances.get("USDT", 0) + health["total_invested"]
+                await self.db.record_snapshot(total, f_summary, r_summary)
+            except Exception as e:
+                logger.warning(f"스냅샷 기록 실패: {e}")
+
+        # 8. 상태 저장
+        save_state(self.state)
+
+    async def _shutdown(self):
+        """정리 종료"""
+        logger.info("선비랑 종료 중...")
+        self._running = False
+        save_state(self.state)
+        try:
+            await self.executor.close()
+        except Exception as e:
+            logger.error(f"executor 정리 실패: {e}")
+        try:
+            await self.feeder.stop()
+        except Exception as e:
+            logger.error(f"feeder 정리 실패: {e}")
+        logger.info("선비랑 종료 완료")
+
+    def stop(self):
+        self._running = False
+
+
+def setup_logging():
+    log_dir = os.path.join(PROJECT_DIR, "logs")
+    os.makedirs(log_dir, exist_ok=True)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(
+                os.path.join(log_dir, "seonbirang.log"),
+                encoding="utf-8",
+            ),
+        ],
+    )
+
+
+def main():
+    setup_logging()
+    logger.info("SeonbiRang (선비랑) v0.1.0 시작")
+
+    bot = SeonbirangBot()
+
+    def handle_signal(*_):
+        logger.info("종료 시그널 수신")
+        bot.stop()
+
+    try:
+        signal.signal(signal.SIGINT, handle_signal)
+        signal.signal(signal.SIGTERM, handle_signal)
+    except (OSError, ValueError):
+        pass
+
+    asyncio.run(bot.run())
+
+
+if __name__ == "__main__":
+    main()
