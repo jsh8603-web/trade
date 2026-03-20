@@ -1,8 +1,13 @@
-"""SeonbiRang Main -- 선비랑 메인 진입점 + 이벤트 루프
+"""AltRang (알트랑) -- 알트코인 모멘텀 로테이션 전용 봇
 
 실행:
   python -m seonbirang.main              # 기본 (DRY_RUN=true)
   SB_DRY_RUN=false python -m seonbirang.main  # 실매매
+
+전략:
+  - 5팩터 스코어링으로 상위 20개 알트코인 선별
+  - 트레일링 스탑 / 부분 익절 / 시간 기반 청산
+  - (펀딩비 수확: 코드 내장, SB_FUNDING_ENABLED=true 시 활성화)
 """
 
 import asyncio
@@ -97,7 +102,10 @@ class SeonbirangBot:
         # 시작 알림
         await self.notifier.notify_startup(summary)
 
-        logger.info("=== 선비랑 (SeonbiRang) 시작 ===")
+        mode = "로테이션"
+        if self.config.funding.enabled:
+            mode += " + 펀딩비 수확"
+        logger.info(f"=== 알트랑 (AltRang) 시작 [{mode}] ===")
 
         try:
             await self._main_loop()
@@ -147,18 +155,20 @@ class SeonbirangBot:
         if self.feeder.needs_scan():
             await self.feeder.scan_universe()
 
-        # 2. 펀딩비 수확 엔진 — 이벤트 발생 시에만 알림+DB
-        funding_actions = await self.funding.tick()
-        for action in funding_actions:
-            action["dry_run"] = self.config.safety.dry_run
-            try:
-                await self.notifier.notify_action(action)
-            except Exception as e:
-                logger.warning(f"알림 실패: {e}")
-            try:
-                await self.db.record_trade(action)
-            except Exception as e:
-                logger.warning(f"DB 기록 실패: {e}")
+        # 2. 펀딩비 수확 엔진 — 활성화된 경우만, 이벤트 발생 시에만 알림+DB
+        funding_actions = []
+        if self.config.funding.enabled:
+            funding_actions = await self.funding.tick()
+            for action in funding_actions:
+                action["dry_run"] = self.config.safety.dry_run
+                try:
+                    await self.notifier.notify_action(action)
+                except Exception as e:
+                    logger.warning(f"알림 실패: {e}")
+                try:
+                    await self.db.record_trade(action)
+                except Exception as e:
+                    logger.warning(f"DB 기록 실패: {e}")
 
         # 3. 로테이션 엔진 — 이벤트 발생 시에만 알림+DB
         rotation_actions = await self.rotation.tick()
@@ -197,10 +207,10 @@ class SeonbirangBot:
             if has_events:
                 self._last_status_time = now
                 try:
-                    f_summary = self.funding.get_summary()
+                    f_summary = self.funding.get_summary() if self.config.funding.enabled else {}
                     r_summary = self.rotation.get_summary()
                     data = self.feeder.get_all()
-                    top_funding = self.selector.rank_by_funding(data)
+                    top_funding = self.selector.rank_by_funding(data) if self.config.funding.enabled else []
                     top_momentum = self.selector.rank_by_momentum(data)
                     await self.notifier.notify_status(
                         f_summary, r_summary,
@@ -208,6 +218,19 @@ class SeonbirangBot:
                         top_funding=top_funding,
                         top_momentum=top_momentum,
                     )
+                    # 코인 순위 DB 기록
+                    if top_momentum:
+                        rankings = [
+                            {"symbol": c.symbol, "score": c.score, "reason": c.reason}
+                            for c in top_momentum[:20]
+                        ]
+                        await self.db.record_rankings("momentum", rankings)
+                    if top_funding:
+                        rankings = [
+                            {"symbol": c.symbol, "score": c.score, "reason": c.reason}
+                            for c in top_funding[:10]
+                        ]
+                        await self.db.record_rankings("funding", rankings)
                 except Exception as e:
                     logger.warning(f"상태 보고 실패: {e}")
             else:
@@ -219,7 +242,7 @@ class SeonbirangBot:
             if has_events:
                 self._last_snapshot_time = now
                 try:
-                    f_summary = self.funding.get_summary()
+                    f_summary = self.funding.get_summary() if self.config.funding.enabled else {}
                     r_summary = self.rotation.get_summary()
                     balances = await self.executor.get_spot_balances()
                     total = balances.get("USDT", 0) + health["total_invested"]
@@ -235,7 +258,7 @@ class SeonbirangBot:
 
     async def _shutdown(self):
         """정리 종료"""
-        logger.info("선비랑 종료 중...")
+        logger.info("알트랑 종료 중...")
         self._running = False
         save_state(self.state)
         try:
@@ -246,7 +269,7 @@ class SeonbirangBot:
             await self.feeder.stop()
         except Exception as e:
             logger.error(f"feeder 정리 실패: {e}")
-        logger.info("선비랑 종료 완료")
+        logger.info("알트랑 종료 완료")
 
     def stop(self):
         self._running = False
@@ -262,7 +285,7 @@ def setup_logging():
         handlers=[
             logging.StreamHandler(sys.stdout),
             logging.FileHandler(
-                os.path.join(log_dir, "seonbirang.log"),
+                os.path.join(log_dir, "altrang.log"),
                 encoding="utf-8",
             ),
         ],
@@ -271,7 +294,7 @@ def setup_logging():
 
 def main():
     setup_logging()
-    logger.info("SeonbiRang (선비랑) v0.1.0 시작")
+    logger.info("AltRang (알트랑) v0.2.0 시작")
 
     bot = SeonbirangBot()
 

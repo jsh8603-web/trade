@@ -74,7 +74,7 @@ class SeonbirangDB:
             "action": action.get("action"),
             "symbol": action.get("symbol"),
             "funding_rate": action.get("funding_rate"),
-            "momentum_score": action.get("momentum_score"),
+            "momentum_score": action.get("momentum_score") or action.get("score"),
             "pnl_pct": action.get("pnl_pct"),
             "pnl_usdt": action.get("pnl_usdt"),
             "size_usdt": action.get("size_usdt"),
@@ -82,6 +82,8 @@ class SeonbirangDB:
             "dry_run": action.get("dry_run", True),
             "success": action.get("success", False),
         }
+        # None 값 제거 (Supabase에서 타입 에러 방지)
+        row = {k: v for k, v in row.items() if v is not None}
         await asyncio.to_thread(self._post, "seonbirang_trades", dict(row))
         self._save_local("trades.jsonl", row)
 

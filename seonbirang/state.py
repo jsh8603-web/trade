@@ -27,6 +27,11 @@ class CoinPosition:
     unrealized_pnl: float = 0.0
     stop_loss_price: float = 0.0
     take_profit_price: float = 0.0
+    # 고급 실행 로직 필드
+    highest_price: float = 0.0    # 트레일링 스탑용 최고가
+    partial_sold: bool = False    # 부분 익절 실행 여부
+    original_qty: float = 0.0    # 최초 수량 (부분 매도 추적)
+    entry_score: float = 0.0      # 5팩터 진입 점수 (동적 사이징용)
 
 
 @dataclass
@@ -40,6 +45,8 @@ class BotState:
     last_funding_rebalance: float = 0.0
     last_rotation_check: float = 0.0
     session_start_time: float = field(default_factory=time.time)
+    # 손절 쿨다운: {symbol: stop_time} — 2시간 내 재진입 방지
+    stop_cooldowns: dict = field(default_factory=dict)
 
     def get_position(self, symbol: str) -> Optional[CoinPosition]:
         if symbol in self.positions:

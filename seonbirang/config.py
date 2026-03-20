@@ -21,27 +21,41 @@ class BinanceConfig:
     futures_rest_url: str = "https://fapi.binance.com"
     futures_ws_url: str = "wss://fstream.binance.com/stream"
     spot_ws_url: str = "wss://stream.binance.com:9443/stream"
+    exchange_info_refresh_hours: int = 6  # exchangeInfo 캐시 갱신 주기
 
 
 @dataclass
 class FundingParams:
-    """펀딩비 수확 전략 파라미터"""
+    """펀딩비 수확 전략 파라미터 (SB_FUNDING_ENABLED=true 시 활성화)"""
+    enabled: bool = field(
+        default_factory=lambda: os.getenv("SB_FUNDING_ENABLED", "false").lower() == "true"
+    )
     min_funding_rate: float = field(
-        default_factory=lambda: float(os.getenv("SB_FUNDING_MIN_RATE", "0.0005"))
+        default_factory=lambda: float(os.getenv("SB_FUNDING_MIN_RATE", "0.0002"))
     )
     exit_funding_threshold: float = 0.0001
     max_coins: int = field(
-        default_factory=lambda: int(os.getenv("SB_FUNDING_MAX_COINS", "5"))
+        default_factory=lambda: int(os.getenv("SB_FUNDING_MAX_COINS", "3"))
     )
     position_size_usdt: float = field(
-        default_factory=lambda: float(os.getenv("SB_FUNDING_POSITION_USDT", "200"))
+        default_factory=lambda: float(os.getenv("SB_FUNDING_POSITION_USDT", "300"))
     )
     max_total_usdt: float = field(
         default_factory=lambda: float(os.getenv("SB_FUNDING_MAX_TOTAL_USDT", "1000"))
     )
     leverage: int = 1
-    rebalance_interval_min: int = 60
-    min_hold_hours: int = 8
+    rebalance_interval_min: int = 120   # 2시간마다 리밸런스 (느린 전략)
+    min_hold_hours: int = 24            # 최소 24시간 보유 (안정성)
+    # --- 고급 펀딩비 분석 ---
+    history_lookback: int = 21          # 과거 펀딩비 조회 횟수 (21 = 7일)
+    min_avg_funding_rate: float = 0.00005  # 7일 중앙값 최소 펀딩비 (0.005%)
+    min_positive_ratio: float = 0.6     # 7일간 양수 비율 최소 60%
+    min_apr_pct: float = 3.0            # 최소 연환산 수익률 3% (수수료 제외, 현실적)
+    spread_max_pct: float = 1.5          # 현물-선물 스프레드 최대 1.5% (저가 코인 허용)
+    funding_score_w_rate: float = 0.40  # 현재 펀딩비 가중치
+    funding_score_w_consistency: float = 0.30  # 안정성(양수비율) 가중치
+    funding_score_w_volume: float = 0.15  # 유동성 가중치
+    funding_score_w_spread: float = 0.15  # 스프레드 가중치
 
 
 @dataclass
@@ -72,6 +86,26 @@ class RotationParams:
     )
     max_replace_per_cycle: int = 2
     min_hold_hours: int = 4
+    min_spot_volume_24h: float = 1_000_000  # 현물 최소 거래대금 ($1M)
+    max_change_24h_pct: float = 50.0  # 펌프앤덤프 필터 (50% 초과 변동 제외)
+
+    # --- 고급 5팩터 스코어링 가중치 (합 = 1.0) ---
+    w_trend_consistency: float = 0.30   # 다중 타임프레임 추세 일관성
+    w_volume_surge: float = 0.20        # 거래량 서지 (7일 평균 대비)
+    w_technical_health: float = 0.20    # RSI/BB 기술적 건강도
+    w_price_momentum: float = 0.15      # 적정 모멘텀 (과도하면 감점)
+    w_diversification: float = 0.15     # BTC 상관도 (낮을수록 우대)
+
+    # --- 기술적 임계값 ---
+    rsi_overbought: float = 70.0        # RSI 과매수 → 진입 차단
+    rsi_sweet_low: float = 40.0         # RSI 이상 구간 하한
+    rsi_sweet_high: float = 65.0        # RSI 이상 구간 상한
+    anti_chase_threshold: float = 15.0  # 추격매수 감점 기준 (%)
+    momentum_sweet_low: float = 3.0     # 이상적 일간 수익 하한
+    momentum_sweet_high: float = 10.0   # 이상적 일간 수익 상한
+    volume_surge_min: float = 1.5       # 최소 서지 배율
+    volume_surge_ideal: float = 3.0     # 이상적 서지 배율
+    enrichment_top_n: int = 50          # kline 심화 분석 대상 수
 
 
 @dataclass
@@ -131,11 +165,12 @@ class SeonbirangConfig:
         def mask(s: str) -> str:
             return f"{s[:4]}...{s[-4:]}" if len(s) > 8 else "***"
 
+        funding_status = "ON" if self.funding.enabled else "OFF"
         return (
-            f"=== SeonbiRang (선비랑) Config ===\n"
+            f"=== AltRang (알트랑) Config ===\n"
             f"DRY_RUN: {self.safety.dry_run}\n"
             f"Binance: {mask(self.binance.api_key)}\n"
-            f"--- 펀딩비 수확 ---\n"
+            f"--- 펀딩비 수확 [{funding_status}] ---\n"
             f"  Min Rate: {self.funding.min_funding_rate*100:.2f}%\n"
             f"  Max Coins: {self.funding.max_coins}\n"
             f"  Position: ${self.funding.position_size_usdt:,.0f}\n"
