@@ -33,9 +33,9 @@ MANUAL_INTERVENTION_FILE="$PROJECT_DIR/data/.rc_manual_intervention.json"
 HEALTHY_COUNT_FILE="$PROJECT_DIR/data/.rc_healthy_count"
 TMUX_SESSION="blockchain"
 TMUX_WINDOW=""  # 동적으로 결정 (find_rc_window)
-KEEPALIVE_INTERVAL=240   # 4분 간격 킵얼라이브
+KEEPALIVE_INTERVAL=120   # 2분 간격 킵얼라이브
 MAX_CONSECUTIVE_FAILS=3  # 3회 연속 실패 → startup.sh로 전체 재구축
-TARGET_RC_COUNT=2        # RC 세션 목표 개수 (이중화)
+TARGET_RC_COUNT=1        # RC 세션 1개 안정 유지
 ESCALATION_PAUSE_SEC=1800  # 30분 (수동 개입 대기)
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
@@ -544,8 +544,11 @@ send_keepalive() {
         sleep 1
     fi
 
-    # Space BSpace (공백 입력 후 뒤로가기) → 터미널 포커스만 유지, 세션 종료 방지
-    tmux send-keys -t "$TMUX_SESSION:$TMUX_WINDOW" Space BSpace
+    # 문자 입력 → 1초 대기 → 삭제: WebSocket input change 이벤트 확실히 발생
+    # Space+BSpace는 너무 빨라서 coalesce될 수 있음 → 실제 문자+딜레이로 2개 프레임 보장
+    tmux send-keys -t "$TMUX_SESSION:$TMUX_WINDOW" "x"
+    sleep 1
+    tmux send-keys -t "$TMUX_SESSION:$TMUX_WINDOW" BSpace
     sleep 1
 
     echo "$(date +%s)" > "$KEEPALIVE_FILE"
@@ -586,9 +589,9 @@ fast_restart() {
         sleep 2
     fi
 
-    # 4) Claude 시작 + 점진적 준비 확인 (최대 90초)
-    tmux send-keys -t "$TMUX_SESSION:$TMUX_WINDOW" "unset CLAUDECODE && claude --dangerously-skip-permissions" Enter
-    log "OK: Claude starting..."
+    # 4) Claude 시작 — 기존 세션 재사용 (--continue), 없으면 새 세션
+    tmux send-keys -t "$TMUX_SESSION:$TMUX_WINDOW" "unset CLAUDECODE && claude --continue --dangerously-skip-permissions" Enter
+    log "OK: Claude starting (--continue, reuse session)..."
 
     local claude_ready=false
     local wait_count=0
@@ -949,7 +952,10 @@ send_keepalive_to() {
         tmux send-keys -t "$TMUX_SESSION:$win_idx" Escape
         sleep 1
     fi
-    tmux send-keys -t "$TMUX_SESSION:$win_idx" Space BSpace
+    # 문자 입력 → 1초 대기 → 삭제: WebSocket input change 이벤트 확실히 발생
+    tmux send-keys -t "$TMUX_SESSION:$win_idx" "x"
+    sleep 1
+    tmux send-keys -t "$TMUX_SESSION:$win_idx" BSpace
 }
 
 # =============================================================================
@@ -962,9 +968,9 @@ create_new_rc_session() {
     tmux new-window -t "$TMUX_SESSION" -n "$win_name" -c "$PROJECT_DIR"
     sleep 1
 
-    # Claude 시작
-    tmux send-keys -t "$TMUX_SESSION:$win_name" "unset CLAUDECODE && claude --dangerously-skip-permissions" Enter
-    log "OK: Claude starting in $win_name..."
+    # Claude 시작 — 기존 세션 재사용 (--continue), 없으면 새 세션
+    tmux send-keys -t "$TMUX_SESSION:$win_name" "unset CLAUDECODE && claude --continue --dangerously-skip-permissions" Enter
+    log "OK: Claude starting in $win_name (--continue, reuse session)..."
 
     # 준비 대기 (최대 90초)
     local ready=false wait_count=0
@@ -1124,11 +1130,35 @@ for sick_entry in "${SICK_RC_WINDOWS[@]}"; do
                 fast_restart "RC activation failed on window $sick_idx"
             fi
             ;;
-        zombie|disconnected)
-            # 좀비/끊김 → fast_restart
-            log "WARN: Window $sick_idx ($sick_name): $sick_status — restarting"
+        zombie)
+            # 좀비 → 즉시 fast_restart
+            log "WARN: Window $sick_idx ($sick_name): zombie — restarting"
             TMUX_WINDOW="$sick_idx"
-            fast_restart "$sick_status on window $sick_idx"
+            fast_restart "zombie on window $sick_idx"
+            ;;
+        disconnected)
+            # 끊김 → 60초 grace period (10초 간격 체크, 자동 복구 대기)
+            log "WARN: Window $sick_idx ($sick_name): disconnected — waiting up to 60s for recovery"
+            local recovered=false
+            local grace_wait=0
+            while [ "$grace_wait" -lt 6 ]; do
+                sleep 10
+                grace_wait=$((grace_wait + 1))
+                local recheck_screen
+                recheck_screen=$(tmux capture-pane -t "$TMUX_SESSION:$sick_idx" -p 2>/dev/null)
+                if echo "$recheck_screen" | grep -q "Remote Control active"; then
+                    recovered=true
+                    log "OK: Window $sick_idx ($sick_name): recovered after $((grace_wait * 10))s"
+                    live_count=$((live_count + 1))
+                    break
+                fi
+                log "WAIT: Window $sick_idx: still reconnecting ($((grace_wait * 10))/60s)"
+            done
+            if [ "$recovered" = false ]; then
+                log "WARN: Window $sick_idx ($sick_name): still disconnected after 60s — restarting"
+                TMUX_WINDOW="$sick_idx"
+                fast_restart "disconnected 60s on window $sick_idx"
+            fi
             ;;
         no_claude)
             # Claude 프로세스 없음 → fast_restart

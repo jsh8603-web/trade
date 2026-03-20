@@ -15,6 +15,12 @@ cron 예시 (매시 15분):
 import json, os, sys, time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+
+# Ensure project root is in sys.path for utils imports
+PROJECT_DIR = str(Path(__file__).resolve().parent.parent)
+if PROJECT_DIR not in sys.path:
+    sys.path.insert(0, PROJECT_DIR)
+
 from dotenv import load_dotenv
 import requests
 

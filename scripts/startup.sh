@@ -122,8 +122,8 @@ else
     for rc_num in $(seq 1 $TARGET_RC); do
         RC_WIN_NAME="rc@$(date '+%H%M')-${rc_num}"
         tmux new-window -t "$TMUX_SESSION" -n "$RC_WIN_NAME" -c "$PROJECT_DIR"
-        tmux send-keys -t "$TMUX_SESSION:$RC_WIN_NAME" "unset CLAUDECODE && claude --dangerously-skip-permissions" Enter
-        log "Claude Code #${rc_num} starting ($RC_WIN_NAME)..."
+        tmux send-keys -t "$TMUX_SESSION:$RC_WIN_NAME" "unset CLAUDECODE && claude --continue --dangerously-skip-permissions" Enter
+        log "Claude Code #${rc_num} starting ($RC_WIN_NAME, --continue reuse session)..."
 
         # Claude 초기화 대기
         sleep 30

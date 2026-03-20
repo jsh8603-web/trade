@@ -389,6 +389,64 @@ except Exception as e:
 " 2>&1 >&2 || true
 fi
 
+# ── Phase 5c: portfolio_snapshots 기록 ──
+if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+  echo "[$(date)] Phase 5c: portfolio_snapshots 기록..." >&2
+  "$PYTHON" -c "
+import json, os, requests, sys
+
+supabase_url = os.environ['SUPABASE_URL']
+supabase_key = os.environ['SUPABASE_SERVICE_ROLE_KEY']
+headers = {
+    'apikey': supabase_key,
+    'Authorization': f'Bearer {supabase_key}',
+    'Content-Type': 'application/json',
+    'Prefer': 'return=minimal',
+}
+
+try:
+    from utils.machine import skip_trade_db, get_machine_name
+    if skip_trade_db('portfolio_snapshots'):
+        print('[Agent] portfolio_snapshots 스킵 (worker 머신)', file=sys.stderr)
+        sys.exit(0)
+    machine_name = get_machine_name()
+except Exception:
+    machine_name = None
+
+try:
+    portfolio = json.loads(open('${SNAPSHOT_DIR}/portfolio.json', encoding='utf-8').read())
+    if 'error' in portfolio:
+        print(f'[Agent] portfolio_snapshots 스킵: 포트폴리오 수집 실패', file=sys.stderr)
+        sys.exit(0)
+
+    krw_balance = int(portfolio.get('krw_balance', 0))
+    holdings = portfolio.get('holdings', [])
+    crypto_value = int(sum(h.get('eval_amount', 0) for h in holdings))
+    total_value = int(portfolio.get('total_eval', 0))
+
+    row = {
+        'total_krw': krw_balance,
+        'total_crypto_value': crypto_value,
+        'total_value': total_value,
+        'holdings': json.dumps(holdings, ensure_ascii=False),
+        'cycle_id': '${CYCLE_ID}',
+    }
+    if machine_name:
+        row['machine_name'] = machine_name
+
+    resp = requests.post(
+        f'{supabase_url}/rest/v1/portfolio_snapshots',
+        json=row, headers=headers, timeout=10,
+    )
+    if resp.status_code in (200, 201):
+        print('[Agent] portfolio_snapshots 기록 완료', file=sys.stderr)
+    else:
+        print(f'[Agent] portfolio_snapshots 기록 실패: HTTP {resp.status_code}: {resp.text[:200]}', file=sys.stderr)
+except Exception as e:
+    print(f'[Agent] portfolio_snapshots 기록 예외: {e}', file=sys.stderr)
+" 2>&1 >&2 || true
+fi
+
 # ── Phase 6: 과거 전환 성과 평가 (학습 데이터 축적) ──
 echo "[$(date)] Phase 6: 전환 성과 평가..." >&2
 "$PYTHON" scripts/evaluate_switches.py 2>&1 || true
