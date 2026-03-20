@@ -117,12 +117,15 @@ claude-coin-trading/
 │   ├── conservative.py            # 🛡️ 보수적 에이전트 (70점, 자산 보전)
 │   ├── moderate.py                # ⚖️ 보통 에이전트 (55점, 균형 매매)
 │   ├── aggressive.py              # 🔥 공격적 에이전트 (45점, 고수익)
-│   ├── external_data.py           # 외부 데이터 병렬 수집 에이전트
+│   ├── external_data.py           # 뉴스랑(NewsRang) — 외부 데이터 병렬 수집 에이전트 (11소스)
 │   └── orchestrator.py            # 감독 에이전트 (자율 전환 + DB 학습)
 ├── scripts/
 │   ├── collect_market_data.py     # Upbit 시장 데이터 + 기술지표 수집
 │   ├── collect_fear_greed.py      # 공포탐욕지수 수집
 │   ├── collect_news.py            # Tavily 뉴스 수집
+│   ├── collect_rss_news.py        # 뉴스랑: RSS 뉴스 16피드 (크립토+매크로)
+│   ├── collect_x_signals.py       # 뉴스랑: X(트위터) 시그널 (7계정+3검색)
+│   ├── collect_social_sentiment.py # 뉴스랑: 소셜 감성 (CryptoCompare+CoinGecko)
 │   ├── capture_chart.py           # Playwright 차트 캡처
 │   ├── execute_trade.py           # 매매 실행 (안전장치 내장)
 │   ├── get_portfolio.py           # 포트폴리오 조회
@@ -348,6 +351,11 @@ ExternalDataAgent (외부 데이터)
 | Yahoo Finance | `query1.finance.yahoo.com` | S&P500, DXY, 금, 유가, 10Y 국채 | 없음 (무료) |
 | Playwright | headless Chromium | 차트 스크린샷 캡처 | 없음 |
 | Supabase | PostgreSQL (PostgREST) | 데이터 저장/조회/피드백/성과학습 | Service Role Key |
+| **뉴스랑(NewsRang)** | | | |
+| RSS 피드 (16개) | feedparser | 크립토+매크로 뉴스 실시간 수집 | 없음 (무료) |
+| X(트위터) | twikit (GraphQL) | 7계정 모니터링 + 3키워드 검색 + 고래 감지 | X 계정 로그인 |
+| CryptoCompare | `min-api.cryptocompare.com` | 뉴스 감성 + 소셜 통계 (Reddit/Twitter) | API Key (무료) |
+| CoinGecko | `api.coingecko.com/v3` | 코인별 커뮤니티 감성 투표 | 없음 (무료) |
 | Telegram | `api.telegram.org/bot` | 실행 보고 알림 | Bot Token |
 
 ## 버전 관리 (필수)

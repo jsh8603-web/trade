@@ -1,7 +1,9 @@
 """
-외부 데이터 수집 에이전트
+뉴스랑(NewsRang) — 외부 데이터 수집 에이전트
 
-기존 개별 스크립트를 통합 오케스트레이션한다:
+11개 소스에서 시장 시그널을 병렬 수집하고 Data Fusion 종합 점수를 산출한다.
+
+기본 소스 (8개):
   - collect_fear_greed.py → FGI
   - collect_news.py → 뉴스 + 감성 분석
   - whale_tracker.py → 온체인 고래 (방향 추정 포함)
@@ -13,6 +15,11 @@
   + NVT Signal (blockchain.com API) -- 온체인 가치 평가
   + 뉴스 감성 분석 (키워드 기반)
   + Supabase: 사용자 피드백, 과거 결정 성과
+
+뉴스랑 확장 소스 (3개, v1.22.0):
+  - collect_rss_news.py → RSS 뉴스 16피드 (크립토+매크로)
+  - collect_x_signals.py → X(트위터) 7계정 + 3키워드 검색
+  - collect_social_sentiment.py → 소셜 감성 (CryptoCompare+CoinGecko)
 
 병렬 수집 + 에러 격리: 하나가 실패해도 나머지는 정상 수집.
 """
@@ -349,6 +356,10 @@ class ExternalDataAgent:
             "macro": ("collect_macro.py", None),
             "crypto_signals": ("collect_crypto_signals.py", None),
             "coinmarketcap": ("collect_coinmarketcap.py", None),
+            # ── 신규 외부 시그널 (v1.20.0) ──
+            "rss_news": ("collect_rss_news.py", None),
+            "x_signals": ("collect_x_signals.py", None),
+            "social_sentiment": ("collect_social_sentiment.py", None),
         }
 
         results: dict = {}
@@ -506,6 +517,75 @@ class ExternalDataAgent:
                 extra_score += cmc_adj
                 extra_details.append(f"CMC BTC 도미넌스({btc_dom:.1f}%): {cmc_adj:+d}점")
 
+        # ── 신규 소스 (v1.20.0) ──
+
+        # RSS 뉴스 감성 (±10) — 16개 무료 피드
+        rss = results.get("rss_news", {}) or {}
+        rss_adj = 0
+        rss_sentiment = rss.get("sentiment", {})
+        rss_combined = rss_sentiment.get("combined_score", 0) or 0
+        if rss_combined >= 25:
+            rss_adj = 10
+        elif rss_combined >= 10:
+            rss_adj = 5
+        elif rss_combined <= -25:
+            rss_adj = -10
+        elif rss_combined <= -10:
+            rss_adj = -5
+        if rss_adj != 0:
+            extra_score += rss_adj
+            extra_details.append(f"RSS 뉴스({rss.get('total_articles', 0)}건) 감성: {rss_adj:+d}점")
+
+        # X(트위터) 시그널 (±15)
+        x_data = results.get("x_signals", {}) or {}
+        x_adj = 0
+        x_signal = x_data.get("signal", {})
+        x_score = x_signal.get("score", 0) if isinstance(x_signal, dict) else 0
+        if x_score >= 30:
+            x_adj = 15
+        elif x_score >= 15:
+            x_adj = 10
+        elif x_score >= 5:
+            x_adj = 5
+        elif x_score <= -30:
+            x_adj = -15
+        elif x_score <= -15:
+            x_adj = -10
+        elif x_score <= -5:
+            x_adj = -5
+        if x_adj != 0:
+            extra_score += x_adj
+            x_label = x_signal.get("signal", "neutral") if isinstance(x_signal, dict) else "neutral"
+            extra_details.append(f"X 시그널({x_label}): {x_adj:+d}점")
+        # X 고래 알림 반영
+        whale_sum = x_signal.get("whale_summary") if isinstance(x_signal, dict) else None
+        if whale_sum and whale_sum.get("total_alerts", 0) >= 2:
+            w_dir = whale_sum.get("net_direction", "neutral")
+            if w_dir == "sell":
+                extra_score -= 5
+                extra_details.append(f"X 고래알림 매도압력: -5점")
+            elif w_dir == "buy":
+                extra_score += 5
+                extra_details.append(f"X 고래알림 매수압력: +5점")
+
+        # 소셜 감성 종합 (±10) — CryptoCompare + CoinGecko + Santiment
+        social = results.get("social_sentiment", {}) or {}
+        social_adj = 0
+        social_sig = social.get("signal", {})
+        social_score = social_sig.get("total_score", 0) if isinstance(social_sig, dict) else 0
+        if social_score >= 20:
+            social_adj = 10
+        elif social_score >= 10:
+            social_adj = 5
+        elif social_score <= -20:
+            social_adj = -10
+        elif social_score <= -10:
+            social_adj = -5
+        if social_adj != 0:
+            extra_score += social_adj
+            s_label = social_sig.get("signal", "neutral") if isinstance(social_sig, dict) else "neutral"
+            extra_details.append(f"소셜 감성({s_label}): {social_adj:+d}점")
+
         # 기존 total_score에 추가
         old_total = fusion.get("total_score", 0)
         new_total = old_total + extra_score
@@ -517,6 +597,10 @@ class ExternalDataAgent:
             "eth_btc": {"score": eth_adj if abs(z) >= 2 else 0, "max": 5},
             "news_sentiment": {"score": news_adj, "max": 10},
             "crypto_signals": {"score": crypto_adj, "max": 10},
+            "cmc_dominance": {"score": cmc_adj, "max": 5},
+            "rss_news": {"score": rss_adj, "max": 10},
+            "x_signals": {"score": x_adj, "max": 15},
+            "social_sentiment": {"score": social_adj, "max": 10},
         }
         fusion["extra_details"] = extra_details
 
