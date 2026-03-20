@@ -26,7 +26,6 @@ from altrang.config import AltrangConfig
 from altrang.state import BotState, load_state, save_state
 from altrang.data_feeder import MultiCoinFeeder
 from altrang.coin_selector import CoinSelector
-from altrang.execution import BinanceExecutor
 from altrang.risk_manager import RiskManager
 from altrang.funding_engine import FundingEngine
 from altrang.rotation_engine import RotationEngine
@@ -51,17 +50,25 @@ class AltrangBot:
     def __init__(self):
         self.config = AltrangConfig()
         self.state = load_state()
-        self.feeder = MultiCoinFeeder(self.config)
+
+        # 거래소 어댑터 선택
+        if self.config.is_upbit:
+            from altrang.exchange_upbit import UpbitAdapter
+            self.adapter = UpbitAdapter(self.config)
+        else:
+            from altrang.exchange_binance import BinanceAdapter
+            self.adapter = BinanceAdapter(self.config)
+
+        self.feeder = MultiCoinFeeder(self.config, self.adapter)
         self.selector = CoinSelector(self.config)
-        self.executor = BinanceExecutor(self.config)
         self.risk = RiskManager(self.config, self.state)
         self.funding = FundingEngine(
             self.config, self.state, self.feeder,
-            self.executor, self.selector, self.risk,
+            self.adapter, self.selector, self.risk,
         )
         self.rotation = RotationEngine(
             self.config, self.state, self.feeder,
-            self.executor, self.selector, self.risk,
+            self.adapter, self.selector, self.risk,
         )
         self.notifier = AltrangNotifier()
         self.db = AltrangDB(self.config.db)
@@ -87,7 +94,6 @@ class AltrangBot:
 
         # 컴포넌트 시작
         await self.feeder.start()
-        await self.executor.start()
 
         # 초기 데이터 대기
         ready = await self.feeder.wait_ready(timeout=30)
@@ -96,8 +102,8 @@ class AltrangBot:
             await self._shutdown()
             return
 
-        # BNB 잔고 확인
-        await self.executor.ensure_bnb_reserve()
+        # BNB 잔고 확인 (Binance 전용)
+        await self.adapter.ensure_bnb_reserve()
 
         # 시작 알림
         await self.notifier.notify_startup(summary)
@@ -244,8 +250,9 @@ class AltrangBot:
                 try:
                     f_summary = self.funding.get_summary() if self.config.funding.enabled else {}
                     r_summary = self.rotation.get_summary()
-                    balances = await self.executor.get_spot_balances()
-                    total = balances.get("USDT", 0) + health["total_invested"]
+                    balances = await self.adapter.get_spot_balances()
+                    quote = self.config.quote_currency
+                    total = balances.get(quote, 0) + health["total_invested"]
                     await self.db.record_snapshot(total, f_summary, r_summary)
                 except Exception as e:
                     logger.warning(f"스냅샷 기록 실패: {e}")
@@ -262,9 +269,9 @@ class AltrangBot:
         self._running = False
         save_state(self.state)
         try:
-            await self.executor.close()
+            await self.adapter.close()
         except Exception as e:
-            logger.error(f"executor 정리 실패: {e}")
+            logger.error(f"adapter 정리 실패: {e}")
         try:
             await self.feeder.stop()
         except Exception as e:
@@ -294,7 +301,7 @@ def setup_logging():
 
 def main():
     setup_logging()
-    logger.info("AltRang (알트랑) v0.2.0 시작")
+    logger.info("AltRang (알트랑) v0.3.0 시작")
 
     bot = AltrangBot()
 

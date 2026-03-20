@@ -14,6 +14,13 @@ except ImportError:
 
 
 @dataclass(frozen=True)
+class UpbitConfig:
+    access_key: str = field(default_factory=lambda: os.getenv("UPBIT_ACCESS_KEY", ""))
+    secret_key: str = field(default_factory=lambda: os.getenv("UPBIT_SECRET_KEY", ""))
+    rest_url: str = "https://api.upbit.com/v1"
+
+
+@dataclass(frozen=True)
 class BinanceConfig:
     api_key: str = field(default_factory=lambda: os.getenv("BINANCE_API_KEY", ""))
     api_secret: str = field(default_factory=lambda: os.getenv("BINANCE_API_SECRET", ""))
@@ -133,28 +140,65 @@ class DBConfig:
 
 
 # Blacklist: 스테이블코인, 래핑토큰 등 로테이션 제외
-COIN_BLACKLIST = {
+COIN_BLACKLIST_BINANCE = {
     "USDCUSDT", "BUSDUSDT", "TUSDUSDT", "USDPUSDT", "FDUSDUSDT",
     "DAIUSDT", "EURUSDT", "GBPUSDT",
 }
+COIN_BLACKLIST_UPBIT = {
+    "KRW-USDT", "KRW-USDC", "KRW-DAI",
+}
+# 런타임에 거래소별 선택
+COIN_BLACKLIST = COIN_BLACKLIST_BINANCE  # 기본값, AltrangConfig에서 재설정
 
 
 class AltrangConfig:
     """전체 설정 컨테이너"""
 
     def __init__(self):
+        self.exchange_name: str = os.getenv("SB_EXCHANGE", "binance").lower()
         self.binance = BinanceConfig()
+        self.upbit = UpbitConfig()
         self.funding = FundingParams()
         self.rotation = RotationParams()
         self.safety = SafetyParams()
         self.db = DBConfig()
 
+        # 거래소별 블랙리스트 설정
+        global COIN_BLACKLIST
+        if self.exchange_name == "upbit":
+            COIN_BLACKLIST = COIN_BLACKLIST_UPBIT
+            # 업비트는 선물 없음 → 펀딩비 강제 비활성화
+            if self.funding.enabled:
+                self.funding.enabled = False
+        else:
+            COIN_BLACKLIST = COIN_BLACKLIST_BINANCE
+
+    @property
+    def is_upbit(self) -> bool:
+        return self.exchange_name == "upbit"
+
+    @property
+    def quote_currency(self) -> str:
+        """기축통화: Binance=USDT, Upbit=KRW"""
+        return "KRW" if self.is_upbit else "USDT"
+
+    @property
+    def min_order_amount(self) -> float:
+        """최소 주문 금액"""
+        return 5000.0 if self.is_upbit else 12.0
+
     def validate(self) -> list[str]:
         errors = []
-        if not self.binance.api_key:
-            errors.append("BINANCE_API_KEY 미설정")
-        if not self.binance.api_secret:
-            errors.append("BINANCE_API_SECRET 미설정")
+        if self.is_upbit:
+            if not self.upbit.access_key:
+                errors.append("UPBIT_ACCESS_KEY 미설정")
+            if not self.upbit.secret_key:
+                errors.append("UPBIT_SECRET_KEY 미설정")
+        else:
+            if not self.binance.api_key:
+                errors.append("BINANCE_API_KEY 미설정")
+            if not self.binance.api_secret:
+                errors.append("BINANCE_API_SECRET 미설정")
         if self.funding.leverage > 5:
             errors.append(f"레버리지 {self.funding.leverage}x 과다 (최대 5x)")
         if self.funding.max_total_usdt + self.rotation.max_total_usdt > 50000:
@@ -165,24 +209,43 @@ class AltrangConfig:
         def mask(s: str) -> str:
             return f"{s[:4]}...{s[-4:]}" if len(s) > 8 else "***"
 
+        exchange_str = self.exchange_name.upper()
+        if self.is_upbit:
+            api_str = f"Upbit: {mask(self.upbit.access_key)}"
+        else:
+            api_str = f"Binance: {mask(self.binance.api_key)}"
+
         funding_status = "ON" if self.funding.enabled else "OFF"
-        return (
-            f"=== AltRang (알트랑) Config ===\n"
-            f"DRY_RUN: {self.safety.dry_run}\n"
-            f"Binance: {mask(self.binance.api_key)}\n"
-            f"--- 펀딩비 수확 [{funding_status}] ---\n"
-            f"  Min Rate: {self.funding.min_funding_rate*100:.2f}%\n"
-            f"  Max Coins: {self.funding.max_coins}\n"
-            f"  Position: ${self.funding.position_size_usdt:,.0f}\n"
-            f"  Budget: ${self.funding.max_total_usdt:,.0f}\n"
-            f"--- 알트코인 로테이션 ---\n"
-            f"  Universe: {self.rotation.universe_size}개\n"
-            f"  Top N: {self.rotation.top_n}\n"
-            f"  Interval: {self.rotation.rotation_interval_min}분\n"
-            f"  Position: ${self.rotation.position_size_usdt:,.0f}\n"
-            f"  Budget: ${self.rotation.max_total_usdt:,.0f}\n"
-            f"  SL: {self.rotation.stop_loss_pct}% / TP: {self.rotation.take_profit_pct}%\n"
-            f"--- 안전장치 ---\n"
-            f"  BNB Fee: {self.safety.use_bnb_fee}\n"
-            f"  Daily Trades: {self.safety.max_daily_trades}\n"
-        )
+        currency = self.quote_currency
+
+        lines = [
+            f"=== AltRang (알트랑) Config [{exchange_str}] ===",
+            f"DRY_RUN: {self.safety.dry_run}",
+            f"{api_str}",
+        ]
+
+        if not self.is_upbit:
+            lines.extend([
+                f"--- 펀딩비 수확 [{funding_status}] ---",
+                f"  Min Rate: {self.funding.min_funding_rate*100:.2f}%",
+                f"  Max Coins: {self.funding.max_coins}",
+                f"  Position: ${self.funding.position_size_usdt:,.0f}",
+                f"  Budget: ${self.funding.max_total_usdt:,.0f}",
+            ])
+
+        lines.extend([
+            f"--- 알트코인 로테이션 ---",
+            f"  Universe: {self.rotation.universe_size}개",
+            f"  Top N: {self.rotation.top_n}",
+            f"  Interval: {self.rotation.rotation_interval_min}분",
+            f"  Position: {self.rotation.position_size_usdt:,.0f} {currency}",
+            f"  Budget: {self.rotation.max_total_usdt:,.0f} {currency}",
+            f"  SL: {self.rotation.stop_loss_pct}% / TP: {self.rotation.take_profit_pct}%",
+            f"--- 안전장치 ---",
+            f"  Daily Trades: {self.safety.max_daily_trades}",
+        ])
+
+        if not self.is_upbit:
+            lines.append(f"  BNB Fee: {self.safety.use_bnb_fee}")
+
+        return "\n".join(lines) + "\n"

@@ -509,47 +509,64 @@ class UniverseScanner:
 
 
 class MultiCoinFeeder:
-    """통합 데이터 피더: REST 스캔 + kline 심화 분석"""
+    """통합 데이터 피더: 거래소 어댑터 위임 + kline 심화 분석"""
 
-    def __init__(self, config: AltrangConfig):
+    def __init__(self, config: AltrangConfig, adapter=None):
         self.config = config
-        self.scanner = UniverseScanner(config)
+        # adapter가 주어지면 어댑터 모드, 없으면 레거시 UniverseScanner
+        self._adapter = adapter
+        self.scanner = None if adapter else UniverseScanner(config)
         self._data: dict[str, CoinData] = {}
         self._running = False
         self._scan_interval = 120  # 2분마다 스캔
+        self._last_scan_time: float = 0.0
 
     async def start(self):
-        await self.scanner.start()
+        if self._adapter:
+            await self._adapter.start()
+        elif self.scanner:
+            await self.scanner.start()
         self._running = True
         logger.info("MultiCoinFeeder 시작")
 
     async def stop(self):
         self._running = False
-        await self.scanner.close()
+        if self._adapter:
+            pass  # adapter의 close는 main에서 관리
+        elif self.scanner:
+            await self.scanner.close()
         logger.info("MultiCoinFeeder 정지")
 
     async def scan_universe(self) -> dict[str, CoinData]:
-        """유니버스 스캔 실행 (외부에서 호출)"""
-        self._data = await self.scanner.scan()
+        """유니버스 스캔 실행"""
+        if self._adapter:
+            self._data = await self._adapter.scan_universe()
+            self._last_scan_time = time.time()
+        elif self.scanner:
+            self._data = await self.scanner.scan()
         return self._data
 
     async def enrich_rotation_candidates(self, top_n: int = 50) -> dict[str, CoinData]:
-        """로테이션 후보 코인에 kline 심화 분석 적용.
-
-        4시간마다 로테이션 시점에만 호출됨. 매 틱 호출 아님.
-        """
-        return await self.scanner.enrich_candidates(self._data, top_n)
+        """로테이션 후보 코인에 kline 심화 분석 적용."""
+        if self._adapter:
+            return await self._adapter.enrich_candidates(self._data, top_n)
+        elif self.scanner:
+            return await self.scanner.enrich_candidates(self._data, top_n)
+        return self._data
 
     async def enrich_funding_candidates(
         self, top_n: int = 15, history_lookback: int = 21
     ) -> dict[str, CoinData]:
-        """펀딩비 후보 코인에 과거 펀딩비 히스토리 추가.
-
-        리밸런스 시점에만 호출됨 (2시간마다).
-        """
-        return await self.scanner.enrich_funding_candidates(
-            self._data, top_n, history_lookback
-        )
+        """펀딩비 후보 코인에 과거 펀딩비 히스토리 추가."""
+        if self._adapter:
+            return await self._adapter.enrich_funding_candidates(
+                self._data, top_n, history_lookback
+            )
+        elif self.scanner:
+            return await self.scanner.enrich_funding_candidates(
+                self._data, top_n, history_lookback
+            )
+        return self._data
 
     async def wait_ready(self, timeout: float = 30) -> bool:
         """초기 데이터 준비 대기"""
@@ -570,4 +587,8 @@ class MultiCoinFeeder:
         return self._data
 
     def needs_scan(self) -> bool:
-        return time.time() - self.scanner.last_scan_time > self._scan_interval
+        if self._adapter:
+            return time.time() - self._last_scan_time > self._scan_interval
+        elif self.scanner:
+            return time.time() - self.scanner.last_scan_time > self._scan_interval
+        return False

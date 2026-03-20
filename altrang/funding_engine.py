@@ -15,7 +15,7 @@ import time
 from altrang.config import AltrangConfig
 from altrang.coin_selector import CoinSelector, CoinScore
 from altrang.data_feeder import MultiCoinFeeder
-from altrang.execution import BinanceExecutor
+from altrang.exchange_base import ExchangeAdapter
 from altrang.risk_manager import RiskManager
 from altrang.state import BotState, CoinPosition, save_state
 
@@ -34,7 +34,7 @@ class FundingEngine:
         config: AltrangConfig,
         state: BotState,
         feeder: MultiCoinFeeder,
-        executor: BinanceExecutor,
+        executor: ExchangeAdapter,
         selector: CoinSelector,
         risk: RiskManager,
     ):

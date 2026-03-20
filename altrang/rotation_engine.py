@@ -15,7 +15,7 @@ import time
 from altrang.config import AltrangConfig
 from altrang.coin_selector import CoinSelector
 from altrang.data_feeder import MultiCoinFeeder
-from altrang.execution import BinanceExecutor
+from altrang.exchange_base import ExchangeAdapter
 from altrang.risk_manager import RiskManager
 from altrang.state import BotState, CoinPosition, save_state
 
@@ -50,7 +50,7 @@ class RotationEngine:
         config: AltrangConfig,
         state: BotState,
         feeder: MultiCoinFeeder,
-        executor: BinanceExecutor,
+        executor: ExchangeAdapter,
         selector: CoinSelector,
         risk: RiskManager,
     ):
@@ -331,7 +331,7 @@ class RotationEngine:
             # 점수 50=0.8x, 70=1.0x, 90=1.2x (선형 보간)
             score_multiplier = max(0.8, min(1.2, 0.6 + coin_score.score / 150))
             size = round(per_coin_budget * score_multiplier, 2)
-            size = max(12.0, size)  # Binance 최소 주문 $10+
+            size = max(self.config.min_order_amount, size)
 
             ok, reason = self.risk.check_entry("rotation", coin_score.symbol, size)
             if not ok:
