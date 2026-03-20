@@ -423,6 +423,12 @@ class ExternalDataAgent:
         except Exception as e:
             logging.warning(f"external_signal_log DB 저장 중 예외: {e}")
 
+        # 뉴스랑(NewsRang) 시그널 DB 기록
+        try:
+            self._save_newsrang_to_db(collected, external_signal)
+        except Exception as e:
+            logging.warning(f"newsrang_signals DB 저장 중 예외: {e}")
+
         return collected
 
     def _calculate_fusion(self, results: dict) -> dict:
@@ -850,6 +856,91 @@ class ExternalDataAgent:
                 logging.warning(f"external_signal_log 저장 실패: {resp.status_code} {resp.text[:200]}")
         except Exception as e:
             logging.warning(f"external_signal_log 저장 오류: {e}")
+
+    def _save_newsrang_to_db(self, results: dict, external_signal: dict) -> None:
+        """뉴스랑(NewsRang) 수집 결과를 newsrang_signals 테이블에 저장한다."""
+        from utils.machine import get_machine_name
+        url = os.getenv("SUPABASE_URL", "")
+        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+        if not url or not key:
+            return
+
+        sources = results.get("sources", {})
+        extra = external_signal.get("extra_components", {})
+
+        # RSS
+        rss = sources.get("rss_news", {}) or {}
+        rss_sent = rss.get("sentiment", {})
+        rss_crypto = rss_sent.get("crypto", {})
+        rss_macro = rss_sent.get("macro", {})
+        rss_top = rss_crypto.get("key_signals", [])[:10] + rss_macro.get("key_signals", [])[:5]
+
+        # X
+        x = sources.get("x_signals", {}) or {}
+        x_sig = x.get("signal", {}) if isinstance(x.get("signal"), dict) else {}
+        x_tweets_raw = x.get("tweets", [])[:10] if isinstance(x.get("tweets"), list) else []
+        x_top = [{"account": t.get("account", ""), "text": t.get("text", "")[:200],
+                  "sentiment": t.get("sentiment", {}).get("label", "")} for t in x_tweets_raw]
+
+        # Social
+        social = sources.get("social_sentiment", {}) or {}
+        social_sig = social.get("signal", {}) if isinstance(social.get("signal"), dict) else {}
+        social_sources_data = social.get("sources", {})
+
+        row = {
+            "machine_name": get_machine_name(),
+            "collection_time_sec": results.get("collection_time", None),
+            "total_articles": rss.get("total_articles", 0),
+            # RSS
+            "rss_crypto_score": rss_crypto.get("sentiment_score", None),
+            "rss_macro_score": rss_macro.get("sentiment_score", None),
+            "rss_combined_score": rss_sent.get("combined_score", None),
+            "rss_article_count": rss.get("total_articles", 0),
+            "rss_feed_errors": rss.get("errors", []) or [],
+            # X
+            "x_score": x_sig.get("score", None),
+            "x_signal": x_sig.get("signal", "no_data"),
+            "x_tweet_count": x_sig.get("tweet_count", 0),
+            "x_bullish_count": x_sig.get("bullish_count", 0),
+            "x_bearish_count": x_sig.get("bearish_count", 0),
+            "x_whale_summary": json.dumps(x_sig.get("whale_summary"), ensure_ascii=False) if x_sig.get("whale_summary") else None,
+            # Social
+            "social_score": social_sig.get("total_score", None),
+            "social_signal": social_sig.get("signal", None),
+            "social_sources": social_sig.get("sources_available", 0),
+            "social_components": json.dumps(social_sig.get("components"), ensure_ascii=False) if social_sig.get("components") else None,
+            # Fusion 점수
+            "fusion_total_score": external_signal.get("total_score", None),
+            "fusion_rss_adj": extra.get("rss_news", {}).get("score", 0),
+            "fusion_x_adj": extra.get("x_signals", {}).get("score", 0),
+            "fusion_social_adj": extra.get("social_sentiment", {}).get("score", 0),
+            # 원본
+            "rss_top_signals": json.dumps(rss_top, ensure_ascii=False) if rss_top else None,
+            "x_top_tweets": json.dumps(x_top, ensure_ascii=False) if x_top else None,
+            "social_raw": json.dumps(social_sources_data, ensure_ascii=False) if social_sources_data else None,
+        }
+
+        # None 제거
+        row = {k: v for k, v in row.items() if v is not None}
+
+        try:
+            resp = requests.post(
+                f"{url}/rest/v1/newsrang_signals",
+                json=row,
+                headers={
+                    "apikey": key,
+                    "Authorization": f"Bearer {key}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                timeout=10,
+            )
+            if resp.status_code in (200, 201):
+                logging.info("newsrang_signals 저장 완료")
+            else:
+                logging.warning(f"newsrang_signals 저장 실패: {resp.status_code} {resp.text[:200]}")
+        except Exception as e:
+            logging.warning(f"newsrang_signals 저장 오류: {e}")
 
     def get_fgi_value(self, results: dict) -> int:
         fg = results.get("sources", {}).get("fear_greed", {})
