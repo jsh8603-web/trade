@@ -202,6 +202,9 @@ class KimchirangBot:
         self._running = False
         self._tick_count = 0
         self._consecutive_errors = 0
+        # 뉴스랑(NewsRang) 시그널
+        self._newsrang: dict = {}
+        self._newsrang_update: float = 0
 
     async def run(self):
         """메인 실행"""
@@ -411,8 +414,43 @@ class KimchirangBot:
                 except Exception as e:
                     logger.warning(f"손절 DB 기록 실패 (무시): {e}")
 
+    def _update_newsrang(self):
+        """5분마다 뉴스랑 시그널 업데이트"""
+        import time as _time
+        now = _time.time()
+        if now - self._newsrang_update < 300:
+            return
+        self._newsrang_update = now
+        try:
+            from utils.newsrang_reader import get_newsrang_signal
+            self._newsrang = get_newsrang_signal()
+            nr = self._newsrang
+            if nr.get("fresh") and nr.get("source") != "empty":
+                logger.info(
+                    f"뉴스랑: score={nr['score']}, RSS={nr['rss']}, "
+                    f"X={nr['x']}, 소셜={nr['social']}, signal={nr['signal']}"
+                )
+        except Exception as e:
+            logger.debug(f"뉴스랑 업데이트 실패: {e}")
+
     def _decide_action(self, snapshot) -> int:
-        """RL + 규칙 기반 하이브리드 결정"""
+        """RL + 규칙 기반 + 뉴스랑 하이브리드 결정"""
+        # 뉴스랑 업데이트 (5분마다)
+        self._update_newsrang()
+
+        # 뉴스랑 강한 약세 시 진입 차단 (전쟁/대형 악재)
+        nr = self._newsrang
+        if nr and nr.get("fresh") and nr.get("score", 0) <= -20:
+            if not self.executor.position.is_open:
+                return ACTION_HOLD  # 진입 차단
+            # 보유 중이면 청산 촉진 (임계값 완화)
+
+        # 뉴스랑 강한 약세 + 보유 중이면 조기 청산
+        if (nr and nr.get("fresh") and nr.get("score", 0) <= -30
+                and self.executor.position.is_open):
+            logger.warning(f"뉴스랑 강한 약세(score {nr['score']}) — 포지션 조기 청산")
+            return ACTION_EXIT
+
         # RL 에이전트 사용 가능하면 RL 우선
         if self.rl_bridge.is_available:
             state = self.engine.build_rl_state()

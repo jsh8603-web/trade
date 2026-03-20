@@ -400,6 +400,10 @@ class ShortTermTrader:
         self._trade_counter: int = 0  # 세션 내 거래 번호
         self._last_snapshot_time: float = 0
 
+        # 뉴스랑(NewsRang) 시그널 캐시
+        self._newsrang: dict = {}
+        self._newsrang_update: float = 0
+
         # 로그 노이즈 방지
         self._last_block_reason: set = set()
 
@@ -467,6 +471,21 @@ class ShortTermTrader:
 
         except Exception as e:
             log.debug(f"시장 컨텍스트 업데이트 실패: {e}")
+
+        # 뉴스랑(NewsRang) 시그널 업데이트
+        try:
+            from utils.newsrang_reader import get_newsrang_signal
+            self._newsrang = get_newsrang_signal()
+            self._newsrang_update = now
+            nr = self._newsrang
+            if nr.get("fresh") and nr.get("source") != "empty":
+                log.info(
+                    f"뉴스랑 시그널: score={nr['score']}, RSS={nr['rss']}, "
+                    f"X={nr['x']}, 소셜={nr['social']}, "
+                    f"signal={nr['signal']}, age={nr['age_min']:.0f}min"
+                )
+        except Exception as e:
+            log.debug(f"뉴스랑 업데이트 실패: {e}")
 
     def record_market_snapshot(self):
         """5분마다 시장 스냅샷을 DB에 기록 (ML 학습용)"""
@@ -565,7 +584,20 @@ class ShortTermTrader:
         if self._market_trend == "downtrend" and self._rsi < 35:
             return False, f"하락추세 + RSI {self._rsi:.0f} 과매도 접근 -- 매수 차단"
 
-        # v5 필터 6: 모멘텀 확인 — 최근 60초 가격이 상승 중이어야 진입
+        # 필터 6: 뉴스랑 강한 약세 시 매수 차단 (전쟁/대형 악재)
+        nr = self._newsrang
+        if nr and nr.get("fresh"):
+            nr_score = nr.get("score", 0)
+            if nr_score <= -20:
+                return False, f"뉴스랑 강한 약세(score {nr_score}) 매수 차단"
+            # 고래 알림 매도 압력 시 whale 전략 차단
+            whale_a = nr.get("whale_alert")
+            if (whale_a and whale_a.get("net_direction") == "sell"
+                    and whale_a.get("total_alerts", 0) >= 2
+                    and signal.strategy == "whale"):
+                return False, f"뉴스랑 X고래알림 매도압력 — whale 매수 차단"
+
+        # v5 필터 7: 모멘텀 확인 — 최근 60초 가격이 상승 중이어야 진입
         if len(self.price_history) >= 10:
             now_t = time.time()
             cutoff = now_t - MOMENTUM_WINDOW_SEC
@@ -950,12 +982,30 @@ class ShortTermTrader:
 
         # 강한 부정 뉴스일 때만 매도 시그널 (보유 포지션 보호)
         if self.news_sentiment_score <= -0.5:
+            reason = f"뉴스 강한 부정 (score: {self.news_sentiment_score:+.2f})"
+            conf = min(abs(self.news_sentiment_score), 1.0)
+            # 뉴스랑 약세가 겹치면 confidence 보강
+            nr = self._newsrang
+            if nr and nr.get("fresh") and nr.get("score", 0) <= -10:
+                conf = min(conf + 0.15, 1.0)
+                reason += f" + 뉴스랑 약세({nr['score']})"
             return TradeSignal(
                 strategy="news",
                 action="sell",
-                confidence=min(abs(self.news_sentiment_score), 1.0),
-                reason=f"뉴스 강한 부정 (score: {self.news_sentiment_score:+.2f})",
+                confidence=conf,
+                reason=reason,
             )
+
+        # 뉴스랑 단독 매도 시그널: RSS 자체 감성은 약하지만 뉴스랑 종합이 매우 약세
+        nr = self._newsrang
+        if nr and nr.get("fresh") and nr.get("score", 0) <= -30:
+            return TradeSignal(
+                strategy="news",
+                action="sell",
+                confidence=0.6,
+                reason=f"뉴스랑 강한 약세(score {nr['score']}) — 보유 포지션 보호",
+            )
+
         return None
 
     # ── 전략 2: 급등/급락 리바운드 ────────────────────
@@ -1604,6 +1654,10 @@ class ShortTermTrader:
                         best_buy = max(buy_signals, key=lambda s: s.confidence)
                         # v5: 뉴스 긍정일 때 confidence 보너스 (다른 전략 강화)
                         if self.news_sentiment_score >= 0.3 and best_buy.strategy != "news":
+                            best_buy.confidence = min(best_buy.confidence + 0.1, 1.0)
+                        # 뉴스랑 강세일 때 추가 보너스
+                        nr = self._newsrang
+                        if nr and nr.get("fresh") and nr.get("score", 0) >= 15:
                             best_buy.confidence = min(best_buy.confidence + 0.1, 1.0)
                         if best_buy.confidence >= 0.5:  # 최소 신뢰도 50%
                             self.execute_entry(best_buy)
