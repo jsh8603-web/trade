@@ -1,4 +1,4 @@
-"""SeonbiRang State -- 멀티코인 포지션 상태 영속화"""
+"""AltRang State -- 멀티코인 포지션 상태 영속화"""
 
 import json
 import logging
@@ -7,10 +7,10 @@ import time
 from dataclasses import dataclass, field, asdict
 from typing import Optional
 
-logger = logging.getLogger("seonbirang.state")
+logger = logging.getLogger("altrang.state")
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STATE_FILE = os.path.join(PROJECT_DIR, "data", "seonbirang_state.json")
+STATE_FILE = os.path.join(PROJECT_DIR, "data", "altrang_state.json")
 
 
 @dataclass

@@ -1,18 +1,18 @@
-"""SeonbiRang Risk Manager -- 중앙 리스크 관리"""
+"""AltRang Risk Manager -- 중앙 리스크 관리"""
 
 import logging
 import time
 
-from seonbirang.config import SeonbirangConfig
-from seonbirang.state import BotState
+from altrang.config import AltrangConfig
+from altrang.state import BotState
 
-logger = logging.getLogger("seonbirang.risk")
+logger = logging.getLogger("altrang.risk")
 
 
 class RiskManager:
     """양 전략 통합 리스크 관리"""
 
-    def __init__(self, config: SeonbirangConfig, state: BotState):
+    def __init__(self, config: AltrangConfig, state: BotState):
         self.config = config
         self.state = state
 

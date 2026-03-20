@@ -1,8 +1,8 @@
 """AltRang (알트랑) -- 알트코인 모멘텀 로테이션 전용 봇
 
 실행:
-  python -m seonbirang.main              # 기본 (DRY_RUN=true)
-  SB_DRY_RUN=false python -m seonbirang.main  # 실매매
+  python -m altrang.main              # 기본 (DRY_RUN=true)
+  SB_DRY_RUN=false python -m altrang.main  # 실매매
 
 전략:
   - 5팩터 스코어링으로 상위 20개 알트코인 선별
@@ -22,18 +22,18 @@ PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_DIR not in sys.path:
     sys.path.insert(0, PROJECT_DIR)
 
-from seonbirang.config import SeonbirangConfig
-from seonbirang.state import BotState, load_state, save_state
-from seonbirang.data_feeder import MultiCoinFeeder
-from seonbirang.coin_selector import CoinSelector
-from seonbirang.execution import BinanceExecutor
-from seonbirang.risk_manager import RiskManager
-from seonbirang.funding_engine import FundingEngine
-from seonbirang.rotation_engine import RotationEngine
-from seonbirang.notifier import SeonbirangNotifier
-from seonbirang.db import SeonbirangDB
+from altrang.config import AltrangConfig
+from altrang.state import BotState, load_state, save_state
+from altrang.data_feeder import MultiCoinFeeder
+from altrang.coin_selector import CoinSelector
+from altrang.execution import BinanceExecutor
+from altrang.risk_manager import RiskManager
+from altrang.funding_engine import FundingEngine
+from altrang.rotation_engine import RotationEngine
+from altrang.notifier import AltrangNotifier
+from altrang.db import AltrangDB
 
-logger = logging.getLogger("seonbirang.main")
+logger = logging.getLogger("altrang.main")
 
 # 틱 간격 (초)
 TICK_INTERVAL = 60
@@ -43,13 +43,13 @@ STATUS_INTERVAL = 21600
 SNAPSHOT_INTERVAL = 21600
 
 
-class SeonbirangBot:
-    """선비랑 메인 봇 클래스"""
+class AltrangBot:
+    """알트랑 메인 봇 클래스"""
 
     MAX_CONSECUTIVE_ERRORS = 30
 
     def __init__(self):
-        self.config = SeonbirangConfig()
+        self.config = AltrangConfig()
         self.state = load_state()
         self.feeder = MultiCoinFeeder(self.config)
         self.selector = CoinSelector(self.config)
@@ -63,8 +63,8 @@ class SeonbirangBot:
             self.config, self.state, self.feeder,
             self.executor, self.selector, self.risk,
         )
-        self.notifier = SeonbirangNotifier()
-        self.db = SeonbirangDB(self.config.db)
+        self.notifier = AltrangNotifier()
+        self.db = AltrangDB(self.config.db)
         self._running = False
         self._tick_count = 0
         self._consecutive_errors = 0
@@ -296,7 +296,7 @@ def main():
     setup_logging()
     logger.info("AltRang (알트랑) v0.2.0 시작")
 
-    bot = SeonbirangBot()
+    bot = AltrangBot()
 
     def handle_signal(*_):
         logger.info("종료 시그널 수신")

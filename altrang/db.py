@@ -1,4 +1,4 @@
-"""SeonbiRang DB -- Supabase REST API + 로컬 JSONL 이중 기록"""
+"""AltRang DB -- Supabase REST API + 로컬 JSONL 이중 기록"""
 
 import asyncio
 import json
@@ -10,15 +10,15 @@ from typing import Optional
 
 import requests
 
-from seonbirang.config import DBConfig
+from altrang.config import DBConfig
 
-logger = logging.getLogger("seonbirang.db")
+logger = logging.getLogger("altrang.db")
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOCAL_DATA_DIR = os.path.join(PROJECT_DIR, "data", "seonbirang")
+LOCAL_DATA_DIR = os.path.join(PROJECT_DIR, "data", "altrang")
 
 
-class SeonbirangDB:
+class AltrangDB:
     """Supabase + 로컬 JSONL 이중 기록"""
 
     def __init__(self, config: DBConfig):
@@ -84,7 +84,7 @@ class SeonbirangDB:
         }
         # None 값 제거 (Supabase에서 타입 에러 방지)
         row = {k: v for k, v in row.items() if v is not None}
-        await asyncio.to_thread(self._post, "seonbirang_trades", dict(row))
+        await asyncio.to_thread(self._post, "altrang_trades", dict(row))
         self._save_local("trades.jsonl", row)
 
     async def record_snapshot(
@@ -107,7 +107,7 @@ class SeonbirangDB:
             "total_funding_collected": funding_summary.get("total_funding_collected", 0),
             "total_unrealized_pnl": rotation_summary.get("total_unrealized_pnl", 0),
         }
-        await asyncio.to_thread(self._post, "seonbirang_snapshots", dict(row))
+        await asyncio.to_thread(self._post, "altrang_snapshots", dict(row))
         self._save_local("snapshots.jsonl", row)
 
     async def record_rankings(self, scan_type: str, rankings: list):
@@ -117,7 +117,7 @@ class SeonbirangDB:
             "rankings": json.dumps(rankings[:20], default=str),
             "universe_size": len(rankings),
         }
-        await asyncio.to_thread(self._post, "seonbirang_coin_rankings", dict(row))
+        await asyncio.to_thread(self._post, "altrang_coin_rankings", dict(row))
         self._save_local("rankings.jsonl", row)
 
     async def record_error(self, phase: str, error: str):

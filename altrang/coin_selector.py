@@ -1,4 +1,4 @@
-"""SeonbiRang Coin Selector -- 5팩터 코인 순위 산정 + 진입/청산 대상 선별
+"""AltRang Coin Selector -- 5팩터 코인 순위 산정 + 진입/청산 대상 선별
 
 5팩터 스코어링:
   1. 추세 일관성 (30%): 1h/4h/24h 다중 타임프레임 합의
@@ -11,10 +11,10 @@
 import logging
 from dataclasses import dataclass
 
-from seonbirang.config import SeonbirangConfig, COIN_BLACKLIST
-from seonbirang.data_feeder import CoinData
+from altrang.config import AltrangConfig, COIN_BLACKLIST
+from altrang.data_feeder import CoinData
 
-logger = logging.getLogger("seonbirang.selector")
+logger = logging.getLogger("altrang.selector")
 
 
 @dataclass
@@ -37,7 +37,7 @@ class CoinScore:
 class CoinSelector:
     """코인 스크리닝 및 순위 산정"""
 
-    def __init__(self, config: SeonbirangConfig):
+    def __init__(self, config: AltrangConfig):
         self.config = config
 
     def rank_by_funding(self, data: dict[str, CoinData]) -> list[CoinScore]:

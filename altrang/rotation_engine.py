@@ -1,4 +1,4 @@
-"""SeonbiRang Rotation Engine -- 알트코인 모멘텀 로테이션 (고도화)
+"""AltRang Rotation Engine -- 알트코인 모멘텀 로테이션 (고도화)
 
 개선 사항 (freqtrade/passivbot 참고):
   1. 트레일링 스탑 (단계별): 수익 구간별 스탑 자동 상향
@@ -12,14 +12,14 @@
 import logging
 import time
 
-from seonbirang.config import SeonbirangConfig
-from seonbirang.coin_selector import CoinSelector
-from seonbirang.data_feeder import MultiCoinFeeder
-from seonbirang.execution import BinanceExecutor
-from seonbirang.risk_manager import RiskManager
-from seonbirang.state import BotState, CoinPosition, save_state
+from altrang.config import AltrangConfig
+from altrang.coin_selector import CoinSelector
+from altrang.data_feeder import MultiCoinFeeder
+from altrang.execution import BinanceExecutor
+from altrang.risk_manager import RiskManager
+from altrang.state import BotState, CoinPosition, save_state
 
-logger = logging.getLogger("seonbirang.rotation")
+logger = logging.getLogger("altrang.rotation")
 
 # 트레일링 스탑 단계 설정
 # (최소 수익률, 트레일 비율) — 수익이 높을수록 스탑을 좁혀서 보호
@@ -47,7 +47,7 @@ class RotationEngine:
 
     def __init__(
         self,
-        config: SeonbirangConfig,
+        config: AltrangConfig,
         state: BotState,
         feeder: MultiCoinFeeder,
         executor: BinanceExecutor,

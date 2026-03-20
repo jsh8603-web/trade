@@ -1,4 +1,4 @@
-"""SeonbiRang Funding Engine -- 펀딩비 수확 (델타뉴트럴) 고도화
+"""AltRang Funding Engine -- 펀딩비 수확 (델타뉴트럴) 고도화
 
 전략 (소수 정예, 장기 보유):
   1. 4팩터 스코어링: 현재 펀딩비 × 7일 안정성 × 유동성 × 스프레드
@@ -12,14 +12,14 @@
 import logging
 import time
 
-from seonbirang.config import SeonbirangConfig
-from seonbirang.coin_selector import CoinSelector, CoinScore
-from seonbirang.data_feeder import MultiCoinFeeder
-from seonbirang.execution import BinanceExecutor
-from seonbirang.risk_manager import RiskManager
-from seonbirang.state import BotState, CoinPosition, save_state
+from altrang.config import AltrangConfig
+from altrang.coin_selector import CoinSelector, CoinScore
+from altrang.data_feeder import MultiCoinFeeder
+from altrang.execution import BinanceExecutor
+from altrang.risk_manager import RiskManager
+from altrang.state import BotState, CoinPosition, save_state
 
-logger = logging.getLogger("seonbirang.funding")
+logger = logging.getLogger("altrang.funding")
 
 # 펀딩 지급 주기 (8시간)
 FUNDING_INTERVAL_HOURS = 8
@@ -31,7 +31,7 @@ class FundingEngine:
 
     def __init__(
         self,
-        config: SeonbirangConfig,
+        config: AltrangConfig,
         state: BotState,
         feeder: MultiCoinFeeder,
         executor: BinanceExecutor,

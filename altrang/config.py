@@ -1,4 +1,4 @@
-"""SeonbiRang 설정 -- 환경변수 + 시스템 파라미터
+"""AltRang 설정 -- 환경변수 + 시스템 파라미터
 
 모든 API 키는 .env에서 로드한다. 직접 하드코딩 금지.
 """
@@ -139,7 +139,7 @@ COIN_BLACKLIST = {
 }
 
 
-class SeonbirangConfig:
+class AltrangConfig:
     """전체 설정 컨테이너"""
 
     def __init__(self):

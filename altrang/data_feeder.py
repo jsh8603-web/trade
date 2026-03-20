@@ -1,4 +1,4 @@
-"""SeonbiRang Data Feeder -- 멀티코인 시장 데이터 수집
+"""AltRang Data Feeder -- 멀티코인 시장 데이터 수집
 
 REST 폴링으로 전체 코인 유니버스를 스캔하고,
 kline 심화 분석으로 기술적 지표(RSI/BB/상관도)를 산출한다.
@@ -13,9 +13,9 @@ from typing import Optional
 
 import aiohttp
 
-from seonbirang.config import SeonbirangConfig, COIN_BLACKLIST
+from altrang.config import AltrangConfig, COIN_BLACKLIST
 
-logger = logging.getLogger("seonbirang.feeder")
+logger = logging.getLogger("altrang.feeder")
 
 
 @dataclass
@@ -56,7 +56,7 @@ class UniverseScanner:
     API 2~3회 호출로 모든 코인 데이터를 수집한다.
     """
 
-    def __init__(self, config: SeonbirangConfig):
+    def __init__(self, config: AltrangConfig):
         self.config = config
         self._session: Optional[aiohttp.ClientSession] = None
         self._last_scan: dict[str, CoinData] = {}
@@ -511,7 +511,7 @@ class UniverseScanner:
 class MultiCoinFeeder:
     """통합 데이터 피더: REST 스캔 + kline 심화 분석"""
 
-    def __init__(self, config: SeonbirangConfig):
+    def __init__(self, config: AltrangConfig):
         self.config = config
         self.scanner = UniverseScanner(config)
         self._data: dict[str, CoinData] = {}

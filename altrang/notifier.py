@@ -1,4 +1,4 @@
-"""SeonbiRang Notifier -- 텔레그램 알림"""
+"""AltRang Notifier -- 텔레그램 알림"""
 
 import asyncio
 import logging
@@ -6,15 +6,15 @@ import os
 import sys
 import time
 
-logger = logging.getLogger("seonbirang.notifier")
+logger = logging.getLogger("altrang.notifier")
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_DIR not in sys.path:
     sys.path.insert(0, PROJECT_DIR)
 
 
-class SeonbirangNotifier:
-    """선비랑 전용 텔레그램 알림"""
+class AltrangNotifier:
+    """알트랑 전용 텔레그램 알림"""
 
     MIN_SEND_INTERVAL = 1.0
     MAX_RETRIES = 3
@@ -57,7 +57,7 @@ class SeonbirangNotifier:
         emoji = {"funding": "💰", "rotation": "🔄"}.get(strategy, "📊")
         status = "✅" if success else "❌"
 
-        title = f"{emoji} 선비랑 {strategy} | {act}"
+        title = f"{emoji} 알트랑 {strategy} | {act}"
 
         lines = [f"{status} {symbol}"]
         if "funding_rate" in action:
@@ -140,12 +140,12 @@ class SeonbirangNotifier:
             for c in top_momentum[:3]:
                 lines.append(f"  {c.symbol}: {c.reason}")
 
-        await self._send("status", "📊 선비랑 2시간 리포트", "\n".join(lines))
+        await self._send("status", "📊 알트랑 2시간 리포트", "\n".join(lines))
 
     async def notify_error(self, phase: str, error: str):
         """에러 알림"""
-        await self._send("error", "⚠️ 선비랑 오류", f"Phase: {phase}\n{error[:300]}")
+        await self._send("error", "⚠️ 알트랑 오류", f"Phase: {phase}\n{error[:300]}")
 
     async def notify_startup(self, config_summary: str):
         """시작 알림"""
-        await self._send("status", "🚀 선비랑 시작", config_summary[:500])
+        await self._send("status", "🚀 알트랑 시작", config_summary[:500])

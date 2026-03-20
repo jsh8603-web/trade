@@ -1,4 +1,4 @@
-"""SeonbiRang Execution -- Binance Spot + Futures 주문 실행
+"""AltRang Execution -- Binance Spot + Futures 주문 실행
 
 핵심 원칙:
   1. 헤지 진입: Spot Buy + Futures Short을 asyncio.gather()로 동시 실행
@@ -18,9 +18,9 @@ from typing import Optional
 
 import aiohttp
 
-from seonbirang.config import SeonbirangConfig
+from altrang.config import AltrangConfig
 
-logger = logging.getLogger("seonbirang.execution")
+logger = logging.getLogger("altrang.execution")
 
 _NON_RETRYABLE_STATUS = {400, 401, 403, 404, 422}
 
@@ -61,7 +61,7 @@ class HedgedResult:
 class BinanceExecutor:
     """Binance 주문 실행기 (현물 + 선물)"""
 
-    def __init__(self, config: SeonbirangConfig):
+    def __init__(self, config: AltrangConfig):
         self.config = config
         self._session: Optional[aiohttp.ClientSession] = None
         self._server_time_offset: int = 0
