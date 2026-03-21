@@ -28,7 +28,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 # ── RAG 임베딩 ──────────────────────────────────────────────────────────────
 
 def generate_state_embedding(market_data: dict) -> tuple[str, list] | tuple[None, None]:
-    """시장 상태를 영문 텍스트로 요약하고 OpenAI 임베딩 벡터를 생성한다.
+    """시장 상태를 영문 텍스트로 요약하고 Gemini 임베딩 벡터(3072d)를 생성한다.
 
     Args:
         market_data: current_price, rsi_14, fear_greed_value, sma_20,
@@ -42,13 +42,14 @@ def generate_state_embedding(market_data: dict) -> tuple[str, list] | tuple[None
         if not text:
             return None, None
 
-        from openai import OpenAI
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        resp = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=text,
+        import google.generativeai as genai
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        result = genai.embed_content(
+            model="models/gemini-embedding-001",
+            content=text,
+            task_type="retrieval_document",
         )
-        vector = resp.data[0].embedding
+        vector = result["embedding"]
         return text, vector
     except Exception as e:
         print(f"[save_decision] 임베딩 생성 실패: {e}", file=sys.stderr)
@@ -167,32 +168,57 @@ def build_embedding_text(market_data: dict) -> str:
     return " ".join(parts)
 
 
-def _update_embedding_via_sql(decision_id: str, embedding: list, embedding_text: str):
-    """psycopg2로 직접 SQL을 실행하여 벡터 임베딩을 업데이트한다.
+def _get_mgmt_token() -> str:
+    """macOS Keychain에서 Supabase Management API 토큰을 추출."""
+    import subprocess as sp
+    try:
+        raw = sp.check_output(
+            ["security", "find-generic-password", "-s", "Supabase CLI", "-a", "supabase", "-w"],
+            text=True, stderr=sp.DEVNULL,
+        ).strip()
+        if raw.startswith("go-keyring-base64:"):
+            import base64
+            return base64.b64decode(raw.split(":", 1)[1]).decode()
+        return raw
+    except Exception:
+        return ""
 
-    Supabase REST API가 pgvector 타입을 지원하지 않으므로 직접 DB 연결이 필요.
+
+def _update_embedding_via_sql(decision_id: str, embedding: list, embedding_text: str):
+    """Supabase Management API로 벡터 임베딩을 업데이트한다.
+
+    psycopg2 직접 연결은 dotted username 문제로 항상 실패하므로 Management API 사용.
     """
-    db_url = os.getenv("SUPABASE_DB_URL")
-    if not db_url:
-        print("[save_decision] SUPABASE_DB_URL 미설정 -- 임베딩 저장 건너뜀", file=sys.stderr)
+    token = _get_mgmt_token()
+    if not token:
+        print("[save_decision] Management API 토큰 추출 실패 -- 임베딩 저장 건너뜀", file=sys.stderr)
         return
 
-    import psycopg2
-    conn = None
+    ref = "REDACTED_PROJECT_REF"
+    vec_str = "[" + ",".join(str(v) for v in embedding) + "]"
+    # embedding_text 내 싱글쿼트 이스케이프
+    safe_text = embedding_text.replace("'", "''")
+    sql = (
+        f"UPDATE decisions SET state_embedding = '{vec_str}'::vector, "
+        f"embedding_text = '{safe_text}' WHERE id = '{decision_id}'"
+    )
+
     try:
-        conn = psycopg2.connect(db_url)
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE decisions SET state_embedding = %s::vector, embedding_text = %s WHERE id = %s",
-            (str(embedding), embedding_text, str(decision_id)),
+        r = requests.post(
+            f"https://api.supabase.com/v1/projects/{ref}/database/query",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
+            json={"query": sql},
+            timeout=30,
         )
-        conn.commit()
-        cur.close()
+        if r.ok:
+            print(f"[save_decision] 임베딩 저장 완료 (Management API)", file=sys.stderr)
+        else:
+            print(f"[save_decision] 임베딩 저장 실패 ({r.status_code}): {r.text[:200]}", file=sys.stderr)
     except Exception as e:
-        print(f"[save_decision] 임베딩 SQL 업데이트 실패: {e}", file=sys.stderr)
-    finally:
-        if conn:
-            conn.close()
+        print(f"[save_decision] 임베딩 저장 예외: {e}", file=sys.stderr)
 
 KST = timezone(timedelta(hours=9))
 

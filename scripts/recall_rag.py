@@ -76,15 +76,16 @@ def collect_current_market_data() -> dict:
 
 
 def get_embedding(text: str) -> list | None:
-    """OpenAI API로 텍스트 임베딩을 생성."""
+    """Gemini API로 텍스트 임베딩(3072d)을 생성."""
     try:
-        from openai import OpenAI
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        resp = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=text,
+        import google.generativeai as genai
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        result = genai.embed_content(
+            model="models/gemini-embedding-001",
+            content=text,
+            task_type="retrieval_query",
         )
-        return resp.data[0].embedding
+        return result["embedding"]
     except Exception as e:
         print(f"[recall_rag] 임베딩 생성 실패: {e}", file=sys.stderr)
         return None

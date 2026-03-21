@@ -232,7 +232,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
 def db_insert(table: str, data: dict):
-    """Supabase REST API로 데이터 삽입 (실패해도 봇에 영향 없음, 에러 로깅)"""
+    """Supabase REST API로 데이터 삽입 + decisions이면 임베딩 자동 생성"""
     _log = logging.getLogger("short_term")
     from utils.machine import skip_trade_db, get_machine_name
     if skip_trade_db(table):
@@ -251,7 +251,7 @@ def db_insert(table: str, data: dict):
                 "apikey": SUPABASE_KEY,
                 "Authorization": f"Bearer {SUPABASE_KEY}",
                 "Content-Type": "application/json",
-                "Prefer": "return=minimal",
+                "Prefer": "return=representation",
             },
             timeout=5,
         )
@@ -259,11 +259,39 @@ def db_insert(table: str, data: dict):
             _log.warning(
                 f"[DB] {table} 삽입 실패 ({resp.status_code}): {resp.text[:300]}"
             )
+        elif table == "decisions":
+            # 임베딩 자동 생성
+            try:
+                rows = resp.json()
+                decision_id = rows[0]["id"] if rows else None
+                if decision_id:
+                    _generate_and_save_embedding(decision_id, data, _log)
+            except Exception as emb_err:
+                _log.warning(f"[DB] 임베딩 생성 실패 (봇 영향 없음): {emb_err}")
         # 로컬 백업 — 모든 중요 테이블 (DB 실패해도 기록 유지)
         _backup_to_local(table, data)
     except Exception as e:
         _log.warning(f"[DB] {table} 예외: {e}")
         _backup_to_local(table, data)
+
+
+def _generate_and_save_embedding(decision_id: str, data: dict, _log):
+    """decisions 저장 후 Gemini 임베딩을 생성하여 Management API로 업데이트."""
+    try:
+        from scripts.save_decision import build_embedding_text, generate_state_embedding
+        from scripts.save_decision import _update_embedding_via_sql
+
+        emb_data = {
+            "current_price": data.get("current_price"),
+            "rsi_14": data.get("rsi_value"),
+            "fear_greed_value": data.get("fear_greed_value"),
+            "sma_20": data.get("sma20_price"),
+        }
+        emb_text, emb_vector = generate_state_embedding(emb_data)
+        if emb_text and emb_vector:
+            _update_embedding_via_sql(decision_id, emb_vector, emb_text)
+    except Exception as e:
+        _log.warning(f"[DB] 임베딩 저장 실패: {e}")
 
 
 def _backup_to_local(table: str, data: dict):
