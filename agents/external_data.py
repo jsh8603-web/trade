@@ -414,7 +414,11 @@ class ExternalDataAgent:
             "sources": results,
             "external_signal": external_signal,
             "errors": [name for name, d in results.items()
-                       if isinstance(d, dict) and "error" in d],
+                       if isinstance(d, dict) and "error" in d
+                       and name not in ("nvt",)],  # nvt는 optional — 에러 목록 제외
+            "warnings": [name for name, d in results.items()
+                         if isinstance(d, dict) and "error" in d
+                         and name in ("nvt",)],
         }
 
         # DB에 외부 시그널 기록

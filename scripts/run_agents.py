@@ -365,7 +365,7 @@ async def run_script(script_name: str) -> dict:
             log(f"스크립트 {script_name} 실패: {stderr.decode('utf-8', errors='ignore')}")
             return {"error": f"{script_name} 실패: {proc.returncode}"}
         
-        return json.loads(stdout.decode('utf-8'))
+        return json.loads(stdout.decode('utf-8', errors='replace'))
     except Exception as e:
         log(f"스크립트 {script_name} 실행 중 예외: {e}")
         return {"error": str(e)}
@@ -859,7 +859,7 @@ def main():
     log("Phase 4: 텔레그램 알림...")
     buy_score = output["decision"].get("buy_score", {}).get("total", "N/A")
     confidence = round(output["decision"].get("confidence", 0) * 100)
-    current_price = market_data.get("ticker", {}).get("trade_price", 0)
+    current_price = market_data.get("current_price") or market_data.get("ticker", {}).get("trade_price", 0)
     fgi = market_data.get("fear_greed", {}).get("value", "N/A")
     krw_bal = float(portfolio.get("krw", {}).get("balance", 0))
     btc_bal = float(portfolio.get("btc", {}).get("balance", 0))
@@ -937,7 +937,7 @@ def main():
                 "decision": DECISION_MAP.get(decision, decision),
                 "confidence": round(confidence_val, 2),
                 "reason": " | ".join(reason_parts),
-                "current_price": int(market_data.get("ticker", {}).get("trade_price", 0)) or None,
+                "current_price": int(market_data.get("current_price") or market_data.get("ticker", {}).get("trade_price", 0) or 0) or None,
                 "rsi_value": market_data.get("indicators", {}).get("rsi_14"),
                 "fear_greed_value": market_data.get("fear_greed", {}).get("value"),
                 "sma20_price": int(market_data.get("indicators", {}).get("sma_20")) if market_data.get("indicators", {}).get("sma_20") else None,
@@ -982,8 +982,8 @@ def main():
                     if emb_decision_id:
                         from scripts.save_decision import generate_state_embedding, _update_embedding_via_sql
                         emb_data = {
-                            "current_price": market_data.get("ticker", {}).get("trade_price"),
-                            "change_rate_24h": market_data.get("ticker", {}).get("signed_change_rate"),
+                            "current_price": market_data.get("current_price") or market_data.get("ticker", {}).get("trade_price"),
+                            "change_rate_24h": market_data.get("change_rate_24h") or market_data.get("ticker", {}).get("signed_change_rate"),
                             "rsi_14": market_data.get("indicators", {}).get("rsi_14"),
                             "sma_20": market_data.get("indicators", {}).get("sma_20"),
                             "fear_greed_value": market_data.get("fear_greed", {}).get("value"),
@@ -1007,7 +1007,7 @@ def main():
                             ensemble_action=round(rl_advisory.get("action", 0), 4),
                             ensemble_direction=rl_advisory.get("direction"),
                             num_models=rl_advisory.get("num_models", 0),
-                            btc_price=market_data.get("ticker", {}).get("trade_price"),
+                            btc_price=market_data.get("current_price") or market_data.get("ticker", {}).get("trade_price"),
                             rsi_14=market_data.get("indicators", {}).get("rsi_14"),
                             fgi=market_data.get("fear_greed", {}).get("value"),
                             danger_score=result.get("market_state", {}).get("danger_score"),
@@ -1094,8 +1094,8 @@ def main():
         try:
             from scripts.save_decision import generate_state_embedding
             emb_data = {
-                "current_price": market_data.get("ticker", {}).get("trade_price"),
-                "change_rate_24h": market_data.get("ticker", {}).get("signed_change_rate"),
+                "current_price": market_data.get("current_price") or market_data.get("ticker", {}).get("trade_price"),
+                "change_rate_24h": market_data.get("change_rate_24h") or market_data.get("ticker", {}).get("signed_change_rate"),
                 "rsi_14": market_data.get("indicators", {}).get("rsi_14"),
                 "sma_20": market_data.get("indicators", {}).get("sma_20"),
                 "fear_greed_value": market_data.get("fear_greed", {}).get("value"),
@@ -1126,6 +1126,70 @@ def main():
                         old_f.unlink(missing_ok=True)
         except Exception as e:
             log(f"Phase 5.5 DRY_RUN 임베딩 예외: {e}")
+
+    # Phase 5c: portfolio_snapshots 기록
+    try:
+        from utils.machine import skip_trade_db, get_machine_name
+        if not skip_trade_db("portfolio_snapshots") and supabase_url and supabase_key:
+            if "error" not in portfolio:
+                log("Phase 5c: portfolio_snapshots 기록...")
+                krw_balance = int(portfolio.get("krw_balance", 0))
+                holdings = portfolio.get("holdings", [])
+                crypto_value = int(sum(h.get("eval_amount", 0) for h in holdings))
+                total_value = int(portfolio.get("total_eval", 0))
+
+                snap_row = {
+                    "total_krw": krw_balance,
+                    "total_crypto_value": crypto_value,
+                    "total_value": total_value,
+                    "holdings": json.dumps(holdings, ensure_ascii=False),
+                    "cycle_id": _CYCLE_ID,
+                    "machine_name": get_machine_name(),
+                }
+                snap_resp = requests.post(
+                    f"{supabase_url}/rest/v1/portfolio_snapshots",
+                    json=snap_row,
+                    headers={
+                        "apikey": supabase_key,
+                        "Authorization": f"Bearer {supabase_key}",
+                        "Content-Type": "application/json",
+                        "Prefer": "return=minimal",
+                    },
+                    timeout=10,
+                )
+                if snap_resp.status_code in (200, 201):
+                    log("[Agent] portfolio_snapshots 기록 완료")
+                else:
+                    log(f"[Agent] portfolio_snapshots 실패: HTTP {snap_resp.status_code}: {snap_resp.text[:200]}")
+            else:
+                log("[Agent] portfolio_snapshots 스킵: 포트폴리오 수집 실패")
+    except Exception as e:
+        log(f"Phase 5c portfolio_snapshots 예외: {e}")
+
+    # Phase 5d: 피드백 applied 처리
+    try:
+        if supabase_url and supabase_key:
+            from utils.machine import skip_trade_db as _skip_fb
+            if not _skip_fb("feedback"):
+                _fb_headers = {
+                    "apikey": supabase_key,
+                    "Authorization": f"Bearer {supabase_key}",
+                    "Content-Type": "application/json",
+                }
+                _fb_r = requests.get(
+                    f"{supabase_url}/rest/v1/feedback?applied=eq.false&select=id",
+                    headers=_fb_headers, timeout=10,
+                )
+                if _fb_r.ok and _fb_r.json():
+                    _fb_ids = ",".join(f"'{f['id']}'" for f in _fb_r.json())
+                    requests.patch(
+                        f"{supabase_url}/rest/v1/feedback?id=in.({_fb_ids})",
+                        headers=_fb_headers, timeout=10,
+                        json={"applied": True, "applied_at": timestamp},
+                    )
+                    log(f"[Agent] {len(_fb_r.json())}건 피드백 applied 처리")
+    except Exception as e:
+        log(f"Phase 5d 피드백 applied 예외: {e}")
 
     # Phase 6: 전환 성과 평가
     log("Phase 6: 전환 성과 평가...")
