@@ -836,7 +836,7 @@ def main():
     if decision == "buy":
         amount = trade_params.get("amount", 0)
         is_dca = trade_params.get("is_dca", False)
-        if int(amount) > 0:
+        if float(amount or 0) > 0:
             dca_tag = " [DCA]" if is_dca else ""
             log(f"매수 실행: {market} {amount} KRW{dca_tag}")
             with open(trade_log, "w", encoding="utf-8") as tf:
@@ -930,8 +930,8 @@ def main():
             if ext_summary:
                 reason_parts.append(f"외부시그널: {ext_summary.get('fusion_signal', '?')}({ext_summary.get('total_score', '?')})")
 
-            raw_conf = float(dec.get("confidence", 0))
-            confidence_val = raw_conf / 100.0 if raw_conf > 1 else raw_conf
+            raw_conf = float(dec.get("confidence") or 0)
+            confidence_val = max(0.0, min(1.0, raw_conf / 100.0 if raw_conf > 1 else raw_conf))
 
             decision_row = {
                 "market": "KRW-BTC",
@@ -1092,7 +1092,12 @@ def main():
 
     # Phase 5.5: DRY_RUN/워커 임베딩 생성 (DB 미저장이어도 RAG 학습용 임베딩 생성)
     dry_run = os.environ.get("DRY_RUN", "true").lower() == "true"
-    if dry_run or skip_trade_db("decisions"):
+    try:
+        from utils.machine import skip_trade_db as _skip_trade_db_55
+        _is_worker = _skip_trade_db_55("decisions")
+    except Exception:
+        _is_worker = False
+    if dry_run or _is_worker:
         try:
             from scripts.save_decision import generate_state_embedding
             emb_data = {
@@ -1184,7 +1189,7 @@ def main():
                 )
                 _fb_data = _fb_r.json() if _fb_r.ok else []
                 if _fb_data:
-                    _fb_ids = ",".join(f['id'] for f in _fb_data)
+                    _fb_ids = ",".join(str(f['id']) for f in _fb_data if f.get('id'))
                     requests.patch(
                         f"{supabase_url}/rest/v1/feedback?id=in.({_fb_ids})",
                         headers=_fb_headers, timeout=10,

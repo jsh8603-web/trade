@@ -807,9 +807,6 @@ class ShortTermTrader:
                 log.warning(f"WebSocket 재연결 ({backoff}s): {e}")
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2, 30)  # 지수 백오프, 최대 30초
-            except Exception as e:
-                log.warning(f"WebSocket trade 재연결: {e}")
-                await asyncio.sleep(3)
 
     # ── 전략 1: 뉴스 반응 ─────────────────────────────
 
@@ -1481,7 +1478,7 @@ class ShortTermTrader:
 
         self.positions.remove(pos)
         self.closed_positions.append(pos)
-        self.daily_trade_count += 1
+        # daily_trade_count는 entry에서만 증가 (round-trip = 1회)
         self.daily_pnl += pnl_krw
         self.used_budget = max(0, self.used_budget - pos.amount_krw)
         self._last_block_reason.clear()

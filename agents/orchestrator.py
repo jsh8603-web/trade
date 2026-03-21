@@ -498,7 +498,7 @@ class Orchestrator:
 
         # 극단적 공포 (최대 25점)
         if fgi <= 25:
-            score += 25 - fgi  # FGI 0→25점, FGI 25→0점
+            score += max(1, 25 - fgi)  # FGI 0→25점, FGI 25→1점 (경계값 최소 1점)
 
         # RSI 과매도 (최대 20점)
         if rsi < 35:

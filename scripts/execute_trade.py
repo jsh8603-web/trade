@@ -54,7 +54,10 @@ def acquire_lock(timeout=15):
         if LOCK_FILE.exists():
             try:
                 data = json.loads(LOCK_FILE.read_text(encoding="utf-8"))
-                lock_time = datetime.fromisoformat(data.get("timestamp") or data.get("time", ""))
+                ts_str = data.get("timestamp") or data.get("time") or ""
+                if not ts_str:
+                    raise ValueError("empty timestamp")
+                lock_time = datetime.fromisoformat(ts_str)
                 age = (datetime.now(KST) - lock_time).total_seconds()
                 lock_pid = data.get("pid", 0)
                 # 프로세스 생존 확인 (pid=0이면 검사 생략)
@@ -84,7 +87,7 @@ def acquire_lock(timeout=15):
                         raise TimeoutError(f"락을 획득하지 못했습니다. 다른 매매 프로세스 실행 중 (pid={lock_pid}, age={age:.0f}s)")
                     time.sleep(0.5)
                     continue
-            except (json.JSONDecodeError, KeyError):
+            except (json.JSONDecodeError, KeyError, ValueError):
                 LOCK_FILE.unlink(missing_ok=True)
 
         # 원자적 락 생성 시도

@@ -197,7 +197,7 @@ class BaseStrategyAgent(ABC):
             pts = self.sma_points
             breakdown["sma"] = {"score": pts, "value": round(sma_deviation, 2), "threshold": self.sma_deviation_pct}
             score += pts
-        elif sma_deviation <= self.sma_deviation_pct * 0.5:
+        elif sma_deviation <= self.sma_deviation_pct / 2:
             pts = 15
             breakdown["sma"] = {"score": pts, "value": round(sma_deviation, 2), "partial": True}
             score += pts

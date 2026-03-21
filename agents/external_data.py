@@ -893,7 +893,7 @@ class ExternalDataAgent:
 
         row = {
             "machine_name": get_machine_name(),
-            "collection_time_sec": results.get("collection_time", None),
+            "collection_time_sec": results.get("collection_time_sec", None),
             "total_articles": rss.get("total_articles", 0),
             # RSS
             "rss_crypto_score": rss_crypto.get("sentiment_score", None),

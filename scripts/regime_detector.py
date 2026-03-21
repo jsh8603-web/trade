@@ -193,12 +193,13 @@ def detect_regime_from_market_data(market_data: dict) -> dict:
     fgi = fgi_data.get("value")
     change_rate = ticker.get("signed_change_rate")
 
-    # ATR 계산 (bollinger bandwidth를 proxy로 사용)
+    # ATR 계산 (bollinger bandwidth / 4 ≈ ATR proxy, 2σ band → σ/2 근사)
     bollinger = indicators.get("bollinger", {})
     upper = bollinger.get("upper", 0)
     lower = bollinger.get("lower", 0)
     mid = bollinger.get("middle", 1)
-    atr_pct = ((upper - lower) / mid * 100) if mid > 0 else 1.5
+    bb_width = ((upper - lower) / mid * 100) if mid > 0 else 6.0
+    atr_pct = bb_width / 4  # BB width(8-15%) → ATR proxy(2-3.75%)
 
     return detect_regime(
         rsi=rsi,
