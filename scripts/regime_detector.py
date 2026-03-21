@@ -84,7 +84,7 @@ def detect_regime(
     # 기본값
     rsi = rsi if rsi is not None else 50.0
     fgi = fgi if fgi is not None else 50
-    change = (change_rate_24h or 0) * 100 if change_rate_24h is not None and abs(change_rate_24h or 0) < 1 else (change_rate_24h or 0)
+    change = (change_rate_24h or 0) * 100  # Upbit always sends decimal ratio (e.g. 0.03 = 3%)
     vol_ratio = volume_ratio if volume_ratio is not None else 1.0
     atr = atr_pct if atr_pct is not None else 1.5
 
@@ -121,7 +121,7 @@ def detect_regime(
 
     # Bear Weak
     bear_w = 0
-    if 35 <= rsi <= 50: bear_w += 30
+    if 35 <= rsi < 50: bear_w += 30
     elif 30 <= rsi < 35: bear_w += 15
     if 25 <= fgi <= 40: bear_w += 25
     if -3 <= change <= -0.5: bear_w += 25
@@ -155,7 +155,7 @@ def detect_regime(
     # 두 번째 레짐과의 차이로 confidence 계산
     sorted_scores = sorted(scores.values(), reverse=True)
     gap = sorted_scores[0] - sorted_scores[1] if len(sorted_scores) > 1 else sorted_scores[0]
-    confidence = min(1.0, gap / 50.0 + 0.3)  # 최소 0.3
+    confidence = min(1.0, gap / 80.0 + 0.1)  # floor 0.1, gap=72 → 1.0
 
     # 해당 레짐의 모델 가중치 — 학습된 가중치 우선 사용
     weights = None

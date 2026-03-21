@@ -15,7 +15,7 @@ Tavily API를 사용한 암호화폐 + 매크로 뉴스 수집 스크립트
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -226,7 +226,7 @@ def main():
     calls_per_day = api_calls * 6
 
     result = {
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone(timedelta(hours=9))).isoformat(),
         "day_type": day_type,
         "queries": [q["query"][:50] for q in queries],
         "articles_count": len(articles_list),

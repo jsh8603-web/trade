@@ -7,7 +7,6 @@ Python 기반 에이전트 모드 파이프라인 (Cross-platform 지원)
   python scripts/run_agents.py
 """
 
-import hide_console
 import asyncio
 import json
 import os
@@ -349,9 +348,9 @@ def notify_error(msg: str, detail: str):
 
 
 async def run_script(script_name: str) -> dict:
+    """별도 프로세스로 스크립트를 실행하여 JSON 결과 반환"""
     import subprocess
     from scripts.hide_console import subprocess_kwargs
-    """별도 프로세스로 스크립트를 실행하여 JSON 결과 반환"""
     try:
         proc = await asyncio.create_subprocess_exec(
             sys.executable, f"scripts/{script_name}",
@@ -576,7 +575,7 @@ def main():
         ext_agent = ExternalDataAgent(snapshot_dir=snapshot_dir)
         external_data = ext_agent.collect_all()
         # NVT Signal을 최상위에 배치 (StateEncoder 호환)
-        nvt_data = external_data.get("sources", external_data).get("nvt", {})
+        nvt_data = external_data.get("sources", {}).get("nvt", {})
         external_data["nvt_signal"] = nvt_data.get("nvt_signal", 100.0)
         log(f"외부 데이터 수집 완료 ({external_data.get('collection_time_sec', 0)}초)")
         data_sources_used.append("external_data")
@@ -591,8 +590,10 @@ def main():
         market_data["fear_greed"] = fgi_data.get("current", {})
         
         news_data = external_data.get("sources", {}).get("news", {})
-        news_sentiment = external_data.get("sources", {}).get("news_sentiment", {})
+        if not isinstance(news_data, dict):
+            news_data = {}
         market_data["news"] = news_data
+        news_sentiment = external_data.get("sources", {}).get("news_sentiment", {})
         market_data["news"]["overall_sentiment"] = news_sentiment.get("overall_sentiment", "neutral")
         market_data["news"]["sentiment_score"] = news_sentiment.get("sentiment_score", 0)
         
@@ -638,7 +639,7 @@ def main():
                 
         # 포트폴리오 메타 데이터 주입
         btc_info = portfolio.get("coins", {}).get("BTC", portfolio.get("btc", {}))
-        total_eval = portfolio.get("total_evaluation", 1)
+        total_eval = portfolio.get("total_eval", 1)
         btc_eval = btc_info.get("evaluation", 0) if isinstance(btc_info, dict) else 0
         portfolio["btc_ratio"] = btc_eval / total_eval if total_eval > 0 else 0
         portfolio["btc"] = btc_info if isinstance(btc_info, dict) else {}
@@ -651,7 +652,7 @@ def main():
             portfolio=portfolio,
             past_decisions=past_decisions,
         )
-        log(f"결정: {result['decision']['decision']} by {result['active_agent']}")
+        log(f"결정: {result.get('decision', {}).get('decision', '?')} by {result['active_agent']}")
         
         output = {
             "timestamp": external_data.get("timestamp", datetime.now(KST).isoformat()),
@@ -919,14 +920,14 @@ def main():
         try:
             DECISION_MAP = {"buy": "매수", "sell": "매도", "hold": "관망"}
             dec = output["decision"]
-            buy_score = dec.get("buy_score", {})
+            buy_score_dict = dec.get("buy_score", {})
             ext_summary = dec.get("external_signal_summary", {})
 
             reason_parts = [dec.get("reason", "")]
             if agent_name:
                 reason_parts.append(f"에이전트: {agent_name}")
-            if buy_score:
-                reason_parts.append(f"매수점수: {buy_score.get('total', '?')}/{buy_score.get('threshold', '?')}")
+            if buy_score_dict:
+                reason_parts.append(f"매수점수: {buy_score_dict.get('total', '?')}/{buy_score_dict.get('threshold', '?')}")
             if ext_summary:
                 reason_parts.append(f"외부시그널: {ext_summary.get('fusion_signal', '?')}({ext_summary.get('total_score', '?')})")
 
@@ -943,7 +944,7 @@ def main():
                 "fear_greed_value": market_data.get("fear_greed", {}).get("value"),
                 "sma20_price": int(market_data.get("indicators", {}).get("sma_20")) if market_data.get("indicators", {}).get("sma_20") else None,
                 "market_data_snapshot": json.dumps({
-                    "buy_score": buy_score,
+                    "buy_score": buy_score_dict,
                     "external": ext_summary,
                     "rl_advisory": rl_advisory,
                     "regime": regime_info.get("regime") if regime_info else None,
@@ -1085,7 +1086,7 @@ def main():
                 errors={"pipeline_errors": pipeline_errors} if pipeline_errors else None,
                 raw_output=json.dumps(output, ensure_ascii=False)[:10000],
                 decision_id=decision_id,
-                phases_completed=["phase1", "phase2", "phase2.5", "phase3", "phase4", "phase5", "phase13"],
+                phases_completed=["phase1", "phase2", "phase2.5", "phase3", "phase4", "phase5"],
             )
         except Exception as e:
             log(f"execution_logs 기록 예외: {e}")

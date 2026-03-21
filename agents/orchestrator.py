@@ -45,6 +45,14 @@ def _acquire_lock(lock_path: str, retries: int = 10, wait: float = 0.1):
             os.close(fd)
             return True
         except FileExistsError:
+            # Stale lock detection: remove lock file older than 120 seconds
+            try:
+                lock_age = time.time() - os.path.getmtime(lock_path)
+                if lock_age > 120:
+                    os.remove(lock_path)
+                    continue
+            except OSError:
+                pass
             time.sleep(wait)
     return False
 
@@ -303,7 +311,7 @@ class Orchestrator:
         if self.state.get("force_hold_cycles", 0) > 0 and decision.decision in ("buy", "sell"):
             decision = Decision(
                 decision="hold",
-                reason=f"[사용자 피드백] 강제 관망 ({self.state['force_hold_cycles']+1}사이클 남음) | 원래: {decision.decision}",
+                reason=f"[사용자 피드백] 강제 관망 ({self.state['force_hold_cycles']}사이클 남음) | 원래: {decision.decision}",
                 confidence=decision.confidence,
                 buy_score=decision.buy_score,
                 trade_params={},
@@ -463,7 +471,7 @@ class Orchestrator:
 
         # BTC 과다 보유 (최대 20점)
         if btc_ratio > 0.3:
-            score += min(int((btc_ratio - 0.3) * 100), 20)  # 0.3→0, 0.5→20 (최대 20점)
+            score += min(round((btc_ratio - 0.3) * 100), 20)  # 0.3→0, 0.5→20 (최대 20점)
 
         # 급락 (최대 25점)
         if price_change_24h < -3:
@@ -585,8 +593,8 @@ class Orchestrator:
                 "from": current,
                 "to": target,
                 "reason": self._switch_reason,
-                "danger_score": ms["danger_score"],
-                "opportunity_score": ms["opportunity_score"],
+                "danger_score": danger,
+                "opportunity_score": opportunity,
                 "market_phase": ms["phase"],
                 "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S+09:00"),
             }
@@ -982,7 +990,8 @@ class Orchestrator:
                     params={"markets": "KRW-BTC"},
                     timeout=5,
                 )
-                btc_price = int(price_resp.json()[0]["trade_price"])
+                data = price_resp.json()
+                btc_price = int(data[0]["trade_price"]) if data else 0
             except Exception:
                 pass
 
@@ -1164,7 +1173,7 @@ class Orchestrator:
 
         price_change_24h = market_data.get("change_rate_24h", 0) * 100
         # fallback: ticker 구조도 지원
-        if abs(price_change_24h) < 0.001:
+        if price_change_24h is None or price_change_24h == 0:
             price_change_24h = (
                 market_data.get("ticker", {}).get("signed_change_rate", 0) * 100
             )

@@ -55,6 +55,9 @@ def fetch_cryptocompare_news(max_articles: int = 20) -> dict:
             return {"status": "error", "code": resp.status_code}
 
         data = resp.json()
+        if data.get("Response") == "Error":
+            return {"status": "error", "message": data.get("Message", "CryptoCompare API error")}
+
         articles = data.get("Data", [])[:max_articles]
 
         # 감성 집계
@@ -135,8 +138,28 @@ def fetch_coingecko_social(coins: list[str] = None) -> dict:
             )
 
             if resp.status_code == 429:
-                time.sleep(5)
-                continue
+                # Retry up to 2 additional attempts before skipping
+                retry_success = False
+                for _retry in range(2):
+                    time.sleep(5)
+                    resp = SESSION.get(
+                        f"https://api.coingecko.com/api/v3/coins/{coin_id}",
+                        params={
+                            "localization": "false",
+                            "tickers": "false",
+                            "market_data": "true",
+                            "community_data": "true",
+                            "developer_data": "false",
+                            "sparkline": "false",
+                        },
+                        timeout=15,
+                    )
+                    if resp.status_code != 429:
+                        retry_success = True
+                        break
+                if not retry_success:
+                    results[coin_id] = {"status": "error", "code": 429, "message": "rate limited"}
+                    continue
             if resp.status_code != 200:
                 results[coin_id] = {"status": "error", "code": resp.status_code}
                 continue

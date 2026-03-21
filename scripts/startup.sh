@@ -115,8 +115,8 @@ else
     tmux send-keys -t "$TMUX_SESSION:dashboard" "source .venv/bin/activate && PYTHONPATH=/Users/drj00/workspace/blockchain python scripts/dashboard.py $DASHBOARD_PORT" Enter
     log "Dashboard starting on port $DASHBOARD_PORT"
 
-    # 4. Claude Code 원격 세션 이중화 (2개 생성)
-    TARGET_RC=2
+    # 4. Claude Code 원격 세션 (1개 생성)
+    TARGET_RC=1
     REMOTE_URL=""
 
     for rc_num in $(seq 1 $TARGET_RC); do

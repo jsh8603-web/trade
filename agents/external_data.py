@@ -285,8 +285,10 @@ def load_performance_review() -> dict:
     # 연속 스트릭 계산 (별도 순회, 방향 전환 시 중단)
     for d in decisions:
         pl = float(d.get("profit_loss", 0))
+        if pl == 0:
+            continue  # neutral → skip, don't break streak
         if streak_type is None:
-            streak_type = "win" if pl > 0 else "loss" if pl < 0 else None
+            streak_type = "win" if pl > 0 else "loss"
         if streak_type == "win" and pl > 0:
             recent_streak += 1
         elif streak_type == "loss" and pl < 0:

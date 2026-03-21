@@ -65,7 +65,7 @@ def send_message(msg_type: str, title: str, body: str, max_retries: int = 3):
             )
             if r.ok:
                 return {"success": True, "type": msg_type, "title": title}
-            if attempt < max_retries - 1 and r.status_code >= 500:
+            if attempt < max_retries - 1 and (r.status_code >= 500 or r.status_code == 429):
                 time.sleep(2 ** attempt)
                 continue
             raise RuntimeError(f"텔레그램 전송 실패: {r.text}")

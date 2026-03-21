@@ -10,6 +10,7 @@ Crypto Fear & Greed Index 수집 스크립트
 
 import json
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -22,8 +23,22 @@ FGI_API = "https://api.alternative.me/fng/"
 
 
 def main():
-    r = requests.get(FGI_API, params={"limit": "7", "format": "json"}, timeout=10)
-    r.raise_for_status()
+    max_retries = 3
+    r = None
+    for attempt in range(max_retries):
+        r = requests.get(FGI_API, params={"limit": "7", "format": "json"}, timeout=10)
+        if r.status_code == 429:
+            wait = 2 ** attempt
+            print(f"[rate_limit] FGI 429, retrying in {wait}s...", file=sys.stderr)
+            time.sleep(wait)
+            continue
+        r.raise_for_status()
+        break
+    else:
+        if r is not None:
+            r.raise_for_status()
+        raise requests.exceptions.ConnectionError(f"FGI API request failed after {max_retries} retries")
+
     data = r.json().get("data", [])
 
     if not data:
@@ -52,5 +67,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        json.dump({"error": str(e)}, sys.stderr, ensure_ascii=False)
+        json.dump({"error": str(e)}, sys.stdout, ensure_ascii=False)
         sys.exit(1)

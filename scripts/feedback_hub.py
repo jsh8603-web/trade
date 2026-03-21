@@ -98,8 +98,12 @@ def calibrate_confidence(days: int = 14, cached_decisions: list[dict] | None = N
     """
     rows = None
     if cached_decisions is not None:
-        # 캐시에서 was_correct_4h이 null이 아닌 것만 필터
-        rows = [d for d in cached_decisions if d.get("was_correct_4h") is not None]
+        # 캐시에서 was_correct_4h이 null이 아닌 것만 필터 + days 창 적용
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        rows = [
+            d for d in cached_decisions
+            if d.get("was_correct_4h") is not None and d.get("created_at", "") >= cutoff
+        ]
 
     if rows is None:
         if not SUPABASE_URL or not SUPABASE_KEY:
@@ -339,8 +343,9 @@ def evaluate_rag_quality(days: int = 14, cached_decisions: list[dict] | None = N
             if not isinstance(snapshot, dict):
                 snapshot = {}
 
-            # snapshot에 rl_advisory가 있으면 RAG도 사용했을 가능성 높음
-            has_rag = bool(snapshot.get("snapshot_dir"))
+            # RAG 사용 여부: rag_context 또는 embedding 필드로 판단
+            # snapshot_dir은 RAG와 무관하므로 사용하지 않음
+            has_rag = bool(snapshot.get("rag_context") or snapshot.get("embedding"))
             if has_rag:
                 rag_total += 1
                 if correct:
@@ -349,6 +354,10 @@ def evaluate_rag_quality(days: int = 14, cached_decisions: list[dict] | None = N
                 no_rag_total += 1
                 if correct:
                     no_rag_correct += 1
+
+        # RAG 사용 샘플이 없으면 비교 불가 → benefit=0
+        if rag_total == 0:
+            return {"rag_benefit": 0.0, "samples": no_rag_total}
 
         rag_rate = rag_correct / rag_total if rag_total > 0 else 0
         no_rag_rate = no_rag_correct / no_rag_total if no_rag_total > 0 else 0

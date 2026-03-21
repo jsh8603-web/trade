@@ -39,10 +39,10 @@ for i in $(seq 1 12); do
     sleep 5
     screen=$(tmux capture-pane -t $TMUX_SESSION:rc -p -S -5 2>/dev/null)
     if echo "$screen" | grep -qE '❯|>|tips|Claude Code'; then
-        echo "✅ Claude ready (${i}0s)"
+        echo "✅ Claude ready ($((i*5))s)"
         break
     fi
-    echo "⏳ Waiting... ${i}0s"
+    echo "⏳ Waiting... $((i*5))s"
 done
 
 # /remote-control 실행
@@ -52,7 +52,7 @@ tmux send-keys -t $TMUX_SESSION:rc Enter
 sleep 20
 
 # URL 추출
-URL=$(tmux capture-pane -t $TMUX_SESSION:rc -p 2>/dev/null | grep -oE 'https://claude\.ai/code/[A-Za-z0-9_-]+' | tail -1)
+URL=$(tmux capture-pane -t $TMUX_SESSION:rc -p 2>/dev/null | grep -oE 'https://claude\.ai/code/session_[A-Za-z0-9_-]+' | tail -1)
 
 if [ -n "$URL" ]; then
     echo "✅ RC 활성: $URL"

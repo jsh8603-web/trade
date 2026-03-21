@@ -36,13 +36,13 @@ def get_machine_name() -> str:
         if not _name:
             # 자동 감지: hostname 기반
             hostname = platform.node().lower()
-            if "128" in hostname or "hospital" in hostname:
+            if hostname.startswith("pc128") or "-128-" in hostname or hostname.endswith("128") or "hospital" in hostname:
                 _name = "pc128"
-            elif "36" in hostname or "drjay" in hostname:
+            elif hostname.startswith("pc36") or "-36-" in hostname or hostname.endswith("36") or hostname == "drjay" or hostname.startswith("drjay."):
                 _name = "pc36"
-            elif "mac" in hostname or "mini" in hostname:
+            elif hostname.startswith("mac-mini") or hostname == "mac-mini" or (hostname.startswith("mac") and "mini" in hostname):
                 _name = "mac-mini"
-            elif "jsh" in hostname:
+            elif hostname.startswith("jsh8603") or hostname == "jsh8603":
                 _name = "jsh8603"
             else:
                 _name = hostname[:20] or "unknown"

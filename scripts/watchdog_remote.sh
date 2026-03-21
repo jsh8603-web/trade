@@ -257,20 +257,27 @@ get_escalation_level() {
 # ─── 상태 저장 (모니터링용) ───
 save_health() {
     local status="$1" detail="$2"
-    local escalation_level
+    local escalation_level url ts rebuild_count
     escalation_level=$(get_escalation_level)
-    cat > "$HEALTH_FILE" <<EOF
-{"status":"$status","detail":"$detail","ts":"$(date '+%Y-%m-%d %H:%M:%S')","url":"$(cat "$REMOTE_URL_FILE" 2>/dev/null)","escalation_level":"$escalation_level","rebuild_count":$(get_rebuild_count)}
-EOF
+    url=$(cat "$REMOTE_URL_FILE" 2>/dev/null)
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    rebuild_count=$(get_rebuild_count)
+    python3 -c "import json; print(json.dumps({'status': '$status', 'detail': '''$detail''', 'ts': '$ts', 'url': '$url', 'escalation_level': '$escalation_level', 'rebuild_count': $rebuild_count}))" > "$HEALTH_FILE" 2>/dev/null || \
+        printf '{"status":"%s","detail":"%s","ts":"%s","url":"%s","escalation_level":"%s","rebuild_count":%s}\n' \
+            "${status//\"/\\\"}" "${detail//\"/\\\"}" "$ts" "${url//\"/\\\"}" "${escalation_level//\"/\\\"}" "$rebuild_count" > "$HEALTH_FILE"
 }
 
 # save_health_with_escalation: 에스컬레이션 컨텍스트에서 호출 (무한 재귀 방지)
 save_health_with_escalation() {
     local status="$1" detail="$2" level="$3"
+    local url ts rebuild_count
     [ -z "$level" ] && level=$(get_escalation_level)
-    cat > "$HEALTH_FILE" <<EOF
-{"status":"$status","detail":"$detail","ts":"$(date '+%Y-%m-%d %H:%M:%S')","url":"$(cat "$REMOTE_URL_FILE" 2>/dev/null)","escalation_level":"$level","rebuild_count":$(get_rebuild_count)}
-EOF
+    url=$(cat "$REMOTE_URL_FILE" 2>/dev/null)
+    ts=$(date '+%Y-%m-%d %H:%M:%S')
+    rebuild_count=$(get_rebuild_count)
+    python3 -c "import json; print(json.dumps({'status': '$status', 'detail': '''$detail''', 'ts': '$ts', 'url': '$url', 'escalation_level': '$level', 'rebuild_count': $rebuild_count}))" > "$HEALTH_FILE" 2>/dev/null || \
+        printf '{"status":"%s","detail":"%s","ts":"%s","url":"%s","escalation_level":"%s","rebuild_count":%s}\n' \
+            "${status//\"/\\\"}" "${detail//\"/\\\"}" "$ts" "${url//\"/\\\"}" "${level//\"/\\\"}" "$rebuild_count" > "$HEALTH_FILE"
 }
 
 # ─── URL 추출 ───
@@ -1087,7 +1094,6 @@ while IFS=: read -r idx name; do
     fi
 
     # 화면에 RC 텍스트가 있는 윈도우도 포함
-    local screen
     screen=$(tmux capture-pane -t "$TMUX_SESSION:$idx" -p 2>/dev/null)
     if echo "$screen" | grep -q "Remote Control"; then
         is_rc_win=true
@@ -1096,7 +1102,6 @@ while IFS=: read -r idx name; do
     [ "$is_rc_win" = false ] && continue
 
     # 개별 건강검진
-    local status
     status=$(check_rc_window_health "$idx")
 
     case "$status" in
@@ -1130,9 +1135,8 @@ fi
 
 # 4. 병든 RC 윈도우 복구 시도
 for sick_entry in "${SICK_RC_WINDOWS[@]}"; do
-    local sick_idx="${sick_entry%%:*}"
-    local sick_status="${sick_entry#*:}"
-    local sick_name
+    sick_idx="${sick_entry%%:*}"
+    sick_status="${sick_entry#*:}"
     sick_name=$(tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}:#{window_name}' 2>/dev/null | grep "^${sick_idx}:" | cut -d: -f2)
 
     case "$sick_status" in
@@ -1144,8 +1148,8 @@ for sick_entry in "${SICK_RC_WINDOWS[@]}"; do
             sleep 5
             tmux send-keys -t "$TMUX_SESSION:$sick_idx" Enter
             sleep 15
-            local screen new_url
             screen=$(tmux capture-pane -t "$TMUX_SESSION:$sick_idx" -p 2>/dev/null)
+            new_url=""
             if echo "$screen" | grep -q "Remote Control active"; then
                 new_url=$(echo "$screen" | grep -o 'https://claude\.ai/code/session_[A-Za-z0-9]*' | tail -1)
                 tmux rename-window -t "$TMUX_SESSION:$sick_idx" "rc@$(date '+%H%M')" 2>/dev/null
@@ -1185,7 +1189,6 @@ while IFS=: read -r idx name; do
         is_rc=true
     fi
     if [ "$is_rc" = true ]; then
-        local s
         s=$(check_rc_window_health "$idx")
         [ "$s" = "healthy" ] && live_count=$((live_count + 1))
     fi

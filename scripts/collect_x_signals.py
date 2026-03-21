@@ -107,7 +107,12 @@ async def get_client():
     if COOKIES_FILE.exists():
         try:
             client.load_cookies(str(COOKIES_FILE))
-            # 쿠키 유효성 간단 체크 (실패해도 무시)
+            # 쿠키 유효성 체크: 자신의 프로필 조회로 세션 활성 여부 확인
+            try:
+                await client.get_user_by_screen_name(X_USERNAME)
+            except Exception as validity_err:
+                print(f"[X] 쿠키 유효성 검증 실패, 재로그인 시도: {validity_err}", file=sys.stderr)
+                raise validity_err
             return client
         except Exception as e:
             print(f"[X] 쿠키 복원 실패, 재로그인 시도: {e}", file=sys.stderr)

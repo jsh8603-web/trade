@@ -78,7 +78,8 @@ if AGENT_OUTPUT=$("$PYTHON" scripts/run_agents.py 2>>"$LOG_FILE"); then
   echo "[$(date)] Python 에이전트 파이프라인 성공" >> "$LOG_FILE"
   echo "[$(date)] 응답 저장: ${RESPONSE_FILE}" >> "$LOG_FILE"
 else
-  echo "[$(date)] WARNING: Python 에이전트 파이프라인 실패 (exit $?). Bash fallback으로 전환..." >> "$LOG_FILE"
+  PIPELINE_EXIT=$?
+  echo "[$(date)] WARNING: Python 에이전트 파이프라인 실패 (exit $PIPELINE_EXIT). Bash fallback으로 전환..." >> "$LOG_FILE"
 fi
 
 # ══════════════════════════════════════════════════════════

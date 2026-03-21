@@ -166,6 +166,15 @@ def _fetch_from_cache_file() -> dict | None:
             data = json.load(f)
         if isinstance(data, dict) and "score" in data:
             data["source"] = "cache"
+            # age_min/fresh 재계산: created_at 필드 우선, 없으면 파일 수정 시간 사용
+            created_at = data.get("created_at") or data.get("ts")
+            if created_at:
+                age_min = _calc_age_min(str(created_at))
+            else:
+                file_mtime = CACHE_FILE.stat().st_mtime
+                age_min = (time.time() - file_mtime) / 60
+            data["age_min"] = round(age_min, 1)
+            data["fresh"] = age_min <= _STALE_THRESHOLD_MIN
             return data
     except Exception:
         pass

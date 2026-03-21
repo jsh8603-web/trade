@@ -192,7 +192,11 @@ def _get_last_trade_time():
     try:
         if LAST_TRADE_TIME_FILE.exists():
             text = LAST_TRADE_TIME_FILE.read_text(encoding="utf-8").strip()
-            return datetime.fromisoformat(text)
+            last_trade = datetime.fromisoformat(text)
+            if last_trade.tzinfo is None:
+                from datetime import timezone, timedelta
+                last_trade = last_trade.replace(tzinfo=timezone(timedelta(hours=9)))
+            return last_trade
     except (ValueError, OSError):
         pass
     return None
@@ -410,6 +414,7 @@ def execute(side: str, market: str, amount: str):
             "timestamp": ts,
         }
 
+    exec_started = datetime.now(KST)
     try:
         # 5) 수정주문 / 미체결 주문 처리 (수정주문 lock 관리)
         check_open_orders_and_cancel(market, side)
@@ -425,7 +430,6 @@ def execute(side: str, market: str, amount: str):
         qs = urlencode(body)
         headers = make_auth_header(qs)
 
-        exec_started = datetime.now(KST)
         r = requests.post(f"{UPBIT_API}/orders", json=body, headers=headers, timeout=10)
         exec_completed = datetime.now(KST)
         latency_ms = int((exec_completed - exec_started).total_seconds() * 1000)
@@ -529,7 +533,7 @@ def _record_trade_to_db(result: dict, source: str = "manual"):
         decision_row = {
             "decision": action_kr,
             "reason": f"[{source}] {result.get('market', 'KRW-BTC')} {result.get('amount', '')}",
-            "confidence": 1.0 if source == "manual" else 0.5,
+            "confidence": 0.7 if source == "manual" else 0.5,
             "market": result.get("market", "KRW-BTC"),
             "dry_run": dry_run,
             "cycle_id": _cycle_id,

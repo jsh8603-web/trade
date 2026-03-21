@@ -1201,7 +1201,7 @@ class ShortTermTrader:
                 np.clip(mom_1m, -5, 5),
                 np.clip(mom_5m, -5, 5),
                 1.0,    # vol_ratio (실시간 미수집 시 기본값)
-                50.0,   # RSI (실시간 미수집 시 기본값)
+                float(np.clip(self._rsi, 0, 100)),   # RSI
                 0.5,    # BB 위치 (기본값)
                 float(strategy_type),
             ], dtype=np.float32)

@@ -489,7 +489,7 @@ class BaseStrategyAgent(ABC):
             ext_obj = bs.get("external", {}) if isinstance(bs.get("external"), dict) else {}
 
             indicators = market_data.get("indicators", {})
-            ticker = market_data.get("ticker", {})
+            ticker = market_data.get("ticker", {}) or {}
 
             # SMA position description
             sma_val = sma_obj.get("value", 0)
@@ -622,7 +622,7 @@ class BaseStrategyAgent(ABC):
                 params={
                     "select": "profit_loss",
                     "created_at": f"gte.{cutoff}",
-                    "decision": "in.(매수,매도)",
+                    "decision": "in.(매수,매도,buy,sell)",
                     "profit_loss": "not.is.null",
                     "order": "created_at.desc",
                     "limit": "100",

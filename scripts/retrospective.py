@@ -51,9 +51,11 @@ def get_btc_price() -> int:
 def get_historical_price(target_time: datetime) -> int:
     """특정 시점의 BTC 가격 (분봉으로 근사)"""
     # Use minute candle closest to target time
+    # Upbit requires timezone-aware `to` — append KST offset explicitly
+    to_str = target_time.strftime("%Y-%m-%dT%H:%M:%S") + "+09:00"
     params = {
         "market": "KRW-BTC",
-        "to": target_time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "to": to_str,
         "count": 1,
     }
     r = requests.get(f"{UPBIT_API}/candles/minutes/60", params=params, timeout=10)
@@ -113,6 +115,7 @@ def _update_window(window: str, hours: int, extra_filter: dict = None):
     for row in r.json():
         decision_price = row.get("current_price", 0)
         if not decision_price:
+            print(f"[retrospective] [skip] decision {str(row.get('id', '?'))[:8]} — current_price=NULL", file=sys.stderr)
             continue
 
         decision_time = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
@@ -171,8 +174,8 @@ def update_decisions():
          "outcomes": [{"timestamp": str, "outcome_4h_pct": float}, ...]}
     """
     updated_1h, outcomes_1h = _update_window("1h", 1)
-    updated_4h, outcomes_4h = _update_window("4h", 4, extra_filter={"price_1h_after": "not.is.null"})
-    updated_24h, outcomes_24h = _update_window("24h", 24, extra_filter={"price_4h_after": "not.is.null"})
+    updated_4h, outcomes_4h = _update_window("4h", 4)
+    updated_24h, outcomes_24h = _update_window("24h", 24)
 
     # 4h outcomes를 온라인 버퍼 백필 형식으로 변환
     buffer_outcomes = [
