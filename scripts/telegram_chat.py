@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-텔레그램 채팅 터미널 (Interactive UI)
+텔레그램 다중 채팅 터미널
 
-시작 시 연락처 목록을 표시하고 번호로 대화 상대를 선택한다.
-선택 후 바로 채팅 모드로 진입하여 메시지를 주고받는다.
+시작 시 연락처 목록을 표시하고, 통합 채팅방에서 모든 사람과 동시 대화.
+번호/이름으로 대화 상대를 전환하며, 모든 수신 메시지가 실시간 표시된다.
 
 실행: python scripts/telegram_chat.py
 중지: Ctrl+C
@@ -47,6 +47,8 @@ HEADERS = {
 POLL_INTERVAL = 2
 _running = True
 _current_target: dict | None = None
+_contacts: list = []                   # 캐시된 연락처 목록
+_contact_colors: dict[str, str] = {}   # chat_id → 색상
 
 # ── 색상 (Windows 터미널 ANSI) ──────────────────
 CYAN    = "\033[96m"
@@ -54,13 +56,26 @@ GREEN   = "\033[92m"
 YELLOW  = "\033[93m"
 MAGENTA = "\033[95m"
 RED     = "\033[91m"
+BLUE    = "\033[94m"
+WHITE   = "\033[97m"
 DIM     = "\033[90m"
 BOLD    = "\033[1m"
 RESET   = "\033[0m"
 
+# 사용자별 색상 팔레트
+_COLOR_PALETTE = [GREEN, YELLOW, MAGENTA, CYAN, BLUE, RED, WHITE]
+
 
 def ts_now() -> str:
     return datetime.now(KST).strftime("%H:%M:%S")
+
+
+def get_color_for(chat_id: str) -> str:
+    """사용자별 고정 색상 반환"""
+    if chat_id not in _contact_colors:
+        idx = len(_contact_colors) % len(_COLOR_PALETTE)
+        _contact_colors[chat_id] = _COLOR_PALETTE[idx]
+    return _contact_colors[chat_id]
 
 
 # ── DB 연락처 ──────────────────────────────────
@@ -99,6 +114,10 @@ def send_telegram(chat_id: str, text: str) -> bool:
 
 
 def lookup_by_chat_id(chat_id: str) -> dict | None:
+    for c in _contacts:
+        if c["chat_id"] == chat_id:
+            return c
+    # 캐시 미스 → DB 조회
     resp = requests.get(
         f"{SUPABASE_URL}/rest/v1/telegram_contacts",
         params={"select": "chat_id,name,role,aliases",
@@ -110,6 +129,30 @@ def lookup_by_chat_id(chat_id: str) -> dict | None:
     return None
 
 
+def find_contact(keyword: str) -> dict | None:
+    """번호, 이름, 별명으로 연락처 검색"""
+    # 번호로 검색
+    try:
+        idx = int(keyword) - 1
+        if 0 <= idx < len(_contacts):
+            return _contacts[idx]
+    except ValueError:
+        pass
+    # 이름/별명으로 검색
+    kw = keyword.strip().lower()
+    for c in _contacts:
+        if kw == c["name"].lower():
+            return c
+        for alias in (c.get("aliases") or []):
+            if kw == alias.lower():
+                return c
+    # 부분 매치
+    for c in _contacts:
+        if kw in c["name"].lower():
+            return c
+    return None
+
+
 # ── 화면 그리기 ──────────────────────────────────
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -117,55 +160,57 @@ def clear_screen():
 
 def draw_header():
     print(f"{BOLD}{CYAN}")
-    print("╔═══════════════════════════════════════════════╗")
-    print("║         💬 텔레그램 채팅 터미널               ║")
-    print("╚═══════════════════════════════════════════════╝")
+    print("╔═══════════════════════════════════════════════════╗")
+    print("║          💬 텔레그램 다중 채팅 터미널              ║")
+    print("╚═══════════════════════════════════════════════════╝")
     print(f"{RESET}")
 
 
-def draw_contact_list(contacts: list):
-    print(f"{BOLD} 대화 상대를 선택하세요:{RESET}")
-    print(f"{DIM} {'─' * 45}{RESET}")
-    for i, c in enumerate(contacts, 1):
-        role_color = GREEN if c["role"] == "owner" else YELLOW
-        role_icon = "👑" if c["role"] == "owner" else "👤"
-        aliases = c.get("aliases") or []
-        alias_str = f" {DIM}({', '.join(aliases)}){RESET}" if aliases else ""
-        print(f"  {BOLD}{CYAN}[{i}]{RESET} {role_icon} {c['name']}{alias_str}  {role_color}[{c['role']}]{RESET}")
-    print(f"{DIM} {'─' * 45}{RESET}")
-    print(f"  {BOLD}{MAGENTA}[0]{RESET} 전체 공지 (브로드캐스트)")
-    print(f"  {BOLD}{RED}[q]{RESET} 종료")
+def draw_contact_bar():
+    """상단 연락처 바 — 현재 대화 상대 표시"""
+    parts = []
+    for i, c in enumerate(_contacts, 1):
+        color = get_color_for(c["chat_id"])
+        is_selected = _current_target and c["chat_id"] == _current_target["chat_id"]
+        if is_selected:
+            parts.append(f" {BOLD}{color}[{i}]◆{c['name']}{RESET}")
+        else:
+            parts.append(f" {DIM}[{i}]{c['name']}{RESET}")
+    target_str = f"  →  {BOLD}{_current_target['name']}{RESET}" if _current_target else f"  →  {DIM}(선택 안됨){RESET}"
+    print(f" {'  '.join(parts)}")
+    print(f" {DIM}{'─' * 55}{RESET}")
+    print(f" 대화 상대{target_str}")
+    print(f" {DIM}{'─' * 55}{RESET}")
+
+
+def draw_help():
+    print(f" {DIM}명령어: /1~/9 상대선택 | /all 전체공지 | /list 목록 | /recent 내역 | /q 종료{RESET}")
+    print(f" {DIM}        이름>메시지 — 특정인에게 | 그냥 입력 — 현재 상대에게{RESET}")
     print()
 
 
-def draw_chat_header(target: dict):
-    name = target["name"]
-    role = target["role"]
-    print(f"\n{DIM}{'─' * 50}{RESET}")
-    print(f" {BOLD}💬 {name}{RESET} {DIM}[{role}]{RESET} 과(와) 대화 중")
-    print(f" {DIM}메시지 입력 후 Enter | /back 목록 | /q 종료{RESET}")
-    print(f"{DIM}{'─' * 50}{RESET}\n")
-
-
-def print_incoming(sender_name: str, text: str):
+def print_incoming(sender_name: str, text: str, chat_id: str = ""):
     ts = ts_now()
-    print(f" {DIM}[{ts}]{RESET} {GREEN}{BOLD}{sender_name}{RESET}: {text}", flush=True)
+    color = get_color_for(chat_id) if chat_id else GREEN
+    print(f"\r {DIM}[{ts}]{RESET} {color}{BOLD}{sender_name}{RESET}: {text}", flush=True)
 
 
 def print_outgoing(target_name: str, text: str, ok: bool):
     ts = ts_now()
-    status = f"{GREEN}✓{RESET}" if ok else f"{RED}✗{RESET}"
+    status = f"{GREEN}✓{RESET}" if ok else f"{RED}✗ 전송실패{RESET}"
+    color = get_color_for("")  # 나 = 기본
     print(f" {DIM}[{ts}]{RESET} {CYAN}나 → {target_name}{RESET}: {text}  {status}", flush=True)
 
 
 def print_system(msg: str):
     ts = ts_now()
-    print(f" {DIM}[{ts}] {YELLOW}ℹ {msg}{RESET}", flush=True)
+    print(f" {DIM}[{ts}]{RESET} {YELLOW}ℹ {msg}{RESET}", flush=True)
 
 
 # ── 수신 폴링 스레드 ──────────────────────────────
 def poll_incoming(offset_holder: list):
     """백그라운드에서 텔레그램 메시지를 수신하여 콘솔에 표시"""
+    global _current_target
     while _running:
         try:
             resp = requests.get(
@@ -203,9 +248,15 @@ def poll_incoming(offset_holder: list):
                 # 봇 명령어 처리
                 if text.startswith("/"):
                     handle_bot_command(chat_id, text, contact)
-                else:
-                    # 콘솔 출력
-                    print_incoming(sender_name, text)
+                    continue
+
+                # 콘솔 출력 — 모든 사람의 메시지가 보임
+                print_incoming(sender_name, text, chat_id)
+
+                # 마지막 메시지 보낸 사람을 자동으로 대화 상대로 전환
+                if contact and (not _current_target or _current_target["chat_id"] != chat_id):
+                    _current_target = contact
+                    print_system(f"대화 상대 자동 전환: {contact['name']}")
 
         except requests.exceptions.Timeout:
             continue
@@ -251,11 +302,7 @@ def handle_bot_command(chat_id: str, text: str, sender: dict | None):
         parts = text[5:].strip().split(None, 1)
         if len(parts) >= 2:
             target_name, msg_text = parts
-            target = None
-            for c in get_all_contacts():
-                if c["name"] == target_name or target_name in (c.get("aliases") or []):
-                    target = c
-                    break
+            target = find_contact(target_name)
             if target:
                 forward = f"[{sender['name']}] {msg_text}"
                 ok = send_telegram(target["chat_id"], forward)
@@ -263,7 +310,7 @@ def handle_bot_command(chat_id: str, text: str, sender: dict | None):
                     send_telegram(chat_id, f"✓ {target['name']}에게 전송")
                     save_message(chat_id=target["chat_id"], direction="incoming",
                                  message=forward, worker_name=sender["name"])
-                    print_incoming(sender["name"], f"→ {target['name']}: {msg_text}")
+                    print_incoming(sender["name"], f"→ {target['name']}: {msg_text}", chat_id)
             else:
                 send_telegram(chat_id, f"'{target_name}' 찾을 수 없음. /list 확인")
         return
@@ -281,9 +328,216 @@ def handle_bot_command(chat_id: str, text: str, sender: dict | None):
         return
 
 
+# ── 최근 대화 불러오기 ──────────────────────────────
+def load_recent_all(limit: int = 20):
+    """모든 연락처의 최근 대화를 통합 표시"""
+    try:
+        resp = requests.get(
+            f"{SUPABASE_URL}/rest/v1/telegram_messages",
+            params={
+                "select": "chat_id,direction,message,created_at,worker_name",
+                "order": "created_at.desc",
+                "limit": str(limit),
+            },
+            headers=HEADERS, timeout=10,
+        )
+        if not resp.ok or not resp.json():
+            print(f" {DIM}(이전 대화 없음){RESET}\n", flush=True)
+            return
+
+        messages = list(reversed(resp.json()))
+        print(f" {DIM}── 최근 대화 {len(messages)}건 ──{RESET}")
+        for m in messages:
+            try:
+                created = datetime.fromisoformat(m["created_at"].replace("Z", "+00:00"))
+                ts = created.astimezone(KST).strftime("%m/%d %H:%M")
+            except Exception:
+                ts = "?"
+            direction = m.get("direction", "")
+            text = m.get("message", "")
+            name = m.get("worker_name", "")
+            chat_id = m.get("chat_id", "")
+            color = get_color_for(chat_id)
+
+            if direction == "incoming":
+                print(f" {DIM}[{ts}]{RESET} {color}{name}{RESET}: {text}")
+            else:
+                # 누구에게 보냈는지 찾기
+                target_contact = lookup_by_chat_id(chat_id)
+                target_name = target_contact["name"] if target_contact else chat_id
+                print(f" {DIM}[{ts}]{RESET} {CYAN}나→{target_name}{RESET}: {text}")
+        print(f" {DIM}{'─' * 50}{RESET}\n")
+
+    except Exception as e:
+        print(f" {DIM}(대화 내역 로드 실패: {e}){RESET}\n", flush=True)
+
+
+def load_recent_for(chat_id: str, limit: int = 10):
+    """특정 상대와의 최근 대화"""
+    try:
+        resp = requests.get(
+            f"{SUPABASE_URL}/rest/v1/telegram_messages",
+            params={
+                "select": "direction,message,created_at,worker_name",
+                "chat_id": f"eq.{chat_id}",
+                "order": "created_at.desc",
+                "limit": str(limit),
+            },
+            headers=HEADERS, timeout=10,
+        )
+        if not resp.ok or not resp.json():
+            print(f" {DIM}(이전 대화 없음){RESET}\n", flush=True)
+            return
+
+        messages = list(reversed(resp.json()))
+        contact = lookup_by_chat_id(chat_id)
+        cname = contact["name"] if contact else chat_id
+        color = get_color_for(chat_id)
+        print(f" {DIM}── {cname}과(와) 최근 {len(messages)}건 ──{RESET}")
+        for m in messages:
+            try:
+                created = datetime.fromisoformat(m["created_at"].replace("Z", "+00:00"))
+                ts = created.astimezone(KST).strftime("%m/%d %H:%M")
+            except Exception:
+                ts = "?"
+            direction = m.get("direction", "")
+            text = m.get("message", "")
+            name = m.get("worker_name", "")
+
+            if direction == "incoming":
+                print(f" {DIM}[{ts}]{RESET} {color}{name}{RESET}: {text}")
+            else:
+                print(f" {DIM}[{ts}]{RESET} {CYAN}나{RESET}: {text}")
+        print(f" {DIM}{'─' * 50}{RESET}\n")
+    except Exception as e:
+        print(f" {DIM}(로드 실패: {e}){RESET}\n", flush=True)
+
+
+# ── 로컬 입력 처리 ──────────────────────────────
+def handle_input(text: str):
+    """터미널 입력 처리"""
+    global _current_target, _contacts
+    text = text.strip()
+    if not text:
+        return
+
+    # ── 명령어 ──
+    # /번호 — 대화 상대 전환
+    if len(text) >= 2 and text[0] == '/' and text[1:].isdigit():
+        num = int(text[1:])
+        if 1 <= num <= len(_contacts):
+            _current_target = _contacts[num - 1]
+            color = get_color_for(_current_target["chat_id"])
+            print_system(f"대화 상대: {color}{BOLD}{_current_target['name']}{RESET}")
+            load_recent_for(_current_target["chat_id"], 5)
+        else:
+            print_system(f"잘못된 번호. 1~{len(_contacts)} 범위")
+        return
+
+    # /to 이름
+    if text.lower().startswith("/to "):
+        name = text[4:].strip()
+        found = find_contact(name)
+        if found:
+            _current_target = found
+            color = get_color_for(_current_target["chat_id"])
+            print_system(f"대화 상대: {color}{BOLD}{_current_target['name']}{RESET}")
+            load_recent_for(_current_target["chat_id"], 5)
+        else:
+            print_system(f"'{name}' 찾을 수 없음")
+        return
+
+    if text.lower() == "/list":
+        print(f"\n {BOLD}[연락처 목록]{RESET}")
+        for i, c in enumerate(_contacts, 1):
+            color = get_color_for(c["chat_id"])
+            role_icon = "👑" if c["role"] == "owner" else "👤"
+            aliases = c.get("aliases") or []
+            alias_str = f" {DIM}({', '.join(aliases)}){RESET}" if aliases else ""
+            is_sel = "  ◆" if _current_target and c["chat_id"] == _current_target["chat_id"] else ""
+            print(f"  {BOLD}{color}[{i}]{RESET} {role_icon} {color}{c['name']}{RESET}{alias_str} {DIM}[{c['role']}]{RESET}{GREEN}{is_sel}{RESET}")
+        print()
+        return
+
+    if text.lower() == "/recent":
+        if _current_target:
+            load_recent_for(_current_target["chat_id"])
+        else:
+            load_recent_all()
+        return
+
+    if text.lower() == "/all-recent":
+        load_recent_all()
+        return
+
+    if text.lower().startswith("/all "):
+        msg_text = text[5:].strip()
+        if not msg_text:
+            return
+        sent = 0
+        for c in _contacts:
+            send_telegram(c["chat_id"], f"[공지] {msg_text}")
+            save_message(chat_id=c["chat_id"], direction="outgoing",
+                         message=f"[공지] {msg_text}", worker_name="owner")
+            sent += 1
+        print_system(f"전체 공지 발송: {sent}명")
+        return
+
+    if text.lower() == "/refresh":
+        _contacts[:] = get_all_contacts()
+        print_system(f"연락처 새로고침: {len(_contacts)}명")
+        return
+
+    if text.lower() in ('/help', '/h', '/?'):
+        draw_help()
+        return
+
+    if text.lower() == "/clear":
+        clear_screen()
+        draw_header()
+        draw_contact_bar()
+        draw_help()
+        return
+
+    if text.lower() in ('/q', '/quit', '/exit'):
+        global _running
+        _running = False
+        return
+
+    # ── 이름>메시지 — 특정인에게 전송 ──
+    for sep in [">", ":"]:
+        if sep in text:
+            name_part, body = text.split(sep, 1)
+            name_part = name_part.strip()
+            body = body.strip()
+            if name_part and body:
+                found = find_contact(name_part)
+                if found:
+                    _current_target = found
+                    ok = send_telegram(found["chat_id"], body)
+                    print_outgoing(found["name"], body, ok)
+                    if ok:
+                        save_message(chat_id=found["chat_id"],
+                                     direction="outgoing", message=body,
+                                     worker_name="owner")
+                    return
+
+    # ── 일반 메시지 — 현재 대화 상대에게 ──
+    if not _current_target:
+        print_system("대화 상대를 먼저 선택하세요: /번호 또는 /to 이름")
+        return
+
+    ok = send_telegram(_current_target["chat_id"], text)
+    print_outgoing(_current_target["name"], text, ok)
+    if ok:
+        save_message(chat_id=_current_target["chat_id"],
+                     direction="outgoing", message=text,
+                     worker_name="owner")
+
+
 # ── 메인 ──────────────────────────────────
 def main():
-    global _running, _current_target
+    global _running, _contacts
 
     if not TG_TOKEN:
         print("TELEGRAM_BOT_TOKEN 미설정")
@@ -292,6 +546,9 @@ def main():
     # ANSI 색상 활성화 (Windows 10+)
     if os.name == 'nt':
         os.system('')
+
+    # 연락처 로드
+    _contacts[:] = get_all_contacts()
 
     # 기존 메시지 건너뛰기
     offset_holder = [0]
@@ -309,157 +566,57 @@ def main():
     poll_thread = threading.Thread(target=poll_incoming, args=(offset_holder,), daemon=True)
     poll_thread.start()
 
+    # ── 초기 화면 ──
+    clear_screen()
+    draw_header()
+
+    if not _contacts:
+        print(f"  {RED}등록된 연락처가 없습니다.{RESET}")
+        print(f"  텔레그램에서 봇에게 /start 를 보내면 등록됩니다.\n")
+    else:
+        draw_contact_bar()
+        print()
+        draw_help()
+
+        # 최근 대화 통합 표시
+        load_recent_all(15)
+
+        # 연결 알림
+        try:
+            ts = datetime.now(KST).strftime("%H:%M")
+            for c in _contacts:
+                send_telegram(c["chat_id"],
+                    f"💬 채팅 터미널 온라인 ({ts} KST)")
+        except Exception:
+            pass
+
+    # ── 입력 루프 ──
     try:
         while _running:
-            # ── 연락처 목록 화면 ──
-            clear_screen()
-            draw_header()
-
-            contacts = get_all_contacts()
-            if not contacts:
-                print(f"  {RED}등록된 연락처가 없습니다.{RESET}")
-                print(f"  텔레그램에서 봇에게 /start 를 보내면 등록됩니다.")
-                input(f"\n  Enter로 새로고침...")
-                continue
-
-            draw_contact_list(contacts)
-
             try:
-                choice = input(f"  {BOLD}선택 ▸ {RESET}").strip()
-            except (EOFError, KeyboardInterrupt):
-                break
-
-            if choice.lower() in ('q', 'quit', 'exit'):
-                break
-
-            # 전체 공지
-            if choice == '0':
-                try:
-                    msg = input(f"  {MAGENTA}공지 메시지 ▸ {RESET}").strip()
-                except (EOFError, KeyboardInterrupt):
-                    continue
-                if msg:
-                    sent = 0
-                    for c in contacts:
-                        send_telegram(c["chat_id"], f"[공지] {msg}")
-                        save_message(chat_id=c["chat_id"], direction="outgoing",
-                                     message=f"[공지] {msg}", worker_name="owner")
-                        sent += 1
-                    print(f"\n  {GREEN}✓ {sent}명에게 공지 발송 완료{RESET}")
-                    time.sleep(1.5)
-                continue
-
-            # 번호로 선택
-            try:
-                idx = int(choice) - 1
-                if 0 <= idx < len(contacts):
-                    _current_target = contacts[idx]
+                # 프롬프트에 현재 대화 상대 표시
+                if _current_target:
+                    color = get_color_for(_current_target["chat_id"])
+                    prompt = f" {color}{_current_target['name']}{RESET} {CYAN}▸{RESET} "
                 else:
-                    print(f"  {RED}잘못된 번호입니다.{RESET}")
-                    time.sleep(1)
-                    continue
-            except ValueError:
-                # 이름으로 검색
-                found = None
-                for c in contacts:
-                    if choice in c["name"] or choice in (c.get("aliases") or []):
-                        found = c
-                        break
-                if found:
-                    _current_target = found
-                else:
-                    print(f"  {RED}'{choice}' 을(를) 찾을 수 없습니다.{RESET}")
-                    time.sleep(1)
-                    continue
-
-            # ── 채팅 모드 ──
-            clear_screen()
-            draw_header()
-            draw_chat_header(_current_target)
-
-            # 최근 메시지 불러오기
-            _load_recent_messages(_current_target["chat_id"])
-
-            while _running:
-                try:
-                    msg = input(f" {CYAN}▸ {RESET}")
-                except (EOFError, KeyboardInterrupt):
-                    _running = False
-                    break
-
-                msg = msg.strip()
-                if not msg:
-                    continue
-
-                if msg.lower() in ('/back', '/b', '/목록'):
-                    break
-
-                if msg.lower() in ('/q', '/quit', '/exit'):
-                    _running = False
-                    break
-
-                if msg.lower() == '/clear':
-                    clear_screen()
-                    draw_header()
-                    draw_chat_header(_current_target)
-                    continue
-
-                if msg.lower() == '/recent':
-                    _load_recent_messages(_current_target["chat_id"])
-                    continue
-
-                # 메시지 전송
-                ok = send_telegram(_current_target["chat_id"], msg)
-                print_outgoing(_current_target["name"], msg, ok)
-                if ok:
-                    save_message(chat_id=_current_target["chat_id"],
-                                 direction="outgoing", message=msg,
-                                 worker_name="owner")
-
+                    prompt = f" {DIM}(상대 선택: /번호){RESET} {CYAN}▸{RESET} "
+                line = input(prompt)
+                handle_input(line)
+            except EOFError:
+                break
+            except KeyboardInterrupt:
+                break
     except KeyboardInterrupt:
         pass
     finally:
         _running = False
-        print(f"\n{DIM}[{ts_now()}] 채팅 터미널 종료{RESET}")
-
-
-def _load_recent_messages(chat_id: str, limit: int = 10):
-    """최근 대화 내역 불러오기"""
-    try:
-        resp = requests.get(
-            f"{SUPABASE_URL}/rest/v1/telegram_messages",
-            params={
-                "select": "direction,message,created_at,worker_name",
-                "chat_id": f"eq.{chat_id}",
-                "order": "created_at.desc",
-                "limit": str(limit),
-            },
-            headers=HEADERS, timeout=10,
-        )
-        if not resp.ok or not resp.json():
-            print(f" {DIM}(이전 대화 없음){RESET}\n", flush=True)
-            return
-
-        messages = list(reversed(resp.json()))
-        print(f" {DIM}── 최근 {len(messages)}건 ──{RESET}")
-        for m in messages:
-            try:
-                created = datetime.fromisoformat(m["created_at"].replace("Z", "+00:00"))
-                ts = created.astimezone(KST).strftime("%m/%d %H:%M")
-            except Exception:
-                ts = "?"
-            direction = m.get("direction", "")
-            text = m.get("message", "")
-            name = m.get("worker_name", "")
-
-            if direction == "incoming":
-                print(f" {DIM}[{ts}]{RESET} {GREEN}{name}{RESET}: {text}")
-            else:
-                print(f" {DIM}[{ts}]{RESET} {CYAN}나{RESET}: {text}")
-        print(f" {DIM}{'─' * 40}{RESET}\n")
-
-    except Exception as e:
-        print(f" {DIM}(대화 내역 로드 실패: {e}){RESET}\n", flush=True)
+        # 오프라인 알림
+        try:
+            for c in _contacts:
+                send_telegram(c["chat_id"], "💬 채팅 터미널 오프라인")
+        except Exception:
+            pass
+        print(f"\n{DIM}[{ts_now()}] 다중 채팅 터미널 종료{RESET}")
 
 
 if __name__ == "__main__":
