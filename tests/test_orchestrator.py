@@ -378,8 +378,8 @@ class TestOrchestratorOpportunityScore:
             fusion_signal="neutral", fusion_score=0,
             funding_rate=0, kimchi_pct=0,
         )
-        # 25-25 = 0
-        assert score == 0
+        # fgi<=25 → max(1, 25-25) = max(1, 0) = 1 (경계값 최소 1점)
+        assert score == 1
 
     def test_extreme_fear_max(self):
         orch = _make_orchestrator()
@@ -1633,7 +1633,8 @@ class TestOrchestratorConsecutiveLosses:
             {"decision": "hold", "profit_loss": None},
             {"decision": "buy", "profit_loss": -2.0},
         ])
-        assert count == 0
+        # hold is skipped (continue), not a chain-breaker; buy(-2.0) counts
+        assert count == 1
 
     def test_empty_decisions(self):
         orch = _make_orchestrator()
@@ -1771,20 +1772,26 @@ class TestOrchestratorRun:
 class TestEvaluateSwitchIntegration:
 
     def test_feedback_bias_conservative_adds_danger(self):
-        """feedback_bias=conservative → danger +10."""
+        """feedback_bias=conservative with recent timestamp → danger +9 (int truncation)."""
         orch = _make_orchestrator("aggressive")
         orch.state["feedback_bias"] = "conservative"
-        # danger=60 + 10(feedback) = 70 → should switch to conservative
-        ms = _ms(danger_score=60, opportunity_score=10, fgi=30,
+        # Set recent timestamp so strength ≈ 1.0 (not legacy 0.3)
+        import time as _time
+        orch.state["feedback_bias_set_at"] = _time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
+        # danger=61 + 9(feedback, int truncation) = 70 → should switch to conservative
+        ms = _ms(danger_score=61, opportunity_score=10, fgi=30,
                  price_change_24h=-4, consecutive_losses=2, phase="fear")
         result = orch._evaluate_switch(ms)
         assert result is not None
         assert result["to"] == "conservative"
 
     def test_feedback_bias_aggressive_adds_opportunity(self):
-        """feedback_bias=aggressive → opportunity +10."""
+        """feedback_bias=aggressive with recent timestamp → opportunity +10."""
         orch = _make_orchestrator("conservative")
         orch.state["feedback_bias"] = "aggressive"
+        # Set recent timestamp so strength ≈ 1.0 (not legacy 0.3)
+        import time as _time
+        orch.state["feedback_bias_set_at"] = _time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
         # opportunity=55 + 10(feedback) = 65 → aggressive
         ms = _ms(danger_score=10, opportunity_score=55, fgi=15,
                  rsi=25, price_change_24h=2,

@@ -361,14 +361,14 @@ class TestOpportunityScoreEdgeCases:
         assert score == 0
 
     def test_opportunity_fgi_boundary_25(self):
-        """FGI = 25 → 25-25 = 0점 (경계)."""
+        """FGI = 25 → max(1, 25-25) = 1점 (경계값 최소 1점 보장)."""
         orch = _make_orchestrator()
         score = orch._calculate_opportunity_score(
             fgi=25, rsi=50, price_change_24h=0,
             fusion_signal="neutral", fusion_score=0,
             funding_rate=0, kimchi_pct=0,
         )
-        assert score == 0
+        assert score == 1
 
     def test_opportunity_fgi_24(self):
         """FGI = 24 → 25-24 = 1점."""

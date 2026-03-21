@@ -262,12 +262,22 @@ class TestConservativeSell:
         assert decision.trade_params.get("is_partial") is True
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
-    def test_hold_defer_strong_ai(self, agent):
-        """목표 수익 + AI 강세 → hold_defer."""
+    def test_hold_defer_strong_ai(self, agent, tmp_path):
+        """목표 수익 + AI 강세 → hold_defer (첫 유예)."""
+        import json as _json
+        # agent_state.json에 deferred_target_profit=False로 설정하여 첫 유예 보장
+        state_file = tmp_path / "agent_state.json"
+        state_file.write_text(_json.dumps({"deferred_target_profit": False}))
         md = _make_market_data(fgi=50, rsi=50, ai_score=25)
         port = _make_portfolio(btc_balance=0.01, profit_pct=16.0, total_eval=1000000)
         ext = _make_ext()
-        decision = agent.decide(md, ext, port)
+        _real_open = open
+        def _mock_open(path, *args, **kwargs):
+            if "agent_state" in str(path):
+                return _real_open(str(state_file), *args, **kwargs)
+            return _real_open(path, *args, **kwargs)
+        with patch("builtins.open", side_effect=_mock_open):
+            decision = agent.decide(md, ext, port)
         assert decision.decision == "hold"
         assert "유예" in decision.reason or "보류" in decision.reason
 

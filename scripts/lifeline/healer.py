@@ -185,7 +185,7 @@ class Healer:
             url = UPBIT_TEST_URL
         elif component == "supabase":
             supabase_url = os.getenv("SUPABASE_URL", "")
-            supabase_key = os.getenv("SUPABASE_SERVICE_KEY", "")
+            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
             if not supabase_url:
                 print("[healer] SUPABASE_URL 미설정", file=sys.stderr)
                 return False

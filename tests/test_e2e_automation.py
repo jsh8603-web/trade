@@ -167,6 +167,7 @@ class TestPhase8DynamicRisk:
         import scripts.dynamic_risk as dr
 
         monkeypatch.setattr(dr, "STATE_FILE", state_dir / "dynamic_risk.json")
+        monkeypatch.setattr(dr, "DEFAULT_MAX_AMOUNT", 100000)
 
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -185,6 +186,7 @@ class TestPhase8DynamicRisk:
         import scripts.dynamic_risk as dr
 
         monkeypatch.setattr(dr, "STATE_FILE", state_dir / "dynamic_risk.json")
+        monkeypatch.setattr(dr, "DEFAULT_MAX_AMOUNT", 100000)
 
         # 6 consecutive losses
         mock_resp = MagicMock()
@@ -463,6 +465,7 @@ class TestCascadingEffects:
         import scripts.dynamic_risk as dr
 
         monkeypatch.setattr(dr, "STATE_FILE", state_dir / "dynamic_risk.json")
+        monkeypatch.setattr(dr, "DEFAULT_MAX_AMOUNT", 100000)
 
         # 5 consecutive losses -> CRITICAL
         mock_resp = MagicMock()

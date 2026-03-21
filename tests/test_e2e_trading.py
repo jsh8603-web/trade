@@ -294,18 +294,18 @@ class TestBuyScoreCalculation:
             fgi=10, rsi=20, sma_deviation=-6.0,
             news_negative=False, external_bonus=10,
         )
-        # FGI <= 15 (half of 30) => 30 + 5 bonus = 35
-        assert score["fgi"]["score"] == 35
-        # RSI <= 30 => 25
+        # FGI <= 17.5 (half of 35) => 30 + 5 bonus; FGI <= 20 => +5 extreme fear = 40
+        assert score["fgi"]["score"] == 40
+        # RSI <= 35 => 25
         assert score["rsi"]["score"] == 25
-        # SMA <= -5.0 => 25
+        # SMA <= -3.0 => 25
         assert score["sma"]["score"] == 25
         # News not negative => 20
         assert score["news"]["score"] == 20
         # External bonus
         assert score["external"]["score"] == 10
-        # Total: 35 + 25 + 25 + 20 + 10 = 115
-        assert score["total"] == 115
+        # Total: 40 + 25 + 25 + 20 + 10 = 120
+        assert score["total"] == 120
         assert score["result"] == "buy"
 
     def test_conservative_below_threshold(self):
@@ -334,23 +334,23 @@ class TestBuyScoreCalculation:
 
     def test_aggressive_lower_threshold(self):
         agent = AggressiveAgent()
-        assert agent.buy_score_threshold == 45
+        assert agent.buy_score_threshold == 40
         score = agent.calculate_buy_score(
             fgi=50, rsi=40, sma_deviation=-2.0,
             news_negative=False, external_bonus=5,
         )
         # FGI 50 <= 60 => 30, RSI 40 <= 50 => 25, SMA -2 <= -1 => 25, news=20, ext=5
-        assert score["total"] >= 45
+        assert score["total"] >= 40
         assert score["result"] == "buy"
 
     def test_partial_fgi_score(self):
         """FGI slightly above threshold gives partial credit."""
         agent = ConservativeAgent()
         score = agent.calculate_buy_score(
-            fgi=35, rsi=50, sma_deviation=0,
+            fgi=40, rsi=50, sma_deviation=0,
             news_negative=False, external_bonus=0,
         )
-        # FGI 35 is within threshold+10 (30+10=40), so partial
+        # FGI 40 is above threshold (35) but within threshold+10 (45), so partial
         assert score["fgi"]["score"] == 15  # half of 30
         assert score["fgi"].get("partial") is True
 
@@ -859,7 +859,8 @@ class TestTradeAmount:
         amount = agent._calculate_trade_amount(total_krw=10_000_000)
         assert amount <= 50000
 
-    def test_trade_ratio_applied(self):
+    @patch.object(ConservativeAgent, "_is_weekend", return_value=False)
+    def test_trade_ratio_applied(self, mock_weekend):
         agent = ConservativeAgent()
         # 10% of 1M = 100K, but capped at MAX_TRADE_AMOUNT (100K default)
         amount = agent._calculate_trade_amount(total_krw=1_000_000)

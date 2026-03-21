@@ -776,7 +776,8 @@ class TestExecuteExit:
         assert pos.exit_reason == "test exit"
         assert len(trader.positions) == 0
         assert len(trader.closed_positions) == 1
-        assert trader.daily_trade_count == 1
+        # daily_trade_count는 entry에서만 증가 (round-trip = 1회)
+        assert trader.daily_trade_count == 0
 
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")

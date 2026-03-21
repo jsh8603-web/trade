@@ -177,6 +177,7 @@ class TestSendMessage:
     def test_api_400_error(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.ok = False
+        mock_resp.status_code = 400
         mock_resp.text = "Bad Request: chat not found"
         mock_post.return_value = mock_resp
 
@@ -188,11 +189,12 @@ class TestSendMessage:
     def test_api_500_error(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.ok = False
+        mock_resp.status_code = 500
         mock_resp.text = "Internal Server Error"
         mock_post.return_value = mock_resp
 
         with pytest.raises(RuntimeError, match="텔레그램 전송 실패"):
-            send_message("trade", "title", "body")
+            send_message("trade", "title", "body", max_retries=1)
 
     @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "test-token", "TELEGRAM_USER_ID": "12345"})
     @patch("notify_telegram.requests.post")
@@ -510,5 +512,5 @@ class TestPortfolioAuth:
 
     @patch.dict(os.environ, {}, clear=True)
     def test_missing_api_keys(self):
-        with pytest.raises(KeyError):
+        with pytest.raises(ValueError):
             get_portfolio.make_auth_header()

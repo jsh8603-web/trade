@@ -338,7 +338,7 @@ class TestAuth:
 
     @patch.dict(os.environ, {}, clear=True)
     def test_missing_keys_raises(self):
-        with pytest.raises(KeyError):
+        with pytest.raises(ValueError):
             get_portfolio.make_auth_header()
 
 

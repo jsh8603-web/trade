@@ -23,6 +23,9 @@ from kimchirang.notifier import KimchirangNotifier
 from kimchirang.db import KimchirangDB
 
 
+import pytest
+
+@pytest.mark.asyncio
 async def test_e2e():
     print("=" * 60)
     print("Kimchirang E2E Test -- DRY_RUN Mode")

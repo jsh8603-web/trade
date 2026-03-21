@@ -9,6 +9,9 @@ from kimchirang.execution import ExecutionResult, LegResult
 from kimchirang.kp_engine import KPSnapshot
 from kimchirang.state import load_position, save_position
 
+import pytest
+
+@pytest.mark.asyncio
 async def test_integrations():
     config = KimchirangConfig()
 

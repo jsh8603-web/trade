@@ -573,9 +573,9 @@ class TestMarkFeedbackApplied:
 # save_portfolio_snapshot
 # ---------------------------------------------------------------------------
 class TestSavePortfolioSnapshot:
+    @patch("save_decision._get_cycle_id", return_value="20260321-0800-llm")
     @patch("save_decision.supabase_post")
-    @patch("save_decision.subprocess.run" if hasattr(sd, "subprocess") else "subprocess.run")
-    def test_normal_portfolio_saved(self, mock_run, mock_post):
+    def test_normal_portfolio_saved(self, mock_post, mock_cycle):
         """정상적인 포트폴리오 JSON → supabase_post 호출."""
         portfolio = {
             "krw_balance": 500000,
@@ -584,16 +584,14 @@ class TestSavePortfolioSnapshot:
             ],
             "total_eval": 1500000,
         }
-        mock_run.return_value = MagicMock(
+        mock_run_result = MagicMock(
             returncode=0,
             stdout=json.dumps(portfolio),
         )
         mock_post.return_value = {"id": "snap1"}
 
-        # Need to import subprocess inside the function, so we patch at module level
-        with patch.object(sd, "__builtins__", sd.__builtins__):
-            # Actually, save_portfolio_snapshot imports subprocess locally
-            with patch("subprocess.run", mock_run):
+        with patch("subprocess.run", return_value=mock_run_result):
+            with patch("scripts.hide_console.subprocess_kwargs", return_value={}):
                 sd.save_portfolio_snapshot()
 
         mock_post.assert_called_once_with("portfolio_snapshots", {
@@ -601,6 +599,7 @@ class TestSavePortfolioSnapshot:
             "total_crypto_value": 1000000,
             "total_value": 1500000,
             "holdings": json.dumps([{"currency": "BTC", "eval_amount": 1000000}], ensure_ascii=False),
+            "cycle_id": "20260321-0800-llm",
         })
 
     @patch("save_decision.supabase_post")

@@ -344,14 +344,20 @@ class TestSentinel:
              patch("scripts.lifeline.sentinel.check_disk_space", return_value=ok_result), \
              patch("scripts.lifeline.sentinel.check_memory", return_value=ok_result), \
              patch("scripts.lifeline.sentinel.check_process", return_value=ok_result), \
+             patch("scripts.lifeline.sentinel.check_process_alive", return_value=ok_result), \
              patch("scripts.lifeline.sentinel.check_rl_models", return_value=ok_result), \
              patch("scripts.lifeline.sentinel.check_emergency_flags", return_value=err_result), \
-             patch("scripts.lifeline.sentinel.check_stale_locks", return_value=ok_result):
+             patch("scripts.lifeline.sentinel.check_stale_locks", return_value=ok_result), \
+             patch("scripts.lifeline.sentinel.check_junk_files", return_value=ok_result), \
+             patch("scripts.lifeline.sentinel.check_core_processes", return_value=ok_result), \
+             patch("scripts.lifeline.sentinel.check_bot_processes", return_value=ok_result), \
+             patch("scripts.lifeline.sentinel.check_git_status", return_value=ok_result), \
+             patch("scripts.lifeline.sentinel.check_log_size", return_value=ok_result):
             result = run_all_checks()
 
         assert result["overall_status"] == "ERROR"
-        assert result["summary"]["total"] == 8
-        assert result["summary"]["ok"] == 6
+        assert result["summary"]["total"] == 14
+        assert result["summary"]["ok"] == 12
         assert result["summary"]["warning"] == 1
         assert result["summary"]["error"] == 1
         assert "timestamp" in result

@@ -538,6 +538,8 @@ class TestLoadCandles:
     def test_api_error_returns_empty(self, mock_get):
         mock_get.side_effect = Exception("network error")
         loader = HistoricalDataLoader()
+        # Clear any file cache that might bypass the API call
+        loader._load_file_cache = MagicMock(return_value=None)
         candles = loader.load_candles(days=1, interval="1d")
         assert candles == []
 

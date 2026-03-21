@@ -250,25 +250,27 @@ class TestFearGreedErrors:
 
     @patch("collect_fear_greed.requests.get")
     def test_malformed_json_missing_data_key(self, mock_get):
-        """API returns JSON without 'data' key."""
+        """API returns JSON without 'data' key — .get("data", []) returns empty,
+        then RuntimeError is raised for empty data."""
         mock_resp = MagicMock()
+        mock_resp.status_code = 200
         mock_resp.raise_for_status.return_value = None
         mock_resp.json.return_value = {"unexpected": "response"}
         mock_get.return_value = mock_resp
 
-        with pytest.raises(KeyError):
+        with pytest.raises(RuntimeError):
             fgi.main()
 
     @patch("collect_fear_greed.requests.get")
     def test_empty_data_array(self, mock_get):
-        """API returns empty data array."""
+        """API returns empty data array — raises RuntimeError."""
         mock_resp = MagicMock()
+        mock_resp.status_code = 200
         mock_resp.raise_for_status.return_value = None
         mock_resp.json.return_value = {"data": []}
         mock_get.return_value = mock_resp
 
-        # Accessing history[0] for 'current' should raise IndexError
-        with pytest.raises(IndexError):
+        with pytest.raises(RuntimeError):
             fgi.main()
 
 

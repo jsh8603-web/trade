@@ -205,7 +205,8 @@ class TestBollinger:
         period = 5
         result = bollinger(prices, period)
         mid = sum(prices) / period
-        var = sum((p - mid) ** 2 for p in prices) / period
+        # Production uses sample variance (period - 1 denominator)
+        var = sum((p - mid) ** 2 for p in prices) / (period - 1)
         sd = var ** 0.5
         assert result["middle"] == pytest.approx(mid, abs=0.01)
         assert result["upper"] == pytest.approx(mid + 2 * sd, abs=0.01)
@@ -348,7 +349,9 @@ class TestApiGet:
 
         result = api_get("/ticker", max_retries=3)
         assert result == {"ok": True}
-        mock_sleep.assert_called_once_with(1)
+        # pre-throttle + 429 retry sleep 모두 포함
+        assert any(call.args == (1,) for call in mock_sleep.call_args_list), \
+            f"Expected sleep(1) for 429 retry, got: {mock_sleep.call_args_list}"
 
     @patch("collect_market_data.time.sleep")
     @patch("collect_market_data._get_session")

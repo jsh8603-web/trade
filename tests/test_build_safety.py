@@ -262,8 +262,8 @@ class TestSqlMigrations:
         """Migration files should be numbered (NNN_ prefix)."""
         sql_files = sorted(MIGRATIONS_DIR.glob("*.sql"))
         for sql_file in sql_files:
-            assert re.match(r"^\d{3}_", sql_file.name), (
-                f"{sql_file.name} does not follow NNN_ numbering convention"
+            assert re.match(r"^\d{3}[a-z]?_", sql_file.name), (
+                f"{sql_file.name} does not follow NNN_ or NNNx_ numbering convention"
             )
 
 
