@@ -1,10 +1,12 @@
 #!/bin/bash
 # RC 부활 + 텔레그램 링크 전송
+# 리모트랑(RemoteRang) 매시 정각 강제 부활 — com.claude.rc-revival plist에서 호출
+# 워치독(watchdog_remote.sh)의 1시간 부활과 이중화
 # 사용법: bash ~/workspace/blockchain/scripts/revive_rc.sh
 
 cd ~/workspace/blockchain
-source .venv/bin/activate
-source .env
+source .venv/bin/activate 2>/dev/null
+set -a; source .env 2>/dev/null; set +a
 
 # tmux 세션 결정 (main 우선, 없으면 blockchain)
 if tmux has-session -t main 2>/dev/null; then
@@ -56,14 +58,19 @@ URL=$(tmux capture-pane -t $TMUX_SESSION:rc -p 2>/dev/null | grep -oE 'https://c
 
 if [ -n "$URL" ]; then
     echo "✅ RC 활성: $URL"
+    # remote_url.txt + health 업데이트
+    echo "$URL" > ~/workspace/blockchain/data/remote_url.txt
+    echo '{"status":"healthy","url":"'"$URL"'","ts":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","source":"rc-revival"}' > ~/workspace/blockchain/data/.rc_health.json
+    # revive 타임스탬프 업데이트 (워치독과 동기화)
+    date +%s > ~/workspace/blockchain/data/.rc_revive_ts
     # 텔레그램 전송
     curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
         -d chat_id="${TELEGRAM_USER_ID}" \
-        --data-urlencode "text=🔄 RC 부활 완료
+        --data-urlencode "text=🔄 RC 매시 부활 완료
 
 🔗 링크: $URL" \
         -d "disable_web_page_preview=true" > /dev/null
     echo "✅ 텔레그램 전송 완료"
 else
-    echo "❌ RC 활성화 실패"
+    echo "❌ RC 활성화 실패 — 워치독에 위임"
 fi
