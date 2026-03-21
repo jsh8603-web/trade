@@ -68,9 +68,9 @@ def _evaluate_correctness(decision_type: str, outcome_pct: float, window: str) -
         return outcome_pct > 0
     elif decision_type == "매도":
         return outcome_pct < 0
-    else:  # 관망
+    else:  # 관망 — 가격이 크게 오르지 않았으면 정답 (하락은 관망이 맞음)
         threshold = 1.0 if window == "24h" else 0.5
-        return abs(outcome_pct) < threshold
+        return outcome_pct < threshold  # 가격 상승이 임계 이하면 관망 정답
 
 
 def _update_window(window: str, hours: int, extra_filter: dict = None):
@@ -130,12 +130,21 @@ def _update_window(window: str, hours: int, extra_filter: dict = None):
         decision_type = row.get("decision", "")
         was_correct = _evaluate_correctness(decision_type, outcome_pct, window)
 
-        patches.append((row["id"], {
+        patch_data = {
             price_col: price_after,
             outcome_col: outcome_pct,
             correct_col: was_correct,
             "aftermath_updated_at": now.isoformat(),
-        }))
+        }
+        # 24h 윈도우에서 profit_loss도 채움 (매수: +면 수익, 매도: -면 수익, 관망: 반전)
+        if window == "24h":
+            if decision_type == "매수":
+                patch_data["profit_loss"] = outcome_pct
+            elif decision_type == "매도":
+                patch_data["profit_loss"] = -outcome_pct
+            else:  # 관망
+                patch_data["profit_loss"] = -outcome_pct  # 안 샀는데 올랐으면 손해
+        patches.append((row["id"], patch_data))
         outcomes.append({
             "created_at": row["created_at"],
             "outcome_pct": outcome_pct,

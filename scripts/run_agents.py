@@ -300,7 +300,7 @@ def get_rl_advisory(market_data: dict, external_data: dict,
             multi_agent_swing_action=ma_swing,
             offline_action=offline_info.get("action"),
             offline_version=None,
-            btc_price=ticker.get("trade_price"),
+            btc_price=market_data.get("current_price") or ticker.get("trade_price"),
             rsi_14=indicators.get("rsi_14"),
             fgi=fgi_data.get("value"),
             danger_score=agent_state.get("danger_score"),
@@ -472,9 +472,9 @@ def save_market_data_record(market_data: dict, external_data: dict) -> bool:
     fgi = market_data.get("fear_greed", {})
     news = market_data.get("news", {})
 
-    price = ticker.get("trade_price") or market_data.get("current_price", 0)
-    volume_24h = ticker.get("acc_trade_volume_24h")
-    change_rate = ticker.get("signed_change_rate")
+    price = market_data.get("current_price") or ticker.get("trade_price", 0)
+    volume_24h = market_data.get("volume_24h") or ticker.get("acc_trade_volume_24h")
+    change_rate = market_data.get("change_rate_24h") or ticker.get("signed_change_rate")
 
     from utils.machine import get_machine_name
     row = {
@@ -694,7 +694,7 @@ def main():
         regime_info = detect_regime(
             rsi=market_data.get("indicators", {}).get("rsi_14"),
             fgi=market_data.get("fear_greed", {}).get("value"),
-            change_rate_24h=market_data.get("ticker", {}).get("signed_change_rate"),
+            change_rate_24h=market_data.get("change_rate_24h") or market_data.get("ticker", {}).get("signed_change_rate"),
             atr_pct=None,  # bollinger proxy는 detect_regime_from_market_data에서 계산
         )
         log(f"레짐 감지: {regime_info['regime']} ({regime_info['description']}, conf={regime_info['confidence']:.0%})")
@@ -987,7 +987,7 @@ def main():
                             "rsi_14": market_data.get("indicators", {}).get("rsi_14"),
                             "sma_20": market_data.get("indicators", {}).get("sma_20"),
                             "fear_greed_value": market_data.get("fear_greed", {}).get("value"),
-                            "volume_24h": market_data.get("ticker", {}).get("acc_trade_volume_24h"),
+                            "volume_24h": market_data.get("volume_24h") or market_data.get("ticker", {}).get("acc_trade_volume_24h"),
                             "news_sentiment": market_data.get("news", {}).get("overall_sentiment"),
                         }
                         emb_text, emb_vector = generate_state_embedding(emb_data)
@@ -1099,7 +1099,7 @@ def main():
                 "rsi_14": market_data.get("indicators", {}).get("rsi_14"),
                 "sma_20": market_data.get("indicators", {}).get("sma_20"),
                 "fear_greed_value": market_data.get("fear_greed", {}).get("value"),
-                "volume_24h": market_data.get("ticker", {}).get("acc_trade_volume_24h"),
+                "volume_24h": market_data.get("volume_24h") or market_data.get("ticker", {}).get("acc_trade_volume_24h"),
                 "news_sentiment": market_data.get("news", {}).get("overall_sentiment"),
             }
             emb_text, emb_vector = generate_state_embedding(emb_data)
@@ -1180,14 +1180,15 @@ def main():
                     f"{supabase_url}/rest/v1/feedback?applied=eq.false&select=id",
                     headers=_fb_headers, timeout=10,
                 )
-                if _fb_r.ok and _fb_r.json():
-                    _fb_ids = ",".join(f"'{f['id']}'" for f in _fb_r.json())
+                _fb_data = _fb_r.json() if _fb_r.ok else []
+                if _fb_data:
+                    _fb_ids = ",".join(f['id'] for f in _fb_data)
                     requests.patch(
                         f"{supabase_url}/rest/v1/feedback?id=in.({_fb_ids})",
                         headers=_fb_headers, timeout=10,
-                        json={"applied": True, "applied_at": timestamp},
+                        json={"applied": True, "applied_at": datetime.now(KST).isoformat()},
                     )
-                    log(f"[Agent] {len(_fb_r.json())}건 피드백 applied 처리")
+                    log(f"[Agent] {len(_fb_data)}건 피드백 applied 처리")
     except Exception as e:
         log(f"Phase 5d 피드백 applied 예외: {e}")
 
@@ -1254,7 +1255,7 @@ def main():
             _market_regime = {
                 "fgi": market_data.get("fear_greed", {}).get("value"),
                 "rsi": market_data.get("indicators", {}).get("rsi_14"),
-                "change_rate_24h": market_data.get("ticker", {}).get("signed_change_rate"),
+                "change_rate_24h": market_data.get("change_rate_24h") or market_data.get("ticker", {}).get("signed_change_rate"),
             }
             tuning_result = run_parameter_tuning(
                 performance_metrics=_perf_metrics,
