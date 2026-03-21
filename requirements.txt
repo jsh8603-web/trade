@@ -22,5 +22,8 @@ numpy>=1.24.0
 torch>=2.0
 stable-baselines3>=2.0
 
+# === 뉴스랑(NewsRang) 외부 데이터 수집 ===
+twikit>=2.0
+
 # === Kimchirang (김치프리미엄 차익거래) ===
 ccxt>=4.0
