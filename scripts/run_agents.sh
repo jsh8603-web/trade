@@ -217,7 +217,7 @@ if [ "$DECISION" = "buy" ]; then
   AMOUNT=$(echo "$AGENT_RESULT" | "$PYTHON" -c "import sys,json; r=json.load(sys.stdin); print(r['decision']['trade_params'].get('amount',0))")
   IS_DCA=$(echo "$AGENT_RESULT" | "$PYTHON" -c "import sys,json; r=json.load(sys.stdin); print(r['decision']['trade_params'].get('is_dca',False))")
 
-  if [ "$AMOUNT" -gt 0 ] 2>/dev/null; then
+  if "$PYTHON" -c "assert float('$AMOUNT') > 0" 2>/dev/null; then
     DCA_TAG=""
     [ "$IS_DCA" = "True" ] && DCA_TAG=" [DCA]"
     echo "[$(date)] 매수 실행: $MARKET $AMOUNT KRW${DCA_TAG}" >&2
@@ -308,7 +308,7 @@ if resp.status_code in (200, 201):
     print(f'[Agent] Supabase 기록 완료 (HTTP {resp.status_code})', file=sys.stderr)
 else:
     print(f'[Agent] Supabase 기록 실패! HTTP {resp.status_code}: {resp.text}', file=sys.stderr)
-" 2>&1 >&2 || true
+" 2>&1 || true
 fi
 
 # ── Phase 5b: market_data 기록 ──
@@ -386,7 +386,7 @@ try:
         print(f'[Agent] execution_logs 기록 실패: HTTP {resp.status_code}: {resp.text[:200]}', file=sys.stderr)
 except Exception as e:
     print(f'[Agent] execution_logs 기록 예외: {e}', file=sys.stderr)
-" 2>&1 >&2 || true
+" 2>&1 || true
 fi
 
 # ── Phase 5c: portfolio_snapshots 기록 ──
@@ -444,7 +444,7 @@ try:
         print(f'[Agent] portfolio_snapshots 기록 실패: HTTP {resp.status_code}: {resp.text[:200]}', file=sys.stderr)
 except Exception as e:
     print(f'[Agent] portfolio_snapshots 기록 예외: {e}', file=sys.stderr)
-" 2>&1 >&2 || true
+" 2>&1 || true
 fi
 
 # ── Phase 6: 과거 전환 성과 평가 (학습 데이터 축적) ──

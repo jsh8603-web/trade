@@ -429,6 +429,7 @@ def save_execution_log(
         "cycle_id": _CYCLE_ID,
         "success": not has_errors,
         "execution_started_at": datetime.now(KST).isoformat(),
+        "execution_completed_at": datetime.now(KST).isoformat(),
         "machine_name": get_machine_name(),
     }
     if phases_completed:
@@ -1083,6 +1084,7 @@ def main():
                 },
                 errors={"pipeline_errors": pipeline_errors} if pipeline_errors else None,
                 raw_output=json.dumps(output, ensure_ascii=False)[:10000],
+                decision_id=decision_id,
                 phases_completed=["phase1", "phase2", "phase2.5", "phase3", "phase4", "phase5", "phase13"],
             )
         except Exception as e:

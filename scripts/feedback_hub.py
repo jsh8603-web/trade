@@ -141,7 +141,7 @@ def calibrate_confidence(days: int = 14, cached_decisions: list[dict] | None = N
         }
 
         for row in rows:
-            conf = float(row.get("confidence", 0.5))
+            conf = float(row.get("confidence") or 0.5)
             correct = row.get("was_correct_4h", False)
 
             if conf < 0.4:
