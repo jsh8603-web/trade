@@ -37,6 +37,8 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 UPBIT_API = "https://api.upbit.com/v1"
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 LOCK_FILE = PROJECT_DIR / "data" / "trading.lock"
 KST = timezone(timedelta(hours=9))
 
