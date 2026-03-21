@@ -37,6 +37,8 @@ KEEPALIVE_INTERVAL=120   # 2분 간격 킵얼라이브
 MAX_CONSECUTIVE_FAILS=3  # 3회 연속 실패 → startup.sh로 전체 재구축
 TARGET_RC_COUNT=1        # RC 세션 1개 안정 유지
 ESCALATION_PAUSE_SEC=1800  # 30분 (수동 개입 대기)
+REVIVE_INTERVAL=3600       # 1시간마다 강제 RC 부활
+REVIVE_TS_FILE="$PROJECT_DIR/data/.rc_revive_ts"
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
@@ -555,42 +557,36 @@ send_keepalive() {
 }
 
 # ─── Claude + RC 빠른 재시작 ───
-# graceful reconnect 폐기 (성공률 0%) → 즉시 kill + restart
+# 핵심 패턴: 기존 윈도우 정리 → 새 tmux 윈도우 → Claude --continue → /remote-control → URL 텔레그램 전송
 fast_restart() {
     local reason="$1"
     log "ACTION: Fast restart ($reason)"
 
-    # rating 프롬프트 해소
-    dismiss_rating_prompt 2>/dev/null
-
-    # 1) Claude 프로세스 강제 종료
-    local PANE_PID CLAUDE_PIDS
-    PANE_PID=$(tmux list-panes -t "$TMUX_SESSION:$TMUX_WINDOW" -F '#{pane_pid}' 2>/dev/null)
-    if [ -n "$PANE_PID" ]; then
-        CLAUDE_PIDS=$(pgrep -P "$PANE_PID" 2>/dev/null)
-        if [ -n "$CLAUDE_PIDS" ]; then
-            echo "$CLAUDE_PIDS" | xargs kill -9 2>/dev/null
-            log "OK: Killed processes: $CLAUDE_PIDS"
-            sleep 3
+    # 1) 기존 rc 윈도우 정리 — Claude 프로세스 kill + 윈도우 삭제
+    if [ -n "$TMUX_WINDOW" ] && tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}' 2>/dev/null | grep -q "^${TMUX_WINDOW}$"; then
+        local PANE_PID CLAUDE_PIDS
+        PANE_PID=$(tmux list-panes -t "$TMUX_SESSION:$TMUX_WINDOW" -F '#{pane_pid}' 2>/dev/null)
+        if [ -n "$PANE_PID" ]; then
+            CLAUDE_PIDS=$(pgrep -P "$PANE_PID" 2>/dev/null)
+            if [ -n "$CLAUDE_PIDS" ]; then
+                echo "$CLAUDE_PIDS" | xargs kill -9 2>/dev/null
+                log "OK: Killed processes: $CLAUDE_PIDS"
+            fi
         fi
-    fi
-
-    # 2) 터미널 초기화
-    tmux send-keys -t "$TMUX_SESSION:$TMUX_WINDOW" C-c C-u C-l
-    sleep 2
-
-    # 3) 쉘 프롬프트 확인 (프로세스 종료 확인)
-    local shell_check
-    shell_check=$(tmux capture-pane -t "$TMUX_SESSION:$TMUX_WINDOW" -p -S -3 2>/dev/null)
-    if ! echo "$shell_check" | grep -qE '(\$|%|❯)\s*$|drj00@'; then
-        # 쉘이 안 보이면 추가 대기
-        sleep 5
-        tmux send-keys -t "$TMUX_SESSION:$TMUX_WINDOW" Enter
+        tmux kill-window -t "$TMUX_SESSION:$TMUX_WINDOW" 2>/dev/null
+        log "OK: Old RC window $TMUX_WINDOW killed"
         sleep 2
     fi
 
-    # 4) Claude 시작 — 기존 세션 재사용 (--continue), 없으면 새 세션
-    tmux send-keys -t "$TMUX_SESSION:$TMUX_WINDOW" "unset CLAUDECODE && claude --continue --dangerously-skip-permissions" Enter
+    # 2) 새 tmux 윈도우 생성
+    local rc_time_label="rc@$(date '+%H%M')"
+    tmux new-window -t "$TMUX_SESSION" -n "$rc_time_label" -c "$PROJECT_DIR"
+    TMUX_WINDOW=$(tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}:#{window_name}' 2>/dev/null | grep ":${rc_time_label}$" | cut -d: -f1)
+    log "OK: New RC window created: $rc_time_label (idx=$TMUX_WINDOW)"
+    sleep 1
+
+    # 3) Claude --continue 실행
+    tmux send-keys -t "$TMUX_SESSION:$rc_time_label" "unset CLAUDECODE && claude --continue --dangerously-skip-permissions" Enter
     log "OK: Claude starting (--continue, reuse session)..."
 
     local claude_ready=false
@@ -599,9 +595,8 @@ fast_restart() {
     while [ $wait_count -lt $max_wait ]; do
         sleep 5
         wait_count=$((wait_count + 1))
-        # Claude가 준비되었는지 확인: 입력 프롬프트(❯) 또는 "tips" 텍스트
         local boot_screen
-        boot_screen=$(tmux capture-pane -t "$TMUX_SESSION:$TMUX_WINDOW" -p -S -5 2>/dev/null)
+        boot_screen=$(tmux capture-pane -t "$TMUX_SESSION:$rc_time_label" -p -S -5 2>/dev/null)
         if echo "$boot_screen" | grep -qE '❯\s*$|>\s*$|tips|Claude Code'; then
             claude_ready=true
             log "OK: Claude ready after $((wait_count * 5))s"
@@ -613,54 +608,47 @@ fast_restart() {
         log "WARN: Claude not ready after 90s, attempting /remote-control anyway"
     fi
 
-    # 5) /remote-control 활성화 — 최대 3회 재시도
+    # 4) /remote-control 전송 — 최대 3회 재시도
     local rc_attempt=0
     local max_rc_attempts=3
     while [ $rc_attempt -lt $max_rc_attempts ]; do
         rc_attempt=$((rc_attempt + 1))
         log "OK: Sending /remote-control (attempt $rc_attempt/$max_rc_attempts)"
 
-        tmux send-keys -t "$TMUX_SESSION:$TMUX_WINDOW" "/remote-control" Enter
+        tmux send-keys -t "$TMUX_SESSION:$rc_time_label" "/remote-control" Enter
         sleep 5
-
-        # 자동완성 메뉴 대응 (Enter로 첫 번째 항목 선택)
-        tmux send-keys -t "$TMUX_SESSION:$TMUX_WINDOW" Enter
+        tmux send-keys -t "$TMUX_SESSION:$rc_time_label" Enter
         sleep 20
 
         # 결과 확인
         local screen new_url
-        screen=$(tmux capture-pane -t "$TMUX_SESSION:$TMUX_WINDOW" -p 2>/dev/null)
-        new_url=$(extract_url)
+        screen=$(tmux capture-pane -t "$TMUX_SESSION:$rc_time_label" -p 2>/dev/null)
+        new_url=$(echo "$screen" | grep -o 'https://claude\.ai/code/session_[A-Za-z0-9]*' | tail -1)
 
         if echo "$screen" | grep -q "Remote Control active" && [ -n "$new_url" ]; then
+            # 5) URL 추출 → 텔레그램으로 전송
             echo "$new_url" > "$REMOTE_URL_FILE"
             echo "$(date +%s)" > "$KEEPALIVE_FILE"
             reset_fail_count
             reset_rebuild_count
-            # 윈도우 이름에 시작 시간 표시 (예: rc@0635)
-            local rc_time_label
-            rc_time_label="rc@$(date '+%H%M')"
-            tmux rename-window -t "$TMUX_SESSION:$TMUX_WINDOW" "$rc_time_label" 2>/dev/null
             save_health "healthy" "Fast restart succeeded (RC attempt $rc_attempt)"
             log "OK: Fast restart succeeded (RC attempt $rc_attempt). Window: $rc_time_label URL: $new_url"
             send_telegram "🔄 RC 재시작 성공 ($reason)
-$new_url"
+
+🔗 링크: $new_url"
             return 0
         fi
 
-        # Claude가 아직 실행 중이면 RC만 재시도 (kill 안 함)
-        PANE_PID=$(tmux list-panes -t "$TMUX_SESSION:$TMUX_WINDOW" -F '#{pane_pid}' 2>/dev/null)
-        local has_claude=false
-        if [ -n "$PANE_PID" ]; then
-            if pgrep -P "$PANE_PID" > /dev/null 2>&1; then
-                has_claude=true
-            fi
+        # Claude가 살아있으면 RC만 재시도
+        local pane_pid has_claude=false
+        pane_pid=$(tmux list-panes -t "$TMUX_SESSION:$rc_time_label" -F '#{pane_pid}' 2>/dev/null)
+        if [ -n "$pane_pid" ] && pgrep -P "$pane_pid" > /dev/null 2>&1; then
+            has_claude=true
         fi
 
         if [ "$has_claude" = true ] && [ $rc_attempt -lt $max_rc_attempts ]; then
             log "WARN: RC attempt $rc_attempt failed, but Claude is alive. Retrying RC only..."
-            # Escape 눌러서 혹시 메뉴 닫기
-            tmux send-keys -t "$TMUX_SESSION:$TMUX_WINDOW" Escape
+            tmux send-keys -t "$TMUX_SESSION:$rc_time_label" Escape
             sleep 2
         elif [ "$has_claude" = false ]; then
             log "ERROR: Claude process died during RC activation"
@@ -668,15 +656,23 @@ $new_url"
         fi
     done
 
-    # 전체 실패
+    # 전체 실패 — 새 윈도우 정리
     local fails
     fails=$(get_fail_count)
     fails=$((fails + 1))
     set_fail_count "$fails"
     save_health "failed" "Fast restart failed ($fails/$MAX_CONSECUTIVE_FAILS)"
-    log "ERROR: Fast restart failed ($fails consecutive). Status: $(echo "$screen" | grep -i remote | head -1)"
+    log "ERROR: Fast restart failed ($fails consecutive)"
 
-    # 스킬 기반 진단: 왜 실패했는지 자동 분석
+    # 실패한 윈도우 정리
+    local pane_pid
+    pane_pid=$(tmux list-panes -t "$TMUX_SESSION:$rc_time_label" -F '#{pane_pid}' 2>/dev/null)
+    if [ -n "$pane_pid" ]; then
+        pgrep -P "$pane_pid" 2>/dev/null | xargs kill -9 2>/dev/null
+    fi
+    tmux kill-window -t "$TMUX_SESSION:$rc_time_label" 2>/dev/null
+
+    # 스킬 기반 진단
     run_rc_diagnostics "fast_restart failed ($fails/$MAX_CONSECUTIVE_FAILS)"
     return 1
 }
@@ -960,19 +956,20 @@ send_keepalive_to() {
 
 # =============================================================================
 # 새 RC 세션 생성 (부족분 보충용)
+# 핵심 패턴: 새 tmux 윈도우 → Claude --continue → /remote-control → URL 텔레그램 전송
 # =============================================================================
 create_new_rc_session() {
     local win_name="rc@$(date '+%H%M')"
     log "ACTION: Creating new RC session ($win_name) to maintain ${TARGET_RC_COUNT} sessions"
 
+    # 1) 새 tmux 윈도우 생성
     tmux new-window -t "$TMUX_SESSION" -n "$win_name" -c "$PROJECT_DIR"
     sleep 1
 
-    # Claude 시작 — 기존 세션 재사용 (--continue), 없으면 새 세션
+    # 2) Claude --continue 실행
     tmux send-keys -t "$TMUX_SESSION:$win_name" "unset CLAUDECODE && claude --continue --dangerously-skip-permissions" Enter
     log "OK: Claude starting in $win_name (--continue, reuse session)..."
 
-    # 준비 대기 (최대 90초)
     local ready=false wait_count=0
     while [ $wait_count -lt 18 ]; do
         sleep 5
@@ -988,23 +985,34 @@ create_new_rc_session() {
 
     if [ "$ready" = false ]; then
         log "WARN: Claude not ready in $win_name after 90s"
+        # 실패한 윈도우 정리
+        local pane_pid
+        pane_pid=$(tmux list-panes -t "$TMUX_SESSION:$win_name" -F '#{pane_pid}' 2>/dev/null)
+        if [ -n "$pane_pid" ]; then
+            pgrep -P "$pane_pid" 2>/dev/null | xargs kill -9 2>/dev/null
+        fi
+        tmux kill-window -t "$TMUX_SESSION:$win_name" 2>/dev/null
         return 1
     fi
 
-    # /remote-control 활성화
+    # 3) /remote-control 전송
     tmux send-keys -t "$TMUX_SESSION:$win_name" "/remote-control" Enter
     sleep 5
     tmux send-keys -t "$TMUX_SESSION:$win_name" Enter
     sleep 20
 
+    # 4) URL 추출 → 텔레그램 전송
     local screen new_url
     screen=$(tmux capture-pane -t "$TMUX_SESSION:$win_name" -p 2>/dev/null)
-    new_url=$(echo "$screen" | grep -oE 'https://claude\.ai/code/[A-Za-z0-9_-]+' | head -1)
+    new_url=$(echo "$screen" | grep -o 'https://claude\.ai/code/session_[A-Za-z0-9]*' | tail -1)
 
     if echo "$screen" | grep -q "Remote Control active" && [ -n "$new_url" ]; then
+        echo "$new_url" > "$REMOTE_URL_FILE"
+        echo "$(date +%s)" > "$KEEPALIVE_FILE"
         log "OK: New RC session $win_name active. URL: $new_url"
-        send_telegram "✅ RC 이중화 세션 생성: $win_name
-$new_url"
+        send_telegram "✅ RC 세션 생성 완료: $win_name
+
+🔗 링크: $new_url"
         return 0
     else
         log "ERROR: New RC session $win_name failed to activate"
@@ -1025,6 +1033,24 @@ $new_url"
 
 # 0. 에스컬레이션 대기 모드 확인 (무한 루프 방지)
 if ! check_escalation; then
+    exit 0
+fi
+
+# 0.1. 1시간마다 강제 RC 부활 (핵심 패턴: 윈도우 정리→새 윈도우→Claude→RC→텔레그램)
+LAST_REVIVE=0
+[ -f "$REVIVE_TS_FILE" ] && LAST_REVIVE=$(cat "$REVIVE_TS_FILE" 2>/dev/null)
+NOW_REVIVE=$(date +%s)
+REVIVE_ELAPSED=$((NOW_REVIVE - LAST_REVIVE))
+
+if [ "$REVIVE_ELAPSED" -ge "$REVIVE_INTERVAL" ]; then
+    log "REVIVE: 1시간 경과 (${REVIVE_ELAPSED}s) — 강제 RC 부활 시작"
+    echo "$NOW_REVIVE" > "$REVIVE_TS_FILE"
+
+    # 기존 RC 윈도우 찾기
+    TMUX_WINDOW=$(find_rc_window "$TMUX_SESSION")
+    fast_restart "hourly forced revive"
+
+    # 부활 완료 → 나머지 체크 건너뜀
     exit 0
 fi
 
@@ -1111,7 +1137,7 @@ for sick_entry in "${SICK_RC_WINDOWS[@]}"; do
 
     case "$sick_status" in
         no_rc)
-            # Claude는 살아있는데 RC가 없음 → /remote-control 시도
+            # Claude는 살아있는데 RC가 없음 → /remote-control 시도 (윈도우 재사용)
             log "WARN: Window $sick_idx ($sick_name): no RC — trying /remote-control"
             dismiss_rating_prompt 2>/dev/null
             tmux send-keys -t "$TMUX_SESSION:$sick_idx" "/remote-control" Enter
@@ -1121,50 +1147,27 @@ for sick_entry in "${SICK_RC_WINDOWS[@]}"; do
             local screen new_url
             screen=$(tmux capture-pane -t "$TMUX_SESSION:$sick_idx" -p 2>/dev/null)
             if echo "$screen" | grep -q "Remote Control active"; then
+                new_url=$(echo "$screen" | grep -o 'https://claude\.ai/code/session_[A-Za-z0-9]*' | tail -1)
                 tmux rename-window -t "$TMUX_SESSION:$sick_idx" "rc@$(date '+%H%M')" 2>/dev/null
+                [ -n "$new_url" ] && echo "$new_url" > "$REMOTE_URL_FILE"
+                echo "$(date +%s)" > "$KEEPALIVE_FILE"
                 log "OK: Window $sick_idx RC restored"
+                [ -n "$new_url" ] && send_telegram "✅ RC 복구 완료
+
+🔗 링크: $new_url"
                 live_count=$((live_count + 1))
             else
-                log "WARN: Window $sick_idx RC activation failed — killing"
+                # /remote-control 실패 → 핵심 패턴: 윈도우 정리 → 새 윈도우 → Claude → RC → 텔레그램
+                log "WARN: Window $sick_idx RC activation failed — full restart"
                 TMUX_WINDOW="$sick_idx"
                 fast_restart "RC activation failed on window $sick_idx"
             fi
             ;;
-        zombie)
-            # 좀비 → 즉시 fast_restart
-            log "WARN: Window $sick_idx ($sick_name): zombie — restarting"
+        zombie|disconnected|no_claude)
+            # 모두 동일 패턴: 기존 윈도우 정리 → 새 윈도우 → Claude --continue → /rc → 텔레그램
+            log "WARN: Window $sick_idx ($sick_name): $sick_status — full restart"
             TMUX_WINDOW="$sick_idx"
-            fast_restart "zombie on window $sick_idx"
-            ;;
-        disconnected)
-            # 끊김 → 60초 grace period (10초 간격 체크, 자동 복구 대기)
-            log "WARN: Window $sick_idx ($sick_name): disconnected — waiting up to 60s for recovery"
-            local recovered=false
-            local grace_wait=0
-            while [ "$grace_wait" -lt 6 ]; do
-                sleep 10
-                grace_wait=$((grace_wait + 1))
-                local recheck_screen
-                recheck_screen=$(tmux capture-pane -t "$TMUX_SESSION:$sick_idx" -p 2>/dev/null)
-                if echo "$recheck_screen" | grep -q "Remote Control active"; then
-                    recovered=true
-                    log "OK: Window $sick_idx ($sick_name): recovered after $((grace_wait * 10))s"
-                    live_count=$((live_count + 1))
-                    break
-                fi
-                log "WAIT: Window $sick_idx: still reconnecting ($((grace_wait * 10))/60s)"
-            done
-            if [ "$recovered" = false ]; then
-                log "WARN: Window $sick_idx ($sick_name): still disconnected after 60s — restarting"
-                TMUX_WINDOW="$sick_idx"
-                fast_restart "disconnected 60s on window $sick_idx"
-            fi
-            ;;
-        no_claude)
-            # Claude 프로세스 없음 → fast_restart
-            log "WARN: Window $sick_idx ($sick_name): no claude — restarting"
-            TMUX_WINDOW="$sick_idx"
-            fast_restart "no claude on window $sick_idx"
+            fast_restart "$sick_status on window $sick_idx"
             ;;
     esac
 done
