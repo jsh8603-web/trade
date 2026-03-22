@@ -166,14 +166,11 @@ class BaseStrategyAgent(ABC):
             pts = self.fgi_points
             if fgi <= self.fgi_threshold * 0.5:
                 pts += 5  # 극단 보너스
-            # 극공포 추가 보너스: FGI ≤ 20이면 "공포 속 반등" 가산
-            # (역사적으로 극공포 구간은 최고의 매수 기회)
             if fgi <= 20:
-                pts += 5
+                pts += 5  # 극공포 보너스
             breakdown["fgi"] = {"score": pts, "value": fgi, "threshold": self.fgi_threshold}
             score += pts
         elif fgi <= self.fgi_threshold + 10:
-            # 부분 충족: 근접
             pts = int(self.fgi_points * 0.5)
             breakdown["fgi"] = {"score": pts, "value": fgi, "partial": True}
             score += pts
