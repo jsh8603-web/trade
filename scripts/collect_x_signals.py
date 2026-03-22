@@ -147,6 +147,8 @@ async def fetch_account_tweets(client, account: dict, max_tweets: int = 5) -> li
             return []
 
         tweets = await user.get_tweets("Tweets", count=max_tweets)
+        if tweets is None:
+            tweets = []
         results = []
         for tweet in tweets:
             text = tweet.text if hasattr(tweet, "text") else str(tweet)
@@ -158,8 +160,8 @@ async def fetch_account_tweets(client, account: dict, max_tweets: int = 5) -> li
                     tweet_time = datetime.strptime(str(created), "%a %b %d %H:%M:%S %z %Y")
                     if (datetime.now(timezone.utc) - tweet_time).total_seconds() > 86400:
                         continue
-                except (ValueError, TypeError):
-                    pass
+                except (ValueError, TypeError) as parse_err:
+                    print(f"[X] @{account['username']} 날짜 파싱 실패 ('{created}'): {parse_err}", file=sys.stderr)
 
             sentiment = _analyze_tweet_sentiment(text)
             whale_signal = _detect_whale_signal(text) if account["category"] == "whale" else None
@@ -392,25 +394,39 @@ async def collect_x_signals(accounts_only: bool = False, search_only: bool = Fal
     all_tweets = []
     errors = []
 
-    # 1. 계정별 트윗 수집
+    # 1. 계정별 트윗 수집 (시차 병렬: 0.3초 간격 시작, 동시 진행)
     if not search_only:
-        for account in SIGNAL_ACCOUNTS:
-            try:
-                tweets = await fetch_account_tweets(client, account, max_tweets=5)
-                all_tweets.extend(tweets)
-                await asyncio.sleep(1)  # 레이트리밋 방지
-            except Exception as e:
-                errors.append(f"@{account['username']}: {e}")
+        async def _fetch_account_staggered(account, delay):
+            await asyncio.sleep(delay)
+            return await fetch_account_tweets(client, account, max_tweets=5)
 
-    # 2. 키워드 검색
+        account_tasks = [
+            _fetch_account_staggered(acc, i * 0.3)
+            for i, acc in enumerate(SIGNAL_ACCOUNTS)
+        ]
+        account_results = await asyncio.gather(*account_tasks, return_exceptions=True)
+        for i, result in enumerate(account_results):
+            if isinstance(result, Exception):
+                errors.append(f"@{SIGNAL_ACCOUNTS[i]['username']}: {result}")
+            else:
+                all_tweets.extend(result)
+
+    # 2. 키워드 검색 (시차 병렬: 0.3초 간격 시작, 동시 진행)
     if not accounts_only:
-        for query_info in SEARCH_QUERIES:
-            try:
-                tweets = await search_tweets(client, query_info)
-                all_tweets.extend(tweets)
-                await asyncio.sleep(1)
-            except Exception as e:
-                errors.append(f"search '{query_info['query'][:20]}': {e}")
+        async def _search_staggered(query_info, delay):
+            await asyncio.sleep(delay)
+            return await search_tweets(client, query_info)
+
+        search_tasks = [
+            _search_staggered(qi, i * 0.3)
+            for i, qi in enumerate(SEARCH_QUERIES)
+        ]
+        search_results = await asyncio.gather(*search_tasks, return_exceptions=True)
+        for i, result in enumerate(search_results):
+            if isinstance(result, Exception):
+                errors.append(f"search '{SEARCH_QUERIES[i]['query'][:20]}': {result}")
+            else:
+                all_tweets.extend(result)
 
     # 3. 종합 시그널 계산
     signal = calculate_x_signal(all_tweets)
@@ -445,4 +461,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(json.dumps({"error": str(e), "status": "error", "tweets": []}, ensure_ascii=False))
+        sys.exit(1)

@@ -5,7 +5,7 @@ v2 vs v3 비교 백테스트 시뮬레이션
 동일한 Upbit 히스토리컬 캔들 + FGI + 외부 데이터(시뮬)에서
 v2(기존)와 v3(매크로+집중방지+선제매도)를 동시에 돌려 비교한다.
 
-기간: 2025-01-01 ~ 2026-03-21
+기간: 2024-01-01 ~ 2026-03-22
 초기 자금: 500만원 / 1회 매매 상한: 10만원
 """
 
@@ -55,6 +55,11 @@ def fetch_upbit_candles_4h(to_dt: datetime, count: int = 200) -> list[dict]:
     for retry in range(3):
         try:
             resp = requests.get(url, params=params, timeout=15)
+            if resp.status_code == 429:
+                wait = int(resp.headers.get("Retry-After", 2 * (retry + 1)))
+                print(f"  ! 429 Rate Limit — {wait}초 대기 (재시도 {retry+1}/3)")
+                time.sleep(wait)
+                continue
             resp.raise_for_status()
             candles = resp.json()
             candles.sort(key=lambda c: c["candle_date_time_kst"])
@@ -135,10 +140,20 @@ def calc_macd(closes: list[float]) -> dict:
         for d in data[period:]:
             val = d * k + val * (1 - k)
         return val
-    ema12 = ema(closes, 12)
-    ema26 = ema(closes, 26)
-    macd_line = ema12 - ema26
-    signal = ema(closes[-9:], 9) if len(closes) >= 9 else closes[-1]
+    # Compute MACD line for enough history to get a 9-period EMA of it
+    if len(closes) >= 26:
+        macd_history = []
+        for i in range(25, len(closes)):
+            e12 = ema(closes[:i+1], 12)
+            e26 = ema(closes[:i+1], 26)
+            macd_history.append(e12 - e26)
+        macd_line = macd_history[-1]
+        signal = ema(macd_history, 9) if len(macd_history) >= 9 else macd_history[-1]
+    else:
+        ema12 = ema(closes, 12)
+        ema26 = ema(closes, 26) if len(closes) >= 26 else (closes[-1] if closes else 0)
+        macd_line = ema12 - ema26
+        signal = macd_line
     return {"macd": round(macd_line, 2), "signal": round(signal, 2), "golden_cross": macd_line > signal}
 
 
@@ -504,16 +519,19 @@ class TradingSimulator:
 
         pnl_realized = 0.0
         if decision == "buy" and trade_amount > 0:
+            fee = trade_amount * 0.0005  # 0.05% trading fee
             total_cost = self.avg_buy_price * self.btc + trade_amount
             self.btc += trade_volume
             self.avg_buy_price = total_cost / self.btc if self.btc > 0 else 0
-            self.krw -= trade_amount
+            self.krw -= (trade_amount + fee)
             self.total_trades += 1
             self.total_buys += 1
             self.consecutive_buys += 1
             ms["buys"] += 1
         elif decision == "sell" and trade_volume > 0:
             revenue = trade_volume * price
+            fee = revenue * 0.0005  # 0.05% trading fee
+            revenue -= fee
             pnl_realized = revenue - (trade_volume * self.avg_buy_price)
             if pnl_realized < 0:
                 self.consecutive_losses += 1
@@ -585,6 +603,9 @@ def main():
                 sim_indices.append(i)
 
     print(f"\n[3/4] 시뮬레이션 시점: {len(sim_indices)}개")
+    if not sim_indices:
+        print("  ! SIM_START 이후 캔들 없음 — 시뮬레이션 불가")
+        return
     print(f"  기간: {candles[sim_indices[0]]['_dt_kst'].strftime('%Y-%m-%d')} ~ "
           f"{candles[sim_indices[-1]]['_dt_kst'].strftime('%Y-%m-%d')}")
 

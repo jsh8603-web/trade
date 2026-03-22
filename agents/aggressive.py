@@ -108,16 +108,14 @@ class AggressiveAgent(BaseStrategyAgent):
                         agent_name=f"{self.emoji} {self.name}",
                     )
                 elif action == "dca":
-                    if btc_holding.get("balance", 0) <= 0:
-                        return Decision(decision="hold", reason="DCA 불가: BTC 미보유", confidence=0.3, buy_score=buy_score, trade_params={}, external_signal=external_signal, agent_name=f"{self.emoji} {self.name}")
                     total_krw = portfolio.get("krw_balance", 0)
                     avg_price = btc_holding.get("avg_buy_price", 0)
                     if avg_price <= 0:
                         avg_price = market_data.get("current_price") or ind.get("current_price") or 0
-                    dca_amount = min(
+                    dca_amount = max(0, min(
                         int(avg_price * btc_holding.get("balance", 0) * self.dca_max_ratio),
                         self._calculate_trade_amount(total_krw, external_bonus),
-                    )
+                    ))
                     if dca_amount < 5000:  # Upbit minimum order is 5000 KRW
                         return Decision(decision="hold", reason="DCA 금액 부족 (최소 5000원 미만)", confidence=0.3, buy_score=buy_score, trade_params={}, external_signal=external_signal, agent_name=f"{self.emoji} {self.name}")
                     return Decision(
@@ -147,7 +145,7 @@ class AggressiveAgent(BaseStrategyAgent):
 
             return Decision(
                 decision="buy",
-                confidence=max(0.0, min(0.9, buy_score["total"] / 100)),
+                confidence=max(0.0, min(1.0, buy_score["total"] / 100)),
                 reason=f"매수 점수 {buy_score['total']}점 >= {self.buy_score_threshold}점 충족",
                 buy_score=buy_score,
                 trade_params={"side": "bid", "market": "KRW-BTC", "amount": amount},

@@ -18,6 +18,7 @@ Usage:
 """
 
 import json
+import re
 import sys
 import time
 from datetime import datetime, timezone, timedelta
@@ -26,7 +27,7 @@ from pathlib import Path
 try:
     import feedparser
 except ImportError:
-    print(json.dumps({"error": "feedparser not installed. pip install feedparser"}))
+    print(json.dumps({"error": "feedparser not installed. pip install feedparser", "status": "error", "articles": []}))
     sys.exit(1)
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -120,7 +121,6 @@ def fetch_feed(feed_info: dict, max_articles: int = 5) -> list[dict]:
                 summary = entry.description[:500]
 
             # HTML 태그 간단 제거
-            import re
             summary = re.sub(r"<[^>]+>", "", summary).strip()
 
             link = entry.get("link", "")

@@ -14,17 +14,21 @@
 import logging
 import os
 import platform
+import threading
 
 logger = logging.getLogger(__name__)
 
 _role: str | None = None
 _name: str | None = None
+_cache_lock = threading.Lock()
 
 
 def _get_role() -> str:
     global _role
     if _role is None:
-        _role = os.environ.get("MACHINE_ROLE", "primary").lower().strip()
+        with _cache_lock:
+            if _role is None:
+                _role = os.environ.get("MACHINE_ROLE", "primary").lower().strip()
     return _role
 
 
@@ -32,21 +36,23 @@ def get_machine_name() -> str:
     """머신 이름 반환. MACHINE_NAME 환경변수 → hostname 자동 감지."""
     global _name
     if _name is None:
-        _name = os.environ.get("MACHINE_NAME", "").strip()
-        if not _name:
-            # 자동 감지: hostname 기반
-            hostname = platform.node().lower()
-            if hostname.startswith("pc128") or "-128-" in hostname or hostname.endswith("128") or "hospital" in hostname:
-                _name = "pc128"
-            elif hostname.startswith("pc36") or "-36-" in hostname or hostname.endswith("36") or hostname == "drjay" or hostname.startswith("drjay."):
-                _name = "pc36"
-            elif hostname.startswith("mac-mini") or hostname == "mac-mini" or (hostname.startswith("mac") and "mini" in hostname):
-                _name = "mac-mini"
-            elif hostname.startswith("jsh8603") or hostname == "jsh8603":
-                _name = "jsh8603"
-            else:
-                _name = hostname[:20] or "unknown"
-        logger.info(f"머신 이름: {_name}")
+        with _cache_lock:
+            if _name is None:
+                _name = os.environ.get("MACHINE_NAME", "").strip()
+                if not _name:
+                    # 자동 감지: hostname 기반
+                    hostname = platform.node().lower()
+                    if hostname.startswith("pc128") or "-128-" in hostname or hostname.endswith("128") or "hospital" in hostname:
+                        _name = "pc128"
+                    elif hostname.startswith("pc36") or "-36-" in hostname or hostname.endswith("36") or hostname == "drjay" or hostname.startswith("drjay."):
+                        _name = "pc36"
+                    elif hostname.startswith("mac-mini") or hostname == "mac-mini" or (hostname.startswith("mac") and "mini" in hostname):
+                        _name = "mac-mini"
+                    elif hostname.startswith("jsh8603") or hostname == "jsh8603":
+                        _name = "jsh8603"
+                    else:
+                        _name = hostname[:20] or "unknown"
+                logger.info(f"머신 이름: {_name}")
     return _name
 
 

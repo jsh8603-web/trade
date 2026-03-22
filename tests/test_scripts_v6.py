@@ -733,6 +733,14 @@ class TestGetPortfolio:
     def setup_env(self, monkeypatch):
         monkeypatch.setenv("UPBIT_ACCESS_KEY", "test_key")
         monkeypatch.setenv("UPBIT_SECRET_KEY", "test_secret")
+        # Session 캐시 리셋 — requests mock이 동작하도록
+        import get_portfolio
+        get_portfolio._session = None
+        orig = get_portfolio._get_session
+        get_portfolio._get_session = lambda: get_portfolio.requests
+        yield
+        get_portfolio._get_session = orig
+        get_portfolio._session = None
 
     @patch("get_portfolio.requests")
     def test_krw_only_portfolio(self, mock_requests, capsys):

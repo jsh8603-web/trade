@@ -63,7 +63,10 @@ def bump_version(part: str) -> str:
     if len(parts) != 3:
         parts = ["0", "0", "0"]
 
-    major, minor, patch = int(parts[0]), int(parts[1]), int(parts[2])
+    try:
+        major, minor, patch = int(parts[0]), int(parts[1]), int(parts[2])
+    except ValueError:
+        raise ValueError(f"VERSION 파일의 버전이 숫자가 아닙니다: '{current}' — x.y.z 형식이어야 합니다")
 
     if part == "major":
         major += 1
@@ -114,7 +117,8 @@ def log_change(
         print("[ERROR] SUPABASE 환경변수 미설정", file=sys.stderr)
         return {"error": "no_supabase"}
 
-    # 버전 범프
+    # 버전은 DB 기록 성공 후 범프
+    old_version = get_version()
     if auto_bump:
         bump_part = _severity_to_bump(severity)
         version = bump_version(bump_part)
@@ -154,9 +158,15 @@ def log_change(
             print(f"[OK] v{version} ({severity}/{category}): {summary}")
             return result
         else:
+            # DB 기록 실패 — VERSION 롤백
+            if auto_bump:
+                set_version(old_version)
             print(f"[ERROR] DB 기록 실패: {resp.status_code} {resp.text[:200]}", file=sys.stderr)
             return {"error": resp.text}
     except Exception as e:
+        # DB 기록 실패 — VERSION 롤백
+        if auto_bump:
+            set_version(old_version)
         print(f"[ERROR] {e}", file=sys.stderr)
         return {"error": str(e)}
 

@@ -47,13 +47,16 @@ def main():
     history = [
         {
             "date": datetime.fromtimestamp(
-                int(d["timestamp"]), tz=timezone.utc
+                int(d.get("timestamp", 0)), tz=timezone.utc
             ).strftime("%Y-%m-%d"),
-            "value": int(d["value"]),
-            "classification": d["value_classification"],
+            "value": int(d.get("value", 0)),
+            "classification": d.get("value_classification", "Unknown"),
         }
         for d in data
     ]
+
+    if not history:
+        raise RuntimeError("FGI history 파싱 결과가 비어 있습니다")
 
     result = {
         "timestamp": datetime.now(timezone.utc).isoformat(),

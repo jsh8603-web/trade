@@ -75,10 +75,10 @@ def fetch_cryptocompare_news(max_articles: int = 20) -> dict:
 
             # CryptoCompare 자체 감성 태그
             sentiment_tag = ""
-            if "bullish" in categories.lower():
+            if categories and "bullish" in categories.lower():
                 bullish += 1
                 sentiment_tag = "bullish"
-            elif "bearish" in categories.lower():
+            elif categories and "bearish" in categories.lower():
                 bearish += 1
                 sentiment_tag = "bearish"
             else:
@@ -138,10 +138,10 @@ def fetch_coingecko_social(coins: list[str] = None) -> dict:
             )
 
             if resp.status_code == 429:
-                # Retry up to 2 additional attempts before skipping
+                # Retry up to 2 additional attempts with exponential backoff
                 retry_success = False
                 for _retry in range(2):
-                    time.sleep(5)
+                    time.sleep(5 * (3 ** _retry))  # 5s, 15s
                     resp = SESSION.get(
                         f"https://api.coingecko.com/api/v3/coins/{coin_id}",
                         params={
@@ -167,23 +167,23 @@ def fetch_coingecko_social(coins: list[str] = None) -> dict:
             data = resp.json()
 
             # 커뮤니티 데이터
-            community = data.get("community_data", {})
-            market = data.get("market_data", {})
-            sentiment = data.get("sentiment_votes_up_percentage", 0)
-            sentiment_down = data.get("sentiment_votes_down_percentage", 0)
+            community = data.get("community_data") or {}
+            market = data.get("market_data") or {}
+            sentiment = data.get("sentiment_votes_up_percentage") or 0
+            sentiment_down = data.get("sentiment_votes_down_percentage") or 0
 
             # 가격 변동
-            price_change_24h = market.get("price_change_percentage_24h", 0)
-            price_change_7d = market.get("price_change_percentage_7d", 0)
+            price_change_24h = market.get("price_change_percentage_24h") or 0
+            price_change_7d = market.get("price_change_percentage_7d") or 0
 
             results[coin_id] = {
                 "status": "ok",
                 "sentiment_up_pct": sentiment or 0,
                 "sentiment_down_pct": sentiment_down or 0,
-                "twitter_followers": community.get("twitter_followers", 0),
-                "reddit_subscribers": community.get("reddit_subscribers", 0),
-                "reddit_active_48h": community.get("reddit_accounts_active_48h", 0),
-                "telegram_members": community.get("telegram_channel_user_count", 0),
+                "twitter_followers": community.get("twitter_followers") or 0,
+                "reddit_subscribers": community.get("reddit_subscribers") or 0,
+                "reddit_active_48h": community.get("reddit_accounts_active_48h") or 0,
+                "telegram_members": community.get("telegram_channel_user_count") or 0,
                 "price_change_24h": round(price_change_24h or 0, 2),
                 "price_change_7d": round(price_change_7d or 0, 2),
             }

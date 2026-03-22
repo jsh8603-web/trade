@@ -31,7 +31,17 @@ REBUILD_COUNT_FILE="$PROJECT_DIR/data/.rc_rebuild_count"
 REBUILD_TS_FILE="$PROJECT_DIR/data/.rc_rebuild_ts"
 MANUAL_INTERVENTION_FILE="$PROJECT_DIR/data/.rc_manual_intervention.json"
 HEALTHY_COUNT_FILE="$PROJECT_DIR/data/.rc_healthy_count"
-TMUX_SESSION="blockchain"
+# RC가 있는 tmux 세션 자동 감지 (main 우선)
+if tmux has-session -t main 2>/dev/null && tmux list-windows -t main -F '#{window_name}' 2>/dev/null | grep -qE '^rc$|^rc@|^claude$'; then
+    TMUX_SESSION="main"
+elif tmux has-session -t main 2>/dev/null; then
+    # main 세션은 있지만 RC 윈도우가 아직 없을 수 있음
+    TMUX_SESSION="main"
+elif tmux has-session -t blockchain 2>/dev/null; then
+    TMUX_SESSION="blockchain"
+else
+    TMUX_SESSION="main"
+fi
 TMUX_WINDOW=""  # 동적으로 결정 (find_rc_window)
 KEEPALIVE_INTERVAL=120   # 2분 간격 킵얼라이브
 MAX_CONSECUTIVE_FAILS=3  # 3회 연속 실패 → startup.sh로 전체 재구축
@@ -194,7 +204,7 @@ check_escalation() {
     [ ! -f "$MANUAL_INTERVENTION_FILE" ] && return 0
 
     local created_ts now elapsed
-    created_ts=$(grep -o '"ts":[0-9]*' "$MANUAL_INTERVENTION_FILE" 2>/dev/null | grep -o '[0-9]*')
+    created_ts=$(grep -oE '"ts"\s*:\s*[0-9]+' "$MANUAL_INTERVENTION_FILE" 2>/dev/null | grep -o '[0-9]*')
     [ -z "$created_ts" ] && { rm -f "$MANUAL_INTERVENTION_FILE"; return 0; }
 
     now=$(date +%s)
@@ -262,9 +272,13 @@ save_health() {
     url=$(cat "$REMOTE_URL_FILE" 2>/dev/null)
     ts=$(date '+%Y-%m-%d %H:%M:%S')
     rebuild_count=$(get_rebuild_count)
-    python3 -c "import json; print(json.dumps({'status': '$status', 'detail': '''$detail''', 'ts': '$ts', 'url': '$url', 'escalation_level': '$escalation_level', 'rebuild_count': $rebuild_count}))" > "$HEALTH_FILE" 2>/dev/null || \
+    python3 -c "
+import json, sys
+detail = sys.stdin.read()
+print(json.dumps({'status': '$status', 'detail': detail, 'ts': '$ts', 'url': '$url', 'escalation_level': '$escalation_level', 'rebuild_count': $rebuild_count}))
+" <<< "$detail" > "$HEALTH_FILE" 2>/dev/null || \
         printf '{"status":"%s","detail":"%s","ts":"%s","url":"%s","escalation_level":"%s","rebuild_count":%s}\n' \
-            "${status//\"/\\\"}" "${detail//\"/\\\"}" "$ts" "${url//\"/\\\"}" "${escalation_level//\"/\\\"}" "$rebuild_count" > "$HEALTH_FILE"
+            "${status//\"/\\\"}" "${detail//\'/\\\'}" "$ts" "${url//\"/\\\"}" "${escalation_level//\"/\\\"}" "$rebuild_count" > "$HEALTH_FILE"
 }
 
 # save_health_with_escalation: 에스컬레이션 컨텍스트에서 호출 (무한 재귀 방지)
@@ -275,7 +289,11 @@ save_health_with_escalation() {
     url=$(cat "$REMOTE_URL_FILE" 2>/dev/null)
     ts=$(date '+%Y-%m-%d %H:%M:%S')
     rebuild_count=$(get_rebuild_count)
-    python3 -c "import json; print(json.dumps({'status': '$status', 'detail': '''$detail''', 'ts': '$ts', 'url': '$url', 'escalation_level': '$level', 'rebuild_count': $rebuild_count}))" > "$HEALTH_FILE" 2>/dev/null || \
+    python3 -c "
+import json, sys
+detail = sys.stdin.read()
+print(json.dumps({'status': '$status', 'detail': detail, 'ts': '$ts', 'url': '$url', 'escalation_level': '$level', 'rebuild_count': $rebuild_count}))
+" <<< "$detail" > "$HEALTH_FILE" 2>/dev/null || \
         printf '{"status":"%s","detail":"%s","ts":"%s","url":"%s","escalation_level":"%s","rebuild_count":%s}\n' \
             "${status//\"/\\\"}" "${detail//\"/\\\"}" "$ts" "${url//\"/\\\"}" "${level//\"/\\\"}" "$rebuild_count" > "$HEALTH_FILE"
 }
@@ -284,7 +302,7 @@ save_health_with_escalation() {
 extract_url() {
     local pane_output
     pane_output=$(tmux capture-pane -t "$TMUX_SESSION:$TMUX_WINDOW" -p -S -30 2>/dev/null)
-    echo "$pane_output" | grep -o 'https://claude\.ai/code/session_[A-Za-z0-9]*' | tail -1
+    echo "$pane_output" | grep -o 'https://claude\.ai/code/session_[A-Za-z0-9_-]+' | tail -1
 }
 
 # ─── rating 프롬프트 자동 dismiss ───
@@ -492,12 +510,7 @@ health_check() {
         screen=$(tmux capture-pane -t "$TMUX_SESSION:$TMUX_WINDOW" -p 2>/dev/null)
     fi
 
-    if echo "$screen" | grep -q "reconnecting"; then
-        echo "disconnected"
-        return
-    fi
-
-    # "Remote Control active" 또는 "Remote Control reconnecting" 확인
+    # "Remote Control reconnecting" 확인 — full string match to avoid false positives
     if echo "$screen" | grep -q "Remote Control reconnecting"; then
         echo "disconnected"
         return
@@ -525,6 +538,14 @@ health_check() {
     last_ping=0
     [ -f "$KEEPALIVE_FILE" ] && last_ping=$(cat "$KEEPALIVE_FILE" 2>/dev/null)
     now=$(date +%s)
+
+    # If keepalive file missing or contains 0, skip zombie check (e.g. after reboot)
+    if [ "$last_ping" -eq 0 ] 2>/dev/null || [ -z "$last_ping" ]; then
+        log "INFO: No keepalive timestamp — skipping zombie check (initializing)"
+        echo "healthy"
+        return
+    fi
+
     elapsed=$((now - last_ping))
 
     # 마지막 keepalive가 15분 이상 전이면 좀비 의심
@@ -570,7 +591,7 @@ fast_restart() {
     log "ACTION: Fast restart ($reason)"
 
     # 1) 기존 rc 윈도우 정리 — Claude 프로세스 kill + 윈도우 삭제
-    if [ -n "$TMUX_WINDOW" ] && tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}' 2>/dev/null | grep -q "^${TMUX_WINDOW}$"; then
+    if [ -n "$TMUX_WINDOW" ] && tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}:#{window_name}' 2>/dev/null | grep -qE "(^${TMUX_WINDOW}:|:${TMUX_WINDOW}$)"; then
         local PANE_PID CLAUDE_PIDS
         PANE_PID=$(tmux list-panes -t "$TMUX_SESSION:$TMUX_WINDOW" -F '#{pane_pid}' 2>/dev/null)
         if [ -n "$PANE_PID" ]; then
@@ -630,7 +651,7 @@ fast_restart() {
         # 결과 확인
         local screen new_url
         screen=$(tmux capture-pane -t "$TMUX_SESSION:$rc_time_label" -p 2>/dev/null)
-        new_url=$(echo "$screen" | grep -o 'https://claude\.ai/code/session_[A-Za-z0-9]*' | tail -1)
+        new_url=$(echo "$screen" | grep -o 'https://claude\.ai/code/session_[A-Za-z0-9_-]+' | tail -1)
 
         if echo "$screen" | grep -q "Remote Control active" && [ -n "$new_url" ]; then
             # 5) URL 추출 → 텔레그램으로 전송
@@ -810,7 +831,8 @@ cleanup_dead_sessions() {
         send_telegram "🧹 죽은 세션 ${cleaned}개 정리 완료"
     fi
 
-    return "$cleaned"
+    CLEANUP_COUNT="$cleaned"
+    return 0
 }
 
 # 살아있는 RC 세션이 있는지 확인 (startup/rebuild 전 호출)
@@ -1011,7 +1033,7 @@ create_new_rc_session() {
     # 4) URL 추출 → 텔레그램 전송
     local screen new_url
     screen=$(tmux capture-pane -t "$TMUX_SESSION:$win_name" -p 2>/dev/null)
-    new_url=$(echo "$screen" | grep -o 'https://claude\.ai/code/session_[A-Za-z0-9]*' | tail -1)
+    new_url=$(echo "$screen" | grep -o 'https://claude\.ai/code/session_[A-Za-z0-9_-]+' | tail -1)
 
     if echo "$screen" | grep -q "Remote Control active" && [ -n "$new_url" ]; then
         echo "$new_url" > "$REMOTE_URL_FILE"
@@ -1051,11 +1073,13 @@ REVIVE_ELAPSED=$((NOW_REVIVE - LAST_REVIVE))
 
 if [ "$REVIVE_ELAPSED" -ge "$REVIVE_INTERVAL" ]; then
     log "REVIVE: 1시간 경과 (${REVIVE_ELAPSED}s) — 강제 RC 부활 시작"
-    echo "$NOW_REVIVE" > "$REVIVE_TS_FILE"
 
     # 기존 RC 윈도우 찾기
     TMUX_WINDOW=$(find_rc_window "$TMUX_SESSION")
     fast_restart "hourly forced revive"
+
+    # 타임스탬프는 fast_restart 성공 후 기록
+    echo "$(date +%s)" > "$REVIVE_TS_FILE"
 
     # 부활 완료 → 나머지 체크 건너뜀
     exit 0
@@ -1089,14 +1113,16 @@ SICK_RC_WINDOWS=()
 while IFS=: read -r idx name; do
     # RC 관련 윈도우만 대상 (rc@* 또는 claude)
     is_rc_win=false
-    if [ "$name" = "claude" ] || echo "$name" | grep -q "^rc@"; then
+    if [ "$name" = "claude" ] || [ "$name" = "rc" ] || echo "$name" | grep -q "^rc@"; then
         is_rc_win=true
     fi
 
     # 화면에 RC 텍스트가 있는 윈도우도 포함
-    screen=$(tmux capture-pane -t "$TMUX_SESSION:$idx" -p 2>/dev/null)
-    if echo "$screen" | grep -q "Remote Control"; then
-        is_rc_win=true
+    if [ "$is_rc_win" = false ]; then
+        screen=$(tmux capture-pane -t "$TMUX_SESSION:$idx" -p 2>/dev/null)
+        if echo "$screen" | grep -q "Remote Control"; then
+            is_rc_win=true
+        fi
     fi
 
     [ "$is_rc_win" = false ] && continue
@@ -1113,6 +1139,7 @@ while IFS=: read -r idx name; do
             ;;
     esac
 done <<< "$(tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}:#{window_name}' 2>/dev/null)"
+IFS=$' \t\n'
 
 live_count=${#LIVE_RC_WINDOWS[@]}
 sick_count=${#SICK_RC_WINDOWS[@]}
@@ -1151,7 +1178,7 @@ for sick_entry in "${SICK_RC_WINDOWS[@]}"; do
             screen=$(tmux capture-pane -t "$TMUX_SESSION:$sick_idx" -p 2>/dev/null)
             new_url=""
             if echo "$screen" | grep -q "Remote Control active"; then
-                new_url=$(echo "$screen" | grep -o 'https://claude\.ai/code/session_[A-Za-z0-9]*' | tail -1)
+                new_url=$(echo "$screen" | grep -o 'https://claude\.ai/code/session_[A-Za-z0-9_-]+' | tail -1)
                 tmux rename-window -t "$TMUX_SESSION:$sick_idx" "rc@$(date '+%H%M')" 2>/dev/null
                 [ -n "$new_url" ] && echo "$new_url" > "$REMOTE_URL_FILE"
                 echo "$(date +%s)" > "$KEEPALIVE_FILE"
@@ -1181,12 +1208,14 @@ done
 live_count=0
 while IFS=: read -r idx name; do
     is_rc=false
-    if [ "$name" = "claude" ] || echo "$name" | grep -q "^rc@"; then
+    if [ "$name" = "claude" ] || [ "$name" = "rc" ] || echo "$name" | grep -q "^rc@"; then
         is_rc=true
     fi
-    screen=$(tmux capture-pane -t "$TMUX_SESSION:$idx" -p 2>/dev/null)
-    if echo "$screen" | grep -q "Remote Control active"; then
-        is_rc=true
+    if [ "$is_rc" = false ]; then
+        screen=$(tmux capture-pane -t "$TMUX_SESSION:$idx" -p 2>/dev/null)
+        if echo "$screen" | grep -q "Remote Control active"; then
+            is_rc=true
+        fi
     fi
     if [ "$is_rc" = true ]; then
         s=$(check_rc_window_health "$idx")

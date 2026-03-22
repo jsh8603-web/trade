@@ -26,6 +26,22 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 UPBIT_API = "https://api.upbit.com/v1"
 
+# ── 커넥션 재사용을 위한 세션 ──────────────────────────
+_session: requests.Session | None = None
+
+
+def _get_session() -> requests.Session:
+    """모듈 레벨 requests.Session을 반환한다 (커넥션 풀 재사용).
+
+    테스트에서는 get_portfolio._session = None 으로 리셋 후
+    get_portfolio.requests.Session 을 mock하면 된다.
+    """
+    global _session
+    if _session is None:
+        _session = requests.Session()
+        _session.headers.update({"Accept": "application/json"})
+    return _session
+
 
 def make_auth_header() -> dict:
     access_key = os.environ.get("UPBIT_ACCESS_KEY", "")
@@ -43,7 +59,8 @@ def make_auth_header() -> dict:
 
 def main():
     # 잔고 조회
-    r = requests.get(
+    session = _get_session()
+    r = session.get(
         f"{UPBIT_API}/accounts", headers=make_auth_header(), timeout=10
     )
     r.raise_for_status()
@@ -74,13 +91,14 @@ def main():
     # 보유 종목 현재가 조회 (유효한 마켓만 필터링)
     if markets:
         valid_markets = []
-        all_markets_r = requests.get(f"{UPBIT_API}/market/all", timeout=10)
+        all_markets_r = session.get(f"{UPBIT_API}/market/all", timeout=10)
         if all_markets_r.ok:
-            known = {m["market"] for m in all_markets_r.json()}
-            valid_markets = [m["market"] for m in all_markets_r.json() if m["market"] in markets]
+            all_markets_data = all_markets_r.json()
+            valid_markets = [m["market"] for m in all_markets_data if m["market"] in markets]
+            del all_markets_data  # release memory
 
         if valid_markets:
-            r2 = requests.get(
+            r2 = session.get(
                 f"{UPBIT_API}/ticker",
                 params={"markets": ",".join(valid_markets)},
                 timeout=10,

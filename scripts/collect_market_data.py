@@ -58,12 +58,10 @@ def api_get(path: str, params: dict | None = None, max_retries: int = 3) -> dict
 
     session = _get_session()
     url = f"{UPBIT_API}{path}"
-    if params:
-        url += "?" + "&".join(f"{k}={v}" for k, v in params.items())
     r = None
     for attempt in range(max_retries):
         t0 = time.time()
-        r = session.get(url, timeout=10)
+        r = session.get(url, params=params, timeout=10)
         latency_ms = (time.time() - t0) * 1000
 
         # Record call for throttler
@@ -124,10 +122,10 @@ def rsi(prices: list[float], period: int = 14) -> float:
     return 100.0 if al == 0 else 100 - 100 / (1 + ag / al)
 
 
-def macd(prices: list[float]) -> dict:
+def macd(prices: list[float]) -> dict | None:
     """MACD = EMA12 - EMA26, Signal = MACD의 9일 EMA"""
     if len(prices) < 26:
-        return {"macd": 0, "signal": 0, "histogram": 0}
+        return None
     # 각 시점의 MACD 값을 계산하여 시그널 EMA를 구한다
     k12 = 2 / 13
     k26 = 2 / 27
@@ -152,7 +150,7 @@ def bollinger(prices: list[float], period: int = 20) -> dict:
     if mid is None:
         return {"upper": 0, "middle": 0, "lower": 0}
     window = prices[-period:]
-    var = sum((p - mid) ** 2 for p in window) / (period - 1)
+    var = sum((p - mid) ** 2 for p in window) / period
     sd = var**0.5
     return {
         "upper": round(mid + 2 * sd, 2),
@@ -260,17 +258,26 @@ def calc_atr(highs: list[float], lows: list[float], closes: list[float], period:
 def collect_eth_btc_ratio() -> dict:
     """ETH/BTC 비율 및 시장 구조 데이터를 수집한다."""
     try:
-        eth_ticker = api_get("/ticker", {"markets": "KRW-ETH"})[0]
-        btc_ticker = api_get("/ticker", {"markets": "KRW-BTC"})[0]
-        time.sleep(0.15)
+        from concurrent.futures import ThreadPoolExecutor
 
-        btc_daily = api_get("/candles/days", {"market": "KRW-BTC", "count": "60"})
-        time.sleep(0.15)
-        eth_daily = api_get("/candles/days", {"market": "KRW-ETH", "count": "60"})
+        # 4개 API 호출을 병렬 실행 (기존 순차 + sleep 0.3s → 병렬 1회 왕복)
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            f_eth_ticker = pool.submit(api_get, "/ticker", {"markets": "KRW-ETH"})
+            f_btc_ticker = pool.submit(api_get, "/ticker", {"markets": "KRW-BTC"})
+            f_btc_daily = pool.submit(api_get, "/candles/days", {"market": "KRW-BTC", "count": "60"})
+            f_eth_daily = pool.submit(api_get, "/candles/days", {"market": "KRW-ETH", "count": "60"})
+
+        eth_ticker = f_eth_ticker.result()[0]
+        btc_ticker = f_btc_ticker.result()[0]
+        btc_daily = f_btc_daily.result()
+        eth_daily = f_eth_daily.result()
 
         btc_prices = [c["trade_price"] for c in reversed(btc_daily)]
         eth_prices = [c["trade_price"] for c in reversed(eth_daily)]
         n = min(len(btc_prices), len(eth_prices))
+
+        if n == 0:
+            return {"error": "ETH/BTC 캔들 데이터가 비어 있습니다"}
 
         ratios = [eth_prices[i] / btc_prices[i] for i in range(n)]
         mean_r = statistics.mean(ratios)
@@ -306,12 +313,38 @@ def collect_eth_btc_ratio() -> dict:
 
 
 def main(market: str = "KRW-BTC"):
-    ticker = api_get("/ticker", {"markets": market})[0]
-    # 220일봉으로 EMA(200), ADX 등 장기 지표 지원
-    daily = api_get("/candles/days", {"market": market, "count": "220"})
-    four_h = api_get("/candles/minutes/240", {"market": market, "count": "42"})
-    ob = api_get("/orderbook", {"markets": market})[0]
-    trades = api_get("/trades/ticks", {"market": market, "count": "100"})
+    # ── 병렬 API 호출 (I/O-bound, ~5x 속도 개선) ──────────
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    api_tasks = {
+        "ticker": ("/ticker", {"markets": market}),
+        "daily": ("/candles/days", {"market": market, "count": "220"}),
+        "four_h": ("/candles/minutes/240", {"market": market, "count": "42"}),
+        "ob": ("/orderbook", {"markets": market}),
+        "trades": ("/trades/ticks", {"market": market, "count": "100"}),
+    }
+
+    api_results: dict = {}
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        futures = {
+            pool.submit(api_get, path, params): name
+            for name, (path, params) in api_tasks.items()
+        }
+        for future in as_completed(futures):
+            name = futures[future]
+            try:
+                api_results[name] = future.result()
+            except Exception as e:
+                print(f"[WARN] API call '{name}' failed: {e}", file=sys.stderr)
+                api_results[name] = None
+
+    if api_results.get("ticker") is None or api_results.get("ob") is None:
+        raise RuntimeError("필수 API 호출(ticker/ob) 실패 — 데이터 수집 불가")
+    ticker = api_results["ticker"][0]
+    daily = api_results["daily"] or []
+    four_h = api_results["four_h"] or []
+    ob = api_results["ob"][0]
+    trades = api_results["trades"] or []
 
     daily.reverse()  # 오래된 순 정렬
     closes = [c["trade_price"] for c in daily]
@@ -322,7 +355,6 @@ def main(market: str = "KRW-BTC"):
     sell_vol = sum(t["trade_volume"] for t in trades if t["ask_bid"] == "ASK")
 
     # ETH/BTC 비율 및 시장 구조
-    time.sleep(0.15)
     eth_btc = collect_eth_btc_ratio()
 
     # ADX / ATR
@@ -348,6 +380,14 @@ def main(market: str = "KRW-BTC"):
             "volume": round(c["candle_acc_trade_volume"], 2),
         })
 
+    # ── 지표 계산 (중복 호출 제거) ──────────────────────
+    _sma_20 = sma(closes, 20)
+    _sma_50 = sma(closes, 50)
+    _sma_200 = sma(closes, 200)
+    _ema_10 = ema(closes, 10)
+    _ema_50 = ema(closes, 50) if len(closes) >= 50 else None
+    _ema_200 = ema(closes, 200) if len(closes) >= 200 else None
+
     snapshot = {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S+09:00"),
         "market": market,
@@ -355,12 +395,12 @@ def main(market: str = "KRW-BTC"):
         "change_rate_24h": ticker["signed_change_rate"],
         "volume_24h": ticker["acc_trade_volume_24h"],
         "indicators": {
-            "sma_20": round(sma(closes, 20), 2) if sma(closes, 20) is not None else None,
-            "sma_50": round(sma(closes, 50), 2) if sma(closes, 50) is not None else None,
-            "sma_200": round(sma(closes, 200), 2) if sma(closes, 200) is not None else None,
-            "ema_10": round(ema(closes, 10), 2) if ema(closes, 10) is not None else None,
-            "ema_50": round(ema(closes, 50), 2) if len(closes) >= 50 else None,
-            "ema_200": round(ema(closes, 200), 2) if len(closes) >= 200 else None,
+            "sma_20": round(_sma_20, 2) if _sma_20 is not None else None,
+            "sma_50": round(_sma_50, 2) if _sma_50 is not None else None,
+            "sma_200": round(_sma_200, 2) if _sma_200 is not None else None,
+            "ema_10": round(_ema_10, 2) if _ema_10 is not None else None,
+            "ema_50": round(_ema_50, 2) if _ema_50 is not None else None,
+            "ema_200": round(_ema_200, 2) if _ema_200 is not None else None,
             "rsi_14": round(rsi(closes, 14), 2),
             "macd": macd(closes),
             "bollinger": bollinger(closes, 20),

@@ -107,8 +107,20 @@ def _load_usage() -> dict:
 
 
 def _save_usage(data: dict):
+    import tempfile
     USAGE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    USAGE_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    # Atomic write: write to temp file then rename to avoid race conditions
+    fd, tmp_path = tempfile.mkstemp(dir=USAGE_FILE.parent, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        os.replace(tmp_path, USAGE_FILE)
+    except BaseException:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
 
 
 def _budget_queries(usage: dict) -> list:
@@ -251,5 +263,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        json.dump({"error": str(e)}, sys.stderr, ensure_ascii=False)
+        json.dump({"error": str(e)}, sys.stdout, ensure_ascii=False)
         sys.exit(1)

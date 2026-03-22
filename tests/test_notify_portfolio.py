@@ -18,6 +18,18 @@ from notify_telegram import escape_md, send_message, send_photo
 import get_portfolio
 
 
+@pytest.fixture(autouse=True)
+def _reset_portfolio_session():
+    """get_portfolio._get_session() → requests 모듈 자체를 반환하여
+    기존 requests.get mock이 그대로 동작하도록 한다."""
+    get_portfolio._session = None
+    orig = get_portfolio._get_session
+    get_portfolio._get_session = lambda: get_portfolio.requests
+    yield
+    get_portfolio._get_session = orig
+    get_portfolio._session = None
+
+
 # ============================================================
 # notify_telegram.py tests
 # ============================================================

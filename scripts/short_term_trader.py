@@ -203,7 +203,7 @@ MAX_SAME_STRATEGY_POSITIONS = 1
 
 # ── Kelly Criterion 단타용 포지션 사이징 ──────────────────
 
-def _kelly_short_term(confidence: float) -> float:
+def _kelly_short_term(confidence: float) -> int:
     """단타 시그널의 confidence로 SHORT_TERM_MAX_TRADE를 스케일링한다.
 
     strategy.md 테이블 준수 (Half-Kelly):
@@ -299,7 +299,7 @@ def upbit_order(side: str, market: str, amount: str) -> dict:
 
     qs = urlencode(body)
     headers = upbit_auth_header(qs)
-    r = requests.post(f"{UPBIT_API}/orders", json=body, headers=headers, timeout=10)
+    r = _get_http_session().post(f"{UPBIT_API}/orders", json=body, headers=headers, timeout=10)
     try:
         data = r.json()
     except (ValueError, requests.exceptions.JSONDecodeError):
@@ -307,8 +307,21 @@ def upbit_order(side: str, market: str, amount: str) -> dict:
     return {"ok": r.ok, "data": data}
 
 
+# ── 커넥션 재사용을 위한 HTTP 세션 ──────────────────────
+_http_session: requests.Session | None = None
+
+
+def _get_http_session() -> requests.Session:
+    """모듈 레벨 requests.Session을 반환한다 (커넥션 풀 재사용)."""
+    global _http_session
+    if _http_session is None:
+        _http_session = requests.Session()
+        _http_session.headers.update({"Accept": "application/json"})
+    return _http_session
+
+
 def get_current_price(market: str = MARKET) -> float:
-    r = requests.get(f"{UPBIT_API}/ticker", params={"markets": market}, timeout=5)
+    r = _get_http_session().get(f"{UPBIT_API}/ticker", params={"markets": market}, timeout=5)
     return r.json()[0]["trade_price"]
 
 
@@ -335,7 +348,7 @@ def db_insert(table: str, data: dict):
         _log.warning(f"[DB] {table} 삽입 스킵 — SUPABASE 환경변수 미설정")
         return
     try:
-        resp = requests.post(
+        resp = _get_http_session().post(
             f"{SUPABASE_URL}/rest/v1/{table}",
             json=data,
             headers={
@@ -419,7 +432,7 @@ def send_telegram(message: str):
     if not token or not chat_id:
         return
     try:
-        requests.post(
+        _get_http_session().post(
             f"https://api.telegram.org/bot{token}/sendMessage",
             json={"chat_id": chat_id, "text": message, "parse_mode": "HTML"},
             timeout=5,
@@ -505,8 +518,10 @@ class ShortTermTrader:
         self.current_price: float = 0
         self.positions: list[Position] = []
         self.closed_positions: list[Position] = []
+        self.total_closed_count: int = 0  # 전체 청산 수 (closed_positions 트리밍 후에도 정확)
         self.daily_trade_count = 0
         self.daily_pnl = 0.0
+        self._current_date = datetime.now(KST).date()
         self.used_budget = 0
 
         # 에러 카운터 -- 연속 에러 시 자동 정지
@@ -563,7 +578,8 @@ class ShortTermTrader:
 
         try:
             # SMA20 from 일봉
-            r = requests.get(
+            _sess = _get_http_session()
+            r = _sess.get(
                 f"{UPBIT_API}/candles/days",
                 params={"market": MARKET, "count": TREND_SMA_CANDLE_COUNT},
                 timeout=5,
@@ -591,7 +607,7 @@ class ShortTermTrader:
                 pass
 
             # RSI from 시장 데이터 수집 스크립트 (간이 계산)
-            r2 = requests.get(
+            r2 = _sess.get(
                 f"{UPBIT_API}/candles/minutes/60",
                 params={"market": MARKET, "count": 15},
                 timeout=5,
@@ -619,7 +635,7 @@ class ShortTermTrader:
 
             # FGI
             try:
-                r3 = requests.get(
+                r3 = _sess.get(
                     "https://api.alternative.me/fng/?limit=1", timeout=5
                 )
                 if r3.ok:
@@ -1468,9 +1484,9 @@ class ShortTermTrader:
         try:
             import numpy as np
             # 모멘텀 계산
-            prices = list(self.price_history) if self.price_history else [self.current_price]
-            mom_1m = (prices[-1] / prices[-2] - 1) * 100 if len(prices) >= 2 else 0
-            mom_5m = (prices[-1] / prices[-6] - 1) * 100 if len(prices) >= 6 else 0
+            prices = list(self.price_history) if self.price_history else [{"price": self.current_price}]
+            mom_1m = (prices[-1]["price"] / prices[-2]["price"] - 1) * 100 if len(prices) >= 2 else 0
+            mom_5m = (prices[-1]["price"] / prices[-6]["price"] - 1) * 100 if len(prices) >= 6 else 0
 
             # 전략 인코딩
             strat_map = {"news": 0, "spike": 1, "whale": 2}
@@ -1768,6 +1784,7 @@ class ShortTermTrader:
 
         self.positions.remove(pos)
         self.closed_positions.append(pos)
+        self.total_closed_count += 1
         # daily_trade_count는 entry에서만 증가 (round-trip = 1회)
         self.daily_pnl += pnl_krw
         self.used_budget = max(0, self.used_budget - pos.amount_krw)
@@ -1873,6 +1890,16 @@ class ShortTermTrader:
 
         while self.running:
             try:
+                # 자정 리셋: 날짜가 바뀌면 daily 카운터 초기화
+                today = datetime.now(KST).date()
+                if today != self._current_date:
+                    log.info(f"[자정 리셋] {self._current_date} → {today}: "
+                             f"daily_trade_count {self.daily_trade_count}→0, "
+                             f"daily_pnl {self.daily_pnl:+.0f}→0")
+                    self.daily_trade_count = 0
+                    self.daily_pnl = 0.0
+                    self._current_date = today
+
                 if self.current_price <= 0:
                     await asyncio.sleep(1)
                     continue
@@ -2032,8 +2059,8 @@ class ShortTermTrader:
             for p in period_trades if p.exit_price
         )
 
-        # 누적 통계
-        cumul_count = current_count
+        # 누적 통계 (total_closed_count는 트리밍과 무관하게 정확)
+        cumul_count = self.total_closed_count
         cumul_pnl = self.daily_pnl
 
         # 훈련 일지 메시지 생성
@@ -2140,8 +2167,13 @@ class ShortTermTrader:
         tg_msg += f"\n{'[DRY_RUN]' if self.dry_run else ''}"
         send_telegram(tg_msg)
 
-        # 이전 정산 기준 업데이트
-        self._prev_settled_count = current_count
+        # 이전 정산 기준 업데이트 — 정산 완료된 포지션은 메모리에서 해제
+        # print_summary()에서 필요한 전체 통계는 cumul_count/cumul_pnl로 이미 추적 중
+        # 최근 50건만 유지하여 메모리 누수 방지 (장기 운영 시)
+        MAX_CLOSED_KEEP = 50
+        if current_count > MAX_CLOSED_KEEP:
+            self.closed_positions = self.closed_positions[-MAX_CLOSED_KEEP:]
+        self._prev_settled_count = min(self._prev_settled_count, len(self.closed_positions))
         self._prev_settled_pnl = cumul_pnl
 
     async def strategy_alert_monitor(self):
@@ -2157,7 +2189,7 @@ class ShortTermTrader:
 
                 # 1) RSI 체크 (Upbit API로 1시간봉 조회)
                 try:
-                    r = requests.get(
+                    r = _get_http_session().get(
                         f"{UPBIT_API}/candles/minutes/60",
                         params={"market": MARKET, "count": 15},
                         timeout=10,
@@ -2280,7 +2312,7 @@ class ShortTermTrader:
 
                         # FGI 조회 (간단)
                         try:
-                            fgi_r = requests.get("https://api.alternative.me/fng/?limit=1", timeout=5)
+                            fgi_r = _get_http_session().get("https://api.alternative.me/fng/?limit=1", timeout=5)
                             fgi = int(fgi_r.json()["data"][0]["value"]) if fgi_r.ok else None
                         except Exception:
                             fgi = None
@@ -2333,7 +2365,7 @@ class ShortTermTrader:
                             "timestamp": int(time.time() * 1000),
                         }
                         token = jwt.encode(payload, sk, algorithm="HS256")
-                        acct_r = requests.get(
+                        acct_r = _get_http_session().get(
                             f"{UPBIT_API}/accounts",
                             headers={"Authorization": f"Bearer {token}"},
                             timeout=5,
@@ -2434,7 +2466,7 @@ class ShortTermTrader:
         ]
 
         # graceful shutdown (Windows에서는 add_signal_handler 미지원)
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         try:
             for sig in (signal.SIGINT, signal.SIGTERM):
                 loop.add_signal_handler(sig, lambda: self.shutdown())
@@ -2466,7 +2498,7 @@ class ShortTermTrader:
         if getattr(self, '_summary_done', False):
             return
         self._summary_done = True
-        total_trades = len(self.closed_positions)
+        total_trades = self.total_closed_count
         wins = sum(1 for p in self.closed_positions if (p.pnl_pct or 0) > 0)
         losses = sum(1 for p in self.closed_positions if (p.pnl_pct or 0) < 0)
         win_rate = wins / max(total_trades, 1) * 100
@@ -2549,6 +2581,11 @@ class ShortTermTrader:
 # ── 엔트리 ────────────────────────────────────────────
 
 if __name__ == "__main__":
+    # 최우선: EMERGENCY_STOP 확인 — 매매 관련 초기화 전에 차단
+    if os.environ.get("EMERGENCY_STOP", "false").lower() == "true":
+        print("[EMERGENCY_STOP] 긴급 정지 활성화 — 초단타 봇 시작 중단", file=sys.stderr)
+        sys.exit(1)
+
     dry_run = os.environ.get("DRY_RUN", "true").lower() == "true"
 
     if "--dry-run" in sys.argv:

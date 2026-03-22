@@ -94,28 +94,8 @@ def get_embedding(text: str) -> list | None:
 def query_similar_decisions(embedding: list, limit: int = 3) -> list[dict]:
     """Supabase RPC match_similar_decisions를 호출하여 유사 결정을 조회.
 
-    psycopg2 직접 연결을 우선 사용하고, 실패 시 REST API fallback.
+    REST API로 직접 RPC 호출 (psycopg2는 dotted username 문제로 사용 불가).
     """
-    # 방법 1: psycopg2 직접 SQL (더 안정적)
-    db_url = os.getenv("SUPABASE_DB_URL")
-    if db_url:
-        try:
-            import psycopg2
-            import psycopg2.extras
-            conn = psycopg2.connect(db_url)
-            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute(
-                "SELECT * FROM match_similar_decisions(%s::vector, %s)",
-                (str(embedding), limit),
-            )
-            rows = cur.fetchall()
-            cur.close()
-            conn.close()
-            return [dict(r) for r in rows]
-        except Exception as e:
-            print(f"[recall_rag] psycopg2 RPC 호출 실패: {e}", file=sys.stderr)
-
-    # 방법 2: REST API fallback
     supabase_url = os.getenv("SUPABASE_URL", "")
     supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     if not supabase_url or not supabase_key:
@@ -216,8 +196,20 @@ def main():
             sys.exit(1)
 
     # 2. 임베딩 텍스트 생성 (save_decision.py와 동일한 함수 사용)
-    from scripts.save_decision import build_embedding_text
-    text = build_embedding_text(market_data)
+    try:
+        from scripts.save_decision import build_embedding_text
+        text = build_embedding_text(market_data)
+    except (ImportError, ModuleNotFoundError) as e:
+        print(f"[recall_rag] build_embedding_text import 실패, 폴백 사용: {e}", file=sys.stderr)
+        parts = []
+        for key in ("current_price", "change_rate_24h", "volume_24h", "market"):
+            if key in market_data:
+                parts.append(f"{key}={market_data[key]}")
+        indicators = market_data.get("indicators", {})
+        for key in ("rsi_14", "sma_20", "macd"):
+            if key in indicators:
+                parts.append(f"{key}={indicators[key]}")
+        text = " ".join(parts) if parts else None
     if not text:
         print("[recall_rag] 임베딩 텍스트 생성 불가 (데이터 부족)", file=sys.stderr)
         sys.exit(1)

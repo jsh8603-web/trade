@@ -66,6 +66,22 @@ def _route_mock(accounts, markets=None, tickers=None):
     return side_effect
 
 
+@pytest.fixture(autouse=True)
+def _reset_session(monkeypatch):
+    """세션 캐시를 리셋하고, requests.get 패치가 세션의 get에도 적용되도록 한다.
+
+    기존 테스트는 @patch("get_portfolio.requests.get")으로 모킹하므로,
+    _get_session()이 반환하는 세션의 get도 같은 mock을 가리키게 맞춘다.
+    """
+    # 매 테스트 전에 세션 캐시 초기화 — 테스트 간 세션 공유 방지
+    get_portfolio._session = None
+    # _get_session()이 requests 모듈 자체를 반환하도록 하여
+    # @patch("get_portfolio.requests.get") 패치가 그대로 동작하게 한다.
+    monkeypatch.setattr(get_portfolio, "_get_session", lambda: get_portfolio.requests)
+    yield
+    get_portfolio._session = None
+
+
 # ══════════════════════════════════════════════════════════════
 # Empty / KRW-only portfolio
 # ══════════════════════════════════════════════════════════════

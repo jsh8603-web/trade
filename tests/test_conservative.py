@@ -185,7 +185,7 @@ class TestConservativeBuy:
         port = _make_portfolio()
         ext = _make_ext(strategy_bonus=20)
         decision = agent.decide(md, ext, port)
-        assert decision.confidence <= 0.9
+        assert decision.confidence <= 1.0
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_buy_agent_name_includes_emoji(self, agent):

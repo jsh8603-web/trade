@@ -142,7 +142,7 @@ class TestMACD:
     def test_insufficient_data(self):
         prices = [float(i) for i in range(25)]  # < 26
         result = macd(prices)
-        assert result == {"macd": 0, "signal": 0, "histogram": 0}
+        assert result is None
 
     def test_exactly_26_prices(self):
         prices = [float(i) for i in range(26)]
@@ -236,7 +236,7 @@ class TestBollinger:
         result = bollinger(prices, period)
 
         mid = sum(prices[-period:]) / period  # 12.0
-        var = sum((p - mid) ** 2 for p in prices[-period:]) / (period - 1)  # sample variance
+        var = sum((p - mid) ** 2 for p in prices[-period:]) / period  # population variance
         sd = var ** 0.5
 
         assert result["middle"] == pytest.approx(mid, abs=0.01)
@@ -517,6 +517,23 @@ class TestCollectEthBtcRatio:
                 "opening_price": price, "candle_acc_trade_volume": 1.0,
                 "candle_date_time_kst": "2026-03-08T00:00:00"}
 
+    @staticmethod
+    def _make_router(eth_ticker, btc_ticker, btc_daily, eth_daily):
+        """ThreadPoolExecutor 병렬 호출 순서 비결정성을 해결하는 라우터."""
+        def _router(path, params=None):
+            if path == "/ticker":
+                market = (params or {}).get("markets", "")
+                if "ETH" in market:
+                    return eth_ticker
+                return btc_ticker
+            if path == "/candles/days":
+                market = (params or {}).get("market", "")
+                if "ETH" in market:
+                    return eth_daily
+                return btc_daily
+            return []
+        return _router
+
     @patch("collect_market_data.time.sleep")
     @patch("collect_market_data.api_get")
     def test_normal_ratio_calculation(self, mock_api, mock_sleep):
@@ -529,7 +546,7 @@ class TestCollectEthBtcRatio:
         btc_candles = [self._make_candle(100000000 + i * 10000) for i in range(60)]
         eth_candles = [self._make_candle(5000000 + i * 500) for i in range(60)]
 
-        mock_api.side_effect = [eth_ticker, btc_ticker, btc_candles, eth_candles]
+        mock_api.side_effect = self._make_router(eth_ticker, btc_ticker, btc_candles, eth_candles)
 
         result = collect_eth_btc_ratio()
 
@@ -572,7 +589,7 @@ class TestCollectEthBtcRatio:
         btc_candles = [self._make_candle(100000000) for _ in range(60)]
         eth_candles = [self._make_candle(5000000) for _ in range(60)]
 
-        mock_api.side_effect = [eth_ticker, btc_ticker, btc_candles, eth_candles]
+        mock_api.side_effect = self._make_router(eth_ticker, btc_ticker, btc_candles, eth_candles)
 
         result = collect_eth_btc_ratio()
         # z_score should be 0 since current ratio == mean ratio
@@ -598,7 +615,7 @@ class TestCollectEthBtcRatio:
         eth_prices_newest_first = [3000000] + [5000000] * 59
         eth_candles = [self._make_candle(p) for p in eth_prices_newest_first]
 
-        mock_api.side_effect = [eth_ticker, btc_ticker, btc_candles, eth_candles]
+        mock_api.side_effect = self._make_router(eth_ticker, btc_ticker, btc_candles, eth_candles)
         result = collect_eth_btc_ratio()
         assert result["eth_btc_signal"] == "ETH 극단적 저평가"
 
@@ -617,7 +634,7 @@ class TestCollectEthBtcRatio:
         eth_prices_newest_first = [4500000] + [5000000 + i * 10000 for i in range(59)]
         eth_candles = [self._make_candle(p) for p in eth_prices_newest_first]
 
-        mock_api.side_effect = [eth_ticker, btc_ticker, btc_candles, eth_candles]
+        mock_api.side_effect = self._make_router(eth_ticker, btc_ticker, btc_candles, eth_candles)
         result = collect_eth_btc_ratio()
         # z should be negative (below mean)
         assert result["eth_btc_z_score"] < 0
@@ -636,7 +653,7 @@ class TestCollectEthBtcRatio:
         eth_prices_newest_first = [8000000] + [5000000] * 59
         eth_candles = [self._make_candle(p) for p in eth_prices_newest_first]
 
-        mock_api.side_effect = [eth_ticker, btc_ticker, btc_candles, eth_candles]
+        mock_api.side_effect = self._make_router(eth_ticker, btc_ticker, btc_candles, eth_candles)
         result = collect_eth_btc_ratio()
         assert result["eth_btc_signal"] == "ETH 극단적 고평가"
 
@@ -653,7 +670,7 @@ class TestCollectEthBtcRatio:
         eth_prices_newest_first = [5800000] + [5000000 - i * 10000 for i in range(59)]
         eth_candles = [self._make_candle(p) for p in eth_prices_newest_first]
 
-        mock_api.side_effect = [eth_ticker, btc_ticker, btc_candles, eth_candles]
+        mock_api.side_effect = self._make_router(eth_ticker, btc_ticker, btc_candles, eth_candles)
         result = collect_eth_btc_ratio()
         assert result["eth_btc_z_score"] > 0
         assert result["eth_btc_signal"] in ("ETH 고평가", "ETH 극단적 고평가")
@@ -670,7 +687,7 @@ class TestCollectEthBtcRatio:
         btc_candles = [self._make_candle(100000000) for _ in range(60)]
         eth_candles = [self._make_candle(5000000) for _ in range(60)]
 
-        mock_api.side_effect = [eth_ticker, btc_ticker, btc_candles, eth_candles]
+        mock_api.side_effect = self._make_router(eth_ticker, btc_ticker, btc_candles, eth_candles)
         result = collect_eth_btc_ratio()
         assert result["eth_btc_signal"] == "정상 범위"
 

@@ -164,11 +164,11 @@ class TestMACDEdgeCases:
 
     def test_single_price(self):
         result = macd([100.0])
-        assert result == {"macd": 0, "signal": 0, "histogram": 0}
+        assert result is None
 
     def test_empty_prices(self):
         result = macd([])
-        assert result == {"macd": 0, "signal": 0, "histogram": 0}
+        assert result is None
 
 
 class TestBollingerEdgeCases:
@@ -178,8 +178,8 @@ class TestBollingerEdgeCases:
         prices = [100.0, 200.0]
         result = bollinger(prices, 2)
         mid = 150.0
-        # 표본분산 (N-1): var = 5000, sd ≈ 70.71
-        var = ((100 - 150) ** 2 + (200 - 150) ** 2) / (2 - 1)
+        # 모분산 (N): var = 2500, sd = 50.0
+        var = ((100 - 150) ** 2 + (200 - 150) ** 2) / 2
         sd = var ** 0.5
         assert result["middle"] == pytest.approx(mid)
         assert result["upper"] == pytest.approx(mid + 2 * sd, abs=0.01)
@@ -316,9 +316,9 @@ class TestApiGetEdgeCases:
 
         with patch("collect_market_data._get_session", return_value=mock_session):
             api_get("/ticker", {"markets": "KRW-BTC", "count": "10"})
-        called_url = mock_session.get.call_args[0][0]
-        assert "markets=KRW-BTC" in called_url
-        assert "count=10" in called_url
+        call_kwargs = mock_session.get.call_args[1]
+        assert call_kwargs["params"]["markets"] == "KRW-BTC"
+        assert call_kwargs["params"]["count"] == "10"
 
     def test_no_params(self):
         """URL without params should not have query string."""
@@ -342,7 +342,7 @@ class TestMarketDataMainErrors:
     def test_api_failure_on_ticker(self, mock_api):
         """API failure on first call should raise."""
         mock_api.side_effect = requests.ConnectionError("Network error")
-        with pytest.raises(requests.ConnectionError):
+        with pytest.raises((requests.ConnectionError, RuntimeError)):
             market_data_main("KRW-BTC")
 
 
@@ -935,6 +935,17 @@ class TestExecuteTradeLatency:
 # ===========================================================================
 
 import get_portfolio
+
+
+@pytest.fixture(autouse=True)
+def _reset_portfolio_session():
+    """Session 캐시를 리셋하여 requests.get mock이 동작하도록 한다."""
+    get_portfolio._session = None
+    orig = get_portfolio._get_session
+    get_portfolio._get_session = lambda: get_portfolio.requests
+    yield
+    get_portfolio._get_session = orig
+    get_portfolio._session = None
 
 
 def _make_accounts(accounts_data):

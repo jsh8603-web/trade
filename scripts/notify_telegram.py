@@ -37,8 +37,9 @@ KST = timezone(timedelta(hours=9))
 
 
 def escape_md(text: str) -> str:
-    """MarkdownV2 특수문자 이스케이프"""
-    return re.sub(r"([_*\[\]()~`>#+\-=|{}.!\\])", r"\\\1", text)
+    """MarkdownV2 특수문자 이스케이프 (backslash를 먼저 이스케이프하여 이중 이스케이프 방지)"""
+    text = text.replace("\\", "\\\\")
+    return re.sub(r"([_*\[\]()~`>#+\-=|{}.!])", r"\\\1", text)
 
 
 def send_message(msg_type: str, title: str, body: str, max_retries: int = 3):
@@ -65,6 +66,18 @@ def send_message(msg_type: str, title: str, body: str, max_retries: int = 3):
             )
             if r.ok:
                 return {"success": True, "type": msg_type, "title": title}
+            if r.status_code == 400:
+                # MarkdownV2 파싱 실패 — plain text로 재시도
+                import re
+                plain = re.sub(r'[_*\[\]()~`>#+\-=|{}.!\\]', '', text)
+                r2 = requests.post(
+                    f"{TELEGRAM_API.format(token=bot_token)}/sendMessage",
+                    json={"chat_id": user_id, "text": plain},
+                    timeout=10,
+                )
+                if r2.ok:
+                    return {"success": True, "type": msg_type, "title": title, "fallback": "plain"}
+                raise RuntimeError(f"텔레그램 전송 실패 (plain fallback도 실패): {r2.text}")
             if attempt < max_retries - 1 and (r.status_code >= 500 or r.status_code == 429):
                 time.sleep(2 ** attempt)
                 continue
@@ -76,21 +89,31 @@ def send_message(msg_type: str, title: str, body: str, max_retries: int = 3):
             raise RuntimeError("텔레그램 전송 타임아웃 (재시도 소진)")
 
 
-def send_photo(image_path: str, caption: str):
+def send_photo(image_path: str, caption: str, max_retries: int = 3):
+    import time
     bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
     user_id = os.environ.get("TELEGRAM_USER_ID")
     if not bot_token or not user_id:
         raise RuntimeError("TELEGRAM_BOT_TOKEN 또는 TELEGRAM_USER_ID 미설정")
 
-    with open(image_path, "rb") as f:
-        r = requests.post(
-            f"{TELEGRAM_API.format(token=bot_token)}/sendPhoto",
-            data={"chat_id": user_id, "caption": caption},
-            files={"photo": ("chart.png", f, "image/png")},
-            timeout=30,
-        )
+    for attempt in range(max_retries):
+        with open(image_path, "rb") as f:
+            r = requests.post(
+                f"{TELEGRAM_API.format(token=bot_token)}/sendPhoto",
+                data={"chat_id": user_id, "caption": caption},
+                files={"photo": ("chart.png", f, "image/png")},
+                timeout=30,
+            )
 
-    if not r.ok:
+        if r.ok:
+            return {"success": True, "type": "photo", "path": image_path}
+        try:
+            status = int(r.status_code)
+        except (TypeError, ValueError):
+            status = 0
+        if attempt < max_retries - 1 and (status >= 500 or status == 429):
+            time.sleep(2 ** attempt)
+            continue
         raise RuntimeError(f"텔레그램 이미지 전송 실패: {r.text}")
 
     return {"success": True, "type": "photo", "path": image_path}

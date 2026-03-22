@@ -19,6 +19,8 @@
 
 set -euo pipefail
 
+export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH"
+
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_DIR"
 
@@ -73,10 +75,16 @@ AGENT_OUTPUT=""
 AGENT_SUCCESS=false
 
 if AGENT_OUTPUT=$("$PYTHON" scripts/run_agents.py 2>>"$LOG_FILE"); then
-  AGENT_SUCCESS=true
-  echo "$AGENT_OUTPUT" > "$RESPONSE_FILE"
-  echo "[$(date)] Python 에이전트 파이프라인 성공" >> "$LOG_FILE"
-  echo "[$(date)] 응답 저장: ${RESPONSE_FILE}" >> "$LOG_FILE"
+  # JSON 출력 검증: 비어있거나 '{'로 시작하지 않으면 실패 처리
+  if [ -z "$AGENT_OUTPUT" ] || ! echo "$AGENT_OUTPUT" | head -c1 | grep -q '{'; then
+    echo "[$(date)] WARNING: Python 에이전트 출력이 유효한 JSON이 아님" >> "$LOG_FILE"
+    echo "[$(date)] 출력 앞부분: $(echo "$AGENT_OUTPUT" | head -c 200)" >> "$LOG_FILE"
+  else
+    AGENT_SUCCESS=true
+    echo "$AGENT_OUTPUT" > "$RESPONSE_FILE"
+    echo "[$(date)] Python 에이전트 파이프라인 성공" >> "$LOG_FILE"
+    echo "[$(date)] 응답 저장: ${RESPONSE_FILE}" >> "$LOG_FILE"
+  fi
 else
   PIPELINE_EXIT=$?
   echo "[$(date)] WARNING: Python 에이전트 파이프라인 실패 (exit $PIPELINE_EXIT). Bash fallback으로 전환..." >> "$LOG_FILE"
@@ -120,12 +128,15 @@ if [ "$AGENT_SUCCESS" = "false" ]; then
 fi
 
 # ══════════════════════════════════════════════════════════
-# 회고: 과거 결정의 사후 가격 추적 (매 실행마다)
+# 회고: 과거 결정의 사후 가격 추적
+# run_agents.py Phase 6.3에서 이미 실행되므로, fallback 경로에서만 실행
 # ══════════════════════════════════════════════════════════
-echo "[$(date)] 회고 분석 시작..." >> "$LOG_FILE"
-"$PYTHON" scripts/retrospective.py >> "$LOG_FILE" 2>&1 || {
-  echo "[$(date)] WARNING: 회고 분석 실패 (치명적 아님)" >> "$LOG_FILE"
-}
+if [ "$AGENT_SUCCESS" = "false" ]; then
+  echo "[$(date)] 회고 분석 시작 (fallback 경로)..." >> "$LOG_FILE"
+  "$PYTHON" scripts/retrospective.py >> "$LOG_FILE" 2>&1 || {
+    echo "[$(date)] WARNING: 회고 분석 실패 (치명적 아님)" >> "$LOG_FILE"
+  }
+fi
 
 # 완료
 echo "[$(date)] === cron 실행 완료 ===" >> "$LOG_FILE"

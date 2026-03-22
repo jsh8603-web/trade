@@ -624,6 +624,7 @@ class TestRecordTradeToDb:
         # First call fails with dry_run error, second succeeds
         fail_resp = MagicMock()
         fail_resp.ok = False
+        fail_resp.status_code = 400
         fail_resp.text = "dry_run column does not exist"
 
         ok_resp = MagicMock()

@@ -29,6 +29,10 @@ import requests
 UPBIT_API = "https://api.upbit.com/v1"
 RATE_LIMIT_WAIT = 0.15  # Upbit API rate limit 대응
 
+# 커넥션 풀 재사용을 위한 모듈 레벨 세션
+SESSION = requests.Session()
+SESSION.headers.update({"Accept": "application/json"})
+
 # ── Predictive API Throttler ────────────────────────────
 try:
     from scripts.api_throttler import record_call as _record_call, should_throttle as _should_throttle
@@ -46,12 +50,10 @@ def api_get(path: str, params: dict | None = None, max_retries: int = 3) -> dict
             time.sleep(delay)
 
     url = f"{UPBIT_API}{path}"
-    if params:
-        url += "?" + "&".join(f"{k}={v}" for k, v in params.items())
     last_response = None
     for attempt in range(max_retries):
         t0 = time.time()
-        last_response = requests.get(url, timeout=10)
+        last_response = SESSION.get(url, params=params, timeout=10)
         latency_ms = (time.time() - t0) * 1000
 
         # Record call for throttler

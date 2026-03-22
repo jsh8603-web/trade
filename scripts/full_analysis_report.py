@@ -22,6 +22,10 @@ from supabase import create_client
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+if not SUPABASE_URL or not SUPABASE_KEY:
+    print("[ERROR] SUPABASE_URL 또는 SUPABASE_SERVICE_ROLE_KEY 환경변수가 설정되지 않았습니다.", file=sys.stderr)
+    print("  .env 파일을 확인하거나 환경변수를 설정하세요.", file=sys.stderr)
+    sys.exit(1)
 sb = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
@@ -71,6 +75,7 @@ def extract_metrics(row):
     if created:
         try:
             dt = datetime.fromisoformat(created.replace('+00:00', '').replace('Z', ''))
+            dt = dt + timedelta(hours=9)  # UTC → KST
         except Exception:
             pass
 
@@ -232,7 +237,7 @@ def extract_metrics(row):
 
 
 def avg(lst):
-    valid = [x for x in lst if x and x != 0]
+    valid = [x for x in lst if x is not None]
     return sum(valid) / len(valid) if valid else 0
 
 
@@ -247,7 +252,7 @@ def median(lst):
 
 
 def std_dev(lst):
-    valid = [x for x in lst if x and x != 0]
+    valid = [x for x in lst if x is not None]
     if len(valid) < 2:
         return 0
     mean = sum(valid) / len(valid)
@@ -304,6 +309,9 @@ def generate_report(rows):
     report = []
     report.append("=" * 80)
     report.append("# 암호화폐 자동매매 시스템 종합 분석 보고서")
+    if not metrics:
+        report.append("# 분석 가능한 데이터가 없습니다.")
+        return "\n".join(report)
     report.append(f"# 분석 기간: {metrics[0]['date']} ~ {metrics[-1]['date']}")
     report.append(f"# 총 데이터: {len(metrics)}건")
     report.append(f"# 생성일: {datetime.now().strftime('%Y-%m-%d %H:%M')}")

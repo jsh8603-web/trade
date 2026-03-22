@@ -115,7 +115,7 @@ def release_lock():
             data = json.loads(LOCK_FILE.read_text())
             if data.get("pid") == os.getpid():
                 LOCK_FILE.unlink(missing_ok=True)
-    except Exception:
+    except (json.JSONDecodeError, FileNotFoundError, PermissionError):
         LOCK_FILE.unlink(missing_ok=True)
 
 
@@ -246,6 +246,8 @@ def execute(side: str, market: str, amount: str):
             "timestamp": ts,
         }
 
+    # NOTE: EMERGENCY_STOP은 DRY_RUN보다 먼저 확인한다. 이는 의도된 설계로,
+    # DRY_RUN 모드에서도 긴급정지 상태를 로그/결과에 반영하여 실전 전환 시 안전성을 보장한다.
     # 1a) 사용자 긴급 정지 확인 (매도는 청산을 위해 허용)
     if os.environ.get("EMERGENCY_STOP", "false").lower() == "true":
         if side == "bid":
@@ -363,7 +365,16 @@ def execute(side: str, market: str, amount: str):
                             }
                         break
         except Exception as e:
-            print(f"[warning] 매도 보유량 검증 실패 (계속 진행): {e}", file=sys.stderr)
+            print(f"[error] 매도 보유량 검증 실패: {e}", file=sys.stderr)
+            return {
+                "success": False,
+                "dry_run": False,
+                "side": side,
+                "market": market,
+                "amount": amount,
+                "error": f"매도 보유량 검증 실패: {e}",
+                "timestamp": ts,
+            }
 
     # 3) 금액 숫자 검증
     try:
@@ -380,7 +391,7 @@ def execute(side: str, market: str, amount: str):
         }
 
     # 3b) 매수 금액 상한 확인
-    max_amount = int(os.environ.get("MAX_TRADE_AMOUNT", "100000"))
+    max_amount = int(float(os.environ.get("MAX_TRADE_AMOUNT", "100000")))
 
     # 동적 리스크 조절 적용
     try:
@@ -571,7 +582,7 @@ def _record_trade_to_db(result: dict, source: str = "manual"):
         )
         if r.ok:
             print(f"[DB] 매매 기록 저장 완료 (source={source})", file=sys.stderr)
-        elif "dry_run" in r.text:
+        elif r.status_code == 400 and "dry_run" in r.text:
             # dry_run 컬럼 없으면 제거 후 재시도
             decision_row.pop("dry_run", None)
             r2 = requests.post(

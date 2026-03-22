@@ -639,7 +639,7 @@ def main():
                 
         # 포트폴리오 메타 데이터 주입
         btc_info = portfolio.get("coins", {}).get("BTC", portfolio.get("btc", {}))
-        total_eval = portfolio.get("total_eval", 1)
+        total_eval = portfolio.get("total_eval", 0)
         btc_eval = btc_info.get("evaluation", 0) if isinstance(btc_info, dict) else 0
         portfolio["btc_ratio"] = btc_eval / total_eval if total_eval > 0 else 0
         portfolio["btc"] = btc_info if isinstance(btc_info, dict) else {}
@@ -863,8 +863,8 @@ def main():
     confidence = round(output["decision"].get("confidence", 0) * 100)
     current_price = market_data.get("current_price") or market_data.get("ticker", {}).get("trade_price", 0)
     fgi = market_data.get("fear_greed", {}).get("value", "N/A")
-    krw_bal = float(portfolio.get("krw", {}).get("balance", 0))
-    btc_bal = float(portfolio.get("btc", {}).get("balance", 0))
+    krw_bal = float(portfolio.get("krw_balance", 0))
+    btc_bal = float(portfolio.get("coins", {}).get("BTC", {}).get("balance", 0))
     btc_ratio = round(portfolio.get("btc_ratio", 0) * 100, 1)
 
     # 피드백 상태 조회
@@ -917,6 +917,7 @@ def main():
 
         # 5a. decisions 테이블
         resp = None
+        emb_decision_id = None  # resp.json()을 한 번만 파싱하여 추출, 5a-2에서 재사용
         try:
             DECISION_MAP = {"buy": "매수", "sell": "매도", "hold": "관망"}
             dec = output["decision"]
@@ -932,7 +933,7 @@ def main():
                 reason_parts.append(f"외부시그널: {ext_summary.get('fusion_signal', '?')}({ext_summary.get('total_score', '?')})")
 
             raw_conf = float(dec.get("confidence") or 0)
-            confidence_val = max(0.0, min(1.0, raw_conf / 100.0 if raw_conf > 1 else raw_conf))
+            confidence_val = max(0.0, min(1.0, raw_conf))
 
             decision_row = {
                 "market": "KRW-BTC",
@@ -1027,16 +1028,8 @@ def main():
 
         # 5a-2. market_context_log 테이블 (결정 시점 전체 시장 스냅샷)
         try:
-            decision_id = None
-            if resp is not None and resp.ok:
-                try:
-                    resp_data = resp.json()
-                    if isinstance(resp_data, list) and len(resp_data) > 0:
-                        decision_id = resp_data[0].get("id")
-                    elif isinstance(resp_data, dict):
-                        decision_id = resp_data.get("id")
-                except Exception:
-                    pass
+            # emb_decision_id는 위 5a에서 이미 resp.json() 파싱하여 추출됨 — 재파싱 불필요
+            decision_id = emb_decision_id
 
             from scripts.save_decision import save_market_context
             market_state = result.get("market_state", {})

@@ -15,6 +15,9 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_DIR"
 
+# cron/launchd 환경에서 $SECONDS가 불안정할 수 있으므로 명시적 epoch 사용
+START_EPOCH=$(date +%s)
+
 # .env 로드
 if [ -f .env ]; then
   set -a; source .env; set +a
@@ -84,7 +87,7 @@ echo "[$(date)] Phase 1 완료." >&2
 # ── Phase 2: 에이전트 실행 (Python) ──
 echo "[$(date)] Phase 2: 에이전트 파이프라인 실행..." >&2
 
-AGENT_RESULT=$("$PYTHON" -c "
+if ! AGENT_RESULT=$("$PYTHON" -c "
 import json, sys, os
 sys.path.insert(0, '.')
 
@@ -180,11 +183,8 @@ output = {
 }
 
 print(json.dumps(output, ensure_ascii=False, indent=2))
-" 2>&2)
-
-AGENT_EXIT=$?
-
-if [ $AGENT_EXIT -ne 0 ]; then
+" 2>&2); then
+  AGENT_EXIT=$?
   echo "[$(date)] Phase 2 실패 (exit $AGENT_EXIT)" >&2
   "$PYTHON" scripts/notify_telegram.py error "Agent Pipeline" "에이전트 파이프라인 실패 (exit $AGENT_EXIT)" 2>/dev/null || true
   exit 1
@@ -196,41 +196,82 @@ echo "[$(date)] Phase 2 완료." >&2
 echo "$AGENT_RESULT" > "${SNAPSHOT_DIR}/agent_result.json"
 
 # ── Phase 3: 매매 실행 ──
-DECISION=$(echo "$AGENT_RESULT" | "$PYTHON" -c "import sys,json; r=json.load(sys.stdin); print(r['decision']['decision'])")
-REASON=$(echo "$AGENT_RESULT" | "$PYTHON" -c "import sys,json; r=json.load(sys.stdin); print(r['decision']['reason'])")
-AGENT_NAME=$(echo "$AGENT_RESULT" | "$PYTHON" -c "import sys,json; r=json.load(sys.stdin); print(r['active_agent'])")
-SWITCH_INFO=$(echo "$AGENT_RESULT" | "$PYTHON" -c "
-import sys,json
-r=json.load(sys.stdin)
-sw = r.get('switch')
-if sw:
-    print(f\"전략 전환: {sw['from']} → {sw['to']} ({sw['reason']})\")
-else:
-    print('전환 없음')
-")
+# JSON 파싱을 단일 Python 호출로 통합 (기존 7회 → 1회)
+eval "$(echo "$AGENT_RESULT" | "$PYTHON" -c "
+import sys, json
+try:
+    r = json.load(sys.stdin)
+    d = r.get('decision', {})
+    sw = r.get('switch')
+    sw_str = f\"전략 전환: {sw['from']} → {sw['to']} ({sw['reason']})\" if sw else '전환 없음'
+    # shell 변수로 export (값에 single quote가 포함될 수 있으므로 이스케이프)
+    def sh_escape(s):
+        return str(s).replace(\"'\", \"'\\\\''\")
+    print(f\"DECISION='{sh_escape(d.get('decision','hold'))}'\")
+    print(f\"REASON='{sh_escape(d.get('reason',''))}'\")
+    print(f\"AGENT_NAME='{sh_escape(r.get('active_agent','unknown'))}'\")
+    print(f\"SWITCH_INFO='{sh_escape(sw_str)}'\")
+except Exception:
+    print(\"DECISION='hold'\")
+    print(\"REASON=''\")
+    print(\"AGENT_NAME='unknown'\")
+    print(\"SWITCH_INFO='전환 없음'\")
+")"
 
 echo "[$(date)] Phase 3: 매매 실행 — $DECISION ($AGENT_NAME)" >&2
 
-if [ "$DECISION" = "buy" ]; then
-  SIDE=$(echo "$AGENT_RESULT" | "$PYTHON" -c "import sys,json; r=json.load(sys.stdin); print(r['decision']['trade_params'].get('side','bid'))")
-  MARKET=$(echo "$AGENT_RESULT" | "$PYTHON" -c "import sys,json; r=json.load(sys.stdin); print(r['decision']['trade_params'].get('market','KRW-BTC'))")
-  AMOUNT=$(echo "$AGENT_RESULT" | "$PYTHON" -c "import sys,json; r=json.load(sys.stdin); print(r['decision']['trade_params'].get('amount',0))")
-  IS_DCA=$(echo "$AGENT_RESULT" | "$PYTHON" -c "import sys,json; r=json.load(sys.stdin); print(r['decision']['trade_params'].get('is_dca',False))")
+# trade_params + Phase 4 데이터를 단일 Python 호출로 추출 (기존 6회 → 1회)
+eval "$(echo "$AGENT_RESULT" | "$PYTHON" -c "
+import sys, json
+try:
+    r = json.load(sys.stdin)
+    d = r.get('decision', {})
+    tp = d.get('trade_params', {})
+    def sh_escape(s):
+        return str(s).replace(\"'\", \"'\\\\''\")
+    print(f\"TRADE_MARKET='{sh_escape(tp.get('market','KRW-BTC'))}'\")
+    print(f\"TRADE_AMOUNT='{sh_escape(tp.get('amount',0))}'\")
+    vol = tp.get('volume', 0)
+    vol = 0 if vol is None else vol
+    print(f\"TRADE_VOLUME='{sh_escape(vol)}'\")
+    print(f\"TRADE_IS_DCA='{sh_escape(tp.get('is_dca',False))}'\")
+    print(f\"SELL_ALL='{sh_escape(tp.get('sell_all',False))}'\")
+    print(f\"BUY_SCORE='{sh_escape(d.get('buy_score',{}).get('total','N/A'))}'\")
+    print(f\"CONFIDENCE='{sh_escape(round(d.get('confidence',0)*100))}'\")
+except Exception:
+    print(\"TRADE_MARKET='KRW-BTC'\")
+    print(\"TRADE_AMOUNT='0'\")
+    print(\"TRADE_VOLUME='0'\")
+    print(\"TRADE_IS_DCA='False'\")
+    print(\"SELL_ALL='False'\")
+    print(\"BUY_SCORE='N/A'\")
+    print(\"CONFIDENCE='0'\")
+")"
 
-  if "$PYTHON" -c "assert float('$AMOUNT') > 0" 2>/dev/null; then
+if [ "$DECISION" = "buy" ]; then
+  if "$PYTHON" -c "assert float('$TRADE_AMOUNT') > 0" 2>/dev/null; then
     DCA_TAG=""
-    [ "$IS_DCA" = "True" ] && DCA_TAG=" [DCA]"
-    echo "[$(date)] 매수 실행: $MARKET $AMOUNT KRW${DCA_TAG}" >&2
-    "$PYTHON" scripts/execute_trade.py bid "$MARKET" "$AMOUNT" 2>&1 | tee -a "$LOG_DIR/trade_${TIMESTAMP}.log" >&2
+    [ "$TRADE_IS_DCA" = "True" ] && DCA_TAG=" [DCA]"
+    echo "[$(date)] 매수 실행: $TRADE_MARKET $TRADE_AMOUNT KRW${DCA_TAG}" >&2
+    "$PYTHON" scripts/execute_trade.py bid "$TRADE_MARKET" "$TRADE_AMOUNT" 2>&1 | tee -a "$LOG_DIR/trade_${TIMESTAMP}.log"
   fi
 
 elif [ "$DECISION" = "sell" ]; then
-  MARKET=$(echo "$AGENT_RESULT" | "$PYTHON" -c "import sys,json; r=json.load(sys.stdin); print(r['decision']['trade_params'].get('market','KRW-BTC'))")
-  VOLUME=$(echo "$AGENT_RESULT" | "$PYTHON" -c "import sys,json; r=json.load(sys.stdin); print(r['decision']['trade_params'].get('volume',0))")
-
-  if "$PYTHON" -c "assert float('$VOLUME') > 0" 2>/dev/null; then
-    echo "[$(date)] 매도 실행: $MARKET $VOLUME BTC" >&2
-    "$PYTHON" scripts/execute_trade.py ask "$MARKET" "$VOLUME" 2>&1 | tee -a "$LOG_DIR/trade_${TIMESTAMP}.log" >&2
+  SELL_VOLUME="$TRADE_VOLUME"
+  # sell_all: 포트폴리오에서 BTC 잔고를 조회하여 전량 매도
+  if [ "$SELL_ALL" = "True" ]; then
+    SELL_VOLUME=$("$PYTHON" -c "
+import json, sys
+p = json.load(open('${SNAPSHOT_DIR}/portfolio.json', encoding='utf-8'))
+btc = p.get('coins', {}).get('BTC', p.get('btc', {}))
+bal = btc.get('balance', btc.get('volume', 0)) if isinstance(btc, dict) else 0
+print(bal if bal else 0)
+" 2>/dev/null || echo "0")
+    echo "[$(date)] sell_all 감지: BTC 잔고 $SELL_VOLUME 전량 매도" >&2
+  fi
+  if "$PYTHON" -c "assert float('$SELL_VOLUME') > 0" 2>/dev/null; then
+    echo "[$(date)] 매도 실행: $TRADE_MARKET $SELL_VOLUME BTC" >&2
+    "$PYTHON" scripts/execute_trade.py ask "$TRADE_MARKET" "$SELL_VOLUME" 2>&1 | tee -a "$LOG_DIR/trade_${TIMESTAMP}.log"
   fi
 
 else
@@ -239,9 +280,6 @@ fi
 
 # ── Phase 4: 텔레그램 알림 ──
 echo "[$(date)] Phase 4: 텔레그램 알림..." >&2
-
-BUY_SCORE=$(echo "$AGENT_RESULT" | "$PYTHON" -c "import sys,json; r=json.load(sys.stdin); print(r['decision'].get('buy_score',{}).get('total','N/A'))")
-CONFIDENCE=$(echo "$AGENT_RESULT" | "$PYTHON" -c "import sys,json; r=json.load(sys.stdin); print(round(r['decision'].get('confidence',0)*100))")
 
 SUMMARY="${AGENT_NAME} | ${DECISION} (${CONFIDENCE}%)"
 DETAIL="근거: ${REASON}
@@ -369,7 +407,7 @@ try:
 
     log_row = {
         'execution_mode': exec_mode,
-        'duration_ms': int(float('${SECONDS:-0}') * 1000) if '${SECONDS:-0}' != '0' else None,
+        'duration_ms': int(float('$(( $(date +%s) - START_EPOCH ))') * 1000),
         'data_sources': json.dumps({
             'sources': ['market_data', 'portfolio', 'ai_signal', 'external_data'],
             'agent': result.get('active_agent', ''),

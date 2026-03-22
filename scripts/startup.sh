@@ -75,8 +75,10 @@ fi
 
 # 기존 대시보드 프로세스 정리 (포트 충돌 방지)
 if [ "$LIVE_RC_EXISTS" = false ]; then
+    lsof -i :$DASHBOARD_PORT -t 2>/dev/null | xargs kill 2>/dev/null || true
+    sleep 1
     lsof -i :$DASHBOARD_PORT -t 2>/dev/null | xargs kill -9 2>/dev/null || true
-    sleep 3
+    sleep 2
 
     # 포트 해제 확인 (TIME_WAIT 대기)
     for i in $(seq 1 10); do
@@ -98,10 +100,10 @@ if [ "$LIVE_RC_EXISTS" = true ]; then
         if tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -q "^dashboard$"; then
             tmux send-keys -t "$TMUX_SESSION:dashboard" C-c
             sleep 1
-            tmux send-keys -t "$TMUX_SESSION:dashboard" "source .venv/bin/activate && PYTHONPATH=/Users/drj00/workspace/blockchain python scripts/dashboard.py $DASHBOARD_PORT" Enter
+            tmux send-keys -t "$TMUX_SESSION:dashboard" "source .venv/bin/activate && PYTHONPATH='$PROJECT_DIR' python scripts/dashboard.py $DASHBOARD_PORT" Enter
         else
             tmux new-window -t "$TMUX_SESSION" -n dashboard -c "$PROJECT_DIR"
-            tmux send-keys -t "$TMUX_SESSION:dashboard" "source .venv/bin/activate && PYTHONPATH=/Users/drj00/workspace/blockchain python scripts/dashboard.py $DASHBOARD_PORT" Enter
+            tmux send-keys -t "$TMUX_SESSION:dashboard" "source .venv/bin/activate && PYTHONPATH='$PROJECT_DIR' python scripts/dashboard.py $DASHBOARD_PORT" Enter
         fi
         log "Dashboard restarted on port $DASHBOARD_PORT"
     fi
@@ -112,7 +114,7 @@ else
     log "tmux session created: $TMUX_SESSION"
 
     # 3. 대시보드 실행 (윈도우 0: dashboard)
-    tmux send-keys -t "$TMUX_SESSION:dashboard" "source .venv/bin/activate && PYTHONPATH=/Users/drj00/workspace/blockchain python scripts/dashboard.py $DASHBOARD_PORT" Enter
+    tmux send-keys -t "$TMUX_SESSION:dashboard" "source .venv/bin/activate && PYTHONPATH='$PROJECT_DIR' python scripts/dashboard.py $DASHBOARD_PORT" Enter
     log "Dashboard starting on port $DASHBOARD_PORT"
 
     # 4. Claude Code 원격 세션 (1개 생성)
@@ -141,7 +143,7 @@ else
             sleep 5
             WAITED=$((WAITED + 5))
             PANE_OUTPUT=$(tmux capture-pane -t "$TMUX_SESSION:$RC_WIN_NAME" -p -S -30 2>/dev/null)
-            THIS_URL=$(echo "$PANE_OUTPUT" | grep -o 'https://claude.ai/code/session_[A-Za-z0-9]*' | tail -1)
+            THIS_URL=$(echo "$PANE_OUTPUT" | grep -o 'https://claude.ai/code/session_[A-Za-z0-9_-]+' | tail -1)
             if [ -n "$THIS_URL" ]; then
                 log "Remote Control #${rc_num} URL: $THIS_URL"
                 # 첫 번째 URL을 대표 URL로 저장
@@ -165,11 +167,11 @@ fi
 log "Remote Control setup complete"
 
 # --- 5. 텔레그램으로 새 URL 전송 ---
-source "$PROJECT_DIR/.env"
+source "$PROJECT_DIR/.env" 2>/dev/null || true
 LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || echo '127.0.0.1')
 DASHBOARD_URL="http://${LOCAL_IP}:${DASHBOARD_PORT}"
 QR_URL="${DASHBOARD_URL}/qr"
-REMOTE_URL_FINAL=$(cat "$REMOTE_URL_FILE")
+REMOTE_URL_FINAL=$(cat "$REMOTE_URL_FILE" 2>/dev/null || echo "https://claude.ai/code/pending")
 
 MSG="Crypto Bot Started
 

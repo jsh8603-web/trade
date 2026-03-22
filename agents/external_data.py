@@ -30,7 +30,10 @@ import json
 import logging
 import os
 import subprocess
-from scripts.hide_console import subprocess_kwargs
+try:
+    from scripts.hide_console import subprocess_kwargs
+except ImportError:
+    subprocess_kwargs = {}
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -367,11 +370,15 @@ class ExternalDataAgent:
         results: dict = {}
         start = time.time()
 
-        with ThreadPoolExecutor(max_workers=7) as pool:
+        # 11 스크립트 + NVT = 12 I/O 태스크, 모두 병렬 실행
+        with ThreadPoolExecutor(max_workers=12) as pool:
             futures = {
                 pool.submit(_run_script, script, args): name
                 for name, (script, args) in tasks.items()
             }
+            # NVT Signal도 병렬 풀에 포함 (기존: 풀 완료 후 순차 실행)
+            futures[pool.submit(_fetch_nvt_signal)] = "nvt"
+
             for future in as_completed(futures):
                 name = futures[future]
                 try:
@@ -380,9 +387,6 @@ class ExternalDataAgent:
                     results[name] = {"error": str(e)}
 
         elapsed = round(time.time() - start, 1)
-
-        # NVT Signal (blockchain.com)
-        results["nvt"] = _fetch_nvt_signal()
 
         # 뉴스 감성 분석 (키워드 기반 -- 압축 전 원본으로 수행)
         news_sentiment = analyze_news_sentiment(results.get("news", {}))
@@ -408,7 +412,15 @@ class ExternalDataAgent:
                     json.dump(data, f, ensure_ascii=False, indent=2)
 
         # Data Fusion 종합
-        external_signal = self._calculate_fusion(results)
+        try:
+            external_signal = self._calculate_fusion(results)
+        except Exception as e:
+            logging.error(f"[external_data] Data Fusion 실패, 기본값 사용: {e}")
+            external_signal = {
+                "total_score": 0,
+                "strategy_bonus": 0,
+                "fusion": {"signal": "neutral", "note": f"fusion 오류 폴백: {e}"},
+            }
 
         collected = {
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S+09:00"),

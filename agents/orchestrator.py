@@ -37,8 +37,15 @@ AGENTS = {
     "aggressive": AggressiveAgent,
 }
 
+# ── DB 학습 데이터 TTL 캐시 (모듈 레벨) ──
+_learning_cache: dict | None = None
+_learning_cache_ts: float = 0.0
+_LEARNING_CACHE_TTL: float = 3600.0  # 1시간
 
-def _acquire_lock(lock_path: str, retries: int = 10, wait: float = 0.1):
+
+def _acquire_lock(lock_path: str, retries: int = 10, wait: float = 0.02):
+    """파일 락 획득. 지수 백오프로 경합 시 대기 시간 최소화."""
+    current_wait = wait
     for _ in range(retries):
         try:
             fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
@@ -53,7 +60,8 @@ def _acquire_lock(lock_path: str, retries: int = 10, wait: float = 0.1):
                     continue
             except OSError:
                 pass
-            time.sleep(wait)
+            time.sleep(current_wait)
+            current_wait = min(current_wait * 2, 0.5)  # 지수 백오프, 최대 0.5s
     return False
 
 
@@ -72,7 +80,19 @@ def _load_state() -> dict:
     try:
         with open(STATE_FILE, encoding="utf-8") as f:
             return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
+    except FileNotFoundError:
+        return {
+            "active_agent": "conservative",
+            "transition_from": None,
+            "transition_started": None,
+            "transition_duration_min": None,
+            "last_switch_time": None,
+            "last_trade_time": None,
+            "consecutive_losses": 0,
+            "switch_history": [],
+        }
+    except json.JSONDecodeError as e:
+        print(f"[orchestrator] WARNING: agent_state.json corrupted ({e}), resetting to defaults", file=sys.stderr)
         return {
             "active_agent": "conservative",
             "transition_from": None,
@@ -368,9 +388,15 @@ class Orchestrator:
         if raw_rsi is not None:
             rsi = raw_rsi
             self.state["last_valid_rsi"] = rsi
+            self.state["last_valid_rsi_ts"] = time.time()
         else:
-            rsi = self.state.get("last_valid_rsi", 50)
-            print(f"[WARN] RSI 수집 실패 — {'마지막 성공값' if 'last_valid_rsi' in self.state else '기본값'} {rsi} 사용")
+            cached_ts = self.state.get("last_valid_rsi_ts", 0)
+            if "last_valid_rsi" in self.state and (time.time() - cached_ts) < 86400:
+                rsi = self.state["last_valid_rsi"]
+                print(f"[WARN] RSI 수집 실패 — 마지막 성공값 {rsi} 사용")
+            else:
+                rsi = 50
+                print(f"[WARN] RSI 수집 실패 — 캐시 만료/없음, 기본값 {rsi} 사용")
         price_change_24h = market_data.get("ticker", {}).get("signed_change_rate", 0) * 100
         btc_ratio = portfolio.get("btc_ratio", 0)
         if btc_ratio == 0:
@@ -379,8 +405,9 @@ class Orchestrator:
                 if h.get("currency") == "BTC":
                     btc_eval = h.get("eval_amount", 0)
                     break
-            total_eval = portfolio.get("total_eval", 1) or 1
-            btc_ratio = btc_eval / total_eval
+            total_eval = portfolio.get("total_eval", 0) or 0
+            if total_eval > 0:
+                btc_ratio = btc_eval / total_eval
         consecutive_losses = self._count_consecutive_losses(past_decisions)
         self.state["consecutive_losses"] = consecutive_losses
 
@@ -397,6 +424,8 @@ class Orchestrator:
         macro = external_data.get("sources", {}).get("macro", {}).get("analysis", {})
         macro_score = macro.get("macro_score", 0)
         macro_sentiment = macro.get("sentiment", "neutral")
+        if macro_sentiment not in ("positive", "slightly_positive", "neutral", "slightly_negative", "negative"):
+            macro_sentiment = "neutral"
 
         # ETH/BTC z-score
         eth_btc = external_data.get("sources", {}).get("eth_btc", {})
@@ -707,7 +736,10 @@ class Orchestrator:
         return None
 
     def _is_on_cooldown(self) -> bool:
-        """전환 쿨다운 확인. 기본 2시간, 같은 날 3회 이상 전환 시 4시간."""
+        """전환 쿨다운 확인. 기본 2시간, 같은 날 3회 이상 전환 시 4시간.
+        NOTE: self.state is read without acquiring the file lock, so a concurrent
+        writer could update the state between our read and the cooldown decision.
+        This is acceptable because cooldown is advisory and the window is small."""
         from datetime import datetime, timedelta, timezone
 
         kst = timezone(timedelta(hours=9))
@@ -859,7 +891,14 @@ class Orchestrator:
     # ── DB 학습 ────────────────────────────────────
 
     def _load_learning_data(self) -> dict | None:
-        """Supabase에서 과거 전환 성과를 조회한다."""
+        """Supabase에서 과거 전환 성과를 조회한다. 1시간 TTL 캐시 적용."""
+        global _learning_cache, _learning_cache_ts
+
+        # TTL 캐시: 학습 데이터는 느리게 변하므로 1시간 캐시
+        now = time.time()
+        if _learning_cache is not None and (now - _learning_cache_ts) < _LEARNING_CACHE_TTL:
+            return _learning_cache
+
         url = os.getenv("SUPABASE_URL", "")
         key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
         if not url or not key:
@@ -878,7 +917,10 @@ class Orchestrator:
             )
             if resp.status_code == 200:
                 rows = resp.json()
-                return {(r["from_agent"], r["to_agent"]): r for r in rows}
+                result = {(r["from_agent"], r["to_agent"]): r for r in rows}
+                _learning_cache = result
+                _learning_cache_ts = now
+                return result
 
             # 뷰가 아직 없으면 (테이블만 있는 경우) 직접 조회
             resp2 = requests.get(
@@ -897,7 +939,10 @@ class Orchestrator:
             )
             if resp2.status_code == 200:
                 rows = resp2.json()
-                return self._aggregate_learning(rows)
+                result = self._aggregate_learning(rows)
+                _learning_cache = result
+                _learning_cache_ts = now
+                return result
         except Exception:
             pass
 
@@ -1078,10 +1123,13 @@ class Orchestrator:
         - confidence_threshold_override: 높은 confidence만 매매 허용
         - min_trade_interval_override: 매매 간격 확대
         """
-        # force_hold_cycles 소진
+        # force_hold_cycles 소진 (0보다 클 때만 차감 및 저장)
         force_hold = self.state.get("force_hold_cycles", 0)
         if force_hold > 0:
             self.state["force_hold_cycles"] = force_hold - 1
+            # 0이 되면 키 정리
+            if self.state["force_hold_cycles"] == 0:
+                del self.state["force_hold_cycles"]
             _save_state(self.state)
 
         # force_retrain 플래그는 continuous_learner가 소비
@@ -1222,17 +1270,17 @@ class Orchestrator:
 
         # 바이낸스: 펀딩비/롱숏/김치프리미엄
         binance = ext_sources.get("binance_sentiment", {})
-        funding_rate = binance.get("funding_rate", {}).get("current_rate", 0)
+        funding_rate = binance.get("funding_rate", {}).get("current_rate", 0) or 0
         if isinstance(funding_rate, (int, float)) and funding_rate > 0.001:
             external_bearish_count += 1
             external_bearish_details.append(f"극단 양수 펀딩({funding_rate*100:.3f}%)")
 
-        ls_ratio = binance.get("top_trader_long_short", {}).get("current_ratio", 1.0)
+        ls_ratio = binance.get("top_trader_long_short", {}).get("current_ratio", 1.0) or 1.0
         if isinstance(ls_ratio, (int, float)) and ls_ratio > 1.5:
             external_bearish_count += 1
             external_bearish_details.append(f"롱 과밀({ls_ratio:.2f})")
 
-        kimchi_pct = binance.get("kimchi_premium", {}).get("premium_pct", 0)
+        kimchi_pct = binance.get("kimchi_premium", {}).get("premium_pct", 0) or 0
         if isinstance(kimchi_pct, (int, float)) and kimchi_pct > 5.0:
             external_bearish_count += 1
             external_bearish_details.append(f"극단 김치P({kimchi_pct:.1f}%)")
@@ -1262,8 +1310,8 @@ class Orchestrator:
             cascade_risk += 5
 
         # 하락 가속: 4h 하락이 24h 하락의 50%+ → 가속 중
-        if price_change_24h < -1 and price_change_4h < 0:
-            accel = abs(price_change_4h) / max(abs(price_change_24h), 0.1)
+        if price_change_24h < -1 and price_change_4h < 0 and abs(price_change_24h) > 0.5:
+            accel = abs(price_change_4h) / abs(price_change_24h)
             if accel > 0.5:
                 cascade_risk += 20
             elif accel > 0.3:
@@ -1375,9 +1423,10 @@ class Orchestrator:
         return decision
 
     def _track_dca(self, decision: "Decision") -> None:
-        """DCA 이력을 추적한다. 매도 시 이력 초기화."""
+        """DCA 이력을 추적한다. 매도 시 이력 초기화. 변경 시에만 저장."""
         dca_history = self.state.setdefault("dca_history", {})
         market = decision.trade_params.get("market", "KRW-BTC")
+        changed = False
 
         if decision.decision == "buy" and decision.trade_params.get("is_dca"):
             # DCA 실행 기록
@@ -1386,13 +1435,16 @@ class Orchestrator:
             dca_history[market]["dca_count"] += 1
             dca_history[market]["dca_total_amount"] += decision.trade_params.get("amount", 0)
             dca_history[market]["last_dca_time"] = time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
+            changed = True
 
         elif decision.decision == "sell":
             # 매도 시 해당 마켓의 DCA 이력 초기화
             if market in dca_history:
                 del dca_history[market]
+                changed = True
 
-        _save_state(self.state)
+        if changed:
+            _save_state(self.state)
 
     # ── 자동 긴급정지 시스템 ────────────────────────
 

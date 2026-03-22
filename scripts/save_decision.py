@@ -185,26 +185,71 @@ def _get_mgmt_token() -> str:
 
 
 def _update_embedding_via_sql(decision_id: str, embedding: list, embedding_text: str):
-    """Supabase Management API로 벡터 임베딩을 업데이트한다.
+    """벡터 임베딩을 업데이트한다.
 
-    psycopg2 직접 연결은 dotted username 문제로 항상 실패하므로 Management API 사용.
+    1차: Supabase REST API PATCH (PostgREST가 vector 타입 문자열을 처리)
+    2차: Management API SQL fallback (REST 실패 시)
     """
+    # decision_id UUID 형식 검증
+    import re as _re
+    if not _re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', str(decision_id), _re.IGNORECASE):
+        print(f"[save_decision] 유효하지 않은 decision_id 형식: {decision_id}", file=sys.stderr)
+        return
+
+    vec_str = "[" + ",".join(str(v) for v in embedding) + "]"
+
+    # 방법 1: REST API PATCH (더 빠르고 간단)
+    if SUPABASE_URL and SUPABASE_KEY:
+        try:
+            r = _get_session().patch(
+                f"{SUPABASE_URL}/rest/v1/decisions?id=eq.{decision_id}",
+                headers={
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                json={
+                    "state_embedding": vec_str,
+                    "embedding_text": embedding_text,
+                },
+                timeout=15,
+            )
+            if r.ok:
+                print(f"[save_decision] 임베딩 저장 완료 (REST API)", file=sys.stderr)
+                return
+            else:
+                print(f"[save_decision] REST API 임베딩 PATCH 실패 ({r.status_code}), Management API fallback", file=sys.stderr)
+        except Exception as e:
+            print(f"[save_decision] REST API 임베딩 예외: {e}, Management API fallback", file=sys.stderr)
+
+    # 방법 2: Management API SQL fallback
     token = _get_mgmt_token()
     if not token:
         print("[save_decision] Management API 토큰 추출 실패 -- 임베딩 저장 건너뜀", file=sys.stderr)
         return
 
     ref = "REDACTED_PROJECT_REF"
-    vec_str = "[" + ",".join(str(v) for v in embedding) + "]"
-    # embedding_text 내 싱글쿼트 이스케이프
-    safe_text = embedding_text.replace("'", "''")
+
+    def _sql_escape(s: str) -> str:
+        """Escape a string for safe inclusion in a PostgreSQL SQL literal."""
+        s = s.replace("\\", "\\\\")
+        s = s.replace("'", "''")
+        s = s.replace("\x00", "")          # strip null bytes
+        s = s.replace("\r", "\\r")
+        s = s.replace("\n", "\\n")
+        return s
+
+    safe_text = _sql_escape(embedding_text)
+    safe_id = _sql_escape(str(decision_id))
+    safe_vec = _sql_escape(vec_str)
     sql = (
-        f"UPDATE decisions SET state_embedding = '{vec_str}'::vector, "
-        f"embedding_text = '{safe_text}' WHERE id = '{decision_id}'"
+        f"UPDATE decisions SET state_embedding = '{safe_vec}'::vector, "
+        f"embedding_text = '{safe_text}' WHERE id = '{safe_id}'"
     )
 
     try:
-        r = requests.post(
+        r = _get_session().post(
             f"https://api.supabase.com/v1/projects/{ref}/database/query",
             headers={
                 "Authorization": f"Bearer {token}",
@@ -239,14 +284,30 @@ def _get_cycle_id() -> str:
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
+# ── 커넥션 재사용을 위한 세션 ──────────────────────────
+_session: requests.Session | None = None
+_cached_supabase_headers: dict | None = None
+
+
+def _get_session() -> requests.Session:
+    """모듈 레벨 requests.Session을 반환한다 (커넥션 풀 재사용)."""
+    global _session
+    if _session is None:
+        _session = requests.Session()
+        _session.headers.update({"Accept": "application/json"})
+    return _session
+
 
 def supabase_headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=representation",
-    }
+    global _cached_supabase_headers
+    if _cached_supabase_headers is None:
+        _cached_supabase_headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        }
+    return _cached_supabase_headers
 
 
 def supabase_post(table: str, row: dict) -> dict | None:
@@ -256,7 +317,7 @@ def supabase_post(table: str, row: dict) -> dict | None:
         return None
     row.setdefault("machine_name", get_machine_name())
     try:
-        r = requests.post(
+        r = _get_session().post(
             f"{SUPABASE_URL}/rest/v1/{table}",
             headers=supabase_headers(),
             json=row,
@@ -619,7 +680,8 @@ def save_market_context(
         "machine_name": os.environ.get("MACHINE_NAME", "unknown"),
     }
 
-    # None 값 제거 (Supabase는 NULL로 처리하지만 명시적 null 전송 방지)
+    # None 값 제거 — INSERT 전용: Supabase가 컬럼 기본값을 적용하도록 None 필드를 제외한다.
+    # UPDATE/PATCH에서는 의도적 NULL 전송이 필요할 수 있으므로 이 패턴을 사용하지 않는다.
     row = {k: v for k, v in row.items() if v is not None}
 
     return supabase_post("market_context_log", row)
@@ -641,7 +703,7 @@ def save_decision(data: dict) -> dict | None:
 
     # confidence: Claude가 85 같은 정수로 출력 → 0.85로 변환 (DB는 DECIMAL(3,2))
     raw_conf = float(data.get("confidence", 0))
-    confidence = raw_conf / 100.0 if raw_conf > 1 else raw_conf
+    confidence = raw_conf / 100.0 if raw_conf > 1.5 else raw_conf
 
     row = {
         "market": data.get("market", "KRW-BTC"),

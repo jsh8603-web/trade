@@ -299,7 +299,7 @@ class TestExtraComponentsCryptoSignals:
         assert cs["max"] == 10
 
 
-# ── 6. ThreadPoolExecutor max_workers == 7 ──────────────
+# ── 6. ThreadPoolExecutor max_workers == 12 ──────────────
 
 
 class TestThreadPoolWorkers:
@@ -308,8 +308,8 @@ class TestThreadPoolWorkers:
     @patch("agents.external_data.load_user_feedback", return_value=[])
     @patch("agents.external_data.load_performance_review", return_value={"available": False})
     @patch("agents.external_data.ThreadPoolExecutor")
-    def test_max_workers_is_7(self, mock_pool_cls, mock_perf, mock_fb, mock_run):
-        """ThreadPoolExecutor가 max_workers=7로 생성된다."""
+    def test_max_workers_is_12(self, mock_pool_cls, mock_perf, mock_fb, mock_run):
+        """ThreadPoolExecutor가 max_workers=12로 생성된다 (I/O 병렬화 최적화)."""
         # Mock context manager
         mock_pool = MagicMock()
         mock_pool.__enter__ = MagicMock(return_value=mock_pool)
@@ -322,4 +322,4 @@ class TestThreadPoolWorkers:
         with patch("agents.external_data.as_completed", return_value=[]):
             agent.collect_all()
 
-        mock_pool_cls.assert_called_once_with(max_workers=7)
+        mock_pool_cls.assert_called_once_with(max_workers=12)

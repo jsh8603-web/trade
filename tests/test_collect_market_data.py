@@ -143,7 +143,7 @@ class TestRSI:
 class TestMACD:
     def test_insufficient_data(self):
         result = macd([float(i) for i in range(25)])
-        assert result == {"macd": 0, "signal": 0, "histogram": 0}
+        assert result is None
 
     def test_histogram_is_macd_minus_signal(self):
         prices = [100 + i * 0.5 for i in range(50)]
@@ -205,8 +205,8 @@ class TestBollinger:
         period = 5
         result = bollinger(prices, period)
         mid = sum(prices) / period
-        # Production uses sample variance (period - 1 denominator)
-        var = sum((p - mid) ** 2 for p in prices) / (period - 1)
+        # Production uses population variance (period denominator)
+        var = sum((p - mid) ** 2 for p in prices) / period
         sd = var ** 0.5
         assert result["middle"] == pytest.approx(mid, abs=0.01)
         assert result["upper"] == pytest.approx(mid + 2 * sd, abs=0.01)
@@ -391,9 +391,9 @@ class TestApiGet:
         mock_session_fn.return_value = session
 
         api_get("/ticker", {"markets": "KRW-BTC", "count": "10"})
-        url = session.get.call_args[0][0]
-        assert "markets=KRW-BTC" in url
-        assert "count=10" in url
+        call_kwargs = session.get.call_args[1]
+        assert call_kwargs["params"]["markets"] == "KRW-BTC"
+        assert call_kwargs["params"]["count"] == "10"
 
 
 # ══════════════════════════════════════════════════════════════
@@ -411,6 +411,23 @@ class TestCollectEthBtcRatio:
             "candle_date_time_kst": "2026-03-08T00:00:00",
         }
 
+    @staticmethod
+    def _make_eth_btc_router(eth_ticker, btc_ticker, btc_daily, eth_daily):
+        """Create a routing side_effect for parallel api_get calls in collect_eth_btc_ratio."""
+        def _router(path, params=None):
+            if path == "/ticker":
+                market = (params or {}).get("markets", "")
+                if "ETH" in market:
+                    return eth_ticker
+                return btc_ticker
+            if path == "/candles/days":
+                market = (params or {}).get("market", "")
+                if "ETH" in market:
+                    return eth_daily
+                return btc_daily
+            return []
+        return _router
+
     @patch("collect_market_data.time.sleep")
     @patch("collect_market_data.api_get")
     def test_returns_expected_keys(self, mock_api, mock_sleep):
@@ -418,7 +435,7 @@ class TestCollectEthBtcRatio:
         btc_ticker = [{"trade_price": 1e8, "signed_change_rate": 0.01, "acc_trade_price_24h": 5e12}]
         btc_daily = [self._candle(1e8 + i * 1000) for i in range(60)]
         eth_daily = [self._candle(5e6 + i * 500) for i in range(60)]
-        mock_api.side_effect = [eth_ticker, btc_ticker, btc_daily, eth_daily]
+        mock_api.side_effect = self._make_eth_btc_router(eth_ticker, btc_ticker, btc_daily, eth_daily)
 
         result = collect_eth_btc_ratio()
         expected_keys = {
@@ -445,7 +462,7 @@ class TestCollectEthBtcRatio:
         btc_ticker = [{"trade_price": 1e8, "signed_change_rate": 0.0, "acc_trade_price_24h": 5e12}]
         btc_daily = [self._candle(1e8) for _ in range(60)]
         eth_daily = [self._candle(5e6) for _ in range(60)]
-        mock_api.side_effect = [eth_ticker, btc_ticker, btc_daily, eth_daily]
+        mock_api.side_effect = self._make_eth_btc_router(eth_ticker, btc_ticker, btc_daily, eth_daily)
 
         result = collect_eth_btc_ratio()
         assert result["eth_btc_z_score"] == pytest.approx(0.0, abs=0.1)
@@ -458,7 +475,7 @@ class TestCollectEthBtcRatio:
         btc_ticker = [{"trade_price": 1e8, "signed_change_rate": 0.01, "acc_trade_price_24h": 5e12}]
         btc_daily = [self._candle(1e8) for _ in range(60)]
         eth_daily = [self._candle(3e6)] + [self._candle(5e6)] * 59  # newest first, reversed in code
-        mock_api.side_effect = [eth_ticker, btc_ticker, btc_daily, eth_daily]
+        mock_api.side_effect = self._make_eth_btc_router(eth_ticker, btc_ticker, btc_daily, eth_daily)
 
         result = collect_eth_btc_ratio()
         assert result["eth_btc_signal"] == "ETH 극단적 저평가"
@@ -470,7 +487,7 @@ class TestCollectEthBtcRatio:
         btc_ticker = [{"trade_price": 1e8, "signed_change_rate": 0.01, "acc_trade_price_24h": 5e12}]
         btc_daily = [self._candle(1e8) for _ in range(60)]
         eth_daily = [self._candle(8e6)] + [self._candle(5e6)] * 59
-        mock_api.side_effect = [eth_ticker, btc_ticker, btc_daily, eth_daily]
+        mock_api.side_effect = self._make_eth_btc_router(eth_ticker, btc_ticker, btc_daily, eth_daily)
 
         result = collect_eth_btc_ratio()
         assert result["eth_btc_signal"] == "ETH 극단적 고평가"
@@ -504,6 +521,23 @@ class TestMain:
     def _trade(self, side="BID", vol=0.5):
         return {"ask_bid": side, "trade_volume": vol}
 
+    @staticmethod
+    def _make_main_router(ticker, daily, four_h, ob, trades):
+        """Create a routing side_effect for parallel api_get calls in main()."""
+        def _router(path, params=None):
+            if path == "/ticker":
+                return ticker
+            if path == "/candles/days":
+                return daily
+            if path == "/candles/minutes/240":
+                return four_h
+            if path == "/orderbook":
+                return ob
+            if path == "/trades/ticks":
+                return trades
+            return []
+        return _router
+
     @patch("collect_market_data.collect_eth_btc_ratio")
     @patch("collect_market_data.time.sleep")
     @patch("collect_market_data.api_get")
@@ -514,7 +548,7 @@ class TestMain:
         ob = [self._orderbook()]
         trades = [self._trade("BID")] * 50 + [self._trade("ASK")] * 50
 
-        mock_api.side_effect = [ticker, daily, four_h, ob, trades]
+        mock_api.side_effect = self._make_main_router(ticker, daily, four_h, ob, trades)
         mock_eth.return_value = {"eth_price": 5e6}
 
         buf = io.StringIO()
@@ -539,7 +573,7 @@ class TestMain:
         ob = [self._orderbook()]
         trades = [self._trade()] * 100
 
-        mock_api.side_effect = [ticker, daily, four_h, ob, trades]
+        mock_api.side_effect = self._make_main_router(ticker, daily, four_h, ob, trades)
         mock_eth.return_value = {}
 
         buf = io.StringIO()
@@ -561,7 +595,7 @@ class TestMain:
         ob = [self._orderbook()]
         trades = [self._trade()] * 100
 
-        mock_api.side_effect = [ticker, daily, four_h, ob, trades]
+        mock_api.side_effect = self._make_main_router(ticker, daily, four_h, ob, trades)
         mock_eth.return_value = {}
 
         buf = io.StringIO()
@@ -585,7 +619,7 @@ class TestMain:
         trades = ([self._trade("BID", 0.5)] * 60 +
                   [self._trade("ASK", 0.3)] * 40)
 
-        mock_api.side_effect = [ticker, daily, four_h, ob, trades]
+        mock_api.side_effect = self._make_main_router(ticker, daily, four_h, ob, trades)
         mock_eth.return_value = {}
 
         buf = io.StringIO()
@@ -606,7 +640,7 @@ class TestMain:
         ob = [{"total_bid_size": 200.0, "total_ask_size": 100.0}]
         trades = [self._trade()] * 100
 
-        mock_api.side_effect = [ticker, daily, four_h, ob, trades]
+        mock_api.side_effect = self._make_main_router(ticker, daily, four_h, ob, trades)
         mock_eth.return_value = {}
 
         buf = io.StringIO()

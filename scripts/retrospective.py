@@ -13,6 +13,7 @@ cron 예시 (매시 15분):
 """
 
 import json, os, sys, time
+from typing import Optional
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -31,34 +32,63 @@ SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 UPBIT_API = "https://api.upbit.com/v1"
 KST = timezone(timedelta(hours=9))
 
+# ── 커넥션 재사용을 위한 세션 ──────────────────────────
+_session: requests.Session | None = None
+
+
+def _get_session() -> requests.Session:
+    """모듈 레벨 requests.Session을 반환한다 (커넥션 풀 재사용)."""
+    global _session
+    if _session is None:
+        _session = requests.Session()
+        _session.headers.update({"Accept": "application/json"})
+    return _session
+
+
+# 헤더를 매번 dict 생성하지 않고 캐시
+_supabase_headers: dict | None = None
+_supabase_patch_headers: dict | None = None
+
 
 def supabase_headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
+    global _supabase_headers
+    if _supabase_headers is None:
+        _supabase_headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+        }
+    return _supabase_headers
 
 
-def get_btc_price() -> int:
-    """현재 BTC/KRW 가격"""
-    r = requests.get(f"{UPBIT_API}/ticker", params={"markets": "KRW-BTC"}, timeout=10)
-    if r.ok:
-        return int(r.json()[0]["trade_price"])
-    return 0
+def _supabase_patch_hdrs():
+    """PATCH 전용 헤더 (Prefer: return=minimal 포함)."""
+    global _supabase_patch_headers
+    if _supabase_patch_headers is None:
+        _supabase_patch_headers = {**supabase_headers(), "Prefer": "return=minimal"}
+    return _supabase_patch_headers
+
+
+def get_btc_price() -> Optional[int]:
+    """현재 BTC/KRW 가격. 실패 시 None 반환."""
+    try:
+        r = _get_session().get(f"{UPBIT_API}/ticker", params={"markets": "KRW-BTC"}, timeout=10)
+        if r.ok:
+            return int(r.json()[0]["trade_price"])
+    except Exception:
+        pass
+    return None
 
 
 def get_historical_price(target_time: datetime) -> int:
     """특정 시점의 BTC 가격 (분봉으로 근사)"""
-    # Use minute candle closest to target time
-    # Upbit requires timezone-aware `to` — append KST offset explicitly
     to_str = target_time.strftime("%Y-%m-%dT%H:%M:%S") + "+09:00"
     params = {
         "market": "KRW-BTC",
         "to": to_str,
         "count": 1,
     }
-    r = requests.get(f"{UPBIT_API}/candles/minutes/60", params=params, timeout=10)
+    r = _get_session().get(f"{UPBIT_API}/candles/minutes/60", params=params, timeout=10)
     if r.ok and r.json():
         return int(r.json()[0]["trade_price"])
     return 0
@@ -70,17 +100,45 @@ def _evaluate_correctness(decision_type: str, outcome_pct: float, window: str) -
         return outcome_pct > 0
     elif decision_type == "매도":
         return outcome_pct < 0
-    else:  # 관망 — 가격이 크게 오르지 않았으면 정답 (하락은 관망이 맞음)
+    else:  # 관망
         threshold = 1.0 if window == "24h" else 0.5
-        return outcome_pct < threshold  # 가격 상승이 임계 이하면 관망 정답
+        return outcome_pct < threshold
 
 
-def _update_window(window: str, hours: int, extra_filter: dict = None):
-    """특정 시간 윈도우의 aftermath 업데이트.
+def _batch_patch(table: str, patches: list, session=None) -> int:
+    """Supabase 일괄 PATCH 헬퍼 — sleep 없이 연속 실행 (세션 재사용).
+
+    Args:
+        table: Supabase 테이블명
+        patches: [(row_id, patch_data), ...]
+
+    Returns:
+        성공 건수
+    """
+    if not patches:
+        return 0
+    sess = session or _get_session()
+    hdrs = _supabase_patch_hdrs()
+    updated = 0
+    for row_id, patch in patches:
+        resp = sess.patch(
+            f"{SUPABASE_URL}/rest/v1/{table}?id=eq.{row_id}",
+            headers=hdrs,
+            json=patch,
+            timeout=10,
+        )
+        if resp.ok:
+            updated += 1
+        else:
+            print(f"[retrospective] {table} PATCH 실패 id={row_id}: {resp.status_code}", file=sys.stderr)
+    return updated
+
+
+def _update_window(window: str, hours: int):
+    """특정 시간 윈도우의 aftermath 업데이트 (collect-then-patch 패턴).
 
     Returns:
         (updated_count, outcomes_list)
-        outcomes_list: [{"created_at": str, "outcome_pct": float}, ...]
     """
     now = datetime.now(KST)
     cutoff = (now - timedelta(hours=hours)).isoformat()
@@ -95,10 +153,7 @@ def _update_window(window: str, hours: int, extra_filter: dict = None):
         "select": "id,decision,current_price,created_at",
         "limit": "100",
     }
-    if extra_filter:
-        params.update(extra_filter)
-
-    r = requests.get(
+    r = _get_session().get(
         f"{SUPABASE_URL}/rest/v1/decisions",
         headers=supabase_headers(),
         params=params,
@@ -108,17 +163,21 @@ def _update_window(window: str, hours: int, extra_filter: dict = None):
         print(f"[retrospective] {window} 조회 실패: {r.status_code}", file=sys.stderr)
         return 0, []
 
-    updated = 0
+    skipped_null_price = 0
     outcomes = []
-    # 배치 수집: 먼저 모든 가격을 조회한 후, 일괄 업데이트
+    # Phase 1: Upbit 가격 조회 수집 (rate limit 준수)
     patches = []
     for row in r.json():
         decision_price = row.get("current_price", 0)
         if not decision_price:
+            skipped_null_price += 1
             print(f"[retrospective] [skip] decision {str(row.get('id', '?'))[:8]} — current_price=NULL", file=sys.stderr)
             continue
 
-        decision_time = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+        try:
+            decision_time = datetime.fromisoformat(row["created_at"])
+        except ValueError:
+            decision_time = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
         target_time = decision_time + timedelta(hours=hours)
 
         if target_time > now:
@@ -139,29 +198,24 @@ def _update_window(window: str, hours: int, extra_filter: dict = None):
             correct_col: was_correct,
             "aftermath_updated_at": now.isoformat(),
         }
-        # 24h 윈도우에서 profit_loss도 채움 (매수: +면 수익, 매도: -면 수익, 관망: 반전)
         if window == "24h":
             if decision_type == "매수":
                 patch_data["profit_loss"] = outcome_pct
             elif decision_type == "매도":
                 patch_data["profit_loss"] = -outcome_pct
-            else:  # 관망
-                patch_data["profit_loss"] = -outcome_pct  # 안 샀는데 올랐으면 손해
+            else:
+                patch_data["profit_loss"] = -outcome_pct
         patches.append((row["id"], patch_data))
         outcomes.append({
             "created_at": row["created_at"],
             "outcome_pct": outcome_pct,
         })
 
-    # 일괄 업데이트 (개별 PATCH — Supabase REST는 배치 PATCH 미지원이므로 최소 대기)
-    for row_id, patch in patches:
-        requests.patch(
-            f"{SUPABASE_URL}/rest/v1/decisions?id=eq.{row_id}",
-            headers={**supabase_headers(), "Prefer": "return=minimal"},
-            json=patch,
-            timeout=10,
-        )
-        updated += 1
+    # Phase 2: Supabase 일괄 PATCH (sleep 불필요)
+    updated = _batch_patch("decisions", patches)
+
+    if skipped_null_price:
+        print(f"[retrospective] {window}: {skipped_null_price}건 current_price=NULL로 스킵됨", file=sys.stderr)
 
     return updated, outcomes
 
@@ -177,7 +231,6 @@ def update_decisions():
     updated_4h, outcomes_4h = _update_window("4h", 4)
     updated_24h, outcomes_24h = _update_window("24h", 24)
 
-    # 4h outcomes를 온라인 버퍼 백필 형식으로 변환
     buffer_outcomes = [
         {"timestamp": o["created_at"], "outcome_4h_pct": o["outcome_pct"]}
         for o in outcomes_4h
@@ -191,11 +244,12 @@ def update_decisions():
 
 
 def update_scalp_aftermath():
-    """초단타 거래 aftermath 업데이트"""
+    """초단타 거래 aftermath 업데이트 (collect-then-patch 패턴)"""
     now = datetime.now(KST)
     cutoff = (now - timedelta(hours=1)).isoformat()
 
-    r = requests.get(
+    session = _get_session()
+    r = session.get(
         f"{SUPABASE_URL}/rest/v1/scalp_trade_log",
         headers=supabase_headers(),
         params={
@@ -209,7 +263,8 @@ def update_scalp_aftermath():
     if not r.ok:
         return
 
-    updated = 0
+    # Phase 1: Upbit 가격 조회 수집 (rate limit 준수)
+    patches = []
     for row in r.json():
         entry_price = row.get("entry_price", 0)
         if not entry_price:
@@ -224,37 +279,32 @@ def update_scalp_aftermath():
         price_after = get_historical_price(target_time)
         if not price_after:
             continue
+        time.sleep(0.15)  # Upbit API rate limit
 
         outcome_pct = round((price_after - entry_price) / entry_price * 100, 3)
-
-        # 매수 진입이었으므로: 1시간 후 가격이 진입가보다 높으면 좋은 진입
         was_good_entry = outcome_pct > 0
 
-        patch = {
+        patches.append((row["id"], {
             "price_1h_after": price_after,
             "outcome_1h_pct": outcome_pct,
             "was_good_entry": was_good_entry,
             "aftermath_updated_at": now.isoformat(),
-        }
-        requests.patch(
-            f"{SUPABASE_URL}/rest/v1/scalp_trade_log?id=eq.{row['id']}",
-            headers={**supabase_headers(), "Prefer": "return=minimal"},
-            json=patch,
-            timeout=10,
-        )
-        updated += 1
-        time.sleep(0.2)
+        }))
+
+    # Phase 2: Supabase 일괄 PATCH (sleep 불필요)
+    updated = _batch_patch("scalp_trade_log", patches, session)
 
     if updated:
         print(f"[retrospective] 초단타 {updated}건 업데이트")
 
 
 def update_signal_attempts():
-    """차단된/생성된 시그널의 1시간 후 가격 업데이트"""
+    """차단된/생성된 시그널의 1시간 후 가격 업데이트 (collect-then-patch 패턴)"""
     now = datetime.now(KST)
     cutoff = (now - timedelta(hours=1)).isoformat()
 
-    r = requests.get(
+    session = _get_session()
+    r = session.get(
         f"{SUPABASE_URL}/rest/v1/signal_attempt_log",
         headers=supabase_headers(),
         params={
@@ -270,7 +320,8 @@ def update_signal_attempts():
         print(f"[retrospective] signal_attempt 조회 실패: {r.status_code}", file=sys.stderr)
         return
 
-    updated = 0
+    # Phase 1: Upbit 가격 조회 수집 (rate limit 준수)
+    patches = []
     for row in r.json():
         btc_price = row.get("btc_price", 0)
         if not btc_price:
@@ -285,10 +336,10 @@ def update_signal_attempts():
         price_after = get_historical_price(target_time)
         if not price_after:
             continue
+        time.sleep(0.15)  # Upbit API rate limit
 
         outcome_pct = round((price_after - btc_price) / btc_price * 100, 3)
 
-        # 매수 시그널이었다면: 1시간 후 가격 상승 = 거래했으면 수익
         action = row.get("action", "buy")
         if action == "buy":
             would_have_won = outcome_pct > 0
@@ -297,38 +348,33 @@ def update_signal_attempts():
         else:
             would_have_won = None
 
-        patch = {
+        patches.append((row["id"], {
             "price_1h_after": price_after,
             "outcome_1h_pct": outcome_pct,
             "would_have_won": would_have_won,
             "aftermath_updated_at": now.isoformat(),
-        }
-        requests.patch(
-            f"{SUPABASE_URL}/rest/v1/signal_attempt_log?id=eq.{row['id']}",
-            headers={**supabase_headers(), "Prefer": "return=minimal"},
-            json=patch,
-            timeout=10,
-        )
-        updated += 1
-        time.sleep(0.2)
+        }))
+
+    # Phase 2: Supabase 일괄 PATCH (sleep 불필요)
+    updated = _batch_patch("signal_attempt_log", patches, session)
 
     if updated:
         print(f"[retrospective] signal_attempt {updated}건 업데이트")
 
 
 def update_buy_score_aftermath():
-    """니어미스/AI거부 사후 추적 -- 1h/4h 후 가격을 기록하여 판단 정확도를 측정한다."""
+    """니어미스/AI거부 사후 추적 (collect-then-patch 패턴)."""
     now = datetime.now(KST)
     current_price = get_btc_price()
     if not current_price:
         print("[retrospective] BTC 가격 조회 실패, buy_score aftermath 스킵", file=sys.stderr)
         return
 
-    headers = {**supabase_headers(), "Prefer": "return=minimal"}
+    session = _get_session()
 
     # ── 1시간 후 가격 업데이트 ──
     cutoff_1h = (now - timedelta(hours=1)).isoformat()
-    r = requests.get(
+    r = session.get(
         f"{SUPABASE_URL}/rest/v1/buy_score_detail",
         headers=supabase_headers(),
         params={
@@ -339,7 +385,8 @@ def update_buy_score_aftermath():
         },
         timeout=15,
     )
-    updated_1h = 0
+    # Phase 1: Upbit 가격 조회 수집
+    patches_1h = []
     if r.ok:
         for row in r.json():
             decision_price = row.get("price_at_decision", 0)
@@ -354,26 +401,22 @@ def update_buy_score_aftermath():
             price_after = get_historical_price(target_time)
             if not price_after:
                 continue
+            time.sleep(0.15)  # Upbit API rate limit
 
             outcome_pct = round((price_after - decision_price) / decision_price * 100, 3)
 
-            patch = {
+            patches_1h.append((row["id"], {
                 "price_1h_after": price_after,
                 "outcome_1h_pct": outcome_pct,
                 "aftermath_updated_at": now.isoformat(),
-            }
-            requests.patch(
-                f"{SUPABASE_URL}/rest/v1/buy_score_detail?id=eq.{row['id']}",
-                headers=headers,
-                json=patch,
-                timeout=10,
-            )
-            updated_1h += 1
-            time.sleep(0.2)
+            }))
+
+    # Phase 2: Supabase 일괄 PATCH
+    updated_1h = _batch_patch("buy_score_detail", patches_1h, session)
 
     # ── 4시간 후 가격 업데이트 ──
     cutoff_4h = (now - timedelta(hours=4)).isoformat()
-    r = requests.get(
+    r = session.get(
         f"{SUPABASE_URL}/rest/v1/buy_score_detail",
         headers=supabase_headers(),
         params={
@@ -385,7 +428,7 @@ def update_buy_score_aftermath():
         },
         timeout=15,
     )
-    updated_4h = 0
+    patches_4h = []
     if r.ok:
         for row in r.json():
             decision_price = row.get("price_at_decision", 0)
@@ -400,31 +443,25 @@ def update_buy_score_aftermath():
             price_after = get_historical_price(target_time)
             if not price_after:
                 continue
+            time.sleep(0.15)  # Upbit API rate limit
 
             outcome_pct = round((price_after - decision_price) / decision_price * 100, 3)
             action = row.get("action", "hold")
-            # would_have_profited: 관망/거부했는데 올랐으면 True
             if action in ("hold",):
-                would_have_profited = outcome_pct > 0.5  # 0.5% 이상 상승
+                would_have_profited = outcome_pct > 0.5
             elif action in ("buy", "매수"):
                 would_have_profited = outcome_pct > 0
             else:
                 would_have_profited = None
 
-            patch = {
+            patches_4h.append((row["id"], {
                 "price_4h_after": price_after,
                 "outcome_4h_pct": outcome_pct,
                 "would_have_profited": would_have_profited,
                 "aftermath_updated_at": now.isoformat(),
-            }
-            requests.patch(
-                f"{SUPABASE_URL}/rest/v1/buy_score_detail?id=eq.{row['id']}",
-                headers=headers,
-                json=patch,
-                timeout=10,
-            )
-            updated_4h += 1
-            time.sleep(0.2)
+            }))
+
+    updated_4h = _batch_patch("buy_score_detail", patches_4h, session)
 
     if updated_1h or updated_4h:
         print(f"[retrospective] buy_score aftermath: 1h={updated_1h}, 4h={updated_4h}")
@@ -432,10 +469,12 @@ def update_buy_score_aftermath():
 
 def report():
     """정확도 리포트"""
-    # Decision accuracy
-    r = requests.get(
+    session = _get_session()
+    hdrs = supabase_headers()
+
+    r = session.get(
         f"{SUPABASE_URL}/rest/v1/v_decision_accuracy",
-        headers=supabase_headers(),
+        headers=hdrs,
         timeout=15,
     )
     if r.ok and r.json():
@@ -466,10 +505,9 @@ def report():
     else:
         print("=== 결정 정확도 === (데이터 없음)")
 
-    # Missed opportunities
-    r = requests.get(
+    r = session.get(
         f"{SUPABASE_URL}/rest/v1/v_missed_opportunities",
-        headers=supabase_headers(),
+        headers=hdrs,
         params={"limit": "10"},
         timeout=15,
     )
@@ -484,10 +522,9 @@ def report():
             )
             print(f"    사유: {(row.get('reason') or '')[:80]}")
 
-    # Bad trades
-    r = requests.get(
+    r = session.get(
         f"{SUPABASE_URL}/rest/v1/v_bad_trades",
-        headers=supabase_headers(),
+        headers=hdrs,
         params={"limit": "10"},
         timeout=15,
     )

@@ -21,6 +21,34 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
+def _acquire_lock(lock_path: str, retries: int = 10, wait: float = 0.02):
+    """파일 락 획득. 지수 백오프로 경합 시 대기 시간 최소화."""
+    current_wait = wait
+    for _ in range(retries):
+        try:
+            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(fd)
+            return True
+        except FileExistsError:
+            try:
+                lock_age = time.time() - os.path.getmtime(lock_path)
+                if lock_age > 120:
+                    os.remove(lock_path)
+                    continue
+            except OSError:
+                pass
+            time.sleep(current_wait)
+            current_wait = min(current_wait * 2, 0.5)  # 지수 백오프, 최대 0.5s
+    return False
+
+
+def _release_lock(lock_path: str):
+    try:
+        os.remove(lock_path)
+    except OSError:
+        pass
+
+
 # ── Kelly Criterion 포지션 사이징 ──────────────────────────
 
 def kelly_position_size(
@@ -75,6 +103,7 @@ def kelly_position_size(
     amount = int(base_amount * final_fraction)
     amount = max(5000, amount)  # Upbit 최소 주문 5000원
 
+    # final_fraction is for logging/diagnostics only; `amount` (int) is the authoritative trade value
     return amount, round(final_fraction, 4)
 
 
@@ -269,39 +298,37 @@ class BaseStrategyAgent(ABC):
         if profit_pct >= self.target_profit_pct:
             # AI 시그널이 강세면 매도 유예 (1회만)
             if ai_signal_score > 20:
-                # 이전 사이클에서 이미 유예했는지 확인 (무한 유예 방지)
+                # 단일 lock으로 읽기+쓰기 통합 (기존 3회 lock → 1회)
                 state_file = Path(__file__).resolve().parent.parent / "data" / "agent_state.json"
+                lock_path = str(state_file) + ".lock"
                 already_deferred = False
+                _locked = _acquire_lock(lock_path)
                 try:
-                    with open(state_file, encoding="utf-8") as _sf:
-                        _st = json.load(_sf)
-                        already_deferred = _st.get("deferred_target_profit", False)
-                except (FileNotFoundError, json.JSONDecodeError):
-                    pass
-                if already_deferred:
-                    # 이미 1회 유예함 → 매도 실행, 플래그 초기화
+                    _st = {}
                     try:
                         with open(state_file, encoding="utf-8") as _sf:
                             _st = json.load(_sf)
-                        _st["deferred_target_profit"] = False
-                        with open(state_file, "w", encoding="utf-8") as _sf:
-                            json.dump(_st, _sf, ensure_ascii=False, indent=2)
                     except (FileNotFoundError, json.JSONDecodeError):
                         pass
+                    already_deferred = _st.get("deferred_target_profit", False)
+                    # 한 번의 lock 안에서 플래그를 토글하고 저장
+                    _st["deferred_target_profit"] = not already_deferred
+                    try:
+                        with open(state_file, "w", encoding="utf-8") as _sf:
+                            json.dump(_st, _sf, ensure_ascii=False, indent=2)
+                    except OSError:
+                        pass
+                finally:
+                    if _locked:
+                        _release_lock(lock_path)
+                if already_deferred:
+                    # 이미 1회 유예함 → 매도 실행 (플래그는 위에서 False로 리셋됨)
                     return {
                         "action": "sell",
                         "reason": f"목표 수익 {profit_pct:.1f}% 달성, AI 시그널 강세({ai_signal_score})이나 이미 1회 유예 완료 → 매도",
                         "type": "target_profit",
                     }
-                # 첫 유예 → 플래그 설정
-                try:
-                    with open(state_file, encoding="utf-8") as _sf:
-                        _st = json.load(_sf)
-                    _st["deferred_target_profit"] = True
-                    with open(state_file, "w", encoding="utf-8") as _sf:
-                        json.dump(_st, _sf, ensure_ascii=False, indent=2)
-                except (FileNotFoundError, json.JSONDecodeError):
-                    pass
+                # 첫 유예 (플래그는 위에서 True로 설정됨)
                 return {
                     "action": "hold_defer",
                     "reason": f"목표 수익 {profit_pct:.1f}% 달성이나 AI 시그널 강세({ai_signal_score}) → 1회 유예",
@@ -630,6 +657,7 @@ class BaseStrategyAgent(ABC):
                 },
                 timeout=5,
             )
+            # Minor: weekend timing edge case (fewer trades on weekends) — not worth caching
             if resp.status_code != 200:
                 return 0.5
 

@@ -285,6 +285,10 @@ def cmd_stats():
     sells = query("decisions", {"decision": "eq.매도", "select": "profit_loss", "limit": "10000"})
     scalps = query("scalp_trade_log", {"select": "pnl_krw,strategy", "limit": "10000"})
 
+    for label, result in [("decisions", all_d), ("매수", buys), ("매도", sells), ("scalp_trade_log", scalps)]:
+        if len(result) == 10000:
+            print(f"  ⚠️ {label} 결과가 10,000건으로 잘림 — 실제 데이터가 더 많을 수 있음")
+
     buy_pnl = sum(float(b.get("profit_loss") or 0) for b in buys)
     sell_pnl = sum(float(s.get("profit_loss") or 0) for s in sells)
     scalp_pnl = sum(int(s.get("pnl_krw") or 0) for s in scalps)
