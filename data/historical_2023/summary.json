@@ -1,0 +1,35 @@
+{
+  "period": "2023-01-01 ~ 2023-12-31",
+  "total_candles": 2291,
+  "sim_points": 2189,
+  "price_range": {
+    "min": 21070000.0,
+    "max": 60824000.0,
+    "start": 21070000.0,
+    "end": 56926000.0
+  },
+  "fgi_range": {
+    "min": 25,
+    "max": 75,
+    "avg": 54.7
+  },
+  "macro_range": {
+    "min": -13,
+    "max": 14,
+    "avg": 0.2
+  },
+  "macro_source": "yahoo_finance_real",
+  "external_source": "simulated (news, whale, sns)",
+  "fgi_source": "alternative.me_real",
+  "candle_source": "upbit_real",
+  "collection_time_sec": 18.7,
+  "files": [
+    "candles_4h.json",
+    "macro_yahoo_raw.json",
+    "macro_daily_scores.json",
+    "fgi_historical.json",
+    "sim_data_points.json",
+    "embedding_texts.json",
+    "summary.json"
+  ]
+}
