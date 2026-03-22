@@ -4,6 +4,8 @@
 # 워치독(watchdog_remote.sh)의 1시간 부활과 이중화
 # 사용법: bash ~/workspace/blockchain/scripts/revive_rc.sh
 
+export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$PATH"
+
 cd ~/workspace/blockchain
 source .venv/bin/activate 2>/dev/null
 set -a; source .env 2>/dev/null; set +a
