@@ -60,53 +60,72 @@ UPBIT_API = "https://api.upbit.com/v1"
 UPBIT_WS = "wss://api.upbit.com/websocket/v1"
 
 # ── 단타 전용 파라미터 (공격적 모드) ──────────────────────
+# AutoLearner 연동: data/auto_learner_params.json이 있으면 우선 사용
 
-SHORT_TERM_BUDGET = int(os.getenv("SHORT_TERM_BUDGET", "1000000"))  # 단타 전용 자금 100만원
-SHORT_TERM_MAX_TRADE = int(os.getenv("SHORT_TERM_MAX_TRADE", "300000"))  # 1회 최대 30만원
-SHORT_TERM_MAX_DAILY = int(os.getenv("SHORT_TERM_MAX_DAILY", "20"))  # 일일 최대 20회
-SHORT_TERM_MAX_DAILY_DRYRUN = int(os.getenv("SHORT_TERM_MAX_DAILY_DRYRUN", "40"))  # DRY_RUN 전용 일일 한도 40회
-SHORT_TERM_STOP_LOSS = float(os.getenv("SHORT_TERM_STOP_LOSS", "0.25"))  # 손절 0.25% (v6: 1.2→0.25, TP와 R:R 1.2 맞춤)
-SHORT_TERM_TAKE_PROFIT = float(os.getenv("SHORT_TERM_TAKE_PROFIT", "0.30"))  # 익절 0.30% (v6: 0.20→0.30, R:R 1.2 확보)
-SHORT_TERM_MAX_HOLD_MIN = int(os.getenv("SHORT_TERM_MAX_HOLD_MIN", "15"))  # 최대 보유 15분 (v6: 30→15, 고래 시그널은 빠르게 소진)
-COMMISSION_PCT = 0.05  # Upbit 수수료 0.05%
-MIN_PROFIT_AFTER_FEE = COMMISSION_PCT * 2 + 0.05  # 수수료 왕복 + 최소 마진 0.05% = 0.15%
+def _auto_param(key: str, default, cast=float):
+    """AutoLearner 파라미터 우선, 환경변수 폴백"""
+    _auto_params_cache = getattr(_auto_param, "_cache", None)
+    if _auto_params_cache is None:
+        _ap = Path(__file__).resolve().parent.parent / "data" / "auto_learner_params.json"
+        try:
+            if _ap.exists():
+                import json as _json
+                with open(_ap) as _f:
+                    _auto_params_cache = _json.load(_f)
+                logging.getLogger("short_term").info(f"[AutoLearner] 파라미터 로드: {_ap.name}")
+            else:
+                _auto_params_cache = {}
+        except Exception:
+            _auto_params_cache = {}
+        _auto_param._cache = _auto_params_cache
+
+    if key in _auto_params_cache:
+        return cast(_auto_params_cache[key])
+    return cast(os.getenv(key, str(default)))
+
+
+SHORT_TERM_BUDGET = int(os.getenv("SHORT_TERM_BUDGET", "1000000"))
+SHORT_TERM_MAX_TRADE = int(os.getenv("SHORT_TERM_MAX_TRADE", "300000"))
+SHORT_TERM_MAX_DAILY = int(os.getenv("SHORT_TERM_MAX_DAILY", "20"))
+SHORT_TERM_MAX_DAILY_DRYRUN = int(os.getenv("SHORT_TERM_MAX_DAILY_DRYRUN", "40"))
+SHORT_TERM_STOP_LOSS = _auto_param("SHORT_TERM_STOP_LOSS", 0.25)
+SHORT_TERM_TAKE_PROFIT = _auto_param("SHORT_TERM_TAKE_PROFIT", 0.30)
+SHORT_TERM_MAX_HOLD_MIN = _auto_param("SHORT_TERM_MAX_HOLD_MIN", 15, int)
+COMMISSION_PCT = 0.05
+MIN_PROFIT_AFTER_FEE = COMMISSION_PCT * 2 + 0.05
 
 # 뉴스 스캔 간격
-NEWS_SCAN_INTERVAL = 120  # 2분 (공격: 3분→2분, 더 빈번한 스캔)
+NEWS_SCAN_INTERVAL = 120
 
 # 급등/급락 감지 기준
-SPIKE_THRESHOLD_PCT = 0.8  # 최근 N분 내 0.8% 변동 (v5: 0.5→0.8, 유의미한 변동만)
-SPIKE_WINDOW_SEC = 300  # 5분 윈도우
+SPIKE_THRESHOLD_PCT = _auto_param("SPIKE_THRESHOLD_PCT", 0.8)
+SPIKE_WINDOW_SEC = 300
 
 # 고래 감지 기준
-WHALE_THRESHOLD_KRW = 200_000_000  # 2억원 이상 (v6: 5000만→2억, 진짜 고래만)
-WHALE_RATIO_THRESHOLD = 0.85  # 금액 비율 85% 이상 (v6: 75→85, 강한 방향 합의)
-WHALE_RATIO_WINDOW_SEC = 180  # 비율 판정 윈도우 3분
+WHALE_THRESHOLD_KRW = _auto_param("WHALE_THRESHOLD_KRW", 200_000_000)
+WHALE_RATIO_THRESHOLD = _auto_param("WHALE_RATIO_THRESHOLD", 0.85)
+WHALE_RATIO_WINDOW_SEC = 180
 
 # 매도 압력 방패
-SELL_PRESSURE_BLOCK_RATIO = 4.0  # 매도가 매수의 4배 이상이면 매수 차단
+SELL_PRESSURE_BLOCK_RATIO = _auto_param("SELL_PRESSURE_BLOCK_RATIO", 4.0)
 
-# v5: 진입 보호 기간 — 진입 후 이 시간 동안 반대 시그널로 청산하지 않음
-GRACE_PERIOD_SEC = 180  # 3분
+# v5: 진입 보호 기간
+GRACE_PERIOD_SEC = 180
 
 # v5: 트레일링 스탑 설정
-TRAILING_STOP_ACTIVATE_PCT = 0.25  # 수수료 후 +0.25% 도달 시 트레일링 스탑 활성화 (v6: 0.15→0.25)
-TRAILING_STOP_DISTANCE_PCT = 0.15  # 최고점 대비 -0.15% 하락 시 청산 (v6: 0.10→0.15, 정상 되돌림 허용)
+TRAILING_STOP_ACTIVATE_PCT = _auto_param("TRAILING_STOP_ACTIVATE_PCT", 0.25)
+TRAILING_STOP_DISTANCE_PCT = _auto_param("TRAILING_STOP_DISTANCE_PCT", 0.15)
 
-# v5: 모멘텀 확인 — 진입 전 최근 60초 가격 상승 확인
-MOMENTUM_WINDOW_SEC = 60  # 모멘텀 판정 윈도우 60초
-MOMENTUM_MIN_PCT = 0.06  # 최소 +0.06% 상승 중이어야 진입 (v6: 0.02→0.06, 노이즈 필터)
+# v5: 모멘텀 확인
+MOMENTUM_WINDOW_SEC = 60
+MOMENTUM_MIN_PCT = _auto_param("MOMENTUM_MIN_PCT", 0.06)
 
 # ── v4 안전 필터 ─────────────────────────
-# 1. 하락 추세에서 whale 매수 차단
-TREND_SMA_CANDLE_COUNT = 20  # SMA20 계산용 일봉 수
-# 2. 뉴스 negative일 때 매수 차단 임계값
-NEWS_BLOCK_THRESHOLD = -0.5  # 감성 점수 이하면 매수 금지
-# 3. 극공포 시 매수 차단
-FGI_BLOCK_THRESHOLD = 5  # FGI 5 미만이면 매수 금지
-# 4. 타임아웃 전 조기 손절
-EARLY_STOP_LOSS_PCT = 0.15  # 보유 시간 5분 경과 + -0.15% 이하면 조기 청산 (v6: 0.3→0.15, 빠른 손절)
-EARLY_STOP_TIME_MIN = 5  # 조기 손절 판단 시작 시간 (v6: 15→5, 고래 시그널 유효기간 짧음)
+TREND_SMA_CANDLE_COUNT = 20
+NEWS_BLOCK_THRESHOLD = _auto_param("NEWS_BLOCK_THRESHOLD", -0.5)
+FGI_BLOCK_THRESHOLD = 5
+EARLY_STOP_LOSS_PCT = _auto_param("EARLY_STOP_LOSS_PCT", 0.15)
+EARLY_STOP_TIME_MIN = _auto_param("EARLY_STOP_TIME_MIN", 5, int)
 # 5. 중복 진입 방지: 같은 전략으로 동시 1포지션만 (v5: 2→1, 집중)
 MAX_SAME_STRATEGY_POSITIONS = 1
 
@@ -255,6 +274,20 @@ def db_insert(table: str, data: dict):
             },
             timeout=5,
         )
+        if resp.status_code == 400 and "machine_name" in resp.text:
+            # 테이블에 machine_name 컬럼 없음 — 제거 후 재시도
+            data.pop("machine_name", None)
+            resp = requests.post(
+                f"{SUPABASE_URL}/rest/v1/{table}",
+                json=data,
+                headers={
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+                timeout=5,
+            )
         if resp.status_code >= 300:
             _log.warning(
                 f"[DB] {table} 삽입 실패 ({resp.status_code}): {resp.text[:300]}"

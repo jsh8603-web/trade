@@ -887,7 +887,7 @@ def _pc128_phase2_dqn():
     eval_cb = EvalCallback(eval_env, n_eval_episodes=200, eval_freq=10000,
                           best_model_save_path=str(MODEL_DIR / "dqn_pc128_best"),
                           deterministic=True)
-    model.learn(total_timesteps=200000, callback=eval_cb, progress_bar=True)
+    model.learn(total_timesteps=200000, callback=eval_cb, progress_bar=False)
     model.save(str(MODEL_DIR / "dqn_pc128_200k"))
 
     return _eval_sb3_model(model, ScalpExitEnv(), 500, "dqn_200k")
@@ -919,7 +919,7 @@ def _pc128_phase4_sac():
     eval_cb = EvalCallback(eval_env, n_eval_episodes=200, eval_freq=20000,
                           best_model_save_path=str(MODEL_DIR / "sac_pc128_best"),
                           deterministic=True)
-    model.learn(total_timesteps=500000, callback=eval_cb, progress_bar=True)
+    model.learn(total_timesteps=500000, callback=eval_cb, progress_bar=False)
     model.save(str(MODEL_DIR / "sac_pc128_500k"))
 
     return _eval_sb3_model(model, ScalpExitEnvV2(), 500, "sac_500k")
@@ -974,7 +974,7 @@ def _pc128_phase6_long():
                           best_model_save_path=str(MODEL_DIR / "dqn_1m_best"),
                           deterministic=True)
 
-    model.learn(total_timesteps=1000000, callback=[ckpt_cb, eval_cb], progress_bar=True)
+    model.learn(total_timesteps=1000000, callback=[ckpt_cb, eval_cb], progress_bar=False)
     model.save(str(MODEL_DIR / "dqn_pc128_1m"))
 
     return _eval_sb3_model(model, ScalpExitEnv(), 1000, "dqn_1m_final")
@@ -1044,7 +1044,7 @@ def _pc36_phase2_ppo():
     eval_cb = EvalCallback(eval_env, n_eval_episodes=200, eval_freq=10000,
                           best_model_save_path=str(MODEL_DIR / "ppo_pc36_best"),
                           deterministic=True)
-    model.learn(total_timesteps=200000, callback=eval_cb, progress_bar=True)
+    model.learn(total_timesteps=200000, callback=eval_cb, progress_bar=False)
     model.save(str(MODEL_DIR / "ppo_pc36_200k"))
 
     return _eval_sb3_model(model, ScalpExitEnv(), 500, "ppo_200k")
@@ -1094,7 +1094,7 @@ def _pc36_phase4_ppo_long():
                           best_model_save_path=str(MODEL_DIR / "ppo_500k_best"),
                           deterministic=True)
 
-    model.learn(total_timesteps=500000, callback=[ckpt_cb, eval_cb], progress_bar=True)
+    model.learn(total_timesteps=500000, callback=[ckpt_cb, eval_cb], progress_bar=False)
     model.save(str(MODEL_DIR / "ppo_pc36_500k"))
 
     return _eval_sb3_model(model, ScalpExitEnv(), 500, "ppo_500k")

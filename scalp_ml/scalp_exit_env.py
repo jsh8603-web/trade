@@ -70,11 +70,21 @@ class ScalpExitEnv(gym.Env):
             with open(candle_path, "rb") as f:
                 self.all_candles = pickle.load(f)
         else:
-            cache = MODEL_DIR / "candles_cache.pkl"
-            if cache.exists():
-                with open(cache, "rb") as f:
-                    self.all_candles = pickle.load(f)
-            else:
+            # candles_cache.pkl → candles_30d.pkl → candles_14d.pkl 순서로 폴백
+            candidates = [
+                MODEL_DIR / "candles_cache.pkl",
+                MODEL_DIR / "candles_30d.pkl",
+                MODEL_DIR / "candles_14d.pkl",
+            ]
+            loaded = False
+            for cache in candidates:
+                if cache.exists():
+                    with open(cache, "rb") as f:
+                        self.all_candles = pickle.load(f)
+                    log.info(f"캔들 데이터 로드: {cache.name} ({len(self.all_candles)}개)")
+                    loaded = True
+                    break
+            if not loaded:
                 raise FileNotFoundError("캔들 데이터가 필요합니다. train_lgbm.py를 먼저 실행하세요.")
 
         # 행동 공간: 0=HOLD, 1=TAKE_PROFIT, 2=STOP_LOSS

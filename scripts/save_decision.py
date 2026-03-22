@@ -251,9 +251,10 @@ def supabase_headers():
 
 def supabase_post(table: str, row: dict) -> dict | None:
     """Supabase 테이블에 INSERT. 실패 시 stderr에 로그."""
-    from utils.machine import skip_trade_db
+    from utils.machine import skip_trade_db, get_machine_name
     if skip_trade_db(table):
         return None
+    row.setdefault("machine_name", get_machine_name())
     try:
         r = requests.post(
             f"{SUPABASE_URL}/rest/v1/{table}",
@@ -261,6 +262,14 @@ def supabase_post(table: str, row: dict) -> dict | None:
             json=row,
             timeout=10,
         )
+        if r.status_code == 400 and "machine_name" in r.text:
+            row.pop("machine_name", None)
+            r = requests.post(
+                f"{SUPABASE_URL}/rest/v1/{table}",
+                headers=supabase_headers(),
+                json=row,
+                timeout=10,
+            )
         if not r.ok:
             print(f"[save_decision] {table} INSERT 실패 ({r.status_code}): {r.text[:500]}", file=sys.stderr)
         r.raise_for_status()

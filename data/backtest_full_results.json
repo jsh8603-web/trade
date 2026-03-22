@@ -1,0 +1,1604 @@
+{
+  "period": "2022-01-01 ~ 2026-03-21",
+  "sim_points": 9245,
+  "initial_krw": 1000000,
+  "final_eval": 683438,
+  "roi_pct": -31.66,
+  "btc_bnh_roi_pct": 82.81,
+  "mdd_pct": 48.76,
+  "total_trades": 1684,
+  "buys": 1573,
+  "sells": 111,
+  "holds": 7561,
+  "win_rate": 50.5,
+  "win_trades": 56,
+  "loss_trades": 55,
+  "switch_count": 107,
+  "yearly_stats": {
+    "2022": {
+      "buys": 537,
+      "sells": 31,
+      "holds": 1622,
+      "pnl": -477728.8896870907,
+      "start_eval": 1000000.0,
+      "end_eval": 521794.66694720055
+    },
+    "2023": {
+      "buys": 213,
+      "sells": 17,
+      "holds": 1959,
+      "pnl": 293369.86223693285,
+      "start_eval": 520598.3858032542,
+      "end_eval": 805748.437917201
+    },
+    "2024": {
+      "buys": 379,
+      "sells": 34,
+      "holds": 1783,
+      "pnl": 211306.54453802336,
+      "start_eval": 806742.1839190727,
+      "end_eval": 1024368.0218511362
+    },
+    "2025": {
+      "buys": 349,
+      "sells": 24,
+      "holds": 1817,
+      "pnl": -304470.23028326547,
+      "start_eval": 1017885.622719973,
+      "end_eval": 725843.7519241571
+    },
+    "2026": {
+      "buys": 95,
+      "sells": 5,
+      "holds": 380,
+      "pnl": -22966.71665813838,
+      "start_eval": 724905.0476947183,
+      "end_eval": 683438.1645716446
+    }
+  },
+  "monthly_stats": {
+    "2022-01": {
+      "buys": 71,
+      "sells": 3,
+      "holds": 112,
+      "pnl": -189957.39132256777,
+      "start_eval": 1000000.0,
+      "end_eval": 861360.1504451077
+    },
+    "2022-02": {
+      "buys": 59,
+      "sells": 3,
+      "holds": 106,
+      "pnl": -17772.867450174293,
+      "start_eval": 874093.538878299,
+      "end_eval": 838650.4831661709
+    },
+    "2022-03": {
+      "buys": 37,
+      "sells": 3,
+      "holds": 146,
+      "pnl": 196730.21694791515,
+      "start_eval": 847390.0474542343,
+      "end_eval": 986615.8141548877
+    },
+    "2022-04": {
+      "buys": 64,
+      "sells": 2,
+      "holds": 114,
+      "pnl": -96539.57708162162,
+      "start_eval": 982739.9742664811,
+      "end_eval": 879530.3794447307
+    },
+    "2022-05": {
+      "buys": 87,
+      "sells": 5,
+      "holds": 94,
+      "pnl": -172847.03805275811,
+      "start_eval": 882370.8181789913,
+      "end_eval": 756489.2951539602
+    },
+    "2022-06": {
+      "buys": 56,
+      "sells": 6,
+      "holds": 118,
+      "pnl": -132086.90807269045,
+      "start_eval": 748261.1101829398,
+      "end_eval": 579055.5195516837
+    },
+    "2022-07": {
+      "buys": 44,
+      "sells": 3,
+      "holds": 139,
+      "pnl": 109438.9774053588,
+      "start_eval": 579097.724800471,
+      "end_eval": 695476.9879515143
+    },
+    "2022-08": {
+      "buys": 43,
+      "sells": 2,
+      "holds": 141,
+      "pnl": -70458.85964879359,
+      "start_eval": 696360.8330909192,
+      "end_eval": 626556.7638173739
+    },
+    "2022-09": {
+      "buys": 11,
+      "sells": 0,
+      "holds": 169,
+      "pnl": 0.0,
+      "start_eval": 627801.7512815581,
+      "end_eval": 643618.8705461357
+    },
+    "2022-10": {
+      "buys": 0,
+      "sells": 0,
+      "holds": 186,
+      "pnl": 0.0,
+      "start_eval": 637360.0677111034,
+      "end_eval": 651704.9077658923
+    },
+    "2022-11": {
+      "buys": 47,
+      "sells": 3,
+      "holds": 130,
+      "pnl": -79155.5152932705,
+      "start_eval": 650906.8053909553,
+      "end_eval": 555225.6677403104
+    },
+    "2022-12": {
+      "buys": 18,
+      "sells": 1,
+      "holds": 167,
+      "pnl": -25079.92711848824,
+      "start_eval": 560799.5180868586,
+      "end_eval": 521794.66694720055
+    },
+    "2023-01": {
+      "buys": 20,
+      "sells": 2,
+      "holds": 164,
+      "pnl": 136491.68426810636,
+      "start_eval": 520598.3858032542,
+      "end_eval": 662768.3912232602
+    },
+    "2023-02": {
+      "buys": 36,
+      "sells": 1,
+      "holds": 131,
+      "pnl": 64391.01545237226,
+      "start_eval": 662190.0072507189,
+      "end_eval": 724968.9084817118
+    },
+    "2023-03": {
+      "buys": 22,
+      "sells": 3,
+      "holds": 161,
+      "pnl": 21479.56758540508,
+      "start_eval": 721090.5371254326,
+      "end_eval": 766306.0296049508
+    },
+    "2023-04": {
+      "buys": 23,
+      "sells": 1,
+      "holds": 156,
+      "pnl": 64282.4176542036,
+      "start_eval": 765525.5535439103,
+      "end_eval": 828504.8727570483
+    },
+    "2023-05": {
+      "buys": 0,
+      "sells": 0,
+      "holds": 186,
+      "pnl": 0.0,
+      "start_eval": 823040.1203096481,
+      "end_eval": 760669.3479118294
+    },
+    "2023-06": {
+      "buys": 33,
+      "sells": 3,
+      "holds": 144,
+      "pnl": -80350.09330775024,
+      "start_eval": 761012.1552609283,
+      "end_eval": 727466.4930318691
+    },
+    "2023-07": {
+      "buys": 14,
+      "sells": 0,
+      "holds": 172,
+      "pnl": 0.0,
+      "start_eval": 731281.9462588988,
+      "end_eval": 691295.7802758142
+    },
+    "2023-08": {
+      "buys": 21,
+      "sells": 1,
+      "holds": 164,
+      "pnl": -60218.18450997013,
+      "start_eval": 689976.5155448302,
+      "end_eval": 681041.777930468
+    },
+    "2023-09": {
+      "buys": 0,
+      "sells": 0,
+      "holds": 180,
+      "pnl": 0.0,
+      "start_eval": 667284.2453306894,
+      "end_eval": 679586.1422231365
+    },
+    "2023-10": {
+      "buys": 0,
+      "sells": 1,
+      "holds": 185,
+      "pnl": 100476.19428926264,
+      "start_eval": 680402.7183516395,
+      "end_eval": 768823.7117445394
+    },
+    "2023-11": {
+      "buys": 5,
+      "sells": 3,
+      "holds": 172,
+      "pnl": 18130.78046401593,
+      "start_eval": 768823.7117445394,
+      "end_eval": 786954.4922085553
+    },
+    "2023-12": {
+      "buys": 39,
+      "sells": 2,
+      "holds": 144,
+      "pnl": 28686.48034128733,
+      "start_eval": 786954.4922085553,
+      "end_eval": 805748.437917201
+    },
+    "2024-01": {
+      "buys": 35,
+      "sells": 4,
+      "holds": 147,
+      "pnl": -32176.13309448109,
+      "start_eval": 806742.1839190727,
+      "end_eval": 842687.3327559163
+    },
+    "2024-02": {
+      "buys": 5,
+      "sells": 2,
+      "holds": 167,
+      "pnl": 88524.29975254729,
+      "start_eval": 842773.3628480708,
+      "end_eval": 871989.1392079089
+    },
+    "2024-03": {
+      "buys": 20,
+      "sells": 3,
+      "holds": 163,
+      "pnl": -13951.116900426277,
+      "start_eval": 871989.1392079089,
+      "end_eval": 858172.9466784891
+    },
+    "2024-04": {
+      "buys": 54,
+      "sells": 5,
+      "holds": 121,
+      "pnl": -9678.988338925104,
+      "start_eval": 858242.3363550066,
+      "end_eval": 805058.0528132027
+    },
+    "2024-05": {
+      "buys": 31,
+      "sells": 4,
+      "holds": 151,
+      "pnl": 40193.2220868952,
+      "start_eval": 788479.468515684,
+      "end_eval": 887875.4248304135
+    },
+    "2024-06": {
+      "buys": 42,
+      "sells": 2,
+      "holds": 136,
+      "pnl": -59093.55455827864,
+      "start_eval": 890747.1142490691,
+      "end_eval": 833389.6039200886
+    },
+    "2024-07": {
+      "buys": 32,
+      "sells": 3,
+      "holds": 151,
+      "pnl": 82235.82006485481,
+      "start_eval": 832472.757584834,
+      "end_eval": 911084.6507599998
+    },
+    "2024-08": {
+      "buys": 44,
+      "sells": 2,
+      "holds": 140,
+      "pnl": -108972.2807644154,
+      "start_eval": 903360.8228981497,
+      "end_eval": 813128.0935905062
+    },
+    "2024-09": {
+      "buys": 29,
+      "sells": 2,
+      "holds": 149,
+      "pnl": 52086.22585659148,
+      "start_eval": 812774.5497373005,
+      "end_eval": 853042.4633054235
+    },
+    "2024-10": {
+      "buys": 18,
+      "sells": 2,
+      "holds": 166,
+      "pnl": 73581.5359969475,
+      "start_eval": 852532.808355255,
+      "end_eval": 928390.0026511531
+    },
+    "2024-11": {
+      "buys": 31,
+      "sells": 2,
+      "holds": 147,
+      "pnl": 60910.45882934204,
+      "start_eval": 928390.0026511531,
+      "end_eval": 989300.4614804952
+    },
+    "2024-12": {
+      "buys": 38,
+      "sells": 3,
+      "holds": 145,
+      "pnl": 37647.055607371556,
+      "start_eval": 989300.4614804952,
+      "end_eval": 1024368.0218511362
+    },
+    "2025-01": {
+      "buys": 14,
+      "sells": 4,
+      "holds": 168,
+      "pnl": 45230.491097849386,
+      "start_eval": 1017885.622719973,
+      "end_eval": 1072178.0081857159
+    },
+    "2025-02": {
+      "buys": 43,
+      "sells": 3,
+      "holds": 122,
+      "pnl": -194186.89550965594,
+      "start_eval": 1072178.0081857159,
+      "end_eval": 881542.2607954184
+    },
+    "2025-03": {
+      "buys": 50,
+      "sells": 1,
+      "holds": 135,
+      "pnl": -53592.899046107894,
+      "start_eval": 881955.4239264783,
+      "end_eval": 842050.153701193
+    },
+    "2025-04": {
+      "buys": 14,
+      "sells": 2,
+      "holds": 164,
+      "pnl": 28892.722471506684,
+      "start_eval": 840970.2055816135,
+      "end_eval": 854198.950552015
+    },
+    "2025-05": {
+      "buys": 29,
+      "sells": 1,
+      "holds": 156,
+      "pnl": 40885.368723714375,
+      "start_eval": 854557.9059543957,
+      "end_eval": 887763.1691360807
+    },
+    "2025-06": {
+      "buys": 26,
+      "sells": 3,
+      "holds": 151,
+      "pnl": -41641.68652788884,
+      "start_eval": 886699.7859981373,
+      "end_eval": 852534.6182972842
+    },
+    "2025-07": {
+      "buys": 8,
+      "sells": 3,
+      "holds": 175,
+      "pnl": 14507.73974329076,
+      "start_eval": 852534.6182972842,
+      "end_eval": 867042.3580405749
+    },
+    "2025-08": {
+      "buys": 36,
+      "sells": 1,
+      "holds": 149,
+      "pnl": 13757.64682811359,
+      "start_eval": 867042.3580405749,
+      "end_eval": 824792.4004541913
+    },
+    "2025-09": {
+      "buys": 0,
+      "sells": 0,
+      "holds": 180,
+      "pnl": 0.0,
+      "start_eval": 825887.4745546331,
+      "end_eval": 883236.7157859455
+    },
+    "2025-10": {
+      "buys": 43,
+      "sells": 2,
+      "holds": 141,
+      "pnl": 7807.856484121177,
+      "start_eval": 889075.356061859,
+      "end_eval": 894125.9799298717
+    },
+    "2025-11": {
+      "buys": 79,
+      "sells": 4,
+      "holds": 97,
+      "pnl": -166130.57454820874,
+      "start_eval": 891825.5732391919,
+      "end_eval": 769333.3296501726
+    },
+    "2025-12": {
+      "buys": 7,
+      "sells": 0,
+      "holds": 179,
+      "pnl": 0.0,
+      "start_eval": 769284.2478846571,
+      "end_eval": 725843.7519241571
+    },
+    "2026-01": {
+      "buys": 0,
+      "sells": 1,
+      "holds": 185,
+      "pnl": -35173.44242469082,
+      "start_eval": 724905.0476947183,
+      "end_eval": 687303.8443799102
+    },
+    "2026-02": {
+      "buys": 73,
+      "sells": 3,
+      "holds": 92,
+      "pnl": -77760.27003561537,
+      "start_eval": 687303.8443799102,
+      "end_eval": 608935.6586636566
+    },
+    "2026-03": {
+      "buys": 22,
+      "sells": 1,
+      "holds": 103,
+      "pnl": 89966.9958021678,
+      "start_eval": 620777.146566667,
+      "end_eval": 683438.1645716446
+    }
+  },
+  "agent_distribution": {
+    "moderate": {
+      "count": 5447,
+      "buys": 907,
+      "sells": 48,
+      "holds": 4492
+    },
+    "conservative": {
+      "count": 3793,
+      "buys": 663,
+      "sells": 63,
+      "holds": 3067
+    },
+    "aggressive": {
+      "count": 5,
+      "buys": 3,
+      "sells": 0,
+      "holds": 2
+    }
+  },
+  "btc_price_start": 57914000.0,
+  "btc_price_end": 105871000.0,
+  "elapsed_sec": 13.8,
+  "top_trades": [
+    {
+      "dt": "2022-01-06T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -8.3%, D=55",
+      "price": 52669000,
+      "amount": 886783,
+      "pnl": -80268,
+      "agent": "conservative",
+      "eval": 919732
+    },
+    {
+      "dt": "2022-01-21T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -9.5%, D=65",
+      "price": 47401000,
+      "amount": 803966,
+      "pnl": -84635,
+      "agent": "conservative",
+      "eval": 835097
+    },
+    {
+      "dt": "2022-01-22T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -6.4%, D=70",
+      "price": 43861000,
+      "amount": 366233,
+      "pnl": -25054,
+      "agent": "conservative",
+      "eval": 810043
+    },
+    {
+      "dt": "2022-02-05T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 16.2% >= 15.0%",
+      "price": 50633000,
+      "amount": 886343,
+      "pnl": 123410,
+      "agent": "conservative",
+      "eval": 933453
+    },
+    {
+      "dt": "2022-02-22T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "forced_stop -11.0%",
+      "price": 45450000,
+      "amount": 803608,
+      "pnl": -99088,
+      "agent": "moderate",
+      "eval": 834365
+    },
+    {
+      "dt": "2022-02-24T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.9%, D=65",
+      "price": 43117000,
+      "amount": 673585,
+      "pnl": -42095,
+      "agent": "conservative",
+      "eval": 792270
+    },
+    {
+      "dt": "2022-03-02T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 15.0% >= 15.0%",
+      "price": 53790000,
+      "amount": 867345,
+      "pnl": 113330,
+      "agent": "conservative",
+      "eval": 905600
+    },
+    {
+      "dt": "2022-03-05T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -6.2%, D=53",
+      "price": 49223000,
+      "amount": 680908,
+      "pnl": -44795,
+      "agent": "conservative",
+      "eval": 860805
+    },
+    {
+      "dt": "2022-03-28T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 15.8% >= 15.0%",
+      "price": 55949000,
+      "amount": 940702,
+      "pnl": 128195,
+      "agent": "conservative",
+      "eval": 989000
+    },
+    {
+      "dt": "2022-04-07T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.0%, D=55",
+      "price": 53072000,
+      "amount": 876363,
+      "pnl": -46542,
+      "agent": "conservative",
+      "eval": 942458
+    },
+    {
+      "dt": "2022-04-12T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.5%, D=65",
+      "price": 50737000,
+      "amount": 862868,
+      "pnl": -49998,
+      "agent": "conservative",
+      "eval": 892460
+    },
+    {
+      "dt": "2022-05-06T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.7%, D=75",
+      "price": 47455000,
+      "amount": 797591,
+      "pnl": -48158,
+      "agent": "conservative",
+      "eval": 844302
+    },
+    {
+      "dt": "2022-05-09T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.7%, D=60",
+      "price": 44085000,
+      "amount": 688639,
+      "pnl": -41605,
+      "agent": "conservative",
+      "eval": 802697
+    },
+    {
+      "dt": "2022-05-10T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.2%, D=68",
+      "price": 41002000,
+      "amount": 261637,
+      "pnl": -14407,
+      "agent": "conservative",
+      "eval": 788290
+    },
+    {
+      "dt": "2022-05-12T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.5%, D=85",
+      "price": 39095000,
+      "amount": 546020,
+      "pnl": -31999,
+      "agent": "conservative",
+      "eval": 756291
+    },
+    {
+      "dt": "2022-05-18T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.2%, D=81",
+      "price": 37427000,
+      "amount": 670744,
+      "pnl": -36678,
+      "agent": "conservative",
+      "eval": 719613
+    },
+    {
+      "dt": "2022-06-12T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.9%, D=85",
+      "price": 35888000,
+      "amount": 633676,
+      "pnl": -39438,
+      "agent": "conservative",
+      "eval": 680176
+    },
+    {
+      "dt": "2022-06-13T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -6.7%, D=81",
+      "price": 33260000,
+      "amount": 259861,
+      "pnl": -18674,
+      "agent": "conservative",
+      "eval": 661501
+    },
+    {
+      "dt": "2022-06-14T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -6.0%, D=68",
+      "price": 29372000,
+      "amount": 213735,
+      "pnl": -13754,
+      "agent": "conservative",
+      "eval": 647748
+    },
+    {
+      "dt": "2022-06-15T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.9%, D=85",
+      "price": 27250000,
+      "amount": 317985,
+      "pnl": -19943,
+      "agent": "conservative",
+      "eval": 627804
+    },
+    {
+      "dt": "2022-06-17T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.3%, D=85",
+      "price": 26741000,
+      "amount": 430246,
+      "pnl": -23995,
+      "agent": "conservative",
+      "eval": 603810
+    },
+    {
+      "dt": "2022-06-18T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.8%, D=80",
+      "price": 25704000,
+      "amount": 266633,
+      "pnl": -16283,
+      "agent": "conservative",
+      "eval": 587526
+    },
+    {
+      "dt": "2022-07-18T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 15.3% >= 15.0%",
+      "price": 29545000,
+      "amount": 623477,
+      "pnl": 82819,
+      "agent": "conservative",
+      "eval": 670345
+    },
+    {
+      "dt": "2022-07-26T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -6.0%, D=51",
+      "price": 27778000,
+      "amount": 601241,
+      "pnl": -38533,
+      "agent": "conservative",
+      "eval": 631812
+    },
+    {
+      "dt": "2022-07-30T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 10.8% >= 10.0%",
+      "price": 32293000,
+      "amount": 666457,
+      "pnl": 65153,
+      "agent": "moderate",
+      "eval": 696965
+    },
+    {
+      "dt": "2022-08-19T17:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.3%, D=61",
+      "price": 29574000,
+      "amount": 630039,
+      "pnl": -35141,
+      "agent": "conservative",
+      "eval": 661824
+    },
+    {
+      "dt": "2022-08-27T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.6%, D=56",
+      "price": 27616000,
+      "amount": 594263,
+      "pnl": -35318,
+      "agent": "conservative",
+      "eval": 626507
+    },
+    {
+      "dt": "2022-11-09T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.7%, D=75",
+      "price": 25954000,
+      "amount": 545103,
+      "pnl": -32748,
+      "agent": "conservative",
+      "eval": 593758
+    },
+    {
+      "dt": "2022-11-10T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.2%, D=65",
+      "price": 24143000,
+      "amount": 152569,
+      "pnl": -8338,
+      "agent": "conservative",
+      "eval": 585421
+    },
+    {
+      "dt": "2022-11-14T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -7.3%, D=85",
+      "price": 21935000,
+      "amount": 483289,
+      "pnl": -38070,
+      "agent": "conservative",
+      "eval": 547351
+    },
+    {
+      "dt": "2022-12-28T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.0%, D=50",
+      "price": 21334000,
+      "amount": 473755,
+      "pnl": -25080,
+      "agent": "conservative",
+      "eval": 522271
+    },
+    {
+      "dt": "2023-01-14T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 17.2% >= 15.0%",
+      "price": 24802000,
+      "amount": 557667,
+      "pnl": 81688,
+      "agent": "conservative",
+      "eval": 603959
+    },
+    {
+      "dt": "2023-01-21T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 10.3% >= 10.0%",
+      "price": 28623000,
+      "amount": 585737,
+      "pnl": 54803,
+      "agent": "moderate",
+      "eval": 658763
+    },
+    {
+      "dt": "2023-02-16T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 10.2% >= 10.0%",
+      "price": 31800000,
+      "amount": 693111,
+      "pnl": 64391,
+      "agent": "moderate",
+      "eval": 723154
+    },
+    {
+      "dt": "2023-03-10T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -9.9%, D=52",
+      "price": 28062000,
+      "amount": 621913,
+      "pnl": -68262,
+      "agent": "conservative",
+      "eval": 654892
+    },
+    {
+      "dt": "2023-03-13T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 15.7% >= 15.0%",
+      "price": 31502000,
+      "amount": 564947,
+      "pnl": 76524,
+      "agent": "conservative",
+      "eval": 731416
+    },
+    {
+      "dt": "2023-03-20T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 12.0% >= 10.0%",
+      "price": 37351000,
+      "amount": 122929,
+      "pnl": 13217,
+      "agent": "moderate",
+      "eval": 744633
+    },
+    {
+      "dt": "2023-04-11T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 10.4% >= 10.0%",
+      "price": 39948000,
+      "amount": 684304,
+      "pnl": 64282,
+      "agent": "moderate",
+      "eval": 808916
+    },
+    {
+      "dt": "2023-06-06T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "forced_stop -11.5%",
+      "price": 34108000,
+      "amount": 687792,
+      "pnl": -89766,
+      "agent": "conservative",
+      "eval": 719149
+    },
+    {
+      "dt": "2023-06-15T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.1%, D=56",
+      "price": 32700000,
+      "amount": 653877,
+      "pnl": -35490,
+      "agent": "conservative",
+      "eval": 683660
+    },
+    {
+      "dt": "2023-06-21T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 10.3% >= 10.0%",
+      "price": 36567000,
+      "amount": 482854,
+      "pnl": 44906,
+      "agent": "moderate",
+      "eval": 728566
+    },
+    {
+      "dt": "2023-08-18T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -8.7%, D=55",
+      "price": 36588000,
+      "amount": 635121,
+      "pnl": -60218,
+      "agent": "conservative",
+      "eval": 668348
+    },
+    {
+      "dt": "2023-10-23T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 15.7% >= 15.0%",
+      "price": 41659000,
+      "amount": 739516,
+      "pnl": 100476,
+      "agent": "conservative",
+      "eval": 768824
+    },
+    {
+      "dt": "2023-11-21T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=70, FGI=71",
+      "price": 50204000,
+      "amount": 222545,
+      "pnl": 9197,
+      "agent": "moderate",
+      "eval": 778021
+    },
+    {
+      "dt": "2023-11-25T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=71, FGI=73",
+      "price": 50720000,
+      "amount": 121046,
+      "pnl": 4344,
+      "agent": "moderate",
+      "eval": 782365
+    },
+    {
+      "dt": "2023-11-30T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=69, FGI=74",
+      "price": 50720000,
+      "amount": 221694,
+      "pnl": 4590,
+      "agent": "moderate",
+      "eval": 786954
+    },
+    {
+      "dt": "2023-12-14T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=68, FGI=72",
+      "price": 58729000,
+      "amount": 669146,
+      "pnl": 13886,
+      "agent": "moderate",
+      "eval": 800840
+    },
+    {
+      "dt": "2023-12-20T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=67, FGI=74",
+      "price": 58392000,
+      "amount": 681622,
+      "pnl": 14801,
+      "agent": "moderate",
+      "eval": 815641
+    },
+    {
+      "dt": "2024-01-02T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=84, FGI=71",
+      "price": 58103000,
+      "amount": 769861,
+      "pnl": 5703,
+      "agent": "moderate",
+      "eval": 821344
+    },
+    {
+      "dt": "2024-01-06T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=67, FGI=70",
+      "price": 59224000,
+      "amount": 231601,
+      "pnl": 3680,
+      "agent": "moderate",
+      "eval": 825023
+    },
+    {
+      "dt": "2024-01-08T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=68, FGI=71",
+      "price": 60417000,
+      "amount": 127738,
+      "pnl": 3985,
+      "agent": "moderate",
+      "eval": 829009
+    },
+    {
+      "dt": "2024-01-23T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.7%, D=50",
+      "price": 55346000,
+      "amount": 751329,
+      "pnl": -45544,
+      "agent": "conservative",
+      "eval": 783465
+    },
+    {
+      "dt": "2024-02-08T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 10.7% >= 10.0%",
+      "price": 60721000,
+      "amount": 791237,
+      "pnl": 76214,
+      "agent": "moderate",
+      "eval": 859679
+    },
+    {
+      "dt": "2024-02-27T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=78, FGI=79",
+      "price": 74473000,
+      "amount": 250869,
+      "pnl": 12310,
+      "agent": "moderate",
+      "eval": 871989
+    },
+    {
+      "dt": "2024-03-04T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=66, FGI=82",
+      "price": 89187000,
+      "amount": 136050,
+      "pnl": 5252,
+      "agent": "moderate",
+      "eval": 877241
+    },
+    {
+      "dt": "2024-03-19T17:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -6.0%, D=55",
+      "price": 93451000,
+      "amount": 600163,
+      "pnl": -38035,
+      "agent": "conservative",
+      "eval": 839206
+    },
+    {
+      "dt": "2024-03-25T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=70, FGI=75",
+      "price": 96624000,
+      "amount": 692816,
+      "pnl": 18832,
+      "agent": "moderate",
+      "eval": 858038
+    },
+    {
+      "dt": "2024-04-01T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=87, FGI=79",
+      "price": 100970000,
+      "amount": 129745,
+      "pnl": 1041,
+      "agent": "moderate",
+      "eval": 859079
+    },
+    {
+      "dt": "2024-04-05T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=74, FGI=79",
+      "price": 99341000,
+      "amount": 775291,
+      "pnl": 20084,
+      "agent": "moderate",
+      "eval": 879162
+    },
+    {
+      "dt": "2024-04-12T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=70, FGI=79",
+      "price": 101291000,
+      "amount": 425979,
+      "pnl": 5746,
+      "agent": "moderate",
+      "eval": 884909
+    },
+    {
+      "dt": "2024-04-18T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.7%, D=51",
+      "price": 91419000,
+      "amount": 761668,
+      "pnl": -45937,
+      "agent": "conservative",
+      "eval": 838972
+    },
+    {
+      "dt": "2024-04-21T17:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=74, FGI=72",
+      "price": 95420000,
+      "amount": 242201,
+      "pnl": 9387,
+      "agent": "moderate",
+      "eval": 848359
+    },
+    {
+      "dt": "2024-05-01T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -7.3%, D=54",
+      "price": 85684000,
+      "amount": 755595,
+      "pnl": -59880,
+      "agent": "conservative",
+      "eval": 788479
+    },
+    {
+      "dt": "2024-05-06T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=74, FGI=71",
+      "price": 90086000,
+      "amount": 623451,
+      "pnl": 51761,
+      "agent": "moderate",
+      "eval": 840241
+    },
+    {
+      "dt": "2024-05-16T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=75, FGI=70",
+      "price": 91863000,
+      "amount": 780614,
+      "pnl": 41967,
+      "agent": "moderate",
+      "eval": 882207
+    },
+    {
+      "dt": "2024-05-26T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=69, FGI=75",
+      "price": 96038000,
+      "amount": 346765,
+      "pnl": 6345,
+      "agent": "moderate",
+      "eval": 888552
+    },
+    {
+      "dt": "2024-06-03T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=71, FGI=73",
+      "price": 95000000,
+      "amount": 557894,
+      "pnl": 4462,
+      "agent": "moderate",
+      "eval": 893014
+    },
+    {
+      "dt": "2024-06-24T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -7.4%, D=51",
+      "price": 87999000,
+      "amount": 800033,
+      "pnl": -63555,
+      "agent": "conservative",
+      "eval": 829459
+    },
+    {
+      "dt": "2024-07-05T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.3%, D=66",
+      "price": 81680000,
+      "amount": 756444,
+      "pnl": -42374,
+      "agent": "conservative",
+      "eval": 787084
+    },
+    {
+      "dt": "2024-07-20T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 16.9% >= 15.0%",
+      "price": 93830000,
+      "amount": 698929,
+      "pnl": 100802,
+      "agent": "conservative",
+      "eval": 887886
+    },
+    {
+      "dt": "2024-07-27T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=68, FGI=72",
+      "price": 94605000,
+      "amount": 785396,
+      "pnl": 23808,
+      "agent": "moderate",
+      "eval": 911695
+    },
+    {
+      "dt": "2024-08-03T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.9%, D=55",
+      "price": 86691000,
+      "amount": 782867,
+      "pnl": -49182,
+      "agent": "conservative",
+      "eval": 862512
+    },
+    {
+      "dt": "2024-08-05T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -9.6%, D=65",
+      "price": 77000000,
+      "amount": 565579,
+      "pnl": -59790,
+      "agent": "conservative",
+      "eval": 802722
+    },
+    {
+      "dt": "2024-09-06T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -7.2%, D=68",
+      "price": 73458000,
+      "amount": 701908,
+      "pnl": -54130,
+      "agent": "conservative",
+      "eval": 748592
+    },
+    {
+      "dt": "2024-09-23T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 15.3% >= 15.0%",
+      "price": 85865000,
+      "amount": 801062,
+      "pnl": 106216,
+      "agent": "conservative",
+      "eval": 854808
+    },
+    {
+      "dt": "2024-10-16T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=86, FGI=73",
+      "price": 90630000,
+      "amount": 889028,
+      "pnl": 67355,
+      "agent": "moderate",
+      "eval": 922163
+    },
+    {
+      "dt": "2024-10-25T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=71, FGI=72",
+      "price": 94057000,
+      "amount": 262125,
+      "pnl": 6227,
+      "agent": "moderate",
+      "eval": 928390
+    },
+    {
+      "dt": "2024-11-06T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=75, FGI=70",
+      "price": 102500000,
+      "amount": 922208,
+      "pnl": 52415,
+      "agent": "moderate",
+      "eval": 980805
+    },
+    {
+      "dt": "2024-11-29T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=71, FGI=78",
+      "price": 133058000,
+      "amount": 888501,
+      "pnl": 8495,
+      "agent": "moderate",
+      "eval": 989300
+    },
+    {
+      "dt": "2024-12-05T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=66, FGI=84",
+      "price": 136250000,
+      "amount": 282268,
+      "pnl": 7738,
+      "agent": "moderate",
+      "eval": 997039
+    },
+    {
+      "dt": "2024-12-12T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=72, FGI=83",
+      "price": 143208000,
+      "amount": 494698,
+      "pnl": 18122,
+      "agent": "moderate",
+      "eval": 1015160
+    },
+    {
+      "dt": "2024-12-26T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=70, FGI=79",
+      "price": 148081000,
+      "amount": 904207,
+      "pnl": 11787,
+      "agent": "moderate",
+      "eval": 1026948
+    },
+    {
+      "dt": "2025-01-02T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=67, FGI=70",
+      "price": 142334000,
+      "amount": 982604,
+      "pnl": 2488,
+      "agent": "moderate",
+      "eval": 1029435
+    },
+    {
+      "dt": "2025-01-15T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=67, FGI=70",
+      "price": 145777000,
+      "amount": 817402,
+      "pnl": 26404,
+      "agent": "moderate",
+      "eval": 1055840
+    },
+    {
+      "dt": "2025-01-25T17:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=68, FGI=75",
+      "price": 157337000,
+      "amount": 418800,
+      "pnl": 11380,
+      "agent": "moderate",
+      "eval": 1067220
+    },
+    {
+      "dt": "2025-01-29T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=68, FGI=72",
+      "price": 156491000,
+      "amount": 301110,
+      "pnl": 4958,
+      "agent": "moderate",
+      "eval": 1072178
+    },
+    {
+      "dt": "2025-02-24T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "forced_stop -11.3%",
+      "price": 137093000,
+      "amount": 924484,
+      "pnl": -117666,
+      "agent": "moderate",
+      "eval": 954512
+    },
+    {
+      "dt": "2025-02-27T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -6.5%, D=59",
+      "price": 122533000,
+      "amount": 654238,
+      "pnl": -45664,
+      "agent": "conservative",
+      "eval": 908848
+    },
+    {
+      "dt": "2025-02-28T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.2%, D=75",
+      "price": 117908000,
+      "amount": 566718,
+      "pnl": -30857,
+      "agent": "conservative",
+      "eval": 877991
+    },
+    {
+      "dt": "2025-03-10T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -6.6%, D=85",
+      "price": 121111000,
+      "amount": 754359,
+      "pnl": -53593,
+      "agent": "conservative",
+      "eval": 824398
+    },
+    {
+      "dt": "2025-04-07T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -7.0%, D=85",
+      "price": 112952000,
+      "amount": 721788,
+      "pnl": -54666,
+      "agent": "conservative",
+      "eval": 769732
+    },
+    {
+      "dt": "2025-04-23T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 15.1% >= 15.0%",
+      "price": 134820000,
+      "amount": 635892,
+      "pnl": 83559,
+      "agent": "conservative",
+      "eval": 853291
+    },
+    {
+      "dt": "2025-05-09T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=89, FGI=73",
+      "price": 142550000,
+      "amount": 791006,
+      "pnl": 40885,
+      "agent": "moderate",
+      "eval": 894176
+    },
+    {
+      "dt": "2025-06-10T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=68, FGI=71",
+      "price": 148700000,
+      "amount": 860066,
+      "pnl": -4647,
+      "agent": "moderate",
+      "eval": 889529
+    },
+    {
+      "dt": "2025-06-22T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.4%, D=61",
+      "price": 138069000,
+      "amount": 813731,
+      "pnl": -46488,
+      "agent": "conservative",
+      "eval": 843041
+    },
+    {
+      "dt": "2025-06-26T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=84, FGI=74",
+      "price": 147911000,
+      "amount": 243436,
+      "pnl": 9494,
+      "agent": "moderate",
+      "eval": 852535
+    },
+    {
+      "dt": "2025-07-03T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=67, FGI=73",
+      "price": 148196000,
+      "amount": 335223,
+      "pnl": 6252,
+      "agent": "moderate",
+      "eval": 858787
+    },
+    {
+      "dt": "2025-07-24T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=67, FGI=71",
+      "price": 161667000,
+      "amount": 241509,
+      "pnl": 3196,
+      "agent": "moderate",
+      "eval": 861983
+    },
+    {
+      "dt": "2025-07-27T17:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=79, FGI=73",
+      "price": 161155000,
+      "amount": 337674,
+      "pnl": 5059,
+      "agent": "moderate",
+      "eval": 867042
+    },
+    {
+      "dt": "2025-08-08T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=72, FGI=74",
+      "price": 161853000,
+      "amount": 805057,
+      "pnl": 13758,
+      "agent": "moderate",
+      "eval": 880800
+    },
+    {
+      "dt": "2025-10-04T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "overbought RSI=84, FGI=71",
+      "price": 173875000,
+      "amount": 915413,
+      "pnl": 63635,
+      "agent": "moderate",
+      "eval": 944435
+    },
+    {
+      "dt": "2025-10-17T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -6.1%, D=50",
+      "price": 161138000,
+      "amount": 857208,
+      "pnl": -55827,
+      "agent": "conservative",
+      "eval": 888608
+    },
+    {
+      "dt": "2025-11-04T13:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.5%, D=58",
+      "price": 154681000,
+      "amount": 810544,
+      "pnl": -47061,
+      "agent": "conservative",
+      "eval": 841547
+    },
+    {
+      "dt": "2025-11-15T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.2%, D=66",
+      "price": 145047000,
+      "amount": 751721,
+      "pnl": -40884,
+      "agent": "conservative",
+      "eval": 800663
+    },
+    {
+      "dt": "2025-11-18T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -6.4%, D=85",
+      "price": 134552000,
+      "amount": 648325,
+      "pnl": -44174,
+      "agent": "conservative",
+      "eval": 756488
+    },
+    {
+      "dt": "2025-11-21T09:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.8%, D=85",
+      "price": 127766000,
+      "amount": 549414,
+      "pnl": -34011,
+      "agent": "conservative",
+      "eval": 722477
+    },
+    {
+      "dt": "2026-01-31T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.2%, D=65",
+      "price": 120794000,
+      "amount": 640620,
+      "pnl": -35173,
+      "agent": "conservative",
+      "eval": 687304
+    },
+    {
+      "dt": "2026-02-04T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.2%, D=90",
+      "price": 109528000,
+      "amount": 563548,
+      "pnl": -30905,
+      "agent": "conservative",
+      "eval": 656399
+    },
+    {
+      "dt": "2026-02-05T21:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -6.4%, D=74",
+      "price": 99388000,
+      "amount": 251710,
+      "pnl": -17088,
+      "agent": "conservative",
+      "eval": 639310
+    },
+    {
+      "dt": "2026-02-24T01:00:00+09:00",
+      "decision": "sell",
+      "reason": "stop_loss -5.0%, D=82",
+      "price": 94860000,
+      "amount": 563643,
+      "pnl": -29767,
+      "agent": "conservative",
+      "eval": 609544
+    },
+    {
+      "dt": "2026-03-17T05:00:00+09:00",
+      "decision": "sell",
+      "reason": "target 16.0% >= 15.0%",
+      "price": 110058000,
+      "amount": 653585,
+      "pnl": 89967,
+      "agent": "conservative",
+      "eval": 699511
+    }
+  ]
+}

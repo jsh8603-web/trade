@@ -34,11 +34,13 @@ class KimchirangNotifier:
     MAX_RETRIES = 3
 
     def __init__(self):
-        self._enabled = bool(
+        # KR_NOTIFY_ENABLED=false 로 텔레그램 알림 전체 끄기
+        kr_notify = os.getenv("KR_NOTIFY_ENABLED", "true").lower()
+        self._enabled = kr_notify not in ("false", "0", "no") and bool(
             os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv("TELEGRAM_USER_ID")
         )
-        # 상태 보고만 별도 비활성화 (진입/청산/손절/에러는 유지)
-        self._status_enabled = os.getenv("KR_TELEGRAM_STATUS", "true").lower() == "true"
+        # KR_TELEGRAM_STATUS=false 로 5분 상태 보고만 끄기 (진입/청산/손절/에러는 유지)
+        self._status_enabled = os.getenv("KR_TELEGRAM_STATUS", "true").lower() not in ("false", "0", "no")
         if not self._enabled:
             logger.warning("텔레그램 미설정 -- 알림 비활성화")
         self._last_send_time = 0.0
