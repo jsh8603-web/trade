@@ -1,0 +1,56 @@
+{
+  "period": "2024-01-01 ~ 2024-11-30",
+  "total_candles": 2112,
+  "sim_points": 2010,
+  "price_range": {
+    "min": 53458000.0,
+    "max": 138489000.0,
+    "start": 57001000.0,
+    "end": 134077000.0
+  },
+  "fgi_range": {
+    "min": 17,
+    "max": 94,
+    "avg": 62.1
+  },
+  "macro_range": {
+    "min": -14,
+    "max": 14,
+    "avg": 0.3
+  },
+  "market_regime_distribution": {
+    "greed": 910,
+    "extreme_greed": 256,
+    "extreme_fear": 39,
+    "neutral": 243,
+    "oversold": 80,
+    "sideways": 134,
+    "overbought": 92,
+    "fear": 256
+  },
+  "macro_source": "yahoo_finance_real",
+  "external_source": "simulated (news, whale, sns)",
+  "fgi_source": "alternative.me_real",
+  "candle_source": "upbit_real",
+  "embedding": {
+    "model": "gemini-embedding-001",
+    "dim": 3072,
+    "generated": 2010,
+    "failed": 0
+  },
+  "supabase": {
+    "stored": 2010,
+    "failed": 0
+  },
+  "collection_time_sec": 12737.2,
+  "files": [
+    "candles_4h.json",
+    "macro_yahoo_raw.json",
+    "macro_daily_scores.json",
+    "fgi_historical.json",
+    "sim_data_points.json",
+    "embedding_texts.json",
+    "embedding_vectors.json",
+    "summary.json"
+  ]
+}
