@@ -35,6 +35,9 @@ data/kimchirang_state.json
 data/kimchirang_state.bak
 data/kimchirang.pid
 data/short_term.lock
+data/historical_*/
+data/backtest_v4_results.json
+data/backtest_v4_report.txt
 *.pkl
 logs/
 
