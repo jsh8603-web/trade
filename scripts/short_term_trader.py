@@ -88,8 +88,9 @@ SHORT_TERM_BUDGET = int(os.getenv("SHORT_TERM_BUDGET", "1000000"))
 SHORT_TERM_MAX_TRADE = int(os.getenv("SHORT_TERM_MAX_TRADE", "300000"))
 SHORT_TERM_MAX_DAILY = int(os.getenv("SHORT_TERM_MAX_DAILY", "20"))
 SHORT_TERM_MAX_DAILY_DRYRUN = int(os.getenv("SHORT_TERM_MAX_DAILY_DRYRUN", "40"))
-SHORT_TERM_STOP_LOSS = _auto_param("SHORT_TERM_STOP_LOSS", 0.25)
-SHORT_TERM_TAKE_PROFIT = _auto_param("SHORT_TERM_TAKE_PROFIT", 0.30)
+# v8: 실제 스캘핑에 맞는 현실적 손절/익절 (기존 25%/30%는 무손절과 동일)
+SHORT_TERM_STOP_LOSS = _auto_param("SHORT_TERM_STOP_LOSS", 0.4)    # 0.4% 손절
+SHORT_TERM_TAKE_PROFIT = _auto_param("SHORT_TERM_TAKE_PROFIT", 0.6)  # 0.6% 익절 (R:R 1:1.5)
 SHORT_TERM_MAX_HOLD_MIN = _auto_param("SHORT_TERM_MAX_HOLD_MIN", 15, int)
 COMMISSION_PCT = 0.05
 MIN_PROFIT_AFTER_FEE = COMMISSION_PCT * 2 + 0.05
@@ -97,12 +98,16 @@ MIN_PROFIT_AFTER_FEE = COMMISSION_PCT * 2 + 0.05
 # 뉴스 스캔 간격
 NEWS_SCAN_INTERVAL = 120
 
-# 급등/급락 감지 기준
-SPIKE_THRESHOLD_PCT = _auto_param("SPIKE_THRESHOLD_PCT", 0.8)
+# 급등/급락 감지 기준 — v8: 적응형 spike threshold (ATR 기반)
+SPIKE_THRESHOLD_PCT = _auto_param("SPIKE_THRESHOLD_PCT", 0.8)  # 폴백 기본값
+SPIKE_THRESHOLD_MIN = 0.5   # ATR 적응 최소값
+SPIKE_THRESHOLD_MAX = 1.0   # ATR 적응 최대값
+SPIKE_ATR_MULTIPLIER = 0.6  # ATR × 0.6 = spike threshold
 SPIKE_WINDOW_SEC = 300
 
-# 고래 감지 기준
-WHALE_THRESHOLD_KRW = _auto_param("WHALE_THRESHOLD_KRW", 200_000_000)
+# 고래 감지 기준 — v8: BTC 수량 기반 (가격 변동에 무관하게 일관된 감지)
+WHALE_THRESHOLD_KRW = _auto_param("WHALE_THRESHOLD_KRW", 200_000_000)  # 폴백
+WHALE_THRESHOLD_BTC = _auto_param("WHALE_THRESHOLD_BTC", 5.0)  # 5 BTC 기준
 WHALE_RATIO_THRESHOLD = _auto_param("WHALE_RATIO_THRESHOLD", 0.85)
 WHALE_RATIO_WINDOW_SEC = 180
 
@@ -123,7 +128,74 @@ MOMENTUM_MIN_PCT = _auto_param("MOMENTUM_MIN_PCT", 0.06)
 # ── v4 안전 필터 ─────────────────────────
 TREND_SMA_CANDLE_COUNT = 20
 NEWS_BLOCK_THRESHOLD = _auto_param("NEWS_BLOCK_THRESHOLD", -0.5)
-FGI_BLOCK_THRESHOLD = 5
+# v8: FGI 극공포 기준 상향 (5→15) + 하락장 매수 편향 제거
+FGI_BLOCK_THRESHOLD = 15
+# v8: 연속 음봉 매수 차단 (3일 연속 하락 시 신규 매수 차단)
+CONSECUTIVE_RED_CANDLE_BLOCK = 3
+# v8: 하락장 매수 제한 (SMA 하향 + FGI < 25 → 매수 2회/일)
+BEAR_MARKET_MAX_DAILY_BUYS = 2
+
+# ── v9: 레짐 기반 필터 강도 조절 ─────────────────────
+# 상승장에서 필터를 완화하여 기회를 놓치지 않도록 한다.
+# 하락장에서 필터를 강화하여 구조적 손실을 방지한다.
+# 레짐: bull(상승), bear(하락), sideways(횡보), crisis(급락)
+REGIME_FILTER_INTENSITY = {
+    "bull": {
+        "fgi_block": 5,            # 극공포만 차단 (15→5)
+        "red_candle_block": 5,     # 5연속 이상만 차단 (3→5)
+        "bear_max_daily": 10,      # 사실상 무제한 (2→10)
+        "sma_filter": False,       # SMA 필터 비활성
+        "macro_penalty": 0,        # 매크로 감산 없음
+        "momentum_min": 0.03,      # 모멘텀 완화 (0.06→0.03)
+        "buy_score_bonus": 0,      # v5.1: 매수 점수 가산 없음
+        "tp_multiplier": 1.5,      # v5.1: 익절 확대 (let winners run)
+        "sl_multiplier": 1.0,      # v5.1: 손절 기본
+    },
+    "early_bull": {
+        "fgi_block": 8,            # v5.1: bull 진입 전 완화
+        "red_candle_block": 4,     # bull보다 약간 엄격
+        "bear_max_daily": 8,       # 넉넉하게
+        "sma_filter": False,       # SMA 필터 비활성
+        "macro_penalty": 0,        # 매크로 감산 없음
+        "momentum_min": 0.04,      # 약간 완화
+        "buy_score_bonus": 0,      # v5.1: 가산 없음
+        "tp_multiplier": 1.3,      # v5.1: 익절 약간 확대
+        "sl_multiplier": 1.0,      # v5.1: 손절 기본
+    },
+    "sideways": {
+        "fgi_block": 10,           # 중간 (15→10)
+        "red_candle_block": 3,     # 기본값 유지
+        "bear_max_daily": 5,       # 약간 완화 (2→5)
+        "sma_filter": True,        # SMA 필터 활성
+        "macro_penalty": -5,       # 약한 감산
+        "momentum_min": 0.06,      # 기본값
+        "buy_score_bonus": 5,      # v5.1: 과매매 억제 +5
+        "tp_multiplier": 1.0,      # v5.1: 익절 기본
+        "sl_multiplier": 1.0,      # v5.1: 손절 기본
+    },
+    "bear": {
+        "fgi_block": 15,           # 강한 차단
+        "red_candle_block": 3,     # 기본값
+        "bear_max_daily": 2,       # 강한 제한
+        "sma_filter": True,        # SMA 필터 활성
+        "macro_penalty": -15,      # 강한 감산
+        "momentum_min": 0.08,      # 모멘텀 강화 (0.06→0.08)
+        "buy_score_bonus": 10,     # v5.1: 과매매 강한 억제 +10
+        "tp_multiplier": 1.0,      # v5.1: 익절 기본
+        "sl_multiplier": 0.7,      # v5.1: 손절 강화 (빠른 탈출)
+    },
+    "crisis": {
+        "fgi_block": 20,           # 가장 강한 차단
+        "red_candle_block": 2,     # 2연속도 차단
+        "bear_max_daily": 1,       # 거의 차단
+        "sma_filter": True,        # SMA 필터 활성
+        "macro_penalty": -20,      # 최대 감산
+        "momentum_min": 0.10,      # 매우 강한 모멘텀 요구
+        "buy_score_bonus": 15,     # v5.1: 과매매 최강 억제 +15
+        "tp_multiplier": 1.0,      # v5.1: 익절 기본
+        "sl_multiplier": 0.7,      # v5.1: 손절 강화 (빠른 탈출)
+    },
+}
 EARLY_STOP_LOSS_PCT = _auto_param("EARLY_STOP_LOSS_PCT", 0.15)
 EARLY_STOP_TIME_MIN = _auto_param("EARLY_STOP_TIME_MIN", 5, int)
 # 5. 중복 진입 방지: 같은 전략으로 동시 1포지션만 (v5: 2→1, 집중)
@@ -465,6 +537,20 @@ class ShortTermTrader:
         self._newsrang: dict = {}
         self._newsrang_update: float = 0
 
+        # v8: 적응형 파라미터
+        self._adaptive_spike_threshold: float = SPIKE_THRESHOLD_PCT
+        self._adaptive_max_hold: int = SHORT_TERM_MAX_HOLD_MIN
+        self._atr_1h: float = 0.0  # 1시간 ATR (%)
+        self._atr_24h: float = 0.0  # 24시간 ATR (%)
+        self._consecutive_red_candles: int = 0  # 연속 음봉 수
+        self._daily_buy_count: int = 0  # 당일 매수 횟수 (하락장 제한용)
+        self._whale_threshold_dynamic: float = WHALE_THRESHOLD_KRW  # 동적 고래 기준
+
+        # v9: 레짐 기반 필터 강도
+        self._market_regime: str = "sideways"  # bull / early_bull / bear / sideways / crisis
+        self._regime_filters: dict = REGIME_FILTER_INTENSITY["sideways"]
+        self._change_24h: float = 0.0  # v5.1: 24시간 변동률 (%)
+
         # 로그 노이즈 방지
         self._last_block_reason: set = set()
 
@@ -492,6 +578,17 @@ class ShortTermTrader:
                     self._market_trend = "downtrend"
                 else:
                     self._market_trend = "sideways"
+
+            # v5.1: 24h 변동률 (ticker API)
+            try:
+                rt = requests.get(
+                    f"{UPBIT_API}/ticker", params={"markets": MARKET}, timeout=5
+                )
+                if rt.ok:
+                    ticker = rt.json()[0]
+                    self._change_24h = ticker.get("signed_change_rate", 0) * 100
+            except Exception:
+                pass
 
             # RSI from 시장 데이터 수집 스크립트 (간이 계산)
             r2 = requests.get(
@@ -529,6 +626,94 @@ class ShortTermTrader:
                     self._fgi = int(r3.json()["data"][0]["value"])
             except Exception:
                 pass
+
+            # v8: ATR 계산 + 적응형 파라미터 업데이트
+            try:
+                r_4h = requests.get(
+                    f"{UPBIT_API}/candles/minutes/60",
+                    params={"market": MARKET, "count": 25},
+                    timeout=5,
+                )
+                if r_4h.ok:
+                    candles_1h = r_4h.json()
+                    if len(candles_1h) >= 2:
+                        # ATR 계산 (1h 캔들 기준)
+                        atr_vals = []
+                        for c in candles_1h:
+                            tr = (c["high_price"] - c["low_price"]) / c["low_price"] * 100
+                            atr_vals.append(tr)
+                        self._atr_1h = sum(atr_vals) / len(atr_vals) if atr_vals else 1.0
+                        # 24h ATR = 최근 24개 1h 캔들의 평균
+                        recent_24 = atr_vals[:24]
+                        self._atr_24h = sum(recent_24) / len(recent_24) if recent_24 else 1.0
+
+                        # 적응형 spike threshold: ATR × 0.6, 범위 [0.5, 1.0]
+                        self._adaptive_spike_threshold = max(
+                            SPIKE_THRESHOLD_MIN,
+                            min(SPIKE_THRESHOLD_MAX, self._atr_24h * SPIKE_ATR_MULTIPLIER)
+                        )
+
+                        # 적응형 max_hold: 고변동→10분, 저변동→20분
+                        if self._atr_1h > 1.5:
+                            self._adaptive_max_hold = 10
+                        elif self._atr_1h > 0.8:
+                            self._adaptive_max_hold = 15
+                        else:
+                            self._adaptive_max_hold = 20
+
+                        # 연속 음봉 계산 (1h 캔들 기준)
+                        red_count = 0
+                        for c in candles_1h:
+                            if c["trade_price"] < c["opening_price"]:
+                                red_count += 1
+                            else:
+                                break
+                        self._consecutive_red_candles = red_count
+
+                        # 동적 고래 기준: BTC 수량 기반
+                        if self.current_price > 0:
+                            self._whale_threshold_dynamic = WHALE_THRESHOLD_BTC * self.current_price
+
+                        # v5.1: 레짐 판별 (Bull 조기 감지 + early_bull + 모멘텀)
+                        old_regime = self._market_regime
+                        sma_dev = ((self.current_price - self._sma20) / self._sma20 * 100) if self._sma20 > 0 else 0
+
+                        # 1) bull: SMA 상향 + FGI 30 이상 (v5의 40→30 완화)
+                        if self._market_trend == "uptrend" and self._fgi >= 30:
+                            self._market_regime = "bull"
+                        # 2) bull 모멘텀 대안: SMA 근접 상향 + 24h +2%
+                        elif sma_dev > 0.3 and self._change_24h >= 2.0:
+                            self._market_regime = "bull"
+                        # 3) early_bull: SMA 전환 초기 + FGI 25+ + 하락 아님
+                        elif sma_dev > 0 and self._fgi >= 25 and self._change_24h >= 0:
+                            self._market_regime = "early_bull"
+                        elif (self._market_trend == "downtrend" and self._fgi <= 20
+                              and self._atr_1h > 2.0):
+                            self._market_regime = "crisis"
+                        elif self._market_trend == "downtrend" and self._fgi <= 35:
+                            self._market_regime = "bear"
+                        else:
+                            self._market_regime = "sideways"
+
+                        self._regime_filters = REGIME_FILTER_INTENSITY.get(
+                            self._market_regime, REGIME_FILTER_INTENSITY["sideways"]
+                        )
+
+                        if old_regime != self._market_regime:
+                            log.info(
+                                f"[v9 레짐 전환] {old_regime} → {self._market_regime} "
+                                f"(FGI={self._fgi}, trend={self._market_trend}, ATR={self._atr_1h:.2f}%)"
+                            )
+
+                        log.debug(
+                            f"[v8 적응형] ATR_1h={self._atr_1h:.3f}% ATR_24h={self._atr_24h:.3f}% "
+                            f"spike={self._adaptive_spike_threshold:.3f}% hold={self._adaptive_max_hold}min "
+                            f"red_candles={self._consecutive_red_candles} "
+                            f"whale={self._whale_threshold_dynamic/1e8:.1f}억 "
+                            f"regime={self._market_regime}"
+                        )
+            except Exception as e:
+                log.debug(f"ATR/적응형 업데이트 실패: {e}")
 
         except Exception as e:
             log.debug(f"시장 컨텍스트 업데이트 실패: {e}")
@@ -622,6 +807,18 @@ class ShortTermTrader:
         if signal.action != "buy":
             return True, "OK"
 
+        # v5.1: 레짐별 과매매 억제 (confidence 최소 기준 가산)
+        rf = self._regime_filters
+        bonus = rf.get("buy_score_bonus", 0)
+        if bonus > 0:
+            # bonus를 confidence로 환산: +5 → +0.05, +10 → +0.10, +15 → +0.15
+            min_confidence = 0.55 + bonus * 0.01
+            if signal.confidence < min_confidence:
+                return False, (
+                    f"v5.1 과매매 억제: confidence {signal.confidence:.2f} < "
+                    f"{min_confidence:.2f} (regime={self._market_regime}, +{bonus})"
+                )
+
         # 필터 1: 하락 추세에서 whale 매수 차단
         if signal.strategy == "whale" and self._market_trend == "downtrend":
             return False, f"하락추세(SMA20 {self._sma20:,.0f} > 현재가) whale 매수 차단"
@@ -630,9 +827,30 @@ class ShortTermTrader:
         if self.news_sentiment_score <= NEWS_BLOCK_THRESHOLD:
             return False, f"뉴스 부정적(score {self.news_sentiment_score:+.2f}) 매수 차단"
 
-        # 필터 3: 극공포(FGI ≤ 15) 시 매수 차단
-        if self._fgi <= FGI_BLOCK_THRESHOLD:
-            return False, f"극공포(FGI {self._fgi}) 매수 차단"
+        # v9: 레짐별 필터 강도 적용
+        rf = self._regime_filters
+
+        # 필터 3: 극공포 FGI 차단 (레짐별 기준)
+        fgi_block = rf.get("fgi_block", FGI_BLOCK_THRESHOLD)
+        if self._fgi <= fgi_block:
+            return False, f"극공포(FGI {self._fgi} ≤ {fgi_block}, regime={self._market_regime}) 매수 차단"
+
+        # v8 필터 8: 연속 음봉 매수 차단 (레짐별 기준)
+        red_block = rf.get("red_candle_block", CONSECUTIVE_RED_CANDLE_BLOCK)
+        if self._consecutive_red_candles >= red_block:
+            return False, f"연속 음봉 {self._consecutive_red_candles}개 ≥ {red_block} (regime={self._market_regime}) — 매수 차단"
+
+        # v8 필터 9: 하락장 매수 제한 (레짐별 기준)
+        bear_max = rf.get("bear_max_daily", BEAR_MARKET_MAX_DAILY_BUYS)
+        if (self._market_trend == "downtrend" and self._fgi < 25
+                and self._daily_buy_count >= bear_max):
+            return False, f"하락장 매수 제한 (FGI {self._fgi}, 매수 {self._daily_buy_count}/{bear_max}, regime={self._market_regime})"
+
+        # v8 필터 10: SMA 하향 돌파 (레짐에 따라 비활성화 가능)
+        if rf.get("sma_filter", True):
+            if self.current_price < self._sma20 * 0.99 and self._market_trend == "downtrend":
+                if signal.confidence < 0.7:
+                    return False, f"SMA 하향 돌파({self.current_price:,.0f} < SMA×0.99) + 낮은 신뢰도 — 매수 차단 (regime={self._market_regime})"
 
         # 필터 4: 같은 전략 중복 진입 방지
         same_strategy_count = sum(
@@ -844,8 +1062,9 @@ class ShortTermTrader:
                             }
                             self.trade_history.append(trade)
 
-                            # 고래 감지
-                            if trade["krw"] >= WHALE_THRESHOLD_KRW:
+                            # 고래 감지 — v8: 동적 BTC 수량 기반
+                            whale_threshold = self._whale_threshold_dynamic if self._whale_threshold_dynamic > 0 else WHALE_THRESHOLD_KRW
+                            if trade["krw"] >= whale_threshold:
                                 self.whale_recent.append(trade)
                                 side_kr = '매수' if trade['side'] == 'BID' else '매도'
                                 log.info(
@@ -1102,9 +1321,10 @@ class ShortTermTrader:
         low = min(window_prices)
         current = self.current_price
 
-        # 급락 후 리바운드 감지
+        # 급락 후 리바운드 감지 — v8: 적응형 threshold
+        spike_th = self._adaptive_spike_threshold
         drop_pct = (high - low) / high * 100
-        if drop_pct >= SPIKE_THRESHOLD_PCT:
+        if drop_pct >= spike_th:
             # 바닥에서 반등 시작 확인 (최저점 대비 0.2% 이상 회복)
             recovery = (current - low) / low * 100
             if recovery >= 0.2 and current < high * 0.998:
@@ -1124,7 +1344,7 @@ class ShortTermTrader:
 
         # 급등 후 되돌림 감지 (보유 중일 때 매도 시그널)
         surge_pct = (high - low) / low * 100
-        if surge_pct >= SPIKE_THRESHOLD_PCT:
+        if surge_pct >= spike_th:
             pullback = (high - current) / high * 100
             if pullback >= 0.2 and current > low * 1.002:
                 buy_vol, sell_vol = self._get_recent_trade_volumes(now)
@@ -1462,6 +1682,11 @@ class ShortTermTrader:
             finally:
                 release_lock()
 
+        # v5.1: 레짐별 tp/sl 배율 적용
+        rf = self._regime_filters
+        tp_mult = rf.get("tp_multiplier", 1.0)
+        sl_mult = rf.get("sl_multiplier", 1.0)
+
         pos = Position(
             strategy=signal.strategy,
             side="bid",
@@ -1469,12 +1694,16 @@ class ShortTermTrader:
             amount_krw=amount,
             btc_qty=btc_qty,
             entry_time=datetime.now(KST),
+            max_hold_min=self._adaptive_max_hold,  # v8: 동적 보유 시간
+            take_profit_pct=SHORT_TERM_TAKE_PROFIT * tp_mult,  # v5.1: bull 1.5x
+            stop_loss_pct=SHORT_TERM_STOP_LOSS * sl_mult,      # v5.1: bear 0.7x
         )
         # v4: 기록용 메타데이터
         pos._signal_reason = signal.reason
         pos._confidence = round(signal.confidence, 2)
         self.positions.append(pos)
         self.daily_trade_count += 1
+        self._daily_buy_count += 1  # v8: 하락장 매수 제한 카운터
         self.used_budget += amount
 
         # DB 기록: entry 시에는 기록하지 않음 (exit 시 완전한 1건으로 기록)

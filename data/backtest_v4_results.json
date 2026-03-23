@@ -1,0 +1,140 @@
+{
+  "period": "2022-01-01 ~ 2026-03-23",
+  "sim_points": 9254,
+  "btc_bnh_roi": 75.68,
+  "v2": {
+    "label": "v2 (기존)",
+    "final_eval": 658596,
+    "roi": -34.14,
+    "mdd": 48.76,
+    "total_trades": 1689,
+    "buys": 1577,
+    "sells": 112,
+    "holds": 7565,
+    "win_rate": 50.0,
+    "wins": 56,
+    "losses": 56,
+    "switches": 109,
+    "blocked": 0
+  },
+  "v4": {
+    "label": "v4 (고정필터)",
+    "final_eval": 713081,
+    "roi": -28.69,
+    "mdd": 45.34,
+    "total_trades": 1222,
+    "buys": 1127,
+    "sells": 95,
+    "holds": 8032,
+    "win_rate": 47.4,
+    "wins": 45,
+    "losses": 50,
+    "switches": 143,
+    "blocked": 305
+  },
+  "v5": {
+    "label": "v5 (레짐적응)",
+    "final_eval": 885333,
+    "roi": -11.47,
+    "mdd": 40.03,
+    "total_trades": 1206,
+    "buys": 1116,
+    "sells": 90,
+    "holds": 8048,
+    "win_rate": 48.9,
+    "wins": 44,
+    "losses": 46,
+    "switches": 156,
+    "blocked": 559
+  },
+  "v5.1": {
+    "label": "v5.1 (Bull강화)",
+    "final_eval": 905454,
+    "roi": -9.45,
+    "mdd": 36.54,
+    "total_trades": 1095,
+    "buys": 1001,
+    "sells": 94,
+    "holds": 8159,
+    "win_rate": 44.7,
+    "wins": 42,
+    "losses": 52,
+    "switches": 136,
+    "blocked": 1082
+  },
+  "diff_v5_v51": 773,
+  "roi_v51_vs_v2": 24.69,
+  "roi_v51_vs_v5": 2.02,
+  "mdd_v51_vs_v2": 12.22,
+  "regime_distribution_v5": {
+    "bull": 2403,
+    "bear": 1228,
+    "sideways": 5558,
+    "crisis": 65
+  },
+  "regime_distribution_v51": {
+    "bull": 2968,
+    "early_bull": 825,
+    "bear": 1228,
+    "sideways": 4168,
+    "crisis": 65
+  },
+  "yearly_comparison": {
+    "2022": {
+      "v2_buys": 537,
+      "v5_buys": 430,
+      "v51_buys": 386,
+      "v2_sells": 31,
+      "v5_sells": 24,
+      "v51_sells": 27,
+      "v2_eval": 521794.66694720055,
+      "v5_eval": 608853.3672525734,
+      "v51_eval": 672964.7776436905
+    },
+    "2023": {
+      "v2_buys": 213,
+      "v5_buys": 177,
+      "v51_buys": 156,
+      "v2_sells": 17,
+      "v5_sells": 14,
+      "v51_sells": 14,
+      "v2_eval": 805748.437917201,
+      "v5_eval": 873192.3821965265,
+      "v51_eval": 1068750.9026265198
+    },
+    "2024": {
+      "v2_buys": 379,
+      "v5_buys": 229,
+      "v51_buys": 190,
+      "v2_sells": 34,
+      "v5_sells": 29,
+      "v51_sells": 31,
+      "v2_eval": 1024368.0218511362,
+      "v5_eval": 1170054.2009466696,
+      "v51_eval": 1267134.226310601
+    },
+    "2025": {
+      "v2_buys": 349,
+      "v5_buys": 242,
+      "v51_buys": 200,
+      "v2_sells": 24,
+      "v5_sells": 18,
+      "v51_sells": 16,
+      "v2_eval": 725843.7519241571,
+      "v5_eval": 966432.7021913395,
+      "v51_eval": 1038221.6370350755
+    },
+    "2026": {
+      "v2_buys": 99,
+      "v5_buys": 38,
+      "v51_buys": 69,
+      "v2_sells": 6,
+      "v5_sells": 5,
+      "v51_sells": 6,
+      "v2_eval": 658596.4149615299,
+      "v5_eval": 885332.8121565674,
+      "v51_eval": 905453.5943985516
+    }
+  },
+  "elapsed_sec": 16.5
+}
