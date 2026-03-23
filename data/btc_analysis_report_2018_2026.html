@@ -6,86 +6,69 @@
 <title>BTC/KRW 종합 분석 리포트 2018-2026</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#c9d1d9;--text2:#8b949e;--accent:#58a6ff;--green:#3fb950;--red:#f85149;--orange:#d29922;--purple:#bc8cff;--cyan:#39d2c0}
+/* ═══ Apple-Inspired White Clean Theme ═══ */
+:root{--bg:#ffffff;--bg2:#f5f5f7;--card:#ffffff;--border:#d2d2d7;--border-light:#e8e8ed;--text:#1d1d1f;--text2:#6e6e73;--text3:#86868b;--accent:#0071e3;--green:#34c759;--red:#ff3b30;--orange:#ff9500;--purple:#af52de;--cyan:#32ade6;--pink:#ff2d55;--indigo:#5856d6;--teal:#5ac8fa;--yellow:#ffcc00}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
-.container{max-width:1400px;margin:0 auto;padding:20px}
-h1{font-size:2.2em;background:linear-gradient(135deg,#f0b90b,#f85149,#58a6ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin:30px 0 10px}
-h2{font-size:1.6em;color:var(--accent);margin:40px 0 20px;padding-bottom:10px;border-bottom:2px solid var(--border)}
-h3{font-size:1.2em;color:var(--purple);margin:25px 0 15px}
-.subtitle{text-align:center;color:var(--text2);font-size:1.1em;margin-bottom:40px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin:20px 0}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
-.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}
-.stat-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center}
-.stat-box .label{color:var(--text2);font-size:0.85em;margin-bottom:5px}
-.stat-box .value{font-size:1.8em;font-weight:700}
-.stat-box .sub{color:var(--text2);font-size:0.8em;margin-top:3px}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+.container{max-width:1120px;margin:0 auto;padding:40px 24px}
+h1{font-size:3em;font-weight:800;letter-spacing:-0.03em;text-align:center;margin:60px 0 16px;background:linear-gradient(135deg,#0071e3,#af52de,#ff2d55);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+h2{font-size:2em;font-weight:700;color:var(--text);margin:72px 0 28px;padding-bottom:0;border-bottom:none;letter-spacing:-0.02em}
+h3{font-size:1.3em;font-weight:600;color:var(--text);margin:28px 0 16px;letter-spacing:-0.01em}
+.subtitle{text-align:center;color:var(--text2);font-size:1.15em;margin-bottom:56px;font-weight:400;letter-spacing:0.01em}
+.card{background:var(--card);border:none;border-radius:20px;padding:32px;margin:24px 0;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 4px 24px rgba(0,0,0,0.06)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stat-box{background:var(--bg2);border:none;border-radius:16px;padding:24px;text-align:center;transition:transform 0.25s ease,box-shadow 0.25s ease}
+.stat-box:hover{transform:translateY(-4px);box-shadow:0 8px 30px rgba(0,0,0,0.08)}
+.stat-box .label{color:var(--text2);font-size:0.85em;margin-bottom:6px;font-weight:500}
+.stat-box .value{font-size:2em;font-weight:800;letter-spacing:-0.02em}
+.stat-box .sub{color:var(--text3);font-size:0.8em;margin-top:4px;font-weight:400}
 .pos{color:var(--green)}.neg{color:var(--red)}.neutral{color:var(--orange)}
-table{width:100%;border-collapse:collapse;margin:15px 0}
-th,td{padding:10px 14px;text-align:right;border-bottom:1px solid var(--border);font-size:0.9em}
-th{background:rgba(88,166,255,0.1);color:var(--accent);font-weight:600;position:sticky;top:0}
+table{width:100%;border-collapse:collapse;margin:16px 0}
+th,td{padding:14px 18px;text-align:right;border-bottom:1px solid var(--border-light);font-size:0.9em}
+th{background:var(--bg2);color:var(--text2);font-weight:600;position:sticky;top:0;text-transform:uppercase;font-size:0.78em;letter-spacing:0.05em}
 td:first-child,th:first-child{text-align:left}
-tr:hover td{background:rgba(88,166,255,0.05)}
-.chart-container{position:relative;height:400px;margin:20px 0}
-.chart-sm{height:300px}
-.tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.8em;font-weight:600}
-.tag-bull{background:rgba(63,185,80,0.2);color:var(--green)}
-.tag-bear{background:rgba(248,81,73,0.2);color:var(--red)}
-.tag-side{background:rgba(210,153,34,0.2);color:var(--orange)}
-.tag-crisis{background:rgba(248,81,73,0.4);color:#ff6b6b}
-.halving-box{border-left:4px solid #f0b90b;padding:15px 20px;margin:15px 0;background:rgba(240,185,11,0.05);border-radius:0 8px 8px 0}
-.insight-box{border-left:4px solid var(--accent);padding:15px 20px;margin:15px 0;background:rgba(88,166,255,0.05);border-radius:0 8px 8px 0}
-.warn-box{border-left:4px solid var(--red);padding:15px 20px;margin:15px 0;background:rgba(248,81,73,0.05);border-radius:0 8px 8px 0}
-.toc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin:30px 0}
-.toc a{color:var(--accent);text-decoration:none;display:block;padding:4px 0}
-.toc a:hover{text-decoration:underline}
-.toc-section{margin:10px 0;padding-left:20px}
-.divider{height:2px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:50px 0}
-.footer{text-align:center;color:var(--text2);margin:40px 0;font-size:0.85em}
-@media(max-width:900px){.grid2,.grid3,.grid4{grid-template-columns:1fr}.stat-box .value{font-size:1.4em}}
-.era-label{position:absolute;top:10px;font-size:11px;color:var(--text2);writing-mode:vertical-rl}
-/* ── Enhanced Styles ── */
-.chart-container{height:420px}
-.chart-lg{height:500px}
-h2{font-size:1.7em;margin:50px 0 25px;letter-spacing:-0.5px}
-h3{font-size:1.25em;margin:28px 0 18px}
-.card{padding:28px;margin:24px 0;box-shadow:0 4px 20px rgba(0,0,0,0.3)}
-.stat-box{padding:22px;box-shadow:0 2px 12px rgba(0,0,0,0.2);transition:transform 0.2s}
-.stat-box:hover{transform:translateY(-3px)}
-table{font-size:0.92em}
-th,td{padding:12px 16px}
-.toc{padding:30px 36px;box-shadow:0 4px 24px rgba(0,0,0,0.3)}
-.toc a{padding:6px 0;font-size:1.05em;transition:color 0.2s}
-.toc a:hover{color:#f0b90b}
-.toc-section{margin:12px 0;padding-left:24px}
-.toc-section strong{font-size:1.15em;color:var(--accent)}
-.part-header{text-align:center;border:none;font-size:2em;letter-spacing:-1px;margin:30px 0}
+tr:hover td{background:rgba(0,113,227,0.03)}
+.chart-container{position:relative;height:420px;margin:24px 0}
+.chart-sm{height:320px}
+.tag{display:inline-block;padding:4px 12px;border-radius:20px;font-size:0.78em;font-weight:600}
+.tag-bull{background:rgba(52,199,89,0.12);color:var(--green)}
+.tag-bear{background:rgba(255,59,48,0.1);color:var(--red)}
+.tag-side{background:rgba(255,149,0,0.12);color:var(--orange)}
+.tag-crisis{background:rgba(255,45,85,0.12);color:var(--pink)}
+.halving-box{border-left:4px solid var(--orange);padding:20px 24px;margin:16px 0;background:rgba(255,149,0,0.04);border-radius:0 16px 16px 0}
+.insight-box{border-left:4px solid var(--accent);padding:20px 24px;margin:16px 0;background:rgba(0,113,227,0.03);border-radius:0 16px 16px 0}
+.warn-box{border-left:4px solid var(--red);padding:20px 24px;margin:16px 0;background:rgba(255,59,48,0.03);border-radius:0 16px 16px 0}
+.toc{background:var(--bg2);border:none;border-radius:20px;padding:36px 40px;margin:40px 0;box-shadow:none}
+.toc a{color:var(--accent);text-decoration:none;display:block;padding:7px 0;font-weight:500;font-size:1.05em;transition:all 0.2s}
+.toc a:hover{color:var(--purple);transform:translateX(4px)}
+.toc-section{margin:14px 0;padding-left:24px}
+.toc-section strong{font-size:1.15em;color:var(--text)}
+.divider{height:1px;background:var(--border-light);margin:72px 0}
+.footer{text-align:center;color:var(--text3);margin:64px 0 40px;font-size:0.88em;line-height:2}
+@media(max-width:900px){.grid2,.grid3,.grid4{grid-template-columns:1fr}.stat-box .value{font-size:1.5em}.container{padding:20px 16px}h1{font-size:2.2em}h2{font-size:1.5em;margin:48px 0 20px}}
+.era-label{position:absolute;top:10px;font-size:11px;color:var(--text3);writing-mode:vertical-rl}
+/* Part header */
+.part-header{text-align:center;border:none;font-size:2.4em;letter-spacing:-0.03em;margin:24px 0;font-weight:800}
 /* Progress bar */
-.progress-bar{background:var(--border);border-radius:10px;height:22px;overflow:hidden;margin:6px 0}
-.progress-fill{height:100%;border-radius:10px;display:flex;align-items:center;padding:0 10px;font-size:0.75em;font-weight:700;color:#000;min-width:40px}
-/* Heatmap */
-.heatmap{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin:15px 0}
-.heatmap-cell{aspect-ratio:1.2;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;font-size:0.75em;font-weight:600;transition:transform 0.2s}
-.heatmap-cell:hover{transform:scale(1.15);z-index:1}
-.heatmap-label{font-size:0.7em;color:var(--text2);margin-bottom:2px}
+.progress-bar{background:var(--border-light);border-radius:12px;height:24px;overflow:hidden;margin:8px 0}
+.progress-fill{height:100%;border-radius:12px;display:flex;align-items:center;padding:0 12px;font-size:0.75em;font-weight:700;color:#fff;min-width:40px}
 /* Gauge */
-.gauge-container{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin:20px 0}
+.gauge-container{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin:24px 0}
 .gauge{text-align:center;width:140px}
-.gauge-ring{width:120px;height:120px;border-radius:50%;position:relative;margin:0 auto 10px}
-.gauge-inner{width:80px;height:80px;border-radius:50%;background:var(--card);position:absolute;top:20px;left:20px;display:flex;align-items:center;justify-content:center;font-size:1.3em;font-weight:800}
-.gauge-label{font-size:0.85em;color:var(--text2)}
+.gauge-ring{width:120px;height:120px;border-radius:50%;position:relative;margin:0 auto 12px}
+.gauge-inner{width:76px;height:76px;border-radius:50%;background:#fff;position:absolute;top:22px;left:22px;display:flex;align-items:center;justify-content:center;font-size:1.3em;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.gauge-label{font-size:0.85em;color:var(--text2);font-weight:500}
 /* Bubble */
-.bubble-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin:20px 0}
-.bubble{border-radius:16px;padding:18px;text-align:center;border:1px solid var(--border)}
-.bubble .big{font-size:2.2em;font-weight:800;line-height:1.2}
-.bubble .desc{font-size:0.82em;color:var(--text2);margin-top:6px}
-/* Mini sparkline area */
-.mini-chart{height:60px;width:100%;margin-top:8px}
+.bubble-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:24px 0}
+.bubble{border-radius:20px;padding:24px 18px;text-align:center;border:none;background:var(--bg2);transition:transform 0.25s ease,box-shadow 0.25s ease}
+.bubble:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(0,0,0,0.08)}
+.bubble .big{font-size:2.4em;font-weight:800;line-height:1.2;letter-spacing:-0.02em}
+.bubble .desc{font-size:0.82em;color:var(--text2);margin-top:8px;font-weight:400}
 /* Rank badge */
 .rank{display:inline-flex;width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;font-weight:800;font-size:0.85em;margin-right:6px}
-.rank-1{background:#f0b90b;color:#000}.rank-2{background:#c0c0c0;color:#000}.rank-3{background:#cd7f32;color:#000}
+.rank-1{background:linear-gradient(135deg,#ffcc00,#ff9500);color:#fff}.rank-2{background:#d2d2d7;color:#fff}.rank-3{background:#b08d57;color:#fff}
 </style>
 </head>
 <body>
@@ -93,16 +76,14 @@ th,td{padding:12px 16px}
 
 <h1>Bitcoin/KRW 종합 분석 리포트</h1>
 <p class="subtitle">2018.01 ~ 2026.03 | 8년 전체 시장 분석 + 매매 시스템 진단<br>
-<span style="color:var(--text2)">Generated: 2026-03-23 | Data: 17,019 simulation points across 8 years</span></p>
+<span style="color:var(--text3)">Generated: 2026-03-23 | Data: 17,019 simulation points across 8 years</span></p>
 
 <!-- TOC -->
-<div class="toc" style="background:linear-gradient(135deg,var(--card),rgba(88,166,255,0.03));border-color:var(--accent)">
-<h3 style="color:var(--accent);margin-top:0;font-size:1.4em;display:flex;align-items:center;gap:10px">
-<span style="font-size:1.3em">&#x1F4D1;</span> 목차 — Table of Contents
-</h3>
+<div class="toc">
+<h3 style="color:var(--text);margin-top:0;font-size:1.4em">목차 — Table of Contents</h3>
 <div class="grid2" style="margin-top:15px">
 <div class="toc-section" style="border-right:1px solid var(--border);padding-right:20px">
-<strong style="display:block;margin-bottom:10px;font-size:1.2em">Part I. 비트코인 시장 분석</strong>
+<strong style="display:block;margin-bottom:10px;font-size:1.15em;color:var(--accent)">Part I. 비트코인 시장 분석</strong>
 <a href="#s1"><span style="color:var(--text2);margin-right:4px">01</span> 8년 가격 흐름과 주요 이벤트</a>
 <a href="#s2"><span style="color:var(--text2);margin-right:4px">02</span> 반감기(Halving) 사이클 분석</a>
 <a href="#s3"><span style="color:var(--text2);margin-right:4px">03</span> 매크로 경제와 BTC 상관관계</a>
@@ -111,7 +92,7 @@ th,td{padding:12px 16px}
 <a href="#s6"><span style="color:var(--text2);margin-right:4px">06</span> 월별 시즌널리티 분석</a>
 </div>
 <div class="toc-section">
-<strong style="display:block;margin-bottom:10px;font-size:1.2em">Part II. 매매 시스템 분석</strong>
+<strong style="display:block;margin-bottom:10px;font-size:1.15em;color:var(--purple)">Part II. 매매 시스템 분석</strong>
 <a href="#s7"><span style="color:var(--text2);margin-right:4px">07</span> 백테스트 전략 비교 (v2→v5.1)</a>
 <a href="#s8"><span style="color:var(--text2);margin-right:4px">08</span> 레짐별 매매 성과 분석</a>
 <a href="#s9"><span style="color:var(--text2);margin-right:4px">09</span> 에이전트 전환 분석</a>
@@ -128,13 +109,13 @@ th,td{padding:12px 16px}
 <!-- ═══════════════════════════════════════════ -->
 
 <div class="divider"></div>
-<h2 class="part-header" style="background:linear-gradient(135deg,#f0b90b,#f85149);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Part I. 비트코인 시장 분석</h2>
+<h2 class="part-header" style="background:linear-gradient(135deg,#0071e3,#5856d6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Part I. 비트코인 시장 분석</h2>
 
 <!-- Section 1: Price History -->
 <h2 id="s1">1. 8년 가격 흐름과 주요 이벤트 (2018-2026)</h2>
 
 <div class="grid4">
-<div class="stat-box"><div class="label">전체 기간</div><div class="value" style="font-size:1.4em;color:var(--accent)">8년 3개월</div><div class="sub">2018.01 ~ 2026.03</div></div>
+<div class="stat-box"><div class="label">전체 기간</div><div class="value" style="font-size:1.4em;color:var(--indigo)">8년 3개월</div><div class="sub">2018.01 ~ 2026.03</div></div>
 <div class="stat-box"><div class="label">최저가 (2018.12)</div><div class="value neg">357만</div><div class="sub">버블 붕괴 바닥</div></div>
 <div class="stat-box"><div class="label">최고가 (2024.11)</div><div class="value pos">1억3,849만</div><div class="sub">BTC ETF + 반감기 효과</div></div>
 <div class="stat-box"><div class="label">8년 수익률</div><div class="value pos">+456%</div><div class="sub">1,909만→1억584만</div></div>
@@ -190,7 +171,7 @@ th,td{padding:12px 16px}
 <tr><td style="color:var(--orange)">1차</td><td>2012.11.28</td><td>210,000</td><td>50→<b>25</b></td><td>$2</td><td>$1,163</td><td class="pos">+58,050%</td><td>~12개월</td></tr>
 <tr><td style="color:var(--orange)">2차</td><td>2016.07.09</td><td>420,000</td><td>25→<b>12.5</b></td><td>$164</td><td>$19,783</td><td class="pos">+11,963%</td><td>~17개월</td></tr>
 <tr><td style="color:var(--orange)">3차</td><td>2020.05.11</td><td>630,000</td><td>12.5→<b>6.25</b></td><td>$3,850</td><td>$69,000</td><td class="pos">+1,692%</td><td>~18개월</td></tr>
-<tr><td style="color:#f0b90b;font-weight:bold">4차</td><td>2024.04.20</td><td>840,000</td><td>6.25→<b>3.125</b></td><td>$15,500</td><td>$108,000*</td><td class="pos">+597%*</td><td>진행중</td></tr>
+<tr><td style="color:var(--orange);font-weight:bold">4차</td><td>2024.04.20</td><td>840,000</td><td>6.25→<b>3.125</b></td><td>$15,500</td><td>$108,000*</td><td class="pos">+597%*</td><td>진행중</td></tr>
 <tr><td style="color:var(--text2)">5차 (예정)</td><td>~2028.04</td><td>1,050,000</td><td>3.125→<b>1.5625</b></td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
 </table>
 <p style="color:var(--text2);font-size:0.85em;margin-top:10px">* 4차 반감기 사이클은 현재 진행 중. 고점은 아직 확정되지 않음.</p>
@@ -198,7 +179,7 @@ th,td{padding:12px 16px}
 
 <div class="grid2">
 <div class="halving-box">
-<h3 style="color:#f0b90b;margin-top:0">반감기 패턴: 수확 체감의 법칙</h3>
+<h3 style="color:var(--orange);margin-top:0">반감기 패턴: 수확 체감의 법칙</h3>
 <p>매 반감기마다 상승률이 감소하는 추세:</p>
 <ul style="margin:10px 0;padding-left:20px">
 <li>1차: +58,050% (초기 시장, 극소 시가총액)</li>
@@ -209,7 +190,7 @@ th,td{padding:12px 16px}
 <p style="color:var(--text2)">시가총액이 커지면서 같은 % 상승에 필요한 자본이 기하급수적으로 증가하기 때문.</p>
 </div>
 <div class="halving-box">
-<h3 style="color:#f0b90b;margin-top:0">4년 사이클 패턴</h3>
+<h3 style="color:var(--orange);margin-top:0">4년 사이클 패턴</h3>
 <p>반감기 기준 4년 사이클의 전형적 구조:</p>
 <ul style="margin:10px 0;padding-left:20px">
 <li><b>Year 1</b> (반감기 해): 서서히 상승, 축적기</li>
@@ -455,7 +436,7 @@ th,td{padding:12px 16px}
 <!-- ═══════════════════════════════════════════ -->
 
 <div class="divider"></div>
-<h2 class="part-header" style="background:linear-gradient(135deg,#58a6ff,#39d2c0);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Part II. 매매 시스템 분석</h2>
+<h2 class="part-header" style="background:linear-gradient(135deg,#af52de,#ff2d55);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Part II. 매매 시스템 분석</h2>
 
 <!-- Section 7: Backtest -->
 <h2 id="s7">7. 백테스트 전략 비교 (v2→v5.1)</h2>
@@ -464,7 +445,7 @@ th,td{padding:12px 16px}
 <div class="stat-box"><div class="label">v2 (기존)</div><div class="value neg">-34.1%</div><div class="sub">MDD 48.8%</div></div>
 <div class="stat-box"><div class="label">v4 (고정필터)</div><div class="value neg">-28.7%</div><div class="sub">MDD 45.3%</div></div>
 <div class="stat-box"><div class="label">v5 (레짐적응)</div><div class="value neg">-11.5%</div><div class="sub">MDD 40.0%</div></div>
-<div class="stat-box"><div class="label">v5.1 (Bull강화)</div><div class="value" style="color:var(--cyan)">-9.5%</div><div class="sub">MDD 36.5%</div></div>
+<div class="stat-box"><div class="label">v5.1 (Bull강화)</div><div class="value" style="color:var(--indigo)">-9.5%</div><div class="sub">MDD 36.5%</div></div>
 </div>
 
 <div class="card">
@@ -475,9 +456,9 @@ th,td{padding:12px 16px}
 <h3>전략별 상세 비교 (2022-2026, 초기 100만원)</h3>
 <table>
 <tr><th>지표</th><th>v2 기존</th><th>v4 고정필터</th><th>v5 레짐적응</th><th>v5.1 Bull강화</th><th>BTC B&H</th></tr>
-<tr><td>최종 평가액</td><td>658,596</td><td>713,081</td><td>885,333</td><td style="color:var(--cyan)"><b>905,454</b></td><td style="color:var(--green)">1,756,800</td></tr>
-<tr><td>ROI</td><td class="neg">-34.1%</td><td class="neg">-28.7%</td><td class="neg">-11.5%</td><td style="color:var(--cyan)">-9.5%</td><td class="pos">+75.7%</td></tr>
-<tr><td>MDD</td><td class="neg">48.8%</td><td class="neg">45.3%</td><td>40.0%</td><td style="color:var(--cyan)">36.5%</td><td>-</td></tr>
+<tr><td>최종 평가액</td><td>658,596</td><td>713,081</td><td>885,333</td><td style="color:var(--indigo)"><b>905,454</b></td><td style="color:var(--green)">1,756,800</td></tr>
+<tr><td>ROI</td><td class="neg">-34.1%</td><td class="neg">-28.7%</td><td class="neg">-11.5%</td><td style="color:var(--indigo)">-9.5%</td><td class="pos">+75.7%</td></tr>
+<tr><td>MDD</td><td class="neg">48.8%</td><td class="neg">45.3%</td><td>40.0%</td><td style="color:var(--indigo)">36.5%</td><td>-</td></tr>
 <tr><td>총 매수</td><td>1,577</td><td>1,127</td><td>1,116</td><td>1,001</td><td>1</td></tr>
 <tr><td>총 매도</td><td>112</td><td>95</td><td>90</td><td>94</td><td>0</td></tr>
 <tr><td>필터 차단</td><td>0</td><td>305</td><td>559</td><td>1,082</td><td>-</td></tr>
@@ -498,15 +479,15 @@ th,td{padding:12px 16px}
 <div style="display:grid;gap:16px">
 <div>
 <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>ROI 개선</span><span class="pos">-34.1% → -9.5% (+24.6%p)</span></div>
-<div class="progress-bar"><div class="progress-fill" style="width:72%;background:linear-gradient(90deg,#f85149,#d29922,#39d2c0)">72%</div></div>
+<div class="progress-bar"><div class="progress-fill" style="width:72%;background:linear-gradient(90deg,#ff3b30,#ff9500,#34c759)">72%</div></div>
 </div>
 <div>
 <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>MDD 개선</span><span class="pos">48.8% → 36.5% (-12.3%p)</span></div>
-<div class="progress-bar"><div class="progress-fill" style="width:65%;background:linear-gradient(90deg,#f85149,#d29922,#3fb950)">65%</div></div>
+<div class="progress-bar"><div class="progress-fill" style="width:65%;background:linear-gradient(90deg,#ff3b30,#ff9500,#34c759)">65%</div></div>
 </div>
 <div>
 <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>과매매 억제</span><span class="pos">1,577건 → 1,001건 (-36.5%)</span></div>
-<div class="progress-bar"><div class="progress-fill" style="width:85%;background:linear-gradient(90deg,#d29922,#3fb950)">85%</div></div>
+<div class="progress-bar"><div class="progress-fill" style="width:85%;background:linear-gradient(90deg,#ff9500,#34c759)">85%</div></div>
 </div>
 <div>
 <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>B&H 대비 알파</span><span class="neg">여전히 -85.2%p (미달성)</span></div>
@@ -552,7 +533,7 @@ Sideways 감소: 60.1%→45.0%
 <div class="card">
 <h3>에이전트 사용 분포 (2022-2026 백테스트)</h3>
 <div class="grid3">
-<div class="stat-box"><div class="label">보수적 에이전트</div><div class="value" style="color:var(--cyan)">41.0%</div><div class="sub">3,793 포인트 | 매수 663, 매도 63</div></div>
+<div class="stat-box"><div class="label">보수적 에이전트</div><div class="value" style="color:var(--indigo)">41.0%</div><div class="sub">3,793 포인트 | 매수 663, 매도 63</div></div>
 <div class="stat-box"><div class="label">보통 에이전트</div><div class="value" style="color:var(--orange)">58.9%</div><div class="sub">5,447 포인트 | 매수 907, 매도 48</div></div>
 <div class="stat-box"><div class="label">공격적 에이전트</div><div class="value" style="color:var(--red)">0.1%</div><div class="sub">5 포인트 | 매수 3, 매도 0</div></div>
 </div>
@@ -640,7 +621,7 @@ Sideways 감소: 60.1%→45.0%
 <p>Generated by Claude Coin Trading System | Data: Upbit, Yahoo Finance, Alternative.me, Gemini AI</p>
 <p>Total Data Points: 17,019 (2018-2026) | Embeddings: 17,019 x 3072d Gemini vectors in Supabase</p>
 <p style="margin-top:10px;color:var(--text2)">이 리포트는 과거 데이터 기반 분석이며, 미래 수익을 보장하지 않습니다.</p>
-<p style="margin-top:20px;padding-top:15px;border-top:1px solid var(--border);font-size:0.95em;color:var(--accent)">Reprinted by <b>산골목수</b> with <b style="color:#f0b90b">Bit-rang App</b></p>
+<p style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border-light);font-size:1em;color:var(--text)">Reprinted by <b>산골목수</b> with <b style="color:var(--accent)">Bit-rang App</b></p>
 </div>
 
 </div><!-- /container -->
@@ -649,106 +630,108 @@ Sideways 감소: 60.1%→45.0%
 // ════════════════════════════════════════
 // Chart.js Configuration
 // ════════════════════════════════════════
-Chart.defaults.color = '#8b949e';
-Chart.defaults.borderColor = '#30363d';
-Chart.defaults.font.family = '-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif';
+Chart.defaults.color = '#6e6e73';
+Chart.defaults.borderColor = '#e8e8ed';
+Chart.defaults.font.family = '-apple-system,BlinkMacSystemFont,SF Pro Display,Helvetica Neue,Arial,sans-serif';
 
-// 1. Price Chart (8 years)
+const G='rgba(232,232,237,0.8)';const TC='#1d1d1f';
+
+// 1. Price Chart
 new Chart(document.getElementById('chartPrice'),{type:'line',data:{
 labels:['18.01','18.04','18.07','18.10','19.01','19.04','19.07','19.10','20.01','20.04','20.07','20.10','21.01','21.04','21.07','21.10','22.01','22.04','22.07','22.10','23.01','23.04','23.07','23.10','24.01','24.04','24.07','24.10','25.01','25.04','25.07','25.10','26.01','26.03'],
-datasets:[{label:'BTC/KRW (만원)',data:[1909,920,780,735,419,592,1370,1000,829,800,1100,1420,3201,7200,3900,7300,5791,5100,2800,2700,2107,3800,3900,4500,5700,9200,8500,9500,13400,11200,9500,12000,10600,8500],borderColor:'#f0b90b',backgroundColor:'rgba(240,185,11,0.1)',fill:true,tension:0.3,pointRadius:1,borderWidth:2}]
-},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'BTC/KRW 가격 추이 (2018-2026)',color:'#c9d1d9',font:{size:16}},legend:{display:false},annotation:{}},scales:{y:{title:{display:true,text:'만원'},grid:{color:'rgba(48,54,61,0.5)'}},x:{grid:{display:false}}}}});
+datasets:[{label:'BTC/KRW (만원)',data:[1909,920,780,735,419,592,1370,1000,829,800,1100,1420,3201,7200,3900,7300,5791,5100,2800,2700,2107,3800,3900,4500,5700,9200,8500,9500,13400,11200,9500,12000,10600,8500],borderColor:'#0071e3',backgroundColor:'rgba(0,113,227,0.06)',fill:true,tension:0.3,pointRadius:1,borderWidth:2.5}]
+},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'BTC/KRW 가격 추이 (2018-2026)',color:TC,font:{size:17,weight:600}},legend:{display:false}},scales:{y:{title:{display:true,text:'만원'},grid:{color:G}},x:{grid:{display:false}}}}});
 
 // 2. Halving Cycle Chart
 new Chart(document.getElementById('chartHalving'),{type:'bar',data:{
 labels:['2018\n(3차-2)','2019\n(3차-1)','2020\n(3차 해)','2021\n(3차+1)','2022\n(4차-2)','2023\n(4차-1)','2024\n(4차 해)','2025\n(4차+1)','2026*\n(4차+2)'],
 datasets:[
-{label:'연간 수익률 (%)',data:[-77.8,98.6,286,82,-63.5,170,135,-21,-20],backgroundColor:['#f85149','#3fb950','#3fb950','#3fb950','#f85149','#3fb950','#3fb950','#f85149','#f85149']},
-{label:'FGI 평균',data:[32.4,45.1,52.9,54.9,25.3,54.7,62.1,35,15],type:'line',borderColor:'#bc8cff',backgroundColor:'transparent',yAxisID:'y1',pointRadius:5,borderWidth:2}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'반감기 사이클 vs 연간 수익률 + FGI',color:'#c9d1d9',font:{size:16}}},scales:{y:{title:{display:true,text:'수익률 (%)'},grid:{color:'rgba(48,54,61,0.5)'}},y1:{position:'right',title:{display:true,text:'FGI 평균'},min:0,max:100,grid:{display:false}},x:{grid:{display:false}}}}});
+{label:'연간 수익률 (%)',data:[-77.8,98.6,286,82,-63.5,170,135,-21,-20],backgroundColor:['#ff3b30','#34c759','#34c759','#34c759','#ff3b30','#34c759','#34c759','#ff3b30','#ff3b30'],borderRadius:8},
+{label:'FGI 평균',data:[32.4,45.1,52.9,54.9,25.3,54.7,62.1,35,15],type:'line',borderColor:'#af52de',backgroundColor:'transparent',yAxisID:'y1',pointRadius:5,borderWidth:2.5}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'반감기 사이클 vs 연간 수익률 + FGI',color:TC,font:{size:17,weight:600}}},scales:{y:{title:{display:true,text:'수익률 (%)'},grid:{color:G}},y1:{position:'right',title:{display:true,text:'FGI 평균'},min:0,max:100,grid:{display:false}},x:{grid:{display:false}}}}});
 
 // 3. Macro Chart
 new Chart(document.getElementById('chartMacro'),{type:'line',data:{
 labels:['2018','2019','2020','2021','2022','2023','2024','2025','2026'],
 datasets:[
-{label:'매크로 스코어 (Yahoo)',data:[-0.1,0.3,0.6,-0.3,-0.8,0.2,0.3,-1.0,-2.0],borderColor:'#58a6ff',backgroundColor:'rgba(88,166,255,0.1)',fill:true,tension:0.4,yAxisID:'y'},
-{label:'BTC 연간 수익률 (%)',data:[-77.8,98.6,286,82,-63.5,170,135,-21,-20],borderColor:'#f0b90b',backgroundColor:'transparent',tension:0.4,yAxisID:'y1',borderDash:[5,5]}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'매크로 스코어 vs BTC 수익률',color:'#c9d1d9',font:{size:16}}},scales:{y:{title:{display:true,text:'매크로 스코어'},grid:{color:'rgba(48,54,61,0.5)'}},y1:{position:'right',title:{display:true,text:'BTC 수익률 (%)'},grid:{display:false}},x:{grid:{display:false}}}}});
+{label:'매크로 스코어',data:[-0.1,0.3,0.6,-0.3,-0.8,0.2,0.3,-1.0,-2.0],borderColor:'#0071e3',backgroundColor:'rgba(0,113,227,0.06)',fill:true,tension:0.4,yAxisID:'y'},
+{label:'BTC 연간 수익률 (%)',data:[-77.8,98.6,286,82,-63.5,170,135,-21,-20],borderColor:'#ff9500',backgroundColor:'transparent',tension:0.4,yAxisID:'y1',borderDash:[5,5],borderWidth:2.5}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'매크로 스코어 vs BTC 수익률',color:TC,font:{size:17,weight:600}}},scales:{y:{title:{display:true,text:'매크로 스코어'},grid:{color:G}},y1:{position:'right',title:{display:true,text:'BTC 수익률 (%)'},grid:{display:false}},x:{grid:{display:false}}}}});
 
 // 4. FGI Chart
 new Chart(document.getElementById('chartFGI'),{type:'line',data:{
 labels:['2018','2019','2020','2021','2022','2023','2024','2025','2026'],
 datasets:[
-{label:'FGI 평균',data:[32.4,45.1,52.9,54.9,25.3,54.7,62.1,35,15],borderColor:'#bc8cff',backgroundColor:'rgba(188,140,255,0.15)',fill:true,tension:0.4},
-{label:'FGI 최저',data:[8,5,8,10,6,25,17,10,8],borderColor:'#f85149',borderDash:[3,3],backgroundColor:'transparent',tension:0.4,pointRadius:3},
-{label:'FGI 최고',data:[74,95,95,95,60,75,94,80,40],borderColor:'#3fb950',borderDash:[3,3],backgroundColor:'transparent',tension:0.4,pointRadius:3}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'공포/탐욕 지수 연도별 추이 (최저-평균-최고)',color:'#c9d1d9',font:{size:16}}},scales:{y:{min:0,max:100,title:{display:true,text:'FGI (0=극공포, 100=극탐욕)'},grid:{color:'rgba(48,54,61,0.5)'}},x:{grid:{display:false}}}}});
+{label:'FGI 평균',data:[32.4,45.1,52.9,54.9,25.3,54.7,62.1,35,15],borderColor:'#af52de',backgroundColor:'rgba(175,82,222,0.08)',fill:true,tension:0.4,borderWidth:2.5},
+{label:'FGI 최저',data:[8,5,8,10,6,25,17,10,8],borderColor:'#ff3b30',borderDash:[3,3],backgroundColor:'transparent',tension:0.4,pointRadius:4},
+{label:'FGI 최고',data:[74,95,95,95,60,75,94,80,40],borderColor:'#34c759',borderDash:[3,3],backgroundColor:'transparent',tension:0.4,pointRadius:4}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'공포/탐욕 지수 연도별 추이 (최저-평균-최고)',color:TC,font:{size:17,weight:600}}},scales:{y:{min:0,max:100,title:{display:true,text:'FGI (0=극공포, 100=극탐욕)'},grid:{color:G}},x:{grid:{display:false}}}}});
 
 // 5. Yearly Returns Chart
 new Chart(document.getElementById('chartYearly'),{type:'bar',data:{
 labels:['2018','2019','2020','2021','2022','2023','2024','2025*','2026*'],
-datasets:[{label:'연간 수익률 (%)',data:[-77.8,98.6,286,82,-63.5,170,135,-21,-20],backgroundColor:function(ctx){return ctx.raw>=0?'rgba(63,185,80,0.7)':'rgba(248,81,73,0.7)'},borderColor:function(ctx){return ctx.raw>=0?'#3fb950':'#f85149'},borderWidth:1}]
-},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'BTC/KRW 연도별 수익률',color:'#c9d1d9',font:{size:16}},legend:{display:false}},scales:{y:{title:{display:true,text:'수익률 (%)'},grid:{color:'rgba(48,54,61,0.5)'}},x:{grid:{display:false}}}}});
+datasets:[{label:'연간 수익률 (%)',data:[-77.8,98.6,286,82,-63.5,170,135,-21,-20],backgroundColor:function(ctx){return ctx.raw>=0?'rgba(52,199,89,0.65)':'rgba(255,59,48,0.65)'},borderRadius:8}]
+},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'BTC/KRW 연도별 수익률',color:TC,font:{size:17,weight:600}},legend:{display:false}},scales:{y:{title:{display:true,text:'수익률 (%)'},grid:{color:G}},x:{grid:{display:false}}}}});
 
 // 6. Monthly Seasonality
 new Chart(document.getElementById('chartMonthly'),{type:'bar',data:{
 labels:['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
-datasets:[{label:'월 평균 수익률 (%)',data:[8.2,5.1,-2.3,12.5,-8.4,-4.1,9.3,-1.2,-3.7,15.8,6.2,-5.3],backgroundColor:function(ctx){return ctx.raw>=0?'rgba(63,185,80,0.6)':'rgba(248,81,73,0.6)'},borderRadius:4}]
-},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'BTC 월별 시즌널리티 (2018-2026 평균)',color:'#c9d1d9',font:{size:16}},legend:{display:false}},scales:{y:{title:{display:true,text:'평균 수익률 (%)'},grid:{color:'rgba(48,54,61,0.5)'}},x:{grid:{display:false}}}}});
+datasets:[{label:'월 평균 수익률 (%)',data:[8.2,5.1,-2.3,12.5,-8.4,-4.1,9.3,-1.2,-3.7,15.8,6.2,-5.3],backgroundColor:function(ctx){return ctx.raw>=0?'rgba(52,199,89,0.55)':'rgba(255,59,48,0.55)'},borderRadius:6}]
+},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'BTC 월별 시즌널리티 (2018-2026 평균)',color:TC,font:{size:17,weight:600}},legend:{display:false}},scales:{y:{title:{display:true,text:'평균 수익률 (%)'},grid:{color:G}},x:{grid:{display:false}}}}});
 
 // 7. Backtest Comparison
 new Chart(document.getElementById('chartBacktest'),{type:'line',data:{
 labels:['22.01','22.03','22.05','22.07','22.09','22.11','23.01','23.03','23.05','23.07','23.09','23.11','24.01','24.03','24.05','24.07','24.09','24.11','25.01','25.03','25.05','25.07','25.09','25.11','26.01','26.03'],
 datasets:[
-{label:'v2 기존',data:[861,987,756,695,644,555,663,766,761,691,680,787,843,858,789,911,853,989,1072,842,855,867,883,769,687,683],borderColor:'#8b949e',borderWidth:1.5,pointRadius:0,tension:0.3},
-{label:'v5.1 Bull강화',data:[900,1000,800,740,680,600,720,830,810,730,720,840,900,910,850,960,910,1050,1130,900,920,930,950,830,740,905],borderColor:'#39d2c0',borderWidth:2.5,pointRadius:0,tension:0.3},
-{label:'BTC B&H',data:[1000,1050,700,580,560,500,650,850,820,780,800,920,1000,1100,1050,1200,1150,1400,1500,1250,1300,1280,1350,1200,1100,1757],borderColor:'#f0b90b',borderWidth:2,pointRadius:0,tension:0.3,borderDash:[5,3]}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'전략별 포트폴리오 추이 (초기 100만원)',color:'#c9d1d9',font:{size:16}}},scales:{y:{title:{display:true,text:'평가액 (천원)'},grid:{color:'rgba(48,54,61,0.5)'}},x:{grid:{display:false}}}}});
+{label:'v2 기존',data:[861,987,756,695,644,555,663,766,761,691,680,787,843,858,789,911,853,989,1072,842,855,867,883,769,687,683],borderColor:'#86868b',borderWidth:1.5,pointRadius:0,tension:0.3},
+{label:'v5.1 Bull강화',data:[900,1000,800,740,680,600,720,830,810,730,720,840,900,910,850,960,910,1050,1130,900,920,930,950,830,740,905],borderColor:'#5856d6',borderWidth:2.5,pointRadius:0,tension:0.3},
+{label:'BTC B&H',data:[1000,1050,700,580,560,500,650,850,820,780,800,920,1000,1100,1050,1200,1150,1400,1500,1250,1300,1280,1350,1200,1100,1757],borderColor:'#ff9500',borderWidth:2.5,pointRadius:0,tension:0.3,borderDash:[5,3]}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'전략별 포트폴리오 추이 (초기 100만원)',color:TC,font:{size:17,weight:600}}},scales:{y:{title:{display:true,text:'평가액 (천원)'},grid:{color:G}},x:{grid:{display:false}}}}});
 
 // 8. Yearly Backtest
 new Chart(document.getElementById('chartYearlyBacktest'),{type:'bar',data:{
 labels:['2022','2023','2024','2025','2026(3월)'],
 datasets:[
-{label:'v2',data:[522,806,1024,726,659],backgroundColor:'rgba(139,148,158,0.5)',borderColor:'#8b949e',borderWidth:1},
-{label:'v5.1',data:[673,1069,1267,1038,905],backgroundColor:'rgba(57,210,192,0.5)',borderColor:'#39d2c0',borderWidth:1},
-{label:'BTC B&H',data:[635,1300,1780,1500,1757],backgroundColor:'rgba(240,185,11,0.3)',borderColor:'#f0b90b',borderWidth:1}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'연말 포트폴리오 비교 (천원)',color:'#c9d1d9',font:{size:16}}},scales:{y:{title:{display:true,text:'평가액 (천원)'},grid:{color:'rgba(48,54,61,0.5)'}},x:{grid:{display:false}}}}});
+{label:'v2',data:[522,806,1024,726,659],backgroundColor:'rgba(134,134,139,0.35)',borderRadius:6},
+{label:'v5.1',data:[673,1069,1267,1038,905],backgroundColor:'rgba(88,86,214,0.45)',borderRadius:6},
+{label:'BTC B&H',data:[635,1300,1780,1500,1757],backgroundColor:'rgba(255,149,0,0.35)',borderRadius:6}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'연말 포트폴리오 비교 (천원)',color:TC,font:{size:17,weight:600}}},scales:{y:{title:{display:true,text:'평가액 (천원)'},grid:{color:G}},x:{grid:{display:false}}}}});
 
 // 9. Regime Distribution
 new Chart(document.getElementById('chartRegime'),{type:'doughnut',data:{
 labels:['Bull (32.1%)','Early Bull (8.9%)','Sideways (45.0%)','Bear (13.3%)','Crisis (0.7%)'],
-datasets:[{data:[2968,825,4168,1228,65],backgroundColor:['#3fb950','#39d2c0','#d29922','#f85149','#ff4444'],borderColor:'#161b22',borderWidth:3}]
-},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'v5.1 레짐 분포',color:'#c9d1d9',font:{size:14}},legend:{position:'bottom',labels:{padding:15,usePointStyle:true}}}}});
+datasets:[{data:[2968,825,4168,1228,65],backgroundColor:['#34c759','#5ac8fa','#ff9500','#ff3b30','#ff2d55'],borderColor:'#ffffff',borderWidth:4}]
+},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'v5.1 레짐 분포',color:TC,font:{size:15,weight:600}},legend:{position:'bottom',labels:{padding:18,usePointStyle:true,font:{size:13}}}}}});
 
 // 10. Macro Scenario Chart
 new Chart(document.getElementById('chartMacroScenario'),{type:'bar',data:{
 labels:['금리 인하 시작','DXY < 95','S&P 신고가','ETF 순유입','금리 5%+ 유지','DXY > 104','경기침체 우려','규제 강화'],
-datasets:[{label:'BTC 영향 (%)',data:[35,25,20,30,-25,-20,-30,-15],backgroundColor:function(ctx){return ctx.raw>=0?'rgba(63,185,80,0.6)':'rgba(248,81,73,0.6)'},borderRadius:6}]
-},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'매크로 이벤트별 BTC 평균 영향 (8년 데이터)',color:'#c9d1d9',font:{size:14}},legend:{display:false}},scales:{y:{title:{display:true,text:'평균 영향 (%)'},grid:{color:'rgba(48,54,61,0.5)'}},x:{grid:{display:false}}}}});
+datasets:[{label:'BTC 영향 (%)',data:[35,25,20,30,-25,-20,-30,-15],backgroundColor:function(ctx){return ctx.raw>=0?'rgba(52,199,89,0.55)':'rgba(255,59,48,0.55)'},borderRadius:8}]
+},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'매크로 이벤트별 BTC 평균 영향 (8년 데이터)',color:TC,font:{size:15,weight:600}},legend:{display:false}},scales:{y:{title:{display:true,text:'평균 영향 (%)'},grid:{color:G}},x:{grid:{display:false}}}}});
 
-// 11. Radar Chart - Strategy Comparison
+// 11. Radar Chart
 new Chart(document.getElementById('chartRadar'),{type:'radar',data:{
 labels:['ROI','MDD (낮을수록 좋음)','승률','필터 효율','매매 빈도 (적을수록 좋음)','Bull 대응'],
 datasets:[
-{label:'v2 기존',data:[20,30,50,5,20,30],borderColor:'#8b949e',backgroundColor:'rgba(139,148,158,0.1)',pointRadius:4,borderWidth:2},
-{label:'v5.1 Bull강화',data:[45,55,45,85,70,75],borderColor:'#39d2c0',backgroundColor:'rgba(57,210,192,0.1)',pointRadius:4,borderWidth:2},
-{label:'BTC B&H',data:[90,25,100,0,100,50],borderColor:'#f0b90b',backgroundColor:'rgba(240,185,11,0.05)',pointRadius:4,borderWidth:2,borderDash:[5,3]}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'전략 특성 비교 레이더',color:'#c9d1d9',font:{size:16}},legend:{position:'bottom',labels:{padding:15,usePointStyle:true}}},scales:{r:{min:0,max:100,ticks:{stepSize:25,display:false},grid:{color:'rgba(48,54,61,0.5)'},pointLabels:{color:'#c9d1d9',font:{size:12}}}}}});
+{label:'v2 기존',data:[20,30,50,5,20,30],borderColor:'#86868b',backgroundColor:'rgba(134,134,139,0.06)',pointRadius:4,borderWidth:2},
+{label:'v5.1 Bull강화',data:[45,55,45,85,70,75],borderColor:'#5856d6',backgroundColor:'rgba(88,86,214,0.06)',pointRadius:4,borderWidth:2},
+{label:'BTC B&H',data:[90,25,100,0,100,50],borderColor:'#ff9500',backgroundColor:'rgba(255,149,0,0.04)',pointRadius:4,borderWidth:2,borderDash:[5,3]}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'전략 특성 비교 레이더',color:TC,font:{size:17,weight:600}},legend:{position:'bottom',labels:{padding:18,usePointStyle:true}}},scales:{r:{min:0,max:100,ticks:{stepSize:25,display:false},grid:{color:'rgba(210,210,215,0.6)'},pointLabels:{color:'#1d1d1f',font:{size:12,weight:500}}}}}});
 
-// 11. Impact Chart
+// 12. Impact Chart
 new Chart(document.getElementById('chartImpact'),{type:'bar',data:{
 labels:['매수편향 해소','추세필터 강화','B&H 알파 생성','시즌널리티','공격 에이전트','반감기 연동','2018-21 학습','동적 TP/SL','매크로 캘린더','RAG 유사장세','멀티타임프레임','손실회복 모드'],
 datasets:[
-{label:'기대 영향 (점수)',data:[95,85,90,50,65,70,75,60,45,55,50,55],backgroundColor:['rgba(248,81,73,0.7)','rgba(248,81,73,0.6)','rgba(248,81,73,0.65)','rgba(210,153,34,0.6)','rgba(210,153,34,0.7)','rgba(210,153,34,0.65)','rgba(210,153,34,0.6)','rgba(63,185,80,0.5)','rgba(63,185,80,0.45)','rgba(63,185,80,0.5)','rgba(63,185,80,0.45)','rgba(63,185,80,0.5)'],borderRadius:6},
-{label:'구현 난이도',data:[40,30,80,20,25,35,15,50,30,45,55,35],backgroundColor:'rgba(88,166,255,0.3)',borderColor:'#58a6ff',borderWidth:1,borderRadius:6}
-]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'개선 항목별 영향도 vs 구현 난이도',color:'#c9d1d9',font:{size:16}},legend:{position:'top',labels:{usePointStyle:true}}},scales:{x:{max:100,title:{display:true,text:'점수 (0~100)'},grid:{color:'rgba(48,54,61,0.5)'}},y:{grid:{display:false}}}}});
+{label:'기대 영향',data:[95,85,90,50,65,70,75,60,45,55,50,55],backgroundColor:['rgba(255,59,48,0.55)','rgba(255,59,48,0.45)','rgba(255,59,48,0.5)','rgba(255,149,0,0.5)','rgba(255,149,0,0.55)','rgba(255,149,0,0.5)','rgba(255,149,0,0.45)','rgba(52,199,89,0.45)','rgba(52,199,89,0.4)','rgba(52,199,89,0.45)','rgba(52,199,89,0.4)','rgba(52,199,89,0.45)'],borderRadius:8},
+{label:'구현 난이도',data:[40,30,80,20,25,35,15,50,30,45,55,35],backgroundColor:'rgba(0,113,227,0.2)',borderRadius:8}
+]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'개선 항목별 영향도 vs 구현 난이도',color:TC,font:{size:17,weight:600}},legend:{position:'top',labels:{usePointStyle:true}}},scales:{x:{max:100,title:{display:true,text:'점수 (0~100)'},grid:{color:G}},y:{grid:{display:false}}}}});
 
-// 12. Monthly Portfolio
+// 13. Monthly Portfolio
 new Chart(document.getElementById('chartPortfolio'),{type:'line',data:{
 labels:['22.01','22.02','22.03','22.04','22.05','22.06','22.07','22.08','22.09','22.10','22.11','22.12','23.01','23.02','23.03','23.04','23.05','23.06','23.07','23.08','23.09','23.10','23.11','23.12','24.01','24.02','24.03','24.04','24.05','24.06','24.07','24.08','24.09','24.10','24.11','24.12','25.01','25.02','25.03','25.04','25.05','25.06','25.07','25.08','25.09','25.10','25.11','25.12','26.01','26.02','26.03'],
 datasets:[
-{label:'포트폴리오 (천원)',data:[861,839,987,880,756,579,695,627,644,652,555,522,663,725,766,829,761,727,691,681,680,769,787,806,843,872,858,805,888,833,911,813,853,928,989,1024,1072,882,842,854,888,853,867,825,883,894,769,726,687,609,683],borderColor:'#58a6ff',backgroundColor:'rgba(88,166,255,0.08)',fill:true,tension:0.3,pointRadius:1,borderWidth:2}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'월별 포트폴리오 추이 (v2 백테스트, 2022-2026)',color:'#c9d1d9',font:{size:16}},legend:{display:false}},scales:{y:{title:{display:true,text:'평가액 (천원)'},grid:{color:'rgba(48,54,61,0.5)'}},x:{grid:{display:false}}}}});
+{label:'포트폴리오 (천원)',data:[861,839,987,880,756,579,695,627,644,652,555,522,663,725,766,829,761,727,691,681,680,769,787,806,843,872,858,805,888,833,911,813,853,928,989,1024,1072,882,842,854,888,853,867,825,883,894,769,726,687,609,683],borderColor:'#0071e3',backgroundColor:'rgba(0,113,227,0.05)',fill:true,tension:0.3,pointRadius:1,borderWidth:2.5}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'월별 포트폴리오 추이 (v2 백테스트, 2022-2026)',color:TC,font:{size:17,weight:600}},legend:{display:false}},scales:{y:{title:{display:true,text:'평가액 (천원)'},grid:{color:G}},x:{grid:{display:false}}}}});
 </script>
 
 </body>
