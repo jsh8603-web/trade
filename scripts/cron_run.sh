@@ -53,6 +53,13 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_DIR="logs/executions"
 RESPONSE_DIR="logs/claude_responses"
 mkdir -p "$LOG_DIR" "$RESPONSE_DIR"
+# 외장하드 심볼릭 logs 쓰기 불가 시 /tmp fallback
+if ! touch "$LOG_DIR/.write_test" 2>/dev/null; then
+    LOG_DIR="/tmp/blockchain_logs/executions"
+    RESPONSE_DIR="/tmp/blockchain_logs/claude_responses"
+    mkdir -p "$LOG_DIR" "$RESPONSE_DIR"
+fi
+rm -f "$LOG_DIR/.write_test" 2>/dev/null
 
 LOG_FILE="${LOG_DIR}/${TIMESTAMP}.log"
 RESPONSE_FILE="${RESPONSE_DIR}/${TIMESTAMP}.txt"

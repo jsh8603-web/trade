@@ -102,10 +102,23 @@ _KNOWN_PATTERNS: dict[tuple[str, str], dict] = {
         "auto_healable": True,
     },
     ("disk", "WARNING"): {
-        "cause": "디스크 사용량 높음 — 모니터링 필요",
-        "action": ACTION_ALERT,
+        "cause": "디스크 사용량 높음 — 오래된 로그/스냅샷 정리",
+        "action": ACTION_CLEAR_CACHE,
         "confidence": 0.85,
-        "auto_healable": False,
+        "auto_healable": True,
+    },
+    # disk_space (sentinel 실제 component명)
+    ("disk_space", "CRITICAL"): {
+        "cause": "디스크 공간 부족 — 오래된 로그/스냅샷 정리 필요",
+        "action": ACTION_CLEAR_CACHE,
+        "confidence": 0.9,
+        "auto_healable": True,
+    },
+    ("disk_space", "WARNING"): {
+        "cause": "디스크 사용량 높음 — 오래된 로그/스냅샷 정리",
+        "action": ACTION_CLEAR_CACHE,
+        "confidence": 0.85,
+        "auto_healable": True,
     },
     # 메모리
     ("memory", "CRITICAL"): {
@@ -115,10 +128,10 @@ _KNOWN_PATTERNS: dict[tuple[str, str], dict] = {
         "auto_healable": True,
     },
     ("memory", "WARNING"): {
-        "cause": "메모리 사용량 높음 — 모니터링 필요",
-        "action": ACTION_ALERT,
+        "cause": "메모리 사용량 높음 — 캐시 정리 + 대형 로그 truncate",
+        "action": ACTION_CLEAR_CACHE,
         "confidence": 0.8,
-        "auto_healable": False,
+        "auto_healable": True,
     },
     # 프로세스
     ("process", "ERROR"): {
@@ -133,6 +146,32 @@ _KNOWN_PATTERNS: dict[tuple[str, str], dict] = {
         "confidence": 0.8,
         "auto_healable": True,
     },
+    # 핵심 프로세스 (rl_hybrid)
+    ("core_processes", "WARNING"): {
+        "cause": "핵심 백그라운드 프로세스 중단 — 재시작 필요",
+        "action": ACTION_RESTART,
+        "confidence": 0.85,
+        "auto_healable": True,
+    },
+    ("core_processes", "ERROR"): {
+        "cause": "핵심 백그라운드 프로세스 다수 중단 — 긴급 재시작",
+        "action": ACTION_RESTART,
+        "confidence": 0.8,
+        "auto_healable": True,
+    },
+    # 프로세스 생존 점검
+    ("process_alive", "WARNING"): {
+        "cause": "프로세스 생존 이상 — 재시작 필요",
+        "action": ACTION_RESTART,
+        "confidence": 0.85,
+        "auto_healable": True,
+    },
+    ("process_alive", "ERROR"): {
+        "cause": "프로세스 다수 사망 — 긴급 재시작",
+        "action": ACTION_RESTART,
+        "confidence": 0.8,
+        "auto_healable": True,
+    },
     # RL 모델
     ("rl_model", "WARNING"): {
         "cause": "RL 모델 성능 저하 — 재훈련 권장",
@@ -141,6 +180,19 @@ _KNOWN_PATTERNS: dict[tuple[str, str], dict] = {
         "auto_healable": False,
     },
     ("rl_model", "ERROR"): {
+        "cause": "RL 모델 로드 실패 또는 파일 손상",
+        "action": ACTION_ALERT,
+        "confidence": 0.75,
+        "auto_healable": False,
+    },
+    # rl_models (sentinel 실제 component명)
+    ("rl_models", "WARNING"): {
+        "cause": "RL 모델 성능 저하 — 재훈련 권장",
+        "action": ACTION_ALERT,
+        "confidence": 0.7,
+        "auto_healable": False,
+    },
+    ("rl_models", "ERROR"): {
         "cause": "RL 모델 로드 실패 또는 파일 손상",
         "action": ACTION_ALERT,
         "confidence": 0.75,
@@ -210,6 +262,19 @@ _KNOWN_PATTERNS: dict[tuple[str, str], dict] = {
         "cause": "로그 파일 크기 과다 — truncate 필요",
         "action": "clean_logs",
         "confidence": 0.9,
+        "auto_healable": True,
+    },
+    # 심볼릭 링크 (외장하드)
+    ("symlinks", "WARNING"): {
+        "cause": "일부 외장하드 심볼릭 링크 깨짐 — 비핵심 경로",
+        "action": ACTION_ALERT,
+        "confidence": 0.9,
+        "auto_healable": False,
+    },
+    ("symlinks", "ERROR"): {
+        "cause": "핵심 외장하드 심볼릭 링크 깨짐 — 마운트 확인 필요",
+        "action": "repair_symlinks",
+        "confidence": 0.85,
         "auto_healable": True,
     },
 }

@@ -25,6 +25,12 @@ fi
 
 LOG_DIR="$PROJECT_DIR/logs/maintenance"
 mkdir -p "$LOG_DIR"
+# 외장하드 심볼릭 logs 쓰기 불가 시 /tmp fallback
+if ! touch "$LOG_DIR/.write_test" 2>/dev/null; then
+    LOG_DIR="/tmp/blockchain_logs/maintenance"
+    mkdir -p "$LOG_DIR"
+fi
+rm -f "$LOG_DIR/.write_test" 2>/dev/null
 LOG_FILE="$LOG_DIR/maintenance_$(date +%Y%m%d).log"
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] 일일 유지보수 시작" >> "$LOG_FILE"

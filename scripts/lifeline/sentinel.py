@@ -417,12 +417,17 @@ def check_process_alive(process_list: list[dict] | None = None) -> dict:
     component = "process_alive"
 
     if process_list is None:
-        process_list = [
-            {"name": "continuous_learning", "keyword": "continuous_learner"},
-            {"name": "main_brain", "keyword": "main_brain.py"},
-            {"name": "trading_worker", "keyword": "trading_worker.py"},
-            {"name": "llm_worker", "keyword": "llm_worker.py"},
-        ]
+        machine_role = os.getenv("MACHINE_ROLE", "primary").lower().strip()
+        if machine_role == "primary":
+            # Mac Mini(primary)는 rl_hybrid 프로세스 미실행 → 점검 스킵
+            process_list = []
+        else:
+            process_list = [
+                {"name": "continuous_learning", "keyword": "continuous_learner"},
+                {"name": "main_brain", "keyword": "main_brain.py"},
+                {"name": "trading_worker", "keyword": "trading_worker.py"},
+                {"name": "llm_worker", "keyword": "llm_worker.py"},
+            ]
 
     alive = []
     dead = []
@@ -458,6 +463,11 @@ def check_core_processes() -> dict:
     """핵심 백그라운드 프로세스(continuous_learning, main_brain 등)의 생존을 점검한다."""
     component = "core_processes"
 
+    machine_role = os.getenv("MACHINE_ROLE", "primary").lower().strip()
+    if machine_role == "primary":
+        # Mac Mini(primary)는 rl_hybrid 프로세스 미실행 → OK 반환
+        return _result(component, "OK", "primary 머신 — rl_hybrid 프로세스 점검 스킵", {})
+
     core_procs = [
         {"name": "continuous_learning", "keyword": "continuous_learner"},
         {"name": "main_brain", "keyword": "main_brain.py"},
@@ -485,6 +495,88 @@ def check_core_processes() -> dict:
     if not alive:
         return _result(component, "OK", "핵심 프로세스 미실행 (단독 모드 가능)", details)
     return _result(component, "OK", f"핵심 프로세스 {len(alive)}개 정상", details)
+
+
+def check_symlinks() -> dict:
+    """외장하드 심볼릭 링크 상태를 점검한다."""
+    component = "symlinks"
+
+    EXPECTED_SYMLINKS = [
+        "logs",
+        "data/candles_cache",
+        "data/charts",
+        "data/db_backup",
+        "data/historical",
+        "data/kimchirang",
+        "data/rl_models",
+        "data/scalp_models",
+        "data/scalp_snapshots",
+        "data/snapshots",
+        "data/week2_models",
+    ]
+
+    # 핵심 심볼릭 링크 — 깨지면 ERROR
+    CRITICAL_SYMLINKS = {"logs", "data/rl_models", "data/snapshots", "data/db_backup"}
+
+    ok_list = []
+    broken_list = []
+    unwritable_list = []
+
+    for link in EXPECTED_SYMLINKS:
+        link_path = PROJECT_ROOT / link
+
+        # 1) 심볼릭 링크인지 확인
+        if not link_path.is_symlink():
+            broken_list.append({"path": link, "reason": "not_a_symlink"})
+            continue
+
+        # 2) 대상이 존재하는지 확인
+        try:
+            resolved = link_path.resolve()
+            if not resolved.exists():
+                broken_list.append({"path": link, "reason": "target_missing", "target": str(resolved)})
+                continue
+        except OSError as e:
+            broken_list.append({"path": link, "reason": f"resolve_error: {e}"})
+            continue
+
+        # 3) 쓰기 가능한지 확인
+        test_file = resolved / ".write_test"
+        try:
+            test_file.touch()
+            test_file.unlink()
+            ok_list.append(link)
+        except OSError:
+            unwritable_list.append({"path": link, "reason": "not_writable", "target": str(resolved)})
+
+    details = {
+        "ok": ok_list,
+        "broken": broken_list,
+        "unwritable": unwritable_list,
+        "ok_count": len(ok_list),
+        "broken_count": len(broken_list),
+        "unwritable_count": len(unwritable_list),
+    }
+
+    # 깨진 심볼릭 링크 중 핵심 경로가 있는지 확인
+    broken_paths = {item["path"] for item in broken_list}
+    unwritable_paths = {item["path"] for item in unwritable_list}
+    problem_paths = broken_paths | unwritable_paths
+    critical_problems = problem_paths & CRITICAL_SYMLINKS
+
+    if critical_problems:
+        return _result(
+            component, "ERROR",
+            f"핵심 심볼릭 링크 깨짐: {', '.join(sorted(critical_problems))}",
+            details,
+        )
+    if problem_paths:
+        return _result(
+            component, "WARNING",
+            f"비핵심 심볼릭 링크 문제: {', '.join(sorted(problem_paths))}",
+            details,
+        )
+    return _result(component, "OK", f"심볼릭 링크 {len(ok_list)}개 모두 정상", details)
 
 
 def check_bot_processes() -> dict:
@@ -601,6 +693,7 @@ def run_all_checks() -> dict:
         check_junk_files(),
         check_core_processes(),
         check_bot_processes(),
+        check_symlinks(),
         check_git_status(),
         check_log_size(),
     ]

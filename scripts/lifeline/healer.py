@@ -113,6 +113,7 @@ class Healer:
             "clean_junk": self._clean_junk_files,
             "restart_bot": self._restart_bot,
             "clean_logs": self._clean_large_logs,
+            "repair_symlinks": self._repair_symlinks,
         }
 
         handler = dispatch.get(action)
@@ -231,16 +232,23 @@ class Healer:
                 f"[healer][DRY_RUN] {component} 캐시 정리 수행 예정",
                 file=sys.stderr,
             )
-            if component == "disk":
+            if component in ("disk", "disk_space"):
                 self._list_old_files("disk")
             elif component in ("stale_locks",):
                 self._list_old_files("stale_locks")
+            elif component == "memory":
+                self._list_old_files("disk")
             return True
 
-        if component == "disk":
+        if component in ("disk", "disk_space"):
             return self._clean_disk()
         elif component in ("stale_locks",):
             return self._clean_stale_locks()
+        elif component == "memory":
+            # 메모리 압박 시: 로그 정리 + 스냅샷 정리로 메모리 간접 해소
+            self._clean_disk()
+            self._clean_large_logs("memory")
+            return True
         else:
             print(f"[healer] {component}에 대한 캐시 정리 미지원", file=sys.stderr)
             return False
@@ -375,6 +383,11 @@ class Healer:
                 str(self.project_root / "rl_hybrid" / "nodes" / "main_brain.py"),
             ],
         }
+
+        # core_processes/process_alive → 봇 재시작으로 위임
+        if component in ("core_processes", "process_alive"):
+            print(f"[healer] {component} → 봇 프로세스 재시작으로 위임", file=sys.stderr)
+            return self._restart_bot(component)
 
         cmd = restart_commands.get(component)
         if cmd is None:
@@ -670,6 +683,71 @@ class Healer:
 
         print(f"[healer] 로그 정리: {truncated}개 파일 truncate", file=sys.stderr)
         return True
+
+    def _repair_symlinks(self, component: str) -> bool:
+        """깨진 외장하드 심볼릭 링크를 재생성한다."""
+        external_drive = Path("/Volumes/Mac-Pc 외장하드")
+        external_data = external_drive / "blockchain-data"
+
+        if not external_drive.exists():
+            print("[healer] 외장하드 미마운트: /Volumes/Mac-Pc 외장하드", file=sys.stderr)
+            return False
+
+        if not external_data.exists():
+            print(f"[healer] 외장하드 데이터 경로 없음: {external_data}", file=sys.stderr)
+            return False
+
+        expected_symlinks = {
+            "logs": external_data / "logs",
+            "data/candles_cache": external_data / "candles_cache",
+            "data/charts": external_data / "charts",
+            "data/db_backup": external_data / "db_backup",
+            "data/historical": external_data / "historical",
+            "data/kimchirang": external_data / "kimchirang",
+            "data/rl_models": external_data / "rl_models",
+            "data/scalp_models": external_data / "scalp_models",
+            "data/scalp_snapshots": external_data / "scalp_snapshots",
+            "data/snapshots": external_data / "snapshots",
+            "data/week2_models": external_data / "week2_models",
+        }
+
+        repaired = 0
+        failed = 0
+
+        for link_rel, target in expected_symlinks.items():
+            link_path = self.project_root / link_rel
+
+            # 정상 심볼릭 링크면 스킵
+            if link_path.is_symlink() and link_path.resolve().exists():
+                continue
+
+            # 대상 디렉토리가 외장하드에 존재하는지 확인
+            if not target.exists():
+                print(f"[healer] 외장하드 대상 경로 없음: {target}", file=sys.stderr)
+                failed += 1
+                continue
+
+            if self.dry_run:
+                print(f"[healer][DRY_RUN] 심볼릭 링크 재생성 예정: {link_rel} → {target}", file=sys.stderr)
+                repaired += 1
+                continue
+
+            try:
+                # 깨진 심볼릭 링크 또는 잔여 파일/디렉토리 제거
+                if link_path.is_symlink() or link_path.exists():
+                    link_path.unlink()
+                # 부모 디렉토리 확인
+                link_path.parent.mkdir(parents=True, exist_ok=True)
+                # 심볼릭 링크 재생성
+                os.symlink(str(target), str(link_path))
+                repaired += 1
+                print(f"[healer] 심볼릭 링크 재생성: {link_rel} → {target}", file=sys.stderr)
+            except OSError as e:
+                print(f"[healer] 심볼릭 링크 재생성 실패: {link_rel} — {e}", file=sys.stderr)
+                failed += 1
+
+        print(f"[healer] 심볼릭 링크 복구: {repaired}개 재생성, {failed}개 실패", file=sys.stderr)
+        return failed == 0
 
     def resume_trading_if_healed(self, heal_results: list[dict]) -> bool:
         """복구 완료 후 매매 파이프라인을 자동 재개한다.

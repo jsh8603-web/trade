@@ -24,6 +24,11 @@
 PROJECT_DIR="/Users/drj00/workspace/blockchain"
 REMOTE_URL_FILE="$PROJECT_DIR/data/remote_url.txt"
 LOG_FILE="$PROJECT_DIR/logs/watchdog.log"
+# 외장하드 심볼릭 logs 쓰기 불가 시 /tmp fallback
+if ! touch "$LOG_FILE" 2>/dev/null; then
+    LOG_FILE="/tmp/blockchain_logs/watchdog.log"
+    mkdir -p /tmp/blockchain_logs
+fi
 KEEPALIVE_FILE="$PROJECT_DIR/data/.rc_keepalive_ts"
 HEALTH_FILE="$PROJECT_DIR/data/.rc_health.json"
 FAIL_COUNT_FILE="$PROJECT_DIR/data/.rc_fail_count"
