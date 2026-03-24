@@ -378,7 +378,7 @@ class ExternalDataAgent:
             "coinmarketcap": ("collect_coinmarketcap.py", None),
             # ── 신규 외부 시그널 (v1.20.0) ──
             "rss_news": ("collect_rss_news.py", None),
-            "x_signals": ("collect_x_signals.py", None),
+            # "x_signals": ("collect_x_signals.py", None),  # 2026-03-24 정지: twikit KEY_BYTE 호환성 문제 (X.com 프론트엔드 변경)
             "social_sentiment": ("collect_social_sentiment.py", None),
         }
 
