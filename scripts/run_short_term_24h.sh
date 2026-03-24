@@ -31,7 +31,13 @@ else
 fi
 
 LOG_DIR="logs/short_term"
-mkdir -p "$LOG_DIR"
+mkdir -p "$LOG_DIR" 2>/dev/null
+# 외장하드 심볼릭 logs 쓰기 불가 시 /tmp fallback
+if ! touch "$LOG_DIR/.write_test" 2>/dev/null; then
+    LOG_DIR="/tmp/blockchain_logs/short_term"
+    mkdir -p "$LOG_DIR"
+fi
+rm -f "$LOG_DIR/.write_test" 2>/dev/null
 
 # v5: 중복 실행 방지 (PID lock)
 PIDFILE="data/.short_term_bot.pid"
