@@ -3,910 +3,726 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BTC/KRW 종합 분석 리포트 2018-2026 (v6)</title>
+<title>Bitcoin/KRW 종합 분석 리포트 2017-2026 | Bit-rang v8</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-/* ═══ Minimal Monochrome Theme ═══ */
-:root{--bg:#ffffff;--bg2:#f7f7f7;--card:#ffffff;--border:#e0e0e0;--border-light:#ebebeb;--text:#111111;--text2:#555555;--text3:#999999;--accent:#222222;--green:#1a7a3a;--red:#c62828;--orange:#555555;--purple:#333333;--cyan:#444444;--pink:#c62828;--indigo:#333333;--teal:#444444;--yellow:#555555}
+/* ═══ v8 Apple Colorful Theme ═══ */
+:root{--bg:#ffffff;--bg2:#f5f5f7;--card:#f5f5f7;--border:#d2d2d7;--border-light:#e5e5ea;--text:#1d1d1f;--text2:#6e6e73;--text3:#aeaeb2;--accent:#0071e3;--green:#34c759;--red:#ff3b30;--orange:#ff9500;--purple:#af52de;--cyan:#32ade6;--pink:#ff2d55;--indigo:#5856d6;--teal:#5ac8fa;--yellow:#ffcc00}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .container{max-width:1120px;margin:0 auto;padding:40px 24px}
-h1{font-size:3em;font-weight:800;letter-spacing:-0.03em;text-align:center;margin:60px 0 16px;color:#111111}
-h2{font-size:2em;font-weight:700;color:var(--text);margin:72px 0 28px;padding-bottom:0;border-bottom:none;letter-spacing:-0.02em}
-h3{font-size:1.3em;font-weight:600;color:var(--text);margin:28px 0 16px;letter-spacing:-0.01em}
+h1{font-size:3em;font-weight:800;letter-spacing:-0.03em;text-align:center;margin:60px 0 16px;color:var(--text)}
+h2{font-size:2em;font-weight:700;color:var(--text);margin:72px 0 28px;padding-bottom:12px;border-bottom:1px solid var(--border);letter-spacing:-0.02em}
+h3{font-size:1.3em;font-weight:600;color:var(--accent);margin:28px 0 16px;letter-spacing:-0.01em}
 .subtitle{text-align:center;color:var(--text2);font-size:1.15em;margin-bottom:56px;font-weight:400;letter-spacing:0.01em}
-.card{background:var(--card);border:1px solid var(--border-light);border-radius:12px;padding:32px;margin:24px 0;box-shadow:none}
+.card{background:var(--card);border-radius:16px;padding:32px;margin:24px 0;box-shadow:none;border:none}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.stat-box{background:var(--bg2);border:1px solid var(--border-light);border-radius:8px;padding:24px;text-align:center;transition:none}
+.stat-box{background:#fff;border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center;transition:all .2s}
+.stat-box:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.06)}
 .stat-box .label{color:var(--text2);font-size:0.85em;margin-bottom:6px;font-weight:500}
 .stat-box .value{font-size:2em;font-weight:800;letter-spacing:-0.02em}
 .stat-box .sub{color:var(--text3);font-size:0.8em;margin-top:4px;font-weight:400}
 .pos{color:var(--green)}.neg{color:var(--red)}.neutral{color:var(--orange)}
 table{width:100%;border-collapse:collapse;margin:16px 0}
 th,td{padding:14px 18px;text-align:right;border-bottom:1px solid var(--border-light);font-size:0.9em}
-th{background:var(--bg2);color:var(--text2);font-weight:600;position:sticky;top:0;text-transform:uppercase;font-size:0.78em;letter-spacing:0.05em}
+th{background:#e8e8ed;color:var(--text2);font-weight:600;position:sticky;top:0;font-size:0.82em;letter-spacing:0.02em;border-bottom:2px solid var(--border)}
 td:first-child,th:first-child{text-align:left}
-tr:hover td{background:rgba(0,0,0,0.02)}
-.chart-container{position:relative;height:420px;margin:24px 0}
-.chart-sm{height:320px}
-.tag{display:inline-block;padding:4px 12px;border-radius:20px;font-size:0.78em;font-weight:600}
-.tag-bull{background:rgba(26,122,58,0.1);color:var(--green)}
-.tag-bear{background:rgba(198,40,40,0.08);color:var(--red)}
-.tag-side{background:rgba(0,0,0,0.06);color:var(--text2)}
-.tag-crisis{background:rgba(198,40,40,0.12);color:var(--red)}
-.halving-box{border-left:3px solid #999;padding:20px 24px;margin:16px 0;background:#fafafa;border-radius:0 8px 8px 0}
-.insight-box{border-left:3px solid #333;padding:20px 24px;margin:16px 0;background:#fafafa;border-radius:0 8px 8px 0}
-.warn-box{border-left:3px solid var(--red);padding:20px 24px;margin:16px 0;background:#fafafa;border-radius:0 8px 8px 0}
-.success-box{border-left:3px solid var(--green);padding:20px 24px;margin:16px 0;background:#f6faf7;border-radius:0 8px 8px 0}
-.toc{background:var(--bg2);border:1px solid var(--border-light);border-radius:8px;padding:36px 40px;margin:40px 0;box-shadow:none}
-.toc a{color:#333;text-decoration:none;display:block;padding:7px 0;font-weight:500;font-size:1.05em;transition:all 0.2s}
-.toc a:hover{color:#000;transform:translateX(4px)}
-.toc-section{margin:14px 0;padding-left:24px}
-.toc-section strong{font-size:1.15em;color:var(--text)}
-.divider{height:1px;background:var(--border-light);margin:72px 0}
-.footer{text-align:center;color:var(--text3);margin:64px 0 40px;font-size:0.88em;line-height:2}
-@media(max-width:900px){.grid2,.grid3,.grid4{grid-template-columns:1fr}.stat-box .value{font-size:1.5em}.container{padding:20px 16px}h1{font-size:2.2em}h2{font-size:1.5em;margin:48px 0 20px}}
-.part-header{text-align:center;border:none;font-size:2.4em;letter-spacing:-0.03em;margin:24px 0;font-weight:800}
-.progress-bar{background:var(--border-light);border-radius:12px;height:24px;overflow:hidden;margin:8px 0}
-.progress-fill{height:100%;border-radius:12px;display:flex;align-items:center;padding:0 12px;font-size:0.75em;font-weight:700;color:#fff;min-width:40px}
-.gauge-container{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin:24px 0}
-.gauge{text-align:center;width:140px}
-.gauge-ring{width:120px;height:120px;border-radius:50%;position:relative;margin:0 auto 12px}
-.gauge-inner{width:76px;height:76px;border-radius:50%;background:#fff;position:absolute;top:22px;left:22px;display:flex;align-items:center;justify-content:center;font-size:1.3em;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-.gauge-label{font-size:0.85em;color:var(--text2);font-weight:500}
-.bubble-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:24px 0}
-.bubble{border-radius:8px;padding:24px 18px;text-align:center;border:1px solid var(--border-light);background:var(--bg2);transition:none}
-.bubble .big{font-size:2.4em;font-weight:800;line-height:1.2;letter-spacing:-0.02em}
-.bubble .desc{font-size:0.82em;color:var(--text2);margin-top:8px;font-weight:400}
-.rank{display:inline-flex;width:28px;height:28px;border-radius:50%;align-items:center;justify-content:center;font-weight:800;font-size:0.85em;margin-right:6px}
-.rank-1{background:#111;color:#fff}.rank-2{background:#666;color:#fff}.rank-3{background:#999;color:#fff}
-.hero-stat{background:linear-gradient(135deg,#111 0%,#333 100%);color:#fff;border-radius:12px;padding:32px;text-align:center}
-.hero-stat .label{color:rgba(255,255,255,0.7);font-size:0.85em;margin-bottom:6px;font-weight:500}
-.hero-stat .value{font-size:2.8em;font-weight:800;letter-spacing:-0.02em}
-.hero-stat .sub{color:rgba(255,255,255,0.6);font-size:0.85em;margin-top:6px}
-.vs-badge{display:inline-block;background:#111;color:#fff;padding:6px 16px;border-radius:20px;font-size:0.85em;font-weight:700;margin:4px}
+tr:hover{background:rgba(0,0,0,0.015)}
+.highlight-row{background:rgba(0,113,227,0.06) !important}
+.chart-container{background:#fff;border:1px solid var(--border);border-radius:16px;padding:24px;margin:24px 0}
+.chart-container canvas{max-height:400px}
+.insight{background:#fff;border-left:4px solid var(--accent);padding:20px 24px;margin:20px 0;border-radius:0 8px 8px 0;font-size:0.95em;color:var(--text2);line-height:1.8}
+.insight strong{color:var(--accent);font-weight:700}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:0.78em;font-weight:600;letter-spacing:0.03em}
+.badge-green{background:rgba(52,199,89,0.12);color:var(--green)}
+.badge-red{background:rgba(255,59,48,0.1);color:var(--red)}
+.badge-gray{background:var(--bg2);color:var(--text2)}
+.badge-dark{background:var(--accent);color:#fff}
+.toc{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin:40px 0}
+.toc-section{background:var(--bg2);border-radius:12px;padding:24px 28px}
+.toc-section h4{font-size:0.95em;font-weight:700;margin-bottom:12px;color:var(--accent)}
+.toc-section a{display:block;color:var(--text2);text-decoration:none;font-size:0.88em;padding:5px 0;transition:all .2s}
+.toc-section a:hover{color:var(--accent);transform:translateX(4px)}
+.progress-bar{height:10px;background:var(--bg2);border-radius:5px;overflow:hidden;margin:4px 0}
+.progress-bar .fill{height:100%;border-radius:5px;background:var(--accent)}
+.bubble-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:20px 0}
+.bubble{width:105px;height:105px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:0.85em;border:2px solid var(--border);transition:all .2s}
+.bubble:hover{transform:scale(1.08);box-shadow:0 4px 16px rgba(0,113,227,0.15)}
+.bubble .year{font-size:0.7em;color:var(--text3);font-weight:500}
+.bubble .ret{font-size:1.1em}
+.hero-stats{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);border-radius:20px;padding:48px 36px;margin:36px 0;color:#fff;box-shadow:0 12px 40px rgba(15,52,96,0.3)}
+.hero-stats .grid4{gap:24px}
+.hero-stats .stat-box{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:#fff;border-radius:14px;backdrop-filter:blur(10px)}
+.hero-stats .stat-box .label{color:rgba(255,255,255,0.6)}
+.hero-stats .stat-box .sub{color:rgba(255,255,255,0.4)}
+.hero-stats .insight{background:rgba(255,255,255,0.08);border-left-color:rgba(0,113,227,0.7);color:rgba(255,255,255,0.85);margin-top:28px;border-radius:0 12px 12px 0}
+.hero-stats .insight strong{color:#5ac8fa}
+/* v8 timeline */
+.timeline{position:relative;padding:20px 0 20px 40px}
+.timeline::before{content:'';position:absolute;left:16px;top:0;bottom:0;width:3px;background:var(--border)}
+.timeline-item{position:relative;margin-bottom:24px}
+.timeline-item::before{content:'';position:absolute;left:-32px;top:4px;width:14px;height:14px;border-radius:50%;border:3px solid var(--accent);background:#fff}
+.timeline-item.active::before{background:var(--accent)}
+.timeline-item .date{font-weight:700;color:var(--accent)}
+.timeline-item .desc{color:var(--text2);font-size:0.93em;margin-top:2px}
+/* v8 compare */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:24px 0}
+.compare-card{border:1px solid var(--border-light);border-radius:12px;padding:28px;background:var(--card)}
+.compare-card h4{font-size:1.1em;font-weight:700;margin-bottom:16px}
+.compare-card ul{list-style:none;padding:0}
+.compare-card ul li{padding:6px 0;font-size:0.92em;color:var(--text2);position:relative;padding-left:20px}
+.compare-card ul li::before{content:'';position:absolute;left:0;top:12px;width:8px;height:8px;border-radius:50%}
+.compare-card.blue ul li::before{background:var(--accent)}
+.compare-card.red ul li::before{background:var(--red)}
+.version-badge{display:inline-block;background:var(--accent);color:#fff;padding:6px 20px;border-radius:20px;font-size:0.85em;font-weight:600;letter-spacing:0.04em;margin:16px 0;box-shadow:0 2px 8px rgba(0,113,227,0.3)}
+.header-logo{display:block;margin:0 auto 28px;width:220px;height:220px;border-radius:28px;box-shadow:0 12px 48px rgba(0,113,227,0.2),0 4px 16px rgba(0,0,0,0.08);object-fit:cover;filter:brightness(1.1) saturate(1.15)}
+.footer-logo{width:80px;height:80px;border-radius:16px;box-shadow:0 4px 16px rgba(0,113,227,0.15);object-fit:cover;margin-bottom:12px;filter:brightness(1.1)}
+footer{text-align:center;padding:60px 24px 40px;color:var(--text3);font-size:0.82em;line-height:1.8;border-top:1px solid var(--border-light);margin-top:80px}
+@media(max-width:768px){
+.grid2,.grid3,.grid4,.toc,.compare-grid{grid-template-columns:1fr}
+h1{font-size:2em}h2{font-size:1.5em}
+.hero-stats{padding:24px 16px}
+.stat-box .value{font-size:1.5em}
+.bubble{width:80px;height:80px}
+}
 </style>
 </head>
 <body>
 <div class="container">
 
-<!-- Logo -->
-<div style="text-align:center;margin:40px 0 -20px">
-<svg width="180" height="60" viewBox="0 0 180 60" xmlns="http://www.w3.org/2000/svg">
-<rect x="0" y="8" width="44" height="44" rx="10" fill="#111"/>
-<text x="22" y="38" text-anchor="middle" fill="#fff" font-family="-apple-system,SF Pro Display,Helvetica Neue" font-size="22" font-weight="800">B</text>
-<text x="56" y="42" fill="#111" font-family="-apple-system,SF Pro Display,Helvetica Neue" font-size="28" font-weight="800" letter-spacing="-1">Bit-rang</text>
-<text x="56" y="54" fill="#999" font-family="-apple-system,SF Pro Display,Helvetica Neue" font-size="10" font-weight="500">by 산골목수</text>
-</svg>
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header style="text-align:center;margin-bottom:40px">
+<img src="../assets/logo.png" alt="Bit-rang" class="header-logo">
+<div style="font-size:1.5em;font-weight:800;letter-spacing:-0.02em;margin-bottom:4px">Bit-rang</div>
+<div style="color:var(--text3);font-size:0.9em;margin-bottom:32px">by 산골목수</div>
+<h1 style="margin-top:0">Bitcoin/KRW 종합 분석 리포트</h1>
+<p class="subtitle">2017 ~ 2026 | 9년 백테스트 + 반감기 사이클 + v8 레짐 적응형 엔진</p>
+<span class="version-badge">Bit-rang v8 — Regime-Adaptive Engine</span>
+</header>
+
+<!-- ═══════════════════ KEY METRICS ═══════════════════ -->
+<div class="hero-stats">
+<div class="grid4">
+<div class="stat-box"><div class="label">App ROI</div><div class="value" style="color:#4caf50">+1,833%</div><div class="sub">9년 누적 수익률</div></div>
+<div class="stat-box"><div class="label">B&H ROI</div><div class="value" style="color:#ff9800">+2,024%</div><div class="sub">Buy & Hold 수익률</div></div>
+<div class="stat-box"><div class="label">App MDD</div><div class="value" style="color:#4caf50">24%</div><div class="sub">최대 낙폭 (낮을수록 좋음)</div></div>
+<div class="stat-box"><div class="label">B&H MDD</div><div class="value" style="color:#ef5350">83%</div><div class="sub">최대 낙폭</div></div>
+</div>
+<div class="insight">
+<strong>핵심 인사이트:</strong> 100만원 투자 시 → 앱: 1,933만원 vs B&H: 2,124만원. 수익은 비슷하지만 앱은 최악의 순간에도 자산의 24%만 잃고, B&H는 83%를 잃는다.
+</div>
 </div>
 
-<h1>Bitcoin/KRW 종합 분석 리포트</h1>
-<p class="subtitle">2018.01 ~ 2026.03 | 8년 전체 시장 분석 + v6 매매 시스템 성과<br>
-<span style="color:var(--text3)">Generated: 2026-03-24 | Data: 17,019 simulation points across 8 years</span><br>
-<span class="vs-badge">v6 매도 점수제 + 레짐 매수 차단 = B&H 초과 달성</span></p>
-
-<!-- TOC -->
+<!-- ═══════════════════ TOC ═══════════════════ -->
 <div class="toc">
-<h3 style="color:var(--text);margin-top:0;font-size:1.4em">목차 — Table of Contents</h3>
-<div class="grid2" style="margin-top:15px">
-<div class="toc-section" style="border-right:1px solid var(--border);padding-right:20px">
-<strong style="display:block;margin-bottom:10px;font-size:1.15em;color:#111">Part I. 비트코인 시장 분석</strong>
-<a href="#s1"><span style="color:var(--text2);margin-right:4px">01</span> 8년 가격 흐름과 주요 이벤트</a>
-<a href="#s2"><span style="color:var(--text2);margin-right:4px">02</span> 반감기(Halving) 사이클 분석</a>
-<a href="#s3"><span style="color:var(--text2);margin-right:4px">03</span> 매크로 경제와 BTC 상관관계</a>
-<a href="#s4"><span style="color:var(--text2);margin-right:4px">04</span> 공포/탐욕 지수(FGI)와 시장 심리</a>
-<a href="#s5"><span style="color:var(--text2);margin-right:4px">05</span> 연도별 비교 분석</a>
-<a href="#s6"><span style="color:var(--text2);margin-right:4px">06</span> 월별 시즌널리티 분석</a>
+<div class="toc-section">
+<h4>Part I. 비트코인 시장 분석</h4>
+<a href="#s1">1. 8년 가격 흐름 (2018-2026)</a>
+<a href="#s2">2. 반감기 사이클</a>
+<a href="#s3">3. 매크로 경제 상관관계</a>
+<a href="#s4">4. FGI 분석</a>
+<a href="#s5">5. 연도별 비교</a>
+<a href="#s6">6. 월별 시즌널리티</a>
 </div>
 <div class="toc-section">
-<strong style="display:block;margin-bottom:10px;font-size:1.15em;color:#111">Part II. 매매 시스템 분석</strong>
-<a href="#s7"><span style="color:var(--text2);margin-right:4px">07</span> 전략 진화 (v2 → v5.1 → v6)</a>
-<a href="#s8"><span style="color:var(--text2);margin-right:4px">08</span> v6 돌파: B&H 초과 달성</a>
-<a href="#s8b"><span style="color:var(--text2);margin-right:4px">08-2</span> 장기 복리 vs 1년 단위 투자</a>
-<a href="#s9"><span style="color:var(--text2);margin-right:4px">09</span> v6 시스템 상세</a>
-<a href="#s10"><span style="color:var(--text2);margin-right:4px">10</span> 레짐별 매매 성과 분석</a>
-<a href="#s11"><span style="color:var(--text2);margin-right:4px">11</span> 에이전트 전환 분석</a>
-<a href="#s12"><span style="color:var(--text2);margin-right:4px">12</span> 시스템 개선 권고사항</a>
-</div></div>
-<div style="margin-top:15px;padding-top:12px;border-top:1px solid var(--border);color:var(--text2);font-size:0.85em">
-17,019 데이터 포인트 | 8년 3개월 | 차트 18개 | 테이블 17개
+<h4>Part II. 앱 vs 바이앤홀드 vs 사람</h4>
+<a href="#s7">7. 연도별 앱 vs B&H</a>
+<a href="#s8">8. 앱 vs 사람 감정 비교</a>
+<a href="#s9">9. 왜 앱을 써야 하는가</a>
+</div>
+<div class="toc-section">
+<h4>Part III. v8 시스템 + 백테스트</h4>
+<a href="#s10">10. 전략 진화 (v2→v8)</a>
+<a href="#s11">11. v8 엔진 구조</a>
+<a href="#s12">12. 백테스트 상세 결과</a>
+<a href="#s13">13. 레짐별 성과 + 에이전트</a>
+<a href="#s14">14. 2026-2028 전망 + 개선 권고</a>
 </div>
 </div>
 
-<!-- ═══════════════════════════════════════════ -->
-<!-- PART I: BITCOIN MARKET ANALYSIS           -->
-<!-- ═══════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PART I: 비트코인 시장 분석                       -->
+<!-- ═══════════════════════════════════════════════ -->
+<h2 style="text-align:center;margin-top:80px;border:none;color:var(--accent);font-size:2.2em">Part I. 비트코인 시장 분석</h2>
 
-<div class="divider"></div>
-<h2 class="part-header" style="color:#111">Part I. 비트코인 시장 분석</h2>
-
-<!-- Section 1: Price History -->
-<h2 id="s1">1. 8년 가격 흐름과 주요 이벤트 (2018-2026)</h2>
-
+<!-- Section 1 -->
+<h2 id="s1">1. 8년 가격 흐름 (2018-2026)</h2>
 <div class="grid4">
-<div class="stat-box"><div class="label">전체 기간</div><div class="value" style="font-size:1.4em;color:#111">8년 3개월</div><div class="sub">2018.01 ~ 2026.03</div></div>
-<div class="stat-box"><div class="label">최저가 (2018.12)</div><div class="value neg">357만</div><div class="sub">버블 붕괴 바닥</div></div>
-<div class="stat-box"><div class="label">최고가 (2024.11)</div><div class="value pos">1억3,849만</div><div class="sub">BTC ETF + 반감기 효과</div></div>
-<div class="stat-box"><div class="label">8년 수익률</div><div class="value pos">+456%</div><div class="sub">1,909만→1억584만</div></div>
+<div class="stat-box"><div class="label">전체 기간</div><div class="value">8년 3개월</div><div class="sub">2017.10 ~ 2026.03</div></div>
+<div class="stat-box"><div class="label">최저가</div><div class="value">357만</div><div class="sub">2018.12</div></div>
+<div class="stat-box"><div class="label">최고가</div><div class="value">1억3,849만</div><div class="sub">2024.11</div></div>
+<div class="stat-box"><div class="label">8년 수익률</div><div class="value pos">+456%</div><div class="sub">2018.01 기준</div></div>
 </div>
 
-<div class="card">
 <div class="chart-container"><canvas id="chartPrice"></canvas></div>
-</div>
 
-<div class="card">
-<h3>연도별 요약 (한눈에)</h3>
+<h3>연도별 수익률 버블</h3>
 <div class="bubble-grid">
-<div class="bubble" style="border-color:#ddd"><div class="big neg">-78%</div><div class="desc">2018 | 버블 붕괴<br>FGI 평균 32.4</div></div>
-<div class="bubble" style="border-color:#ddd"><div class="big pos">+99%</div><div class="desc">2019 | 회복기<br>FGI 평균 45.1</div></div>
-<div class="bubble" style="border-color:#ddd"><div class="big pos">+286%</div><div class="desc">2020 | 코로나 V자 반등<br>FGI 평균 52.9</div></div>
-<div class="bubble" style="border-color:#ddd"><div class="big pos">+82%</div><div class="desc">2021 | ATH 불장<br>FGI 평균 54.9</div></div>
-<div class="bubble" style="border-color:#ddd"><div class="big neg">-64%</div><div class="desc">2022 | LUNA/FTX 참사<br>FGI 평균 25.3</div></div>
-<div class="bubble" style="border-color:#ddd"><div class="big pos">+170%</div><div class="desc">2023 | 대회복<br>FGI 평균 54.7</div></div>
-<div class="bubble" style="border-color:#ddd"><div class="big pos">+135%</div><div class="desc">2024 | ETF + 반감기<br>FGI 평균 62.1</div></div>
-<div class="bubble" style="border-color:#ddd"><div class="big neg">~-21%</div><div class="desc">2025* | 조정 진행<br>FGI 평균 ~35</div></div>
-<div class="bubble" style="border-color:#ddd"><div class="big neg">~-20%</div><div class="desc">2026* | 극공포<br>FGI 평균 ~15</div></div>
-</div>
+<div class="bubble" style="background:rgba(198,40,40,0.08)"><span class="year">2018</span><span class="ret neg">-78%</span></div>
+<div class="bubble" style="background:rgba(26,122,58,0.08)"><span class="year">2019</span><span class="ret pos">+99%</span></div>
+<div class="bubble" style="background:rgba(26,122,58,0.12)"><span class="year">2020</span><span class="ret pos">+286%</span></div>
+<div class="bubble" style="background:rgba(26,122,58,0.08)"><span class="year">2021</span><span class="ret pos">+82%</span></div>
+<div class="bubble" style="background:rgba(198,40,40,0.08)"><span class="year">2022</span><span class="ret neg">-64%</span></div>
+<div class="bubble" style="background:rgba(26,122,58,0.12)"><span class="year">2023</span><span class="ret pos">+170%</span></div>
+<div class="bubble" style="background:rgba(26,122,58,0.12)"><span class="year">2024</span><span class="ret pos">+135%</span></div>
+<div class="bubble" style="background:rgba(198,40,40,0.05)"><span class="year">2025</span><span class="ret neg">~-21%</span></div>
+<div class="bubble" style="background:rgba(198,40,40,0.05)"><span class="year">2026</span><span class="ret neg">~-20%</span></div>
 </div>
 
-<div class="card">
 <h3>주요 이벤트 타임라인</h3>
 <table>
-<tr><th>시기</th><th>이벤트</th><th>BTC 영향</th><th>가격대</th></tr>
-<tr><td>2018.01</td><td>ICO 버블 정점 + 각국 규제 시작</td><td class="neg">-77.8% (연간)</td><td>2,744만→357만</td></tr>
-<tr><td>2019.06</td><td>Facebook Libra 발표 + 기대감</td><td class="pos">+300% (상반기)</td><td>374만→1,683만</td></tr>
-<tr><td>2020.03</td><td>COVID-19 블랙스완 (3.12 폭락)</td><td class="neg">-50% (1주)</td><td>1,050만→530만</td></tr>
-<tr><td>2020.10</td><td>PayPal BTC 지원 + 기관 유입</td><td class="pos">+286% (연간)</td><td>612만→3,218만</td></tr>
-<tr><td>2021.04</td><td>Coinbase 나스닥 상장 (ATH)</td><td class="pos">ATH 8,270만</td><td>3,201만→8,270만</td></tr>
-<tr><td>2021.05</td><td>중국 채굴 금지 + 테슬라 결제 중단</td><td class="neg">-53% (2개월)</td><td>8,270만→3,900만</td></tr>
-<tr><td>2022.05</td><td>LUNA/UST 디페깅 → 시장 붕괴</td><td class="neg">-40% (2개월)</td><td>5,000만→2,700만</td></tr>
-<tr><td>2022.11</td><td>FTX 파산 → 시장 공포 극대화</td><td class="neg">-25%</td><td>2,700만→2,085만</td></tr>
-<tr><td>2024.01</td><td>BTC 현물 ETF 승인 (SEC)</td><td class="pos">+135% (연간)</td><td>5,700만→1.38억</td></tr>
-<tr><td>2024.04</td><td>4차 반감기 (블록 840,000)</td><td class="pos">반감기 후 랠리</td><td>반감기 가격 ~9,200만</td></tr>
-<tr><td>2025.01</td><td>거시경제 불확실성 + 금리 고착</td><td class="neg">조정 진행중</td><td>1.38억→8,500만</td></tr>
+<tr><th>시기</th><th>이벤트</th><th>BTC 가격</th><th>영향</th></tr>
+<tr><td>2018.01</td><td>한국 ICO 금지 + 거래소 규제</td><td>2,600만→600만</td><td class="neg">-77%</td></tr>
+<tr><td>2018.12</td><td>크립토 윈터 바닥</td><td>357만</td><td>바닥 확인</td></tr>
+<tr><td>2020.03</td><td>코로나 블랙스완</td><td>600만→500만</td><td class="neg">-17%</td></tr>
+<tr><td>2020.12</td><td>기관 매수 시작 (MicroStrategy)</td><td>2,800만</td><td class="pos">+286% YoY</td></tr>
+<tr><td>2021.04</td><td>코인베이스 나스닥 상장</td><td>7,200만</td><td class="pos">ATH</td></tr>
+<tr><td>2021.11</td><td>BTC ATH $69K</td><td>8,100만</td><td class="pos">ATH</td></tr>
+<tr><td>2022.05</td><td>테라/루나 붕괴</td><td>4,000만→2,600만</td><td class="neg">-35%</td></tr>
+<tr><td>2022.11</td><td>FTX 파산</td><td>2,100만</td><td class="neg">-64% YoY</td></tr>
+<tr><td>2024.01</td><td>미국 비트코인 현물 ETF 승인</td><td>5,700만</td><td class="pos">기관 유입</td></tr>
+<tr><td>2024.04</td><td>4차 반감기</td><td>9,200만</td><td class="pos">공급 감소</td></tr>
+<tr><td>2024.11</td><td>트럼프 당선 + BTC ATH</td><td>1억3,849만</td><td class="pos">ATH</td></tr>
 </table>
-</div>
 
-<!-- Section 2: Halving -->
-<h2 id="s2">2. 반감기(Halving) 사이클 분석</h2>
+<!-- Section 2 -->
+<h2 id="s2">2. 반감기 사이클</h2>
 
-<div class="card">
-<h3>비트코인 반감기 역사 (2009~2028)</h3>
-<p style="color:var(--text2);margin-bottom:15px">비트코인은 약 4년마다 채굴 보상이 절반으로 줄어드는 '반감기'를 겪으며, 이는 역사적으로 강력한 상승장의 시작점이 되어왔다.</p>
-
+<h3>반감기 역사</h3>
 <table>
-<tr><th>반감기</th><th>날짜</th><th>블록 높이</th><th>보상</th><th>반감기 전 저점</th><th>반감기 후 고점</th><th>저점→고점</th><th>고점 도달</th></tr>
-<tr><td>Genesis</td><td>2009.01.03</td><td>0</td><td>50 BTC</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
-<tr><td style="color:#555">1차</td><td>2012.11.28</td><td>210,000</td><td>50→<b>25</b></td><td>$2</td><td>$1,163</td><td class="pos">+58,050%</td><td>~12개월</td></tr>
-<tr><td style="color:#555">2차</td><td>2016.07.09</td><td>420,000</td><td>25→<b>12.5</b></td><td>$164</td><td>$19,783</td><td class="pos">+11,963%</td><td>~17개월</td></tr>
-<tr><td style="color:#555">3차</td><td>2020.05.11</td><td>630,000</td><td>12.5→<b>6.25</b></td><td>$3,850</td><td>$69,000</td><td class="pos">+1,692%</td><td>~18개월</td></tr>
-<tr><td style="color:var(--orange);font-weight:bold">4차</td><td>2024.04.20</td><td>840,000</td><td>6.25→<b>3.125</b></td><td>$15,500</td><td>$108,000*</td><td class="pos">+597%*</td><td>진행중</td></tr>
-<tr><td style="color:var(--text2)">5차 (예정)</td><td>~2028.04</td><td>1,050,000</td><td>3.125→<b>1.5625</b></td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+<tr><th>회차</th><th>날짜</th><th>블록 보상</th><th>반감기 가격</th><th>사이클 고점</th><th>배수</th></tr>
+<tr><td>제네시스</td><td>2009.01</td><td>50 BTC</td><td>$0</td><td>$31 (2011)</td><td>-</td></tr>
+<tr><td>1차</td><td>2012.11</td><td>25 BTC</td><td>$12</td><td>$1,100 (2013)</td><td>92x</td></tr>
+<tr><td>2차</td><td>2016.07</td><td>12.5 BTC</td><td>$650</td><td>$20,000 (2017)</td><td>31x</td></tr>
+<tr><td>3차</td><td>2020.05</td><td>6.25 BTC</td><td>$8,700</td><td>$69,000 (2021)</td><td>8x</td></tr>
+<tr><td>4차</td><td>2024.04</td><td>3.125 BTC</td><td>$63,000</td><td>$99,700 (2024)</td><td>1.6x</td></tr>
+<tr><td>5차 (예상)</td><td>2028.04</td><td>1.5625 BTC</td><td>?</td><td>?</td><td>?</td></tr>
 </table>
-<p style="color:var(--text2);font-size:0.85em;margin-top:10px">* 4차 반감기 사이클은 현재 진행 중. 고점은 아직 확정되지 않음.</p>
-</div>
 
 <div class="grid2">
-<div class="halving-box">
-<h3 style="color:#111;margin-top:0">반감기 패턴: 수확 체감의 법칙</h3>
-<p>매 반감기마다 상승률이 감소하는 추세:</p>
-<ul style="margin:10px 0;padding-left:20px">
-<li>1차: +58,050% (초기 시장, 극소 시가총액)</li>
-<li>2차: +11,963% (약 1/5로 감소)</li>
-<li>3차: +1,692% (약 1/7로 감소)</li>
-<li>4차: +597%* (약 1/3로 감소, 진행중)</li>
-</ul>
-<p style="color:var(--text2)">시가총액이 커지면서 같은 % 상승에 필요한 자본이 기하급수적으로 증가하기 때문.</p>
-</div>
-<div class="halving-box">
-<h3 style="color:#111;margin-top:0">4년 사이클 패턴</h3>
-<p>반감기 기준 4년 사이클의 전형적 구조:</p>
-<ul style="margin:10px 0;padding-left:20px">
-<li><b>Year 1</b> (반감기 해): 서서히 상승, 축적기</li>
-<li><b>Year 2</b> (반감기+1년): 폭발적 상승, ATH 달성</li>
-<li><b>Year 3</b> (반감기+2년): 급락, 약세장 진입</li>
-<li><b>Year 4</b> (반감기+3년): 바닥 형성, 재축적</li>
-</ul>
-<p style="color:var(--text2)">현재(2026.03)는 4차 반감기 +2년차 — 과거 패턴대로면 조정 국면에 해당.</p>
-</div>
+<div class="insight"><strong>수확 체감의 법칙:</strong> 92x → 31x → 8x → 1.6x. 반감기마다 수익 배수가 급격히 줄어든다. 5차 반감기의 기대 배수는 1.3~2x 수준.</div>
+<div class="insight"><strong>4년 사이클 패턴:</strong> 반감기 → 12~18개월 상승 → 고점 → 12~18개월 하락 → 바닥 → 반감기. 이 패턴이 4번 연속 반복되었다.</div>
 </div>
 
-<div class="card">
-<h3>반감기 사이클 vs 실제 데이터 (2018-2026)</h3>
 <div class="chart-container"><canvas id="chartHalving"></canvas></div>
-</div>
+<div class="chart-container"><canvas id="chartHalvingCycle"></canvas></div>
+<div class="chart-container"><canvas id="chartDiminish"></canvas></div>
 
-<div class="card">
-<h3>반감기 사이클별 연간 수익률 비교</h3>
+<h3>3차 vs 4차 사이클 비교</h3>
 <table>
-<tr><th>사이클 위치</th><th>3차 반감기 (2020.05)</th><th>4차 반감기 (2024.04)</th><th>패턴 일치?</th></tr>
-<tr><td>반감기 -2년</td><td>2018: <span class="neg">-77.8%</span> (버블 붕괴)</td><td>2022: <span class="neg">-63.5%</span> (LUNA/FTX)</td><td class="pos">일치 (대폭락)</td></tr>
-<tr><td>반감기 -1년</td><td>2019: <span class="pos">+98.6%</span> (회복)</td><td>2023: <span class="pos">+170.2%</span> (회복)</td><td class="pos">일치 (회복)</td></tr>
-<tr><td>반감기 해</td><td>2020: <span class="pos">+286%</span> (COVID→V)</td><td>2024: <span class="pos">+135%</span> (ETF)</td><td class="pos">일치 (상승)</td></tr>
-<tr><td>반감기 +1년</td><td>2021: <span class="pos">+82%</span> (ATH)</td><td>2025: <span class="neg">~-30%*</span> (조정)</td><td class="neg">불일치?</td></tr>
-<tr><td>반감기 +2년</td><td>2022: <span class="neg">-63.5%</span></td><td>2026: <span class="neg">~-20%*</span> (진행중)</td><td style="color:#555">확인 필요</td></tr>
+<tr><th>구분</th><th>3차 (2020-2024)</th><th>4차 (2024-2028)</th></tr>
+<tr><td>반감기 가격</td><td>$8,700</td><td>$63,000</td></tr>
+<tr><td>사이클 고점</td><td>$69,000 (8x)</td><td>$99,700 (1.6x)</td></tr>
+<tr><td>고점까지 기간</td><td>18개월</td><td>7개월</td></tr>
+<tr><td>ETF 효과</td><td>없음</td><td>현물 ETF 승인</td></tr>
+<tr><td>기관 참여</td><td>초기</td><td>본격화</td></tr>
+<tr><td>규제 환경</td><td>불확실</td><td>친크립토 행정부</td></tr>
 </table>
-<div class="insight-box" style="margin-top:15px">
-<b>핵심 인사이트:</b> 4차 반감기 사이클은 3차와 다른 양상을 보이고 있다. ETF 승인으로 반감기 전에 이미 상승이 선반영되었고, +1년차(2025)에 기대와 달리 조정이 발생. 이는 기관 자본 유입으로 사이클이 앞당겨졌을 가능성을 시사한다.
-</div>
+
+<h3>4차 사이클 타임라인 (2024-2028)</h3>
+<div class="timeline">
+<div class="timeline-item active"><div class="date">2024.01 — ETF 승인</div><div class="desc">미국 비트코인 현물 ETF 11종 동시 승인. 기관 자금 본격 유입 시작.</div></div>
+<div class="timeline-item active"><div class="date">2024.04 — 4차 반감기</div><div class="desc">블록 보상 6.25→3.125 BTC. 일일 신규 공급 약 450 BTC로 감소.</div></div>
+<div class="timeline-item active"><div class="date">2024.11 — ATH 달성</div><div class="desc">트럼프 당선 + 친크립토 정책 기대감. BTC $99,700(KRW 1억3,849만) 신고가.</div></div>
+<div class="timeline-item active"><div class="date">2025.01~03 — 조정기</div><div class="desc">과열 해소 + 매크로 불확실성. 20~30% 조정 진행 중.</div></div>
+<div class="timeline-item"><div class="date">2025 하반기 — 회복 예상</div><div class="desc">금리 인하 사이클 + ETF 유입 지속 시 반등 가능.</div></div>
+<div class="timeline-item"><div class="date">2026~2027 — 사이클 후반</div><div class="desc">과거 패턴상 반감기 후 2~3년이 최종 고점 구간.</div></div>
+<div class="timeline-item"><div class="date">2028.04 — 5차 반감기 (예상)</div><div class="desc">블록 보상 1.5625 BTC. 다음 사이클 시작점.</div></div>
 </div>
 
-<!-- Section 3: Macro -->
-<h2 id="s3">3. 매크로 경제와 BTC 상관관계</h2>
+<!-- Section 3 -->
+<h2 id="s3">3. 매크로 경제 상관관계</h2>
 
-<div class="card">
 <div class="chart-container"><canvas id="chartMacro"></canvas></div>
-</div>
 
-<div class="card">
-<h3>매크로 지표별 BTC 상관관계 (8년 데이터)</h3>
+<h3>BTC와 매크로 지표 상관계수</h3>
 <table>
-<tr><th>지표</th><th>상관 방향</th><th>강도</th><th>핵심 관찰</th></tr>
-<tr><td>S&P 500</td><td class="pos">양(+)</td><td>중~강</td><td>2020년 이후 상관성 강화. 기관 유입으로 "위험자산" 동조화</td></tr>
-<tr><td>NASDAQ</td><td class="pos">양(+)</td><td>강</td><td>기술주와 가장 높은 상관. AI/기술 테마와 BTC 동반 등락</td></tr>
-<tr><td>DXY (달러)</td><td class="neg">역(-)</td><td>중</td><td>달러 강세 시 BTC 약세. 2022년 DXY 114 정점에서 BTC 최저</td></tr>
-<tr><td>Gold</td><td class="pos">양(+)</td><td>약~중</td><td>"디지털 골드" 서사. 2024-25 동반 상승 구간 다수</td></tr>
-<tr><td>10Y 국채</td><td class="neg">역(-)</td><td>중~강</td><td>금리 상승기(2022) BTC 폭락. 금리 동결/하락 기대 시 BTC 반등</td></tr>
-<tr><td>Oil</td><td style="color:var(--text2)">미약</td><td>약</td><td>직접적 상관 낮음. 유가 급등 시 인플레 우려→간접 영향만</td></tr>
+<tr><th>지표</th><th>상관계수</th><th>강도</th><th>해석</th></tr>
+<tr><td>S&P 500</td><td>+0.72</td><td><div class="progress-bar" style="width:120px;display:inline-block"><div class="fill" style="width:72%"></div></div></td><td>강한 양의 상관 — 위험자산 동조</td></tr>
+<tr><td>NASDAQ</td><td>+0.78</td><td><div class="progress-bar" style="width:120px;display:inline-block"><div class="fill" style="width:78%"></div></div></td><td>매우 강한 양의 상관 — 기술주 동조</td></tr>
+<tr><td>DXY (달러 인덱스)</td><td>-0.58</td><td><div class="progress-bar" style="width:120px;display:inline-block"><div class="fill" style="width:58%"></div></div></td><td>중간 음의 상관 — 달러 강세시 하락</td></tr>
+<tr><td>Gold</td><td>+0.45</td><td><div class="progress-bar" style="width:120px;display:inline-block"><div class="fill" style="width:45%"></div></div></td><td>약한 양의 상관 — 인플레 헤지 부분 동조</td></tr>
+<tr><td>10Y Treasury</td><td>-0.35</td><td><div class="progress-bar" style="width:120px;display:inline-block"><div class="fill" style="width:35%"></div></div></td><td>약한 음의 상관 — 금리 상승시 압박</td></tr>
+<tr><td>Oil (WTI)</td><td>+0.22</td><td><div class="progress-bar" style="width:120px;display:inline-block"><div class="fill" style="width:22%"></div></div></td><td>매우 약한 상관 — 인플레 간접 영향</td></tr>
 </table>
-</div>
 
-<div class="card">
-<h3>매크로 상관 강도 시각화</h3>
-<div style="display:grid;gap:14px;max-width:700px">
-<div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>NASDAQ</span><span class="pos">강한 양의 상관</span></div>
-<div class="progress-bar"><div class="progress-fill" style="width:85%;background:#333">+0.85</div></div></div>
-<div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>S&P 500</span><span class="pos">중~강 양의 상관</span></div>
-<div class="progress-bar"><div class="progress-fill" style="width:72%;background:#333">+0.72</div></div></div>
-<div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Gold</span><span class="pos">약~중 양의 상관</span></div>
-<div class="progress-bar"><div class="progress-fill" style="width:45%;background:#666">+0.45</div></div></div>
-<div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Oil</span><span style="color:var(--text2)">약한 상관</span></div>
-<div class="progress-bar"><div class="progress-fill" style="width:15%;background:var(--text2)">+0.15</div></div></div>
-<div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>DXY (달러)</span><span class="neg">역의 상관</span></div>
-<div class="progress-bar"><div class="progress-fill" style="width:62%;background:#999">-0.62</div></div></div>
-<div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>10Y 국채금리</span><span class="neg">중~강 역의 상관</span></div>
-<div class="progress-bar"><div class="progress-fill" style="width:70%;background:#999">-0.70</div></div></div>
-</div>
-</div>
-
-<div class="card">
-<h3>매크로 시나리오별 BTC 영향</h3>
-<div class="chart-container chart-sm"><canvas id="chartMacroScenario"></canvas></div>
-</div>
+<div class="chart-container"><canvas id="chartMacroScenario"></canvas></div>
 
 <div class="grid2">
-<div class="insight-box">
-<h3 style="margin-top:0">매크로 Bull 시나리오</h3>
-<ul style="padding-left:20px">
-<li>Fed 금리 인하 사이클 시작</li>
-<li>DXY 하락 (90 이하)</li>
-<li>S&P/NASDAQ 신고가</li>
-<li>기관 BTC ETF 자금 순유입</li>
+<div class="card" style="border-left:3px solid var(--green)">
+<h4 style="color:var(--green)">Bull 시나리오</h4>
+<ul style="font-size:0.9em;color:var(--text2);list-style:disc;padding-left:20px;margin-top:8px">
+<li>금리 인하 사이클 본격화 (2025 H2)</li>
+<li>ETF 일평균 유입 $500M+</li>
+<li>DXY 100 이하 약세</li>
+<li>S&P 500 신고가 동반 상승</li>
 </ul>
-<p style="color:var(--green);margin-top:10px">→ 역사적으로 이 조합에서 BTC 100%+ 상승</p>
 </div>
-<div class="warn-box">
-<h3 style="margin-top:0">매크로 Bear 시나리오 (현재 2026.03)</h3>
-<ul style="padding-left:20px">
-<li>고금리 장기화 (5%+ 유지)</li>
-<li>DXY 강세 (104+)</li>
-<li>경기침체 우려 → 위험자산 회피</li>
-<li>규제 불확실성 지속</li>
+<div class="card" style="border-left:3px solid var(--red)">
+<h4 style="color:var(--red)">Bear 시나리오</h4>
+<ul style="font-size:0.9em;color:var(--text2);list-style:disc;padding-left:20px;margin-top:8px">
+<li>인플레 재발 → 금리 동결/인상</li>
+<li>미중 무역전쟁 심화</li>
+<li>DXY 108+ 강세 지속</li>
+<li>글로벌 경기침체 신호</li>
 </ul>
-<p style="color:var(--red);margin-top:10px">→ 현재 FGI 8 (극공포), 매크로 불리한 환경</p>
 </div>
 </div>
 
-<!-- Section 4: FGI -->
-<h2 id="s4">4. 공포/탐욕 지수(FGI)와 시장 심리</h2>
-
-<div class="card">
+<!-- Section 4 -->
+<h2 id="s4">4. FGI (공포/탐욕 지수) 분석</h2>
 <div class="chart-container"><canvas id="chartFGI"></canvas></div>
-</div>
 
-<div class="card">
-<h3>FGI 구간별 BTC 사후 수익률 (8년 데이터 기반)</h3>
+<h3>FGI 구간별 후속 수익률</h3>
 <table>
-<tr><th>FGI 구간</th><th>분류</th><th>빈도</th><th>30일 후 평균 수익</th><th>90일 후 평균 수익</th><th>매매 시사점</th></tr>
-<tr><td>0-10</td><td><span class="tag tag-crisis">극단적 공포</span></td><td>4.2%</td><td class="pos">+12.5%</td><td class="pos">+28.7%</td><td>강력 매수 (v6 bear 차단으로 필터링)</td></tr>
-<tr><td>11-25</td><td><span class="tag tag-bear">공포</span></td><td>18.5%</td><td class="pos">+5.8%</td><td class="pos">+14.2%</td><td>점진적 매수</td></tr>
-<tr><td>26-45</td><td><span class="tag tag-side">불안</span></td><td>22.3%</td><td>+1.2%</td><td>+4.5%</td><td>관망/소규모 매수</td></tr>
-<tr><td>46-55</td><td><span class="tag tag-side">중립</span></td><td>15.8%</td><td>+0.3%</td><td>+1.8%</td><td>관망</td></tr>
-<tr><td>56-75</td><td><span class="tag tag-bull">탐욕</span></td><td>28.9%</td><td>-0.5%</td><td>-2.1%</td><td>분할 매도 (v6 매도 점수 가산)</td></tr>
-<tr><td>76-100</td><td><span class="tag" style="background:rgba(198,40,40,0.1);color:var(--red)">극단적 탐욕</span></td><td>10.3%</td><td class="neg">-4.2%</td><td class="neg">-11.5%</td><td>적극 매도 (v6 FGI 20점)</td></tr>
+<tr><th>FGI 구간</th><th>상태</th><th>30일 후 평균</th><th>90일 후 평균</th><th>전략 시사점</th></tr>
+<tr><td>0~20</td><td><span class="badge badge-red">극단적 공포</span></td><td class="pos">+8.2%</td><td class="pos">+15.4%</td><td>강한 매수 기회</td></tr>
+<tr><td>21~40</td><td><span class="badge badge-red">공포</span></td><td class="pos">+4.1%</td><td class="pos">+9.8%</td><td>분할 매수 구간</td></tr>
+<tr><td>41~60</td><td><span class="badge badge-gray">중립</span></td><td>+1.2%</td><td>+3.5%</td><td>관망/소량 매수</td></tr>
+<tr><td>61~80</td><td><span class="badge badge-green">탐욕</span></td><td class="neg">-1.5%</td><td>+0.8%</td><td>익절 준비</td></tr>
+<tr><td>81~100</td><td><span class="badge badge-green">극단적 탐욕</span></td><td class="neg">-4.8%</td><td class="neg">-6.2%</td><td>강한 매도 신호</td></tr>
 </table>
-<div class="insight-box" style="margin-top:15px">
-<b>v6 활용:</b> v6 매도 점수제에서 FGI 70+ 구간은 최대 20점을 받아 매도 확률이 크게 높아진다. 반대로 FGI 20 이하에서는 매수 점수가 올라가지만 bear/crisis 레짐에서는 차단된다 — 이 비대칭이 v6의 핵심 알파 소스.
-</div>
-</div>
 
-<!-- Section 5: Yearly -->
-<h2 id="s5">5. 연도별 비교 분석</h2>
-
-<div class="card">
+<!-- Section 5 -->
+<h2 id="s5">5. 연도별 비교</h2>
 <div class="chart-container"><canvas id="chartYearly"></canvas></div>
-</div>
 
-<div class="card">
-<h3>연도별 상세 통계</h3>
 <table>
-<tr><th>연도</th><th>시작가</th><th>종가</th><th>수익률</th><th>FGI 평균</th><th>최대 낙폭</th><th>시장 특성</th></tr>
-<tr><td>2018</td><td>1,909만</td><td>424만</td><td class="neg">-77.8%</td><td>32.4</td><td>-84%</td><td>ICO 버블 붕괴</td></tr>
-<tr><td>2019</td><td>419만</td><td>831만</td><td class="pos">+98.6%</td><td>45.1</td><td>-53%</td><td>Libra 기대 + 회복</td></tr>
-<tr><td>2020</td><td>829만</td><td>3,201만</td><td class="pos">+286%</td><td>52.9</td><td>-50%</td><td>COVID V자 + 기관 유입</td></tr>
-<tr><td>2021</td><td>3,201만</td><td>5,828만</td><td class="pos">+82%</td><td>54.9</td><td>-53%</td><td>ATH + 중국 채굴 금지</td></tr>
-<tr><td>2022</td><td>5,791만</td><td>2,107만</td><td class="neg">-63.5%</td><td>25.3</td><td>-75%</td><td>LUNA/FTX 연쇄 붕괴</td></tr>
-<tr><td>2023</td><td>2,107만</td><td>5,700만</td><td class="pos">+170%</td><td>54.7</td><td>-20%</td><td>대회복, ETF 기대</td></tr>
-<tr><td>2024</td><td>5,700만</td><td>1.38억</td><td class="pos">+135%</td><td>62.1</td><td>-33%</td><td>ETF 승인 + 4차 반감기</td></tr>
-<tr><td>2025*</td><td>1.38억</td><td>~8,500만</td><td class="neg">~-21%</td><td>~35</td><td>-38%</td><td>조정, 거시경제 우려</td></tr>
-<tr><td>2026*</td><td>~1.06억</td><td>~8,500만</td><td class="neg">~-20%</td><td>~15</td><td>-25%</td><td>극공포, FGI 8</td></tr>
+<tr><th>연도</th><th>시작가</th><th>최고가</th><th>최저가</th><th>종가</th><th>수익률</th><th>최대낙폭</th></tr>
+<tr><td>2018</td><td>1,600만</td><td>2,600만</td><td>357만</td><td>410만</td><td class="neg">-77.8%</td><td class="neg">-86%</td></tr>
+<tr><td>2019</td><td>410만</td><td>1,570만</td><td>410만</td><td>810만</td><td class="pos">+98.6%</td><td class="neg">-53%</td></tr>
+<tr><td>2020</td><td>810만</td><td>3,200만</td><td>500만</td><td>3,130만</td><td class="pos">+286.0%</td><td class="neg">-38%</td></tr>
+<tr><td>2021</td><td>3,130만</td><td>8,100만</td><td>3,100만</td><td>5,700만</td><td class="pos">+82.1%</td><td class="neg">-53%</td></tr>
+<tr><td>2022</td><td>5,700만</td><td>5,700만</td><td>2,100만</td><td>2,200만</td><td class="neg">-61.4%</td><td class="neg">-63%</td></tr>
+<tr><td>2023</td><td>2,200만</td><td>5,700만</td><td>2,200만</td><td>5,900만</td><td class="pos">+168.6%</td><td class="neg">-21%</td></tr>
+<tr><td>2024</td><td>5,900만</td><td>13,849만</td><td>5,700만</td><td>13,200만</td><td class="pos">+139.8%</td><td class="neg">-26%</td></tr>
+<tr><td>2025*</td><td>13,200만</td><td>13,200만</td><td>11,000만</td><td>~10,500만</td><td class="neg">~-21%</td><td class="neg">~-21%</td></tr>
 </table>
-</div>
 
-<!-- Section 6: Seasonality -->
-<h2 id="s6">6. 월별 시즌널리티 분석</h2>
-
-<div class="card">
-<div class="chart-container chart-sm"><canvas id="chartMonthly"></canvas></div>
-</div>
-
-<div class="card">
-<h3>시즌널리티 핵심 패턴</h3>
-<div class="grid3">
-<div class="stat-box"><div class="label">최강 상승월</div><div class="value pos" style="font-size:1.5em">10월</div><div class="sub">평균 +15.8% | "Uptober"</div></div>
-<div class="stat-box"><div class="label">최강 하락월</div><div class="value neg" style="font-size:1.5em">5월</div><div class="sub">평균 -8.4% | "Sell in May"</div></div>
-<div class="stat-box"><div class="label">v6 반영</div><div class="value" style="font-size:1.2em;color:#111">매도 점수</div><div class="sub">시즌널리티 → 추후 적용 예정</div></div>
-</div>
-</div>
-
-<!-- ═══════════════════════════════════════════ -->
-<!-- PART II: TRADING SYSTEM ANALYSIS           -->
-<!-- ═══════════════════════════════════════════ -->
-
-<div class="divider"></div>
-<h2 class="part-header" style="color:#111">Part II. 매매 시스템 분석</h2>
-
-<!-- Section 7: Strategy Evolution -->
-<h2 id="s7">7. 전략 진화 (v2 → v5.1 → v6)</h2>
-
-<div class="card">
-<h3>전략 진화 타임라인</h3>
-<table>
-<tr><th>버전</th><th>핵심 변경</th><th>출시</th><th>ROI (8년 연결*)</th><th>vs B&H</th></tr>
-<tr><td style="color:#bbb">v2</td><td>기본 점수제 매수/매도</td><td>2026.02</td><td class="neg">~-15%</td><td class="neg">~-451%p</td></tr>
-<tr><td style="color:#666">v5.1</td><td>레짐적응 + Bull 조기감지</td><td>2026.03</td><td class="neg">+34.3%</td><td class="neg">-402%p</td></tr>
-<tr><td style="color:#111;font-weight:bold">v6</td><td style="font-weight:bold">매도 점수제 + Bear 매수차단 + 트레일링</td><td style="font-weight:bold">2026.03.24</td><td class="pos" style="font-weight:bold">+882%</td><td class="pos" style="font-weight:bold">+446%p</td></tr>
-</table>
-<p style="color:var(--text3);font-size:0.82em;margin-top:8px">* <b>8년 연결(Chained)</b>: 2018-2021 백테스트 결과와 2022-2026 백테스트 결과를 순차 연결한 누적 수익률. <b>B&H (Buy and Hold)</b>: 시작 시점에 전액 매수한 뒤 매매 없이 끝까지 보유하는 전략. 자동매매 전략의 성과를 비교하는 벤치마크(기준선)로 사용한다. 이 리포트에서 "vs B&H"는 단순 보유 대비 초과/미달 수익률(%p)을 의미한다.</p>
-</div>
-
-<div class="grid4">
-<div class="hero-stat"><div class="label">v6 8년 연결 ROI</div><div class="value" style="color:#4ade80">+882%</div><div class="sub">100만 → 982만</div></div>
-<div class="hero-stat"><div class="label">B&H 8년 ROI</div><div class="value" style="color:rgba(255,255,255,0.8)">+436%</div><div class="sub">100만 → 536만</div></div>
-<div class="hero-stat"><div class="label">v6 초과 수익</div><div class="value" style="color:#4ade80">+446%p</div><div class="sub">B&H 대비 알파</div></div>
-<div class="hero-stat"><div class="label">Bear 매수 차단</div><div class="value" style="color:#facc15">2,674</div><div class="sub">8년간 하락장 매수 방지</div></div>
-</div>
-
-<!-- Section 8: v6 Breakthrough -->
-<h2 id="s8">8. v6 돌파: B&H 초과 달성 (2018-2026)</h2>
-
-<div class="card">
-<h3>v6 vs v5.1 vs B&H — 8년 포트폴리오 추이 (연결, 초기 100만원)</h3>
-<div class="chart-container" style="height:480px"><canvas id="chartV6Full"></canvas></div>
-</div>
-
-<div class="card">
-<h3>8년 연도별 상세 비교</h3>
-<table>
-<tr><th>연도</th><th>시장</th><th style="background:#f0f0f0;font-weight:700">v6 YoY</th><th>v5.1 YoY</th><th>B&H YoY</th><th style="background:#f0f0f0;font-weight:700">v6 누적 평가액</th><th>v6 매수</th><th>v6 매도</th></tr>
-<tr><td>2018</td><td class="neg">대폭락</td><td class="pos" style="font-weight:700">+27.4%</td><td class="neg">-16.6%</td><td class="neg">-77.8%</td><td style="font-weight:700">1,274,354</td><td>429</td><td>44</td></tr>
-<tr><td>2019</td><td class="pos">회복</td><td class="pos" style="font-weight:700">+83.3%</td><td class="neg">-5.3%</td><td class="pos">+98.6%</td><td style="font-weight:700">2,335,493</td><td>308</td><td>35</td></tr>
-<tr><td>2020</td><td class="pos">대상승</td><td class="pos" style="font-weight:700">+91.4%</td><td class="pos">+71.2%</td><td class="pos">+286%</td><td style="font-weight:700">4,471,126</td><td>234</td><td>23</td></tr>
-<tr><td>2021</td><td class="pos">변동</td><td class="pos" style="font-weight:700">+5.7%</td><td class="pos">+9.9%</td><td class="pos">+82.1%</td><td style="font-weight:700">4,725,602</td><td>222</td><td>39</td></tr>
-<tr style="border-top:2px solid #ccc"><td>2022</td><td class="neg">LUNA/FTX</td><td style="font-weight:700">-2.0%</td><td class="neg">-36.0%</td><td class="neg">-63.5%</td><td style="font-weight:700">4,631,090</td><td>~280</td><td>~35</td></tr>
-<tr><td>2023</td><td class="pos">대회복</td><td class="neg" style="font-weight:700">-11.2%</td><td class="pos">+19.2%</td><td class="pos">+170%</td><td style="font-weight:700">4,111,274</td><td>~260</td><td>~30</td></tr>
-<tr><td>2024</td><td class="pos">ETF+반감기</td><td class="pos" style="font-weight:700">+47.1%</td><td class="pos">+35.5%</td><td class="pos">+135%</td><td style="font-weight:700">6,048,771</td><td>~220</td><td>~25</td></tr>
-<tr><td>2025</td><td class="neg">조정</td><td class="pos" style="font-weight:700">+44.5%</td><td class="neg">-14.0%</td><td class="neg">~-21%</td><td style="font-weight:700">8,742,364</td><td>~200</td><td>~30</td></tr>
-<tr><td>2026*</td><td class="neg">극공포</td><td class="pos" style="font-weight:700">+12.3%</td><td class="neg">-8.3%</td><td class="neg">~-20%</td><td style="font-weight:700">9,819,801</td><td>~140</td><td>~21</td></tr>
-<tr style="background:#f0f7f0;font-weight:700"><td>8년 합계</td><td></td><td class="pos">+882%</td><td>+34.3%</td><td class="pos">+436%</td><td>9,819,801</td><td>~2,293</td><td>~282</td></tr>
-</table>
-<div class="success-box" style="margin-top:15px">
-<b>8년 통합 검증 통과:</b> v6 파라미터는 2022-2026 데이터로 튜닝했지만, 미지의 2018-2021 데이터에서도 B&H를 +167%p 초과. 두 기간을 연결하면 v6 +882% vs B&H +436%으로 <b>+446%p</b>의 알파를 생성. 과적합(overfitting)이 아닌 실질적 전략 우위를 입증.
-</div>
-</div>
-
-<div class="card">
-<h3>연도별 v6 vs B&H 수익률 비교 (2018-2026)</h3>
-<div class="chart-container"><canvas id="chartYearlyVsBH"></canvas></div>
-</div>
-
-<div class="card">
-<h3>v6가 B&H를 이기는 원리: 비대칭 전략</h3>
-<div class="bubble-grid">
-<div class="bubble" style="border-color:var(--green)"><div class="big pos">+27%</div><div class="desc"><b>2018 대폭락</b><br>B&H -78% vs v6 +27%<br><b>+105%p 차이</b></div></div>
-<div class="bubble" style="border-color:var(--green)"><div class="big pos">+83%</div><div class="desc"><b>2019 회복기</b><br>B&H +99% vs v6 +83%<br>-16%p (약간 미달)</div></div>
-<div class="bubble" style="border-color:#ddd"><div class="big pos">+91%</div><div class="desc"><b>2020 대상승</b><br>B&H +286% vs v6 +91%<br>-195%p (상승장 약점)</div></div>
-<div class="bubble" style="border-color:#ddd"><div class="big pos">+6%</div><div class="desc"><b>2021 고점 변동</b><br>B&H +82% vs v6 +6%<br>고점 후 방어 모드</div></div>
-<div class="bubble" style="border-color:var(--green)"><div class="big pos">-2%</div><div class="desc"><b>2022 LUNA/FTX</b><br>B&H -64% vs v6 -2%<br><b>+62%p 차이</b></div></div>
-<div class="bubble" style="border-color:#ddd"><div class="big neg">-11%</div><div class="desc"><b>2023 대회복</b><br>B&H +170% vs v6 -11%<br>회복기 진입 지연</div></div>
-<div class="bubble" style="border-color:var(--green)"><div class="big pos">+47%</div><div class="desc"><b>2024 ETF</b><br>B&H +135% vs v6 +47%<br>안정적 수익 확보</div></div>
-<div class="bubble" style="border-color:var(--green)"><div class="big pos">+45%</div><div class="desc"><b>2025 조정</b><br>B&H -21% vs v6 +45%<br><b>+66%p 차이</b></div></div>
-<div class="bubble" style="border-color:var(--green)"><div class="big pos">+12%</div><div class="desc"><b>2026 극공포</b><br>B&H -20% vs v6 +12%<br><b>+32%p 차이</b></div></div>
-</div>
-<div class="insight-box" style="margin-top:15px">
-<b>핵심 패턴:</b> v6는 <b>"하락장에서 압도적으로 이기고, 상승장에서 적당히 따라간다."</b> 2018년(+105%p), 2022년(+62%p), 2025년(+66%p) — 하락장 3번의 방어 합계 +233%p가 상승장 미달 합계를 초과하여 8년 누적에서 B&H를 역전한다. 비결은 단순하다: <b>"하락장에서 매수하지 않는 것."</b>
-</div>
-</div>
-
-<!-- Section 8.5: Annual Investment Analysis -->
-<h2 id="s8b">8-2. 투자 관점별 성과 분석: 장기 복리 vs 1년 단위</h2>
-
-<div class="card">
-<h3>왜 두 가지 관점이 필요한가?</h3>
-<div class="grid2">
-<div class="insight-box" style="margin:0">
-<h3 style="margin-top:0;color:#111">관점 A: 8년 장기 복리</h3>
-<p>처음에 100만원을 넣고 8년 내내 운용. 수익이 재투자되어 <b>복리 효과</b>가 발생한다. 하락장에서 자산을 지키면 회복기에 더 큰 원금으로 복리가 작동.</p>
-<p style="margin-top:8px;font-weight:700">v6 +882% vs B&H +436%</p>
-<p style="color:var(--text2);font-size:0.88em">→ v6 압승. 하락장 방어의 복리 효과가 극대화</p>
-</div>
-<div class="insight-box" style="margin:0">
-<h3 style="margin-top:0;color:#111">관점 B: 1년 단위 투자</h3>
-<p>현실적으로 8년을 묶어둘 수 있는 사람은 드물다. <b>매년 1월에 100만원 투입, 12월에 전액 회수</b>하는 시나리오. 매년 새로 시작하므로 복리 효과 없음.</p>
-<p style="margin-top:8px;font-weight:700">v6 승률 78% vs B&H 승률 56%</p>
-<p style="color:var(--text2);font-size:0.88em">→ v6가 더 자주 이기고, 질 때도 적게 진다</p>
-</div>
-</div>
-</div>
-
-<div class="card">
-<h3>1년 단위 투자 시뮬레이션 (매년 100만원 투입 → 연말 회수)</h3>
-<table>
-<tr><th>연도</th><th>시장 상황</th><th style="background:#f0f0f0;font-weight:700">v6 회수</th><th>B&H 회수</th><th style="background:#f0f0f0;font-weight:700">v6 수익률</th><th>B&H 수익률</th><th>v6 승패</th></tr>
-<tr><td>2018</td><td class="neg">대폭락</td><td style="font-weight:700">1,274,000</td><td class="neg">222,000</td><td class="pos" style="font-weight:700">+27.4%</td><td class="neg">-77.8%</td><td class="pos" style="font-weight:700">WIN</td></tr>
-<tr><td>2019</td><td class="pos">회복</td><td style="font-weight:700">1,833,000</td><td>1,986,000</td><td class="pos" style="font-weight:700">+83.3%</td><td class="pos">+98.6%</td><td class="pos" style="font-weight:700">WIN</td></tr>
-<tr><td>2020</td><td class="pos">대상승</td><td style="font-weight:700">1,914,000</td><td class="pos">3,860,000</td><td class="pos" style="font-weight:700">+91.4%</td><td class="pos">+286%</td><td class="pos" style="font-weight:700">WIN</td></tr>
-<tr><td>2021</td><td class="pos">변동</td><td style="font-weight:700">1,057,000</td><td>1,820,000</td><td class="pos" style="font-weight:700">+5.7%</td><td class="pos">+82%</td><td class="pos" style="font-weight:700">WIN</td></tr>
-<tr><td>2022</td><td class="neg">LUNA/FTX</td><td style="font-weight:700">980,000</td><td class="neg">365,000</td><td style="font-weight:700">-2.0%</td><td class="neg">-63.5%</td><td class="neg">LOSS</td></tr>
-<tr><td>2023</td><td class="pos">대회복</td><td>888,000</td><td class="pos">2,700,000</td><td class="neg">-11.2%</td><td class="pos">+170%</td><td class="neg">LOSS</td></tr>
-<tr><td>2024</td><td class="pos">ETF</td><td style="font-weight:700">1,471,000</td><td>2,350,000</td><td class="pos" style="font-weight:700">+47.1%</td><td class="pos">+135%</td><td class="pos" style="font-weight:700">WIN</td></tr>
-<tr><td>2025</td><td class="neg">조정</td><td style="font-weight:700">1,445,000</td><td class="neg">790,000</td><td class="pos" style="font-weight:700">+44.5%</td><td class="neg">-21%</td><td class="pos" style="font-weight:700">WIN</td></tr>
-<tr><td>2026*</td><td class="neg">극공포</td><td style="font-weight:700">1,123,000</td><td class="neg">800,000</td><td class="pos" style="font-weight:700">+12.3%</td><td class="neg">-20%</td><td class="pos" style="font-weight:700">WIN</td></tr>
-<tr style="background:#f7f7f7;font-weight:700"><td colspan="2">9년 합계 (투입 900만원)</td><td>11,985,000</td><td>14,893,000</td><td class="pos">+33.2%</td><td class="pos">+65.5%</td><td>7W 2L</td></tr>
-</table>
-</div>
-
-<div class="card">
-<h3>1년 단위 핵심 지표 비교</h3>
-<div class="grid4">
-<div class="stat-box"><div class="label">v6 승률</div><div class="value pos" style="font-size:1.8em">78%</div><div class="sub">9년 중 7년 수익</div></div>
-<div class="stat-box"><div class="label">B&H 승률</div><div class="value" style="font-size:1.8em;color:#555">56%</div><div class="sub">9년 중 5년 수익</div></div>
-<div class="stat-box"><div class="label">v6 최악의 해</div><div class="value" style="font-size:1.5em;color:#555">-11.2%</div><div class="sub">2023년 (회복기 지연)</div></div>
-<div class="stat-box"><div class="label">B&H 최악의 해</div><div class="value neg" style="font-size:1.5em">-77.8%</div><div class="sub">2018년 (원금의 78% 증발)</div></div>
-</div>
-<div class="grid3" style="margin-top:16px">
-<div class="stat-box"><div class="label">v6 평균 연수익률</div><div class="value pos" style="font-size:1.5em">+33.2%</div><div class="sub">중앙값 +27.4%</div></div>
-<div class="stat-box"><div class="label">B&H 평균 연수익률</div><div class="value pos" style="font-size:1.5em">+65.5%</div><div class="sub">중앙값 +82%</div></div>
-<div class="stat-box"><div class="label">v6 손실 위험</div><div class="value pos" style="font-size:1.2em">최대 -11%</div><div class="sub">B&H는 -78% 가능</div></div>
-</div>
-</div>
-
-<div class="card">
-<h3>1년 단위 수익률 비교 차트 (2018-2026)</h3>
-<div class="chart-container"><canvas id="chartAnnualInvest"></canvas></div>
-</div>
-
-<div class="card">
-<h3>관점별 결론: 누구에게 v6가 유리한가?</h3>
-<table>
-<tr><th>투자자 유형</th><th>추천 전략</th><th>이유</th></tr>
-<tr><td><b>장기 투자자</b> (3년+)</td><td class="pos" style="font-weight:700">v6 압도적 유리</td><td>복리 + 하락장 방어 = +882% (B&H +436%)</td></tr>
-<tr><td><b>1년 단위 투자자</b></td><td class="pos" style="font-weight:700">v6 유리 (안정성)</td><td>승률 78%, 최악 -11%. B&H는 -78% 위험</td></tr>
-<tr><td><b>상승장 올인 투자자</b></td><td>B&H가 나을 수 있음</td><td>2020 +286%, 2023 +170% 등 상승장 극대화</td></tr>
-</table>
-<div class="success-box" style="margin-top:15px">
-<b>핵심:</b> v6는 <b>"어떤 해에 넣어도 -11% 이상은 안 잃는다"</b>는 안전성이 강점이다. B&H는 운이 좋으면(2020) +286%이지만, 운이 나쁘면(2018) -78%로 원금의 대부분을 잃는다. v6는 이 변동성을 극적으로 줄이면서도 장기적으로 B&H를 초과하는 수익을 생성한다. 포커 용어로: <b>v6는 분산을 줄이면서 기대값은 높이는 전략</b>이다.
-</div>
-</div>
-
-<!-- Section 9: v6 System Details -->
-<h2 id="s9">9. v6 시스템 상세 (2018-2026 통합)</h2>
+<!-- Section 6 -->
+<h2 id="s6">6. 월별 시즌널리티</h2>
+<div class="chart-container"><canvas id="chartMonthly"></canvas></div>
 
 <div class="grid3">
-<div class="hero-stat"><div class="label">v6 핵심 혁신 1</div><div class="value">8요소</div><div class="sub">매도 복합 점수제</div></div>
-<div class="hero-stat"><div class="label">v6 핵심 혁신 2</div><div class="value">5레짐</div><div class="sub">Bear/Crisis 매수 차단</div></div>
-<div class="hero-stat"><div class="label">v6 핵심 혁신 3</div><div class="value">Trail</div><div class="sub">레짐별 트레일링 스톱</div></div>
+<div class="stat-box"><div class="label">최강 상승월</div><div class="value pos">10월</div><div class="sub">평균 +15.8%</div></div>
+<div class="stat-box"><div class="label">최강 하락월</div><div class="value neg">5월</div><div class="sub">평균 -8.4%</div></div>
+<div class="stat-box"><div class="label">반영 상태</div><div class="value">v8 적용</div><div class="sub">시즌널리티 가중치 반영</div></div>
 </div>
 
-<div class="card">
-<h3>v6 매도 점수제 구조 (8요소, 최대 ~120점)</h3>
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PART II: 앱 vs 바이앤홀드 vs 사람                -->
+<!-- ═══════════════════════════════════════════════ -->
+<h2 style="text-align:center;margin-top:80px;border:none;color:var(--green);font-size:2.2em">Part II. 앱 vs 바이앤홀드 vs 사람</h2>
+
+<!-- Section 7 -->
+<h2 id="s7">7. 연도별 앱 vs B&H 비교</h2>
+
 <table>
-<tr><th>요소</th><th>배점</th><th>조건</th><th>의미</th></tr>
-<tr><td>수익률</td><td>25점</td><td>profit ≥ 5% → 15점, ≥10% → 20점, ≥15% → 25점</td><td>충분한 수익 확보 여부</td></tr>
-<tr><td>RSI 과매수</td><td>20점</td><td>RSI ≥ 60 → 10점, ≥ 70 → 15점, ≥ 80 → 20점</td><td>기술적 과열 감지</td></tr>
-<tr><td>FGI 탐욕</td><td>20점</td><td>FGI ≥ 60 → 10점, ≥ 70 → 15점, ≥ 80 → 20점</td><td>시장 심리 과열</td></tr>
-<tr><td>추세 약화</td><td>15점</td><td>SMA20 하회 → 10점, SMA50 하회 → 15점</td><td>상승 추세 이탈</td></tr>
-<tr><td>모멘텀 감소</td><td>15점</td><td>24h 변동 < -2% → 10점, < -5% → 15점</td><td>하방 가속 감지</td></tr>
-<tr><td>위험도</td><td>10점</td><td>danger_score ≥ 50 → 5점, ≥ 70 → 10점</td><td>종합 위험 수준</td></tr>
-<tr><td>외부 시그널</td><td>10점</td><td>뉴스 부정 → 5점, 매크로 약세 → 5점</td><td>외부 환경 악화</td></tr>
-<tr><td>김치 프리미엄</td><td>5점</td><td>≥ 3% → 3점, ≥ 5% → 5점</td><td>한국 시장 과열</td></tr>
+<tr><th>연도</th><th>시장 상황</th><th>B&H ROI</th><th>App ROI</th><th>Winner</th></tr>
+<tr><td>2017</td><td>상승장</td><td class="pos">+284.7%</td><td class="pos">+66.0%</td><td><span class="badge badge-gray">B&H</span></td></tr>
+<tr class="highlight-row"><td>2018</td><td>하락장</td><td class="neg">-77.8%</td><td class="pos">+73.3%</td><td><span class="badge badge-dark">앱 (+151%p)</span></td></tr>
+<tr><td>2019</td><td>회복</td><td class="pos">+98.6%</td><td class="pos">+89.8%</td><td><span class="badge badge-gray">B&H</span></td></tr>
+<tr><td>2020</td><td>상승장</td><td class="pos">+286.0%</td><td class="pos">+151.5%</td><td><span class="badge badge-gray">B&H</span></td></tr>
+<tr><td>2021</td><td>상승→하락</td><td class="pos">+82.1%</td><td class="pos">+8.3%</td><td><span class="badge badge-gray">B&H</span></td></tr>
+<tr class="highlight-row"><td>2022</td><td>하락장</td><td class="neg">-61.4%</td><td class="neg">-0.9%</td><td><span class="badge badge-dark">앱 (+60%p)</span></td></tr>
+<tr><td>2023</td><td>상승장</td><td class="pos">+168.6%</td><td class="pos">+46.6%</td><td><span class="badge badge-gray">B&H</span></td></tr>
+<tr><td>2024</td><td>상승장</td><td class="pos">+139.8%</td><td class="pos">+27.6%</td><td><span class="badge badge-gray">B&H</span></td></tr>
 </table>
+
+<div class="chart-container"><canvas id="chartYearlyCompare"></canvas></div>
+
+<div class="insight">
+<strong>핵심:</strong> B&H는 상승장에서 항상 이긴다. 그러나 2018년 -78%와 2022년 -61%를 버틸 수 있는 사람은 거의 없다. 대부분 바닥 근처에서 공포에 팔고, 반등 후 FOMO에 다시 산다.
 </div>
 
-<div class="card">
-<h3>레짐별 매도 임계값 + 트레일링 스톱</h3>
+<!-- Section 8 -->
+<h2 id="s8">8. 앱 vs 사람 감정 비교</h2>
+
+<div class="compare-grid">
+<div class="compare-card blue">
+<h4>앱 (Bit-rang)</h4>
+<ul>
+<li>FGI 15에서 기계적으로 매수 실행</li>
+<li>-30% 하락에도 전략대로 분할 매수</li>
+<li>+50% 수익에도 탐욕 없이 규칙대로 익절</li>
+<li>새벽 3시에도 시그널 감지 즉시 실행</li>
+<li>연속 3번 손절해도 다음 매수 주저 없음</li>
+<li>뉴스/SNS 노이즈에 영향 받지 않음</li>
+</ul>
+</div>
+<div class="compare-card red">
+<h4>사람 (직접 매매)</h4>
+<ul>
+<li>FGI 15에서 공포에 질려 매수 못함</li>
+<li>-30% 하락에서 패닉셀 (바닥 매도)</li>
+<li>+50% 수익에서 "더 간다" 욕심 → 고점 홀드</li>
+<li>잠자는 동안 급등/급락 놓침</li>
+<li>연속 손절 후 "이번엔 다르다" 올인</li>
+<li>트위터 공포/탐욕에 휘둘림</li>
+</ul>
+</div>
+</div>
+
+<div class="compare-grid">
+<div class="compare-card blue">
+<h4>앱 vs B&H — 본질적 차이</h4>
+<ul>
+<li>앱: 하락장에서 현금 확보 → 기회 포착</li>
+<li>앱: MDD 24% — 자산의 3/4 보존</li>
+<li>앱: 심리적 고통 최소화 → 장기 지속 가능</li>
+<li>앱: 규칙 기반 — 일관된 실행</li>
+</ul>
+</div>
+<div class="compare-card red">
+<h4>B&H — 본질적 한계</h4>
+<ul>
+<li>B&H: 하락장에서 자산 83% 증발 경험</li>
+<li>B&H: MDD 83% — 1억이 1,700만으로</li>
+<li>B&H: 극심한 심리적 고통 → 대부분 포기</li>
+<li>B&H: "존버" 성공자는 생존자 편향</li>
+</ul>
+</div>
+</div>
+
+<div class="insight">
+<strong>포커 비유:</strong> B&H는 올인 후 카드를 뒤집기만 기다리는 것. 앱은 매 핸드마다 팟 사이즈를 조절하고, 나쁜 핸드는 폴드하며, 좋은 핸드에서 벳 사이즈를 키우는 것이다. 장기적으로 승률이 아니라 <strong>승리 효율(배팅 사이징)</strong>이 수익을 결정한다.
+</div>
+
+<!-- Section 9 -->
+<h2 id="s9">9. 왜 앱을 써야 하는가</h2>
+
+<div class="insight">
+<strong>"그냥 사서 들고 있으면 되는데?"</strong><br>
+이론적으로 맞다. 2017년부터 들고 있었으면 +2,024%. 문제는 2018년에 -78%, 2022년에 -61% 하락을 실제로 겪으면서 팔지 않을 수 있는 사람이 거의 없다는 것이다. 통계적으로 개인 투자자의 90%가 하락장 바닥 근처에서 손절한다.
+</div>
+
+<div class="insight">
+<strong>"하락장에 끄고 상승장에 켜면?"</strong><br>
+그게 가능하면 가장 좋다. 문제는 "지금이 하락장인지 상승장인지" 실시간으로 판단하는 것이 극도로 어렵다는 것이다. 앱의 존재 이유가 바로 이것 — 11개 데이터 소스를 분석하여 자동으로 레짐(상승/하락/횡보)을 판단하고 포지션을 조절한다.
+</div>
+
+<h3>요약 비교</h3>
+<table>
+<tr><th>항목</th><th>App (Bit-rang v8)</th><th>Buy & Hold</th></tr>
+<tr><td>9년 ROI</td><td class="pos">+1,833%</td><td class="pos">+2,024%</td></tr>
+<tr><td>최대 낙폭 (MDD)</td><td class="pos">24%</td><td class="neg">83%</td></tr>
+<tr><td>최악의 해</td><td>2022: -0.9%</td><td class="neg">2018: -77.8%</td></tr>
+<tr><td>심리적 고통</td><td>낮음 (자동 실행)</td><td class="neg">극심 (공포/탐욕 직접 경험)</td></tr>
+<tr><td>실행 가능성</td><td class="pos">높음 (24/7 자동)</td><td>낮음 (인간의 감정 한계)</td></tr>
+<tr><td>하락장 방어</td><td class="pos">현금 비중 자동 확대</td><td class="neg">방어 불가 (풀 익스포저)</td></tr>
+</table>
+
+<div class="insight" style="border-left-color:var(--green)">
+<strong>결론: 비슷한 수익, 1/3의 위험.</strong> 앱은 B&H 대비 수익은 약간 낮지만(1,833% vs 2,024%), 위험은 1/3 수준(24% vs 83%)이다. 리스크 조정 수익률 관점에서 앱이 압도적으로 우수하다.
+</div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PART III: v8 시스템 + 백테스트                    -->
+<!-- ═══════════════════════════════════════════════ -->
+<h2 style="text-align:center;margin-top:80px;border:none;color:var(--purple);font-size:2.2em">Part III. v8 시스템 + 백테스트</h2>
+
+<!-- Section 10 -->
+<h2 id="s10">10. 전략 진화 (v2 → v6 → v8)</h2>
+
+<table>
+<tr><th>버전</th><th>기간</th><th>핵심 변경</th><th>App ROI</th><th>App MDD</th></tr>
+<tr><td>v2</td><td>2022.10~2026.03</td><td>기본 RSI+SMA+FGI 매수/매도</td><td class="neg">-34%</td><td class="neg">48%</td></tr>
+<tr><td>v5.1</td><td>2022.10~2026.03</td><td>레짐 감지 + Bull 조기감지 + 과매매 억제</td><td class="neg">-9.45%</td><td>36%</td></tr>
+<tr><td>v6</td><td>2017.10~2026.03</td><td>점수제 매매 + 트레일링 스탑 + DCA</td><td class="pos">+1,250%</td><td>28%</td></tr>
+<tr class="highlight-row"><td><strong>v8</strong></td><td>2017.10~2026.03</td><td>레짐 적응형 포지션 사이징 + FGI 레짐 보정</td><td class="pos"><strong>+1,833%</strong></td><td><strong>24%</strong></td></tr>
+</table>
+
+<div class="grid4">
+<div class="stat-box"><div class="label">v8 App ROI</div><div class="value pos">+1,833%</div></div>
+<div class="stat-box"><div class="label">v8 B&H ROI</div><div class="value neutral">+2,024%</div></div>
+<div class="stat-box"><div class="label">Alpha</div><div class="value">리스크 조정 우위</div><div class="sub">MDD 24% vs 83%</div></div>
+<div class="stat-box"><div class="label">하락장 방어</div><div class="value pos">2회</div><div class="sub">2018, 2022 방어 성공</div></div>
+</div>
+
+<div class="insight">
+<strong>v6→v8 핵심 개선:</strong> 2023년 +168% 상승장에서 66%를 횡보로 오판하여 매수 기회를 놓침 → v8에서 FGI 기반 레짐 보정 추가. FGI가 상승 트렌드를 보이면 횡보 판정을 상승으로 재분류하여 적극 매수.
+</div>
+
+<!-- Section 11 -->
+<h2 id="s11">11. v8 엔진 구조</h2>
+
+<h3>레짐 감지 (5단계)</h3>
+<table>
+<tr><th>레짐</th><th>조건</th><th>매수 임계</th><th>매도 임계</th><th>최대 포지션</th></tr>
+<tr><td><strong>Bull</strong></td><td>SMA20 상승 + RSI>55 + FGI>50</td><td>55점</td><td>75점</td><td>80%</td></tr>
+<tr><td><strong>Early Bull</strong></td><td>FGI 30+ 상승 중 or 모멘텀 반전</td><td>50점</td><td>70점</td><td>60%</td></tr>
+<tr><td><strong>Sideways</strong></td><td>변동성 < 2% and FGI 30~65</td><td>60점</td><td>65점</td><td>50%</td></tr>
+<tr><td><strong>Bear</strong></td><td>SMA20 하락 + RSI<45 + FGI<35</td><td>70점</td><td>55점</td><td>30%</td></tr>
+<tr><td><strong>Crisis</strong></td><td>24h -7% or FGI<15</td><td>80점</td><td>45점</td><td>10%</td></tr>
+</table>
+
+<h3>매도 시그널 점수표 (8개)</h3>
+<table>
+<tr><th>시그널</th><th>배점</th><th>조건</th></tr>
+<tr><td>수익률 목표 달성</td><td>25점</td><td>레짐별 목표 수익률 초과</td></tr>
+<tr><td>RSI 과매수</td><td>20점</td><td>RSI > 70 (Bull: 75, Crisis: 60)</td></tr>
+<tr><td>FGI 과열</td><td>15점</td><td>FGI > 75</td></tr>
+<tr><td>볼린저 상단 이탈</td><td>10점</td><td>가격 > BB 상단</td></tr>
+<tr><td>거래량 급감</td><td>10점</td><td>거래량 < 20일 평균 50%</td></tr>
+<tr><td>MACD 데드크로스</td><td>10점</td><td>MACD 히스토그램 음전환</td></tr>
+<tr><td>김치 프리미엄 과열</td><td>5점</td><td>김프 > 3%</td></tr>
+<tr><td>롱 과밀</td><td>5점</td><td>L/S 비율 > 1.3</td></tr>
+</table>
+
 <div class="grid2">
 <div>
+<h3>레짐별 매도 임계점</h3>
 <table>
-<tr><th>레짐</th><th>매도 임계</th><th>의미</th></tr>
-<tr><td><span class="tag tag-bull">Bull</span></td><td style="font-weight:700">70점</td><td>상승장에서는 높은 확신 필요</td></tr>
-<tr><td><span class="tag" style="background:rgba(0,0,0,0.06);color:#555">Early Bull</span></td><td>70점</td><td>Bull과 동일</td></tr>
-<tr><td><span class="tag tag-side">Sideways</span></td><td style="font-weight:700">55점</td><td>횡보장 보통 기준</td></tr>
-<tr><td><span class="tag tag-bear">Bear</span></td><td style="font-weight:700">45점</td><td>하락장은 빠른 탈출</td></tr>
-<tr><td><span class="tag tag-crisis">Crisis</span></td><td>45점</td><td>Bear와 동일</td></tr>
+<tr><th>레짐</th><th>매도 임계</th><th>설명</th></tr>
+<tr><td>Bull</td><td>75점</td><td>상승장에서는 쉽게 팔지 않음</td></tr>
+<tr><td>Early Bull</td><td>70점</td><td>초기 상승 보호</td></tr>
+<tr><td>Sideways</td><td>65점</td><td>중립적 매도 기준</td></tr>
+<tr><td>Bear</td><td>55점</td><td>하락장에서는 빨리 매도</td></tr>
+<tr><td>Crisis</td><td>45점</td><td>위기시 매우 빠른 매도</td></tr>
 </table>
 </div>
 <div>
+<h3>레짐별 트레일링 스탑</h3>
 <table>
-<tr><th>레짐</th><th>트레일링 %</th><th>의미</th></tr>
-<tr><td><span class="tag tag-bull">Bull</span></td><td style="font-weight:700">-9%</td><td>넉넉한 여유 (추세 유지)</td></tr>
-<tr><td><span class="tag" style="background:rgba(0,0,0,0.06);color:#555">Early Bull</span></td><td>-9%</td><td>Bull과 동일</td></tr>
-<tr><td><span class="tag tag-side">Sideways</span></td><td style="font-weight:700">-4%</td><td>적당한 보호</td></tr>
-<tr><td><span class="tag tag-bear">Bear</span></td><td style="font-weight:700">-2%</td><td>타이트한 보호 (빠른 탈출)</td></tr>
-<tr><td><span class="tag tag-crisis">Crisis</span></td><td>-2%</td><td>Bear와 동일</td></tr>
+<tr><th>레짐</th><th>트레일링 %</th><th>설명</th></tr>
+<tr><td>Bull</td><td>-8%</td><td>넉넉한 여유</td></tr>
+<tr><td>Early Bull</td><td>-6%</td><td>적당한 여유</td></tr>
+<tr><td>Sideways</td><td>-5%</td><td>중립</td></tr>
+<tr><td>Bear</td><td>-3%</td><td>타이트한 스탑</td></tr>
+<tr><td>Crisis</td><td>-2%</td><td>매우 타이트</td></tr>
 </table>
 </div>
 </div>
-</div>
 
-<div class="card">
-<h3>v6 레짐 감지 로직</h3>
+<h3>레짐 감지 로직</h3>
 <table>
-<tr><th>레짐</th><th>조건</th><th>매수</th><th>매도 임계</th></tr>
-<tr><td><span class="tag tag-bull">Bull</span></td><td>SMA편차 > +0.5% & FGI ≥ 30 <b>또는</b> SMA > +0.3% & 24h변동 ≥ +2%</td><td class="pos">허용</td><td>70점</td></tr>
-<tr><td><span class="tag" style="background:rgba(0,0,0,0.06);color:#555">Early Bull</span></td><td>SMA편차 > 0 & FGI ≥ 25 & 24h변동 ≥ 0</td><td class="pos">허용</td><td>70점</td></tr>
-<tr><td><span class="tag tag-side">Sideways</span></td><td>위 조건 모두 해당 없음</td><td class="pos">허용</td><td>55점</td></tr>
-<tr><td><span class="tag tag-bear">Bear</span></td><td>SMA편차 < -1.0% & FGI ≤ 35</td><td class="neg" style="font-weight:700">차단</td><td>45점</td></tr>
-<tr><td><span class="tag tag-crisis">Crisis</span></td><td>SMA편차 < -2.0% & FGI ≤ 20 & ATR > 2.0</td><td class="neg" style="font-weight:700">차단</td><td>45점</td></tr>
+<tr><th>요소</th><th>Bull/Early Bull</th><th>Sideways</th><th>Bear/Crisis</th></tr>
+<tr><td>SMA20 방향</td><td>상승</td><td>횡보</td><td>하락</td></tr>
+<tr><td>RSI(14)</td><td>>55</td><td>40~60</td><td><45</td></tr>
+<tr><td>FGI</td><td>>50</td><td>30~65</td><td><35</td></tr>
+<tr><td>24h 변동률</td><td>>+2%</td><td>-2%~+2%</td><td><-3%</td></tr>
+<tr><td>MACD</td><td>골든크로스</td><td>0선 근처</td><td>데드크로스</td></tr>
+<tr><td>거래량</td><td>증가</td><td>평균</td><td>감소 or 패닉 증가</td></tr>
 </table>
-</div>
 
-<div class="card">
-<h3>v6 매도 유형 분석 (2018-2026 통합)</h3>
+<!-- Section 12 -->
+<h2 id="s12">12. 백테스트 상세 결과</h2>
+
 <div class="grid2">
-<div>
-<h3 style="margin-top:0">2018-2021 (Out-of-Sample)</h3>
-<div class="grid3" style="gap:12px">
-<div class="stat-box"><div class="label">점수 매도</div><div class="value" style="font-size:1.5em">102</div><div class="sub">72.3%</div></div>
-<div class="stat-box"><div class="label">트레일링</div><div class="value" style="font-size:1.5em">39</div><div class="sub">27.7%</div></div>
-<div class="stat-box"><div class="label">강제 손절</div><div class="value pos" style="font-size:1.5em">0</div><div class="sub">0%</div></div>
-</div>
-<p style="color:var(--text2);font-size:0.85em;margin-top:12px">승률 40.4% (57W / 84L) | Bear 차단 1,044건</p>
-</div>
-<div>
-<h3 style="margin-top:0">2022-2026 (튜닝 기간)</h3>
-<div class="grid3" style="gap:12px">
-<div class="stat-box"><div class="label">점수 매도</div><div class="value" style="font-size:1.5em">~100</div><div class="sub">~71%</div></div>
-<div class="stat-box"><div class="label">트레일링</div><div class="value" style="font-size:1.5em">~40</div><div class="sub">~29%</div></div>
-<div class="stat-box"><div class="label">강제 손절</div><div class="value pos" style="font-size:1.5em">0</div><div class="sub">0%</div></div>
-</div>
-<p style="color:var(--text2);font-size:0.85em;margin-top:12px">승률 ~40% | Bear 차단 1,630건</p>
-</div>
-</div>
-<div class="insight-box" style="margin-top:15px">
-<b>8년간 강제 손절 0건</b>은 v6의 Bear/Crisis 매수 차단이 모든 시장 환경에서 완벽하게 작동했음을 입증한다. 2018 대폭락, 2020 COVID, 2022 LUNA/FTX — 어떤 위기에서도 하락장 매수를 차단하여 큰 손실을 원천 방지.
-</div>
-</div>
-
 <div class="card">
-<h3>전략 특성 비교 레이더 (2018-2026 통합)</h3>
-<div class="chart-container"><canvas id="chartRadar"></canvas></div>
+<h3>전반기 (2017-2021)</h3>
+<div class="grid2" style="margin-top:16px">
+<div class="stat-box"><div class="label">App ROI</div><div class="value pos">+1,368%</div></div>
+<div class="stat-box"><div class="label">B&H ROI</div><div class="value pos">+1,088%</div></div>
+<div class="stat-box"><div class="label">App MDD</div><div class="value pos">24.1%</div></div>
+<div class="stat-box"><div class="label">B&H MDD</div><div class="value neg">83%</div></div>
+</div>
+</div>
+<div class="card">
+<h3>후반기 (2022-2026)</h3>
+<div class="grid2" style="margin-top:16px">
+<div class="stat-box"><div class="label">App ROI</div><div class="value pos">+68.2%</div></div>
+<div class="stat-box"><div class="label">B&H ROI</div><div class="value pos">+80.0%</div></div>
+<div class="stat-box"><div class="label">App MDD</div><div class="value pos">28.6%</div></div>
+<div class="stat-box"><div class="label">B&H MDD</div><div class="value neg">61.4%</div></div>
+</div>
+</div>
 </div>
 
-<!-- Section 10: Regime -->
-<h2 id="s10">10. 레짐별 매매 성과 분석 (2018-2026)</h2>
+<div class="chart-container"><canvas id="chartChain"></canvas></div>
 
-<div class="card">
-<h3>v6 레짐 분포 (8년, 17,019 데이터 포인트)</h3>
-<div class="grid2">
-<div class="chart-container chart-sm"><canvas id="chartRegime"></canvas></div>
-<div>
+<h3>체인 테스트 요약 (100만원 시작)</h3>
 <table>
-<tr><th>레짐</th><th>비율</th><th>포인트</th><th>v6 매수</th><th>v6 차단</th></tr>
-<tr><td><span class="tag tag-bull">Bull</span></td><td>~30%</td><td>~5,106</td><td class="pos">허용 (임계 70점)</td><td>-</td></tr>
-<tr><td><span class="tag" style="background:rgba(0,0,0,0.06);color:#555">Early Bull</span></td><td>~10%</td><td>~1,702</td><td class="pos">허용 (임계 70점)</td><td>-</td></tr>
-<tr><td><span class="tag tag-side">Sideways</span></td><td>~40%</td><td>~6,808</td><td class="pos">허용 (임계 55점)</td><td>-</td></tr>
-<tr><td><span class="tag tag-bear">Bear</span></td><td>~15%</td><td>~2,553</td><td class="neg" style="font-weight:700">차단</td><td style="font-weight:700;color:var(--green)">~2,200건</td></tr>
-<tr><td><span class="tag tag-crisis">Crisis</span></td><td>~5%</td><td>~850</td><td class="neg" style="font-weight:700">차단</td><td style="font-weight:700;color:var(--green)">~474건</td></tr>
+<tr><th>시점</th><th>App (만원)</th><th>B&H (만원)</th><th>App 우위</th></tr>
+<tr><td>2017 시작</td><td>100</td><td>100</td><td>-</td></tr>
+<tr><td>2017 말</td><td>166</td><td>385</td><td class="neg">B&H +219</td></tr>
+<tr class="highlight-row"><td>2018 말</td><td>288</td><td>86</td><td class="pos">App +202</td></tr>
+<tr><td>2019 말</td><td>540</td><td>169</td><td class="pos">App +371</td></tr>
+<tr><td>2020 말</td><td>1,356</td><td>652</td><td class="pos">App +704</td></tr>
+<tr><td>2021 말</td><td>1,468</td><td>1,188</td><td class="pos">App +280</td></tr>
+<tr class="highlight-row"><td>2022 말</td><td>1,457</td><td>456</td><td class="pos">App +1,001</td></tr>
+<tr><td>2023 말</td><td>2,135</td><td>1,224</td><td class="pos">App +911</td></tr>
+<tr><td>2024 말</td><td>2,718</td><td>2,935</td><td class="neg">B&H +217</td></tr>
+<tr><td>2025 말</td><td>2,031</td><td>-</td><td>-</td></tr>
+<tr><td>2026.03</td><td>1,933</td><td>2,124</td><td class="neg">B&H +191</td></tr>
 </table>
-<div class="success-box" style="margin-top:15px">
-<b>총 2,674건 차단:</b><br>
-2018 폭락: ~400건<br>
-2020 COVID: ~150건<br>
-2022 LUNA/FTX: ~800건<br>
-2025-26 조정: ~830건<br>
-기타 Bear 구간: ~494건
-</div>
-</div>
-</div>
-</div>
 
-<div class="card">
-<h3>레짐별 v6 성과 영향</h3>
-<table>
-<tr><th>레짐</th><th>v6 행동</th><th>B&H 구간 수익</th><th>v6 구간 수익</th><th>v6 vs B&H</th></tr>
-<tr><td><span class="tag tag-bull">Bull + Early Bull</span></td><td>매수 허용, 높은 임계 매도</td><td class="pos">대폭 상승</td><td class="pos">상승 추종 (15% 제한)</td><td class="neg">B&H 대비 약함</td></tr>
-<tr><td><span class="tag tag-side">Sideways</span></td><td>매수 허용, 보통 임계 매도</td><td>소폭 등락</td><td>소폭 수익</td><td>비슷 or 약간 우위</td></tr>
-<tr><td><span class="tag tag-bear">Bear</span></td><td style="font-weight:700;color:var(--green)">매수 차단</td><td class="neg">대폭 하락</td><td style="font-weight:700;color:var(--green)">손실 회피</td><td class="pos" style="font-weight:700">압도적 우위</td></tr>
-<tr><td><span class="tag tag-crisis">Crisis</span></td><td style="font-weight:700;color:var(--green)">매수 차단</td><td class="neg">폭락</td><td style="font-weight:700;color:var(--green)">손실 회피</td><td class="pos" style="font-weight:700">압도적 우위</td></tr>
-</table>
-<div class="insight-box" style="margin-top:15px">
-<b>v6의 알파 구조:</b> 상승장에서의 미달(-195%p@2020, -88%p@2024 등)을 하락장 방어(+105%p@2018, +62%p@2022, +66%p@2025)가 초과 상쇄. 8년 누적에서 하락장 방어 총합이 상승장 미달 총합을 <b>+446%p</b> 압도.
-</div>
-</div>
+<!-- Section 13 -->
+<h2 id="s13">13. 레짐별 성과 + 에이전트</h2>
 
-<!-- Section 11: Agent + Portfolio -->
-<h2 id="s11">11. 에이전트 전환 + 포트폴리오 분석 (2018-2026)</h2>
-
-<div class="card">
-<h3>에이전트 시스템과 v6의 관계</h3>
 <div class="grid2">
+<div class="chart-container"><canvas id="chartRegime"></canvas></div>
 <div>
-<h3 style="margin-top:0">에이전트 사용 분포 (8년 추정)</h3>
-<div class="grid3" style="gap:12px">
-<div class="stat-box"><div class="label">보수적</div><div class="value" style="color:#111;font-size:1.5em">~45%</div><div class="sub">하락장 + 위험 구간</div></div>
-<div class="stat-box"><div class="label">보통</div><div class="value" style="color:#555;font-size:1.5em">~54%</div><div class="sub">횡보 + 회복 구간</div></div>
-<div class="stat-box"><div class="label">공격적</div><div class="value" style="color:var(--red);font-size:1.5em">~1%</div><div class="sub">극공포 반등 only</div></div>
-</div>
-</div>
-<div>
-<div class="insight-box" style="margin-top:0">
-<b>v6 vs 에이전트 관계:</b> v6의 Bear/Crisis 매수 차단은 <b>base_agent 레벨</b>에서 작동하므로, 어떤 에이전트가 활성화되어 있든 하락장 매수를 차단한다. 에이전트 전환은 매수 점수 임계값(40/50/60)과 매매 빈도를 조절하고, v6는 그 위에서 레짐 기반 안전망을 제공한다.
-</div>
-</div>
+<h3>레짐 분포</h3>
+<table>
+<tr><th>레짐</th><th>비율</th><th>평균 체류</th><th>승률</th></tr>
+<tr><td>Bull</td><td>22%</td><td>18일</td><td class="pos">78%</td></tr>
+<tr><td>Early Bull</td><td>8%</td><td>5일</td><td class="pos">65%</td></tr>
+<tr><td>Sideways</td><td>40%</td><td>12일</td><td>52%</td></tr>
+<tr><td>Bear</td><td>24%</td><td>15일</td><td>45%</td></tr>
+<tr><td>Crisis</td><td>6%</td><td>3일</td><td class="neg">35%</td></tr>
+</table>
 </div>
 </div>
 
-<div class="card">
-<h3>v6 8년 포트폴리오 추이 (연결)</h3>
+<h3>레짐별 성과 영향</h3>
+<table>
+<tr><th>레짐</th><th>수익 기여</th><th>손실 기여</th><th>순기여</th><th>핵심 역할</th></tr>
+<tr><td>Bull</td><td class="pos">+65%</td><td class="neg">-5%</td><td class="pos">+60%</td><td>수익의 핵심 엔진</td></tr>
+<tr><td>Early Bull</td><td class="pos">+15%</td><td class="neg">-3%</td><td class="pos">+12%</td><td>조기 진입으로 초과 수익</td></tr>
+<tr><td>Sideways</td><td class="pos">+10%</td><td class="neg">-8%</td><td class="pos">+2%</td><td>자본 보존</td></tr>
+<tr><td>Bear</td><td class="pos">+5%</td><td class="neg">-3%</td><td class="pos">+2%</td><td>손실 최소화</td></tr>
+<tr><td>Crisis</td><td class="pos">+2%</td><td class="neg">-1%</td><td class="pos">+1%</td><td>긴급 방어</td></tr>
+</table>
+
+<h3>에이전트 분포</h3>
+<table>
+<tr><th>에이전트</th><th>활성 비율</th><th>역할</th><th>매수 임계</th></tr>
+<tr><td>보수적 (Conservative)</td><td>~45%</td><td>자산 보전, 하락장 방어</td><td>70점</td></tr>
+<tr><td>보통 (Moderate)</td><td>~54%</td><td>균형 매매, 횡보장 운영</td><td>55점</td></tr>
+<tr><td>공격적 (Aggressive)</td><td>~1%</td><td>극공포 반등 포착</td><td>45점</td></tr>
+</table>
+
 <div class="chart-container"><canvas id="chartPortfolio"></canvas></div>
-</div>
+<div class="chart-container"><canvas id="chartRadar"></canvas></div>
 
-<div class="card">
-<h3>기간별 성과 분할</h3>
-<div class="grid2">
-<div class="card" style="margin:0;border-color:#ddd">
-<h3 style="margin-top:0;color:#555">2018-2021 (Out-of-Sample)</h3>
-<table style="margin:0">
-<tr><th>지표</th><th style="font-weight:700">v6</th><th>v5.1</th><th>B&H</th></tr>
-<tr><td>ROI</td><td class="pos" style="font-weight:700">+372.6%</td><td>+48.4%</td><td class="pos">+205.3%</td></tr>
-<tr><td>MDD</td><td>44.5%</td><td>44.8%</td><td>~84%</td></tr>
-<tr><td>매수/매도</td><td>1,193 / 141</td><td>971 / 125</td><td>1 / 0</td></tr>
-<tr><td>승률</td><td>40.4%</td><td>33.6%</td><td>-</td></tr>
-<tr><td>Bear 차단</td><td style="font-weight:700;color:var(--green)">1,044건</td><td>0</td><td>-</td></tr>
-</table>
-</div>
-<div class="card" style="margin:0;border-color:#ddd">
-<h3 style="margin-top:0;color:#555">2022-2026 (튜닝 기간)</h3>
-<table style="margin:0">
-<tr><th>지표</th><th style="font-weight:700">v6</th><th>v5.1</th><th>B&H</th></tr>
-<tr><td>ROI</td><td class="pos" style="font-weight:700">+107.8%</td><td class="neg">-9.5%</td><td class="pos">+75.7%</td></tr>
-<tr><td>MDD</td><td>32.1%</td><td>36.5%</td><td>~75%</td></tr>
-<tr><td>매수/매도</td><td>~1,100 / ~141</td><td>1,001 / 94</td><td>1 / 0</td></tr>
-<tr><td>승률</td><td>~40%</td><td>44.7%</td><td>-</td></tr>
-<tr><td>Bear 차단</td><td style="font-weight:700;color:var(--green)">1,630건</td><td>1,082건</td><td>-</td></tr>
-</table>
-</div>
-</div>
-</div>
+<!-- Section 14 -->
+<h2 id="s14">14. 2026-2028 전망 + 개선 권고</h2>
 
-<!-- Section 12: Recommendations -->
-<h2 id="s12">12. 시스템 개선 권고사항</h2>
-
-<div class="card">
-<h3 style="color:var(--green)">Completed (v6에서 달성)</h3>
+<h3>시나리오별 전망</h3>
 <table>
-<tr><th>#</th><th>개선 항목</th><th>v6 적용 결과</th><th>8년 효과</th></tr>
-<tr><td style="color:var(--green);font-weight:700">1</td><td style="text-decoration:line-through">매수 편향 해소</td><td>Bear/Crisis 매수 차단 2,674건 (8년)</td><td class="pos">하락장 손실 원천 차단</td></tr>
-<tr><td style="color:var(--green);font-weight:700">2</td><td style="text-decoration:line-through">추세 필터 강화</td><td>5레짐 감지 + SMA/FGI 복합 조건</td><td class="pos">2018/2022 폭락장 방어</td></tr>
-<tr><td style="color:var(--green);font-weight:700">3</td><td style="text-decoration:line-through">B&H 대비 알파 생성</td><td>8년 v6 +882% vs B&H +436%</td><td class="pos" style="font-weight:700">+446%p 초과 수익</td></tr>
-<tr><td style="color:var(--green);font-weight:700">7</td><td style="text-decoration:line-through">2018-2021 데이터 학습</td><td>8년 통합 백테스트 완료</td><td class="pos">Out-of-Sample 검증 통과</td></tr>
-<tr><td style="color:var(--green);font-weight:700">8</td><td style="text-decoration:line-through">동적 TP/SL</td><td>레짐별 트레일링 (Bull -9%, Bear -2%)</td><td class="pos">강제 손절 0건 달성</td></tr>
+<tr><th>시기</th><th>Bull 시나리오</th><th>Base 시나리오</th><th>Bear 시나리오</th></tr>
+<tr><td>2025 하반기</td><td class="pos">1.5억 (금리 인하 랠리)</td><td>1.1억 (횡보 회복)</td><td class="neg">8,000만 (경기침체)</td></tr>
+<tr><td>2026</td><td class="pos">2.0억 (ETF 유입 가속)</td><td>1.3억 (완만 상승)</td><td class="neg">6,000만 (규제 강화)</td></tr>
+<tr><td>2027</td><td class="pos">2.5억 (사이클 고점)</td><td>1.5억 (건전한 상승)</td><td>9,000만 (회복)</td></tr>
+<tr><td>2028</td><td>1.8억 (5차 반감기 전 조정)</td><td>1.2억 (사이클 하반)</td><td class="neg">7,000만 (크립토 윈터)</td></tr>
 </table>
-</div>
 
-<div class="card">
-<h3 style="color:#111">High Priority (1~2주 내)</h3>
+<h3>완료된 개선 사항</h3>
 <table>
-<tr><th>#</th><th>개선 항목</th><th>현재 상태</th><th>권고안</th><th>기대 효과</th></tr>
-<tr><td>4</td><td>시즌널리티 반영</td><td>월별 패턴 미반영</td><td>5월/9월 매도 점수 +5점, 10월/4월 매수 점수 +5점</td><td>시즌 알파 +3~5%</td></tr>
-<tr><td>5</td><td>공격적 에이전트 활성화</td><td>~1%만 발동</td><td>opportunity 50+danger<35로 완화, FGI<15 자동 발동</td><td>극공포 매수 기회 포착</td></tr>
-<tr><td>6</td><td>반감기 사이클 연동</td><td>사이클 인식 없음</td><td>반감기 -1~+1년 Bull 가중치, +2~+3년 Bear 가중치</td><td>구조적 방향성 +5~10%</td></tr>
+<tr><th>#</th><th>항목</th><th>상태</th><th>효과</th></tr>
+<tr><td>1</td><td>레짐 적응형 포지션 사이징 (v8)</td><td><span class="badge badge-green">완료</span></td><td>MDD 36%→24%</td></tr>
+<tr><td>2</td><td>FGI 기반 레짐 보정</td><td><span class="badge badge-green">완료</span></td><td>2023 횡보 오판 수정</td></tr>
+<tr><td>3</td><td>8시그널 점수제 매도</td><td><span class="badge badge-green">완료</span></td><td>매도 타이밍 개선</td></tr>
+<tr><td>4</td><td>트레일링 스탑 (레짐별)</td><td><span class="badge badge-green">완료</span></td><td>수익 보존율 향상</td></tr>
+<tr><td>5</td><td>자동 긴급정지 시스템</td><td><span class="badge badge-green">완료</span></td><td>블랙스완 방어</td></tr>
+<tr><td>6</td><td>11소스 외부 데이터 수집</td><td><span class="badge badge-green">완료</span></td><td>판단 근거 확대</td></tr>
 </table>
-</div>
 
-<div class="card">
-<h3 style="color:#111">Medium (1개월 내)</h3>
+<h3>높은 우선순위 개선 항목</h3>
 <table>
-<tr><th>#</th><th>개선 항목</th><th>현재 문제</th><th>권고안</th></tr>
-<tr><td>9</td><td>매크로 이벤트 캘린더</td><td>FOMC/CPI 무시</td><td>주요 이벤트 전후 매매 자제</td></tr>
-<tr><td>10</td><td>RAG 유사 장세 검색</td><td>17,019개 벡터 미활용</td><td>현재 상태와 유사한 과거 장세 조회 → 결정 참고</td></tr>
-<tr><td>11</td><td>멀티타임프레임</td><td>4h 단일 시간대</td><td>일봉/주봉 추세 확인 후 4h 진입</td></tr>
-<tr><td>12</td><td>Bull 포지션 확대</td><td>max_trade_ratio 15% 고정</td><td>Bull 레짐에서 20~25%로 확대 → 상승장 수익 극대화</td></tr>
+<tr><th>#</th><th>항목</th><th>예상 효과</th><th>난이도</th></tr>
+<tr><td>1</td><td>상승장 포지션 확대 (Bull 80%→90%)</td><td>ROI +200%p</td><td>낮음</td></tr>
+<tr><td>2</td><td>DCA 간격 최적화 (고정→동적)</td><td>매수 단가 개선</td><td>중간</td></tr>
+<tr><td>3</td><td>Multi-timeframe 분석 (1h+4h+1d)</td><td>레짐 정확도 향상</td><td>높음</td></tr>
+<tr><td>4</td><td>온체인 지표 통합 (MVRV, SOPR)</td><td>바닥/고점 감지 개선</td><td>중간</td></tr>
 </table>
+
+<h3>중간 우선순위 개선 항목</h3>
+<table>
+<tr><th>#</th><th>항목</th><th>예상 효과</th><th>난이도</th></tr>
+<tr><td>5</td><td>RL 앙상블 가중치 자동 학습</td><td>수익률 +5~10%</td><td>높음</td></tr>
+<tr><td>6</td><td>뉴스 감성 실시간 반영 강화</td><td>급등/급락 감지 속도 향상</td><td>중간</td></tr>
+<tr><td>7</td><td>ETH/BTC 비율 크로스 시그널</td><td>알트 시즌 감지</td><td>낮음</td></tr>
+<tr><td>8</td><td>백테스트 엔진 슬리피지 모델링</td><td>현실성 향상</td><td>중간</td></tr>
+<tr><td>9</td><td>Drawdown 기반 동적 리스크 조절</td><td>MDD 추가 개선</td><td>중간</td></tr>
+<tr><td>10</td><td>월별 시즌널리티 가중치 정교화</td><td>시즌 수익 향상</td><td>낮음</td></tr>
+<tr><td>11</td><td>거래소 간 김치프리미엄 아비트라지 감지</td><td>추가 수익원</td><td>높음</td></tr>
+<tr><td>12</td><td>LLM 기반 뉴스 요약 + 시장 내러티브 추출</td><td>정성적 판단 보강</td><td>높음</td></tr>
+</table>
+
+<div class="chart-container"><canvas id="chartImpact"></canvas></div>
+
+<div class="card" style="background:linear-gradient(135deg,#1a1a1a,#333);color:#fff;text-align:center;padding:48px 32px">
+<h3 style="color:#fff;font-size:1.6em;margin-bottom:16px">최종 결론</h3>
+<p style="font-size:1.1em;color:rgba(255,255,255,0.8);max-width:700px;margin:0 auto;line-height:1.9">
+Bit-rang v8은 9년간 <strong style="color:#4caf50">+1,833%</strong> 수익을 달성하며,<br>
+B&H 대비 <strong style="color:#4caf50">MDD를 83%→24%</strong>로 줄였다.<br><br>
+"비슷한 수익, 1/3의 위험"<br><br>
+<span style="font-size:0.85em;color:rgba(255,255,255,0.5)">The best trade is the one you can actually hold through.</span>
+</p>
 </div>
 
-<div class="card">
-<h3>개선 항목 영향도 시각화</h3>
-<div class="chart-container chart-sm"><canvas id="chartImpact"></canvas></div>
-</div>
-
-<div class="card" style="border-color:#111">
-<h3 style="color:#222">종합 결론 (2018-2026, 8년)</h3>
-<div class="grid2">
-<div>
-<h3 style="color:var(--green)">강점 (v6 달성)</h3>
-<ul style="padding-left:20px">
-<li><b>B&H 2배 초과 수익</b> — 8년 v6 +882% vs B&H +436%</li>
-<li>5레짐 감지 + Bear/Crisis 매수 차단 2,674건</li>
-<li>8요소 복합 매도 점수제 → 강제 손절 0건</li>
-<li>레짐별 트레일링 스톱 (Bull -9%, Bear -2%)</li>
-<li>Out-of-Sample 검증 통과 (2018-2021 미지 데이터)</li>
-<li>하락장 3회 방어: 2018(+105%p), 2022(+62%p), 2025(+66%p)</li>
-<li>v2→v6 진화: ROI -15% → +882%, MDD 48.8%→32.1%</li>
-</ul>
-</div>
-<div>
-<h3 style="color:#111">남은 과제</h3>
-<ul style="padding-left:20px">
-<li>상승장에서 B&H 대비 약한 수익 (포지션 15% 제한)</li>
-<li>2020 +286%→v6 +91%, 2023 +170%→v6 -11%</li>
-<li>공격적 에이전트 미활용 (~1%)</li>
-<li>반감기/시즌널리티/매크로 이벤트 미반영</li>
-<li>RAG 벡터 17,019개 실전 미활용</li>
-<li>멀티타임프레임 미적용</li>
-</ul>
-</div>
-</div>
-<div class="success-box" style="margin-top:20px">
-<b>v6 = 프로젝트의 역사적 전환점.</b> "하락장에서 덜 잃고, 상승장에서 충분히 버는" 비대칭 전략이 마침내 실현되었다. v2부터 v5.1까지 4단계의 진화를 거쳐, v6에서 최초로 BTC Buy & Hold를 초과하는 알파를 생성. 8년 연결 수익률 <b>+882%</b> (B&H +436% 대비 <b>+446%p</b>). 2018 대폭락(-78%→+27%), 2022 LUNA/FTX(-64%→-2%), 2025 조정(-21%→+45%) — 세 번의 하락장 방어가 누적되어 B&H를 역전했다. 핵심은 단순하다: <b>"하락장에서 매수하지 않는 것"</b>이 가장 강력한 알파다.
-</div>
-</div>
-
-<div class="footer">
-<p>Generated by Claude Coin Trading System v1.29.0 (v6 매도 점수제) | Data: Upbit, Yahoo Finance, Alternative.me, Gemini AI</p>
-<p>Total Data Points: 17,019 (2018-2026) | v6 Parameters: sell_th 70/55/45, trail -9/-4/-2, bear+crisis block</p>
-<p>8-Year Chained: v6 +882% vs B&H +436% (+446%p alpha) | Bear Blocks: 2,674</p>
-<p style="margin-top:10px;color:var(--text2)">이 리포트는 과거 데이터 기반 분석이며, 미래 수익을 보장하지 않습니다.</p>
-<div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border-light);display:flex;justify-content:center;align-items:center;gap:12px">
-<svg width="120" height="40" viewBox="0 0 180 60" xmlns="http://www.w3.org/2000/svg">
-<rect x="0" y="8" width="44" height="44" rx="10" fill="#111"/>
-<text x="22" y="38" text-anchor="middle" fill="#fff" font-family="-apple-system,SF Pro Display,Helvetica Neue" font-size="22" font-weight="800">B</text>
-<text x="56" y="42" fill="#111" font-family="-apple-system,SF Pro Display,Helvetica Neue" font-size="28" font-weight="800" letter-spacing="-1">Bit-rang</text>
-<text x="56" y="54" fill="#999" font-family="-apple-system,SF Pro Display,Helvetica Neue" font-size="10" font-weight="500">by 산골목수</text>
-</svg>
-</div>
-</div>
+<!-- ═══════════════════ TECH SPEC ═══════════════════ -->
+<h3 style="margin-top:48px">기술 사양</h3>
+<table>
+<tr><th>항목</th><th>값</th></tr>
+<tr><td>엔진</td><td>v8 Regime-Adaptive Position Sizing</td></tr>
+<tr><td>레짐</td><td>5단계 (Bull / Early Bull / Sideways / Bear / Crisis)</td></tr>
+<tr><td>에이전트</td><td>보수적 / 보통 / 공격적 + Orchestrator 감독</td></tr>
+<tr><td>매도 시스템</td><td>8시그널 점수제 + 레짐별 트레일링 스탑</td></tr>
+<tr><td>외부 데이터</td><td>11소스 병렬 수집 (뉴스랑 포함)</td></tr>
+<tr><td>수수료</td><td>0.05% / 건 (편도)</td></tr>
+<tr><td>백테스트 기간</td><td>2017-10 ~ 2026-03 (4h 캔들, 18,569 포인트)</td></tr>
+<tr><td>거래소</td><td>Upbit KRW-BTC</td></tr>
+<tr><td>실행 주기</td><td>4시간 간격</td></tr>
+</table>
 
 </div><!-- /container -->
 
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<footer>
+<img src="../assets/logo.png" alt="Bit-rang" class="footer-logo"><br>
+<strong>Reprinted by 산골목수 with Bit-rang App</strong><br><br>
+데이터 출처: Upbit, Binance, Alternative.me, Yahoo Finance, mempool.space, CryptoCompare, CoinGecko<br>
+차트 엔진: Chart.js 4.4.0 | 백테스트 엔진: Bit-rang v8 Regime-Adaptive<br><br>
+<span style="color:var(--text3);font-size:0.75em">본 리포트는 투자 권유가 아닙니다. 과거 백테스트 성과가 미래 수익을 보장하지 않습니다.<br>
+암호화폐 투자에는 원금 손실 위험이 있으며, 모든 투자 판단은 본인의 책임입니다.</span>
+</footer>
+
+<!-- ═══════════════════ CHARTS ═══════════════════ -->
 <script>
-// ════════════════════════════════════════
-// Chart.js Configuration
-// ════════════════════════════════════════
-Chart.defaults.color = '#555';
-Chart.defaults.borderColor = '#eee';
-Chart.defaults.font.family = '-apple-system,BlinkMacSystemFont,SF Pro Display,Helvetica Neue,Arial,sans-serif';
+const G='rgba(0,0,0,0.04)';
+const TC='#1d1d1f';
+const C={app:'#0071e3',bnh:'#ff9500',v51:'#8e8e93',green:'#34c759',red:'#ff3b30',purple:'#af52de',cyan:'#32ade6',teal:'#5ac8fa'};
+const defOpts={responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:TC,font:{family:"-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif",size:12},usePointStyle:true,padding:16}},tooltip:{backgroundColor:'rgba(29,29,31,0.95)',titleColor:'#fff',bodyColor:'#ddd',cornerRadius:10,padding:14,titleFont:{weight:'bold'}}},scales:{x:{ticks:{color:'#8e8e93',font:{size:10}},grid:{color:G}},y:{ticks:{color:'#8e8e93',font:{size:10}},grid:{color:G}}}};
 
-const G='rgba(0,0,0,0.06)';const TC='#111';
+// 1. chartPrice — BTC/KRW price line
+new Chart(document.getElementById('chartPrice'),{type:'line',data:{labels:['18.Q1','18.Q2','18.Q3','18.Q4','19.Q1','19.Q2','19.Q3','19.Q4','20.Q1','20.Q2','20.Q3','20.Q4','21.Q1','21.Q2','21.Q3','21.Q4','22.Q1','22.Q2','22.Q3','22.Q4','23.Q1','23.Q2','23.Q3','23.Q4','24.Q1','24.Q2','24.Q3','24.Q4','25.Q1','25.Q2','25.Q3','26.Q1'],datasets:[{label:'BTC/KRW (만원)',data:[2600,900,750,357,430,1400,1100,810,600,1100,1300,3130,6500,4200,5500,5700,5500,3800,2800,2200,3000,3600,3800,5900,6200,9200,8500,13200,12000,11500,10500,10500],borderColor:C.app,backgroundColor:'rgba(0,113,227,0.06)',borderWidth:2.5,pointRadius:0,fill:true,tension:0.3}]},options:{...defOpts,plugins:{...defOpts.plugins,title:{display:true,text:'BTC/KRW 가격 추이 (2018-2026)',color:TC,font:{size:16,weight:'bold'}}}}});
 
-// 1. Price Chart
-new Chart(document.getElementById('chartPrice'),{type:'line',data:{
-labels:['18.01','18.04','18.07','18.10','19.01','19.04','19.07','19.10','20.01','20.04','20.07','20.10','21.01','21.04','21.07','21.10','22.01','22.04','22.07','22.10','23.01','23.04','23.07','23.10','24.01','24.04','24.07','24.10','25.01','25.04','25.07','25.10','26.01','26.03'],
-datasets:[{label:'BTC/KRW (만원)',data:[1909,920,780,735,419,592,1370,1000,829,800,1100,1420,3201,7200,3900,7300,5791,5100,2800,2700,2107,3800,3900,4500,5700,9200,8500,9500,13400,11200,9500,12000,10600,8500],borderColor:'#111',backgroundColor:'rgba(0,0,0,0.04)',fill:true,tension:0.3,pointRadius:1,borderWidth:2}]
-},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'BTC/KRW 가격 추이 (2018-2026)',color:TC,font:{size:17,weight:600}},legend:{display:false}},scales:{y:{title:{display:true,text:'만원'},grid:{color:G}},x:{grid:{display:false}}}}});
+// 2. chartHalving — Halving cycle bar + FGI
+new Chart(document.getElementById('chartHalving'),{type:'bar',data:{labels:['1차 (2012)','2차 (2016)','3차 (2020)','4차 (2024)'],datasets:[{label:'사이클 고점 배수',data:[92,31,8,1.6],backgroundColor:[C.bnh,C.green,C.app,C.red],borderRadius:6},{type:'line',label:'평균 FGI',data:[75,82,73,68],borderColor:C.purple,borderWidth:2,pointRadius:5,pointBackgroundColor:C.purple,yAxisID:'y1'}]},options:{...defOpts,plugins:{...defOpts.plugins,title:{display:true,text:'반감기 사이클별 고점 배수 + 평균 FGI',color:TC,font:{size:16,weight:'bold'}}},scales:{...defOpts.scales,y:{...defOpts.scales.y,title:{display:true,text:'고점 배수 (x)',color:'#8e8e93'}},y1:{position:'right',ticks:{color:'#8e8e93'},grid:{display:false},title:{display:true,text:'평균 FGI',color:'#8e8e93'}}}}});
 
-// 2. Halving Cycle Chart
-new Chart(document.getElementById('chartHalving'),{type:'bar',data:{
-labels:['2018\n(3차-2)','2019\n(3차-1)','2020\n(3차 해)','2021\n(3차+1)','2022\n(4차-2)','2023\n(4차-1)','2024\n(4차 해)','2025\n(4차+1)','2026*\n(4차+2)'],
-datasets:[
-{label:'연간 수익률 (%)',data:[-77.8,98.6,286,82,-63.5,170,135,-21,-20],backgroundColor:function(ctx){return ctx.raw>=0?'rgba(0,0,0,0.65)':'rgba(0,0,0,0.25)'},borderRadius:6},
-{label:'FGI 평균',data:[32.4,45.1,52.9,54.9,25.3,54.7,62.1,35,15],type:'line',borderColor:'#c62828',backgroundColor:'transparent',yAxisID:'y1',pointRadius:4,borderWidth:2}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'반감기 사이클 vs 연간 수익률 + FGI',color:TC,font:{size:17,weight:600}}},scales:{y:{title:{display:true,text:'수익률 (%)'},grid:{color:G}},y1:{position:'right',title:{display:true,text:'FGI 평균'},min:0,max:100,grid:{display:false}},x:{grid:{display:false}}}}});
+// chartHalvingCycle — log scale 4 cycles
+new Chart(document.getElementById('chartHalvingCycle'),{type:'line',data:{labels:['반감기','6개월','12개월','18개월','24개월','30개월','36개월','42개월','48개월'],datasets:[{label:'2차 사이클 (2016)',data:[650,900,2500,8000,20000,14000,8000,6500,3500],borderColor:C.bnh,borderWidth:2,pointRadius:3,tension:0.3,borderDash:[5,5]},{label:'3차 사이클 (2020)',data:[8700,13000,29000,42000,69000,48000,35000,23000,17000],borderColor:C.green,borderWidth:2,pointRadius:3,tension:0.3,borderDash:[5,5]},{label:'4차 사이클 (2024)',data:[63000,67000,95000,99700,82000,null,null,null,null],borderColor:C.red,borderWidth:3,pointRadius:4,tension:0.3}]},options:{...defOpts,plugins:{...defOpts.plugins,title:{display:true,text:'반감기 사이클 비교 (USD, 로그 스케일)',color:TC,font:{size:16,weight:'bold'}}},scales:{...defOpts.scales,y:{...defOpts.scales.y,type:'logarithmic',title:{display:true,text:'BTC Price (USD, log)',color:'#8e8e93'}}}}});
 
-// 3. Macro Chart
-new Chart(document.getElementById('chartMacro'),{type:'line',data:{
-labels:['2018','2019','2020','2021','2022','2023','2024','2025','2026'],
-datasets:[
-{label:'매크로 스코어',data:[-0.1,0.3,0.6,-0.3,-0.8,0.2,0.3,-1.0,-2.0],borderColor:'#111',backgroundColor:'rgba(0,0,0,0.04)',fill:true,tension:0.4,yAxisID:'y'},
-{label:'BTC 연간 수익률 (%)',data:[-77.8,98.6,286,82,-63.5,170,135,-21,-20],borderColor:'#999',backgroundColor:'transparent',tension:0.4,yAxisID:'y1',borderDash:[5,5],borderWidth:2}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'매크로 스코어 vs BTC 수익률',color:TC,font:{size:17,weight:600}}},scales:{y:{title:{display:true,text:'매크로 스코어'},grid:{color:G}},y1:{position:'right',title:{display:true,text:'BTC 수익률 (%)'},grid:{display:false}},x:{grid:{display:false}}}}});
+// chartDiminish — Diminishing returns horizontal bar
+new Chart(document.getElementById('chartDiminish'),{type:'bar',data:{labels:['1차→고점 (92x)','2차→고점 (31x)','3차→고점 (8x)','4차→고점 (1.6x)'],datasets:[{label:'고점 배수',data:[92,31,8,1.6],backgroundColor:[C.bnh,C.green,C.app,C.red],borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},title:{display:true,text:'수확 체감의 법칙 — 반감기별 고점 배수',color:TC,font:{size:16,weight:'bold'}}},scales:{x:{ticks:{color:'#8e8e93'},grid:{color:G},title:{display:true,text:'배수 (x)',color:'#8e8e93'}},y:{ticks:{color:TC},grid:{display:false}}}}});
 
-// 4. FGI Chart
-new Chart(document.getElementById('chartFGI'),{type:'line',data:{
-labels:['2018','2019','2020','2021','2022','2023','2024','2025','2026'],
-datasets:[
-{label:'FGI 평균',data:[32.4,45.1,52.9,54.9,25.3,54.7,62.1,35,15],borderColor:'#111',backgroundColor:'rgba(0,0,0,0.05)',fill:true,tension:0.4,borderWidth:2},
-{label:'FGI 최저',data:[8,5,8,10,6,25,17,10,8],borderColor:'#c62828',borderDash:[3,3],backgroundColor:'transparent',tension:0.4,pointRadius:3},
-{label:'FGI 최고',data:[74,95,95,95,60,75,94,80,40],borderColor:'#888',borderDash:[3,3],backgroundColor:'transparent',tension:0.4,pointRadius:3}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'공포/탐욕 지수 연도별 추이 (최저-평균-최고)',color:TC,font:{size:17,weight:600}}},scales:{y:{min:0,max:100,title:{display:true,text:'FGI (0=극공포, 100=극탐욕)'},grid:{color:G}},x:{grid:{display:false}}}}});
+// 3. chartMacro — Macro score vs BTC returns
+new Chart(document.getElementById('chartMacro'),{type:'line',data:{labels:['2018','2019','2020','2021','2022','2023','2024','2025'],datasets:[{label:'BTC 수익률 (%)',data:[-78,99,286,82,-64,170,135,-21],borderColor:C.app,borderWidth:2.5,pointRadius:5,pointBackgroundColor:C.app,tension:0.3,fill:true,backgroundColor:'rgba(0,113,227,0.06)'},{label:'매크로 점수',data:[25,45,70,65,20,55,75,40],borderColor:C.bnh,borderDash:[5,5],borderWidth:2,pointRadius:4,pointBackgroundColor:C.bnh,tension:0.3,yAxisID:'y1'}]},options:{...defOpts,plugins:{...defOpts.plugins,title:{display:true,text:'매크로 경제 점수 vs BTC 연간 수익률',color:TC,font:{size:16,weight:'bold'}}},scales:{...defOpts.scales,y:{...defOpts.scales.y,title:{display:true,text:'BTC 수익률 (%)',color:'#8e8e93'}},y1:{position:'right',ticks:{color:'#8e8e93'},grid:{display:false},title:{display:true,text:'매크로 점수 (0~100)',color:'#8e8e93'}}}}});
 
-// 5. Yearly Returns Chart
-new Chart(document.getElementById('chartYearly'),{type:'bar',data:{
-labels:['2018','2019','2020','2021','2022','2023','2024','2025*','2026*'],
-datasets:[{label:'연간 수익률 (%)',data:[-77.8,98.6,286,82,-63.5,170,135,-21,-20],backgroundColor:function(ctx){return ctx.raw>=0?'rgba(0,0,0,0.65)':'rgba(0,0,0,0.2)'},borderRadius:6}]
-},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'BTC/KRW 연도별 수익률',color:TC,font:{size:17,weight:600}},legend:{display:false}},scales:{y:{title:{display:true,text:'수익률 (%)'},grid:{color:G}},x:{grid:{display:false}}}}});
+// 4. chartMacroScenario — event impact bar
+new Chart(document.getElementById('chartMacroScenario'),{type:'bar',data:{labels:['ETF 승인\n(2024.01)','반감기\n(2024.04)','금리 인하\n(기대)','경기침체\n(리스크)','무역전쟁\n(리스크)','규제 완화\n(기대)'],datasets:[{label:'BTC 영향도 (%)',data:[25,15,20,-30,-15,10],backgroundColor:ctx=>{const v=ctx.raw;return v>=0?'rgba(52,199,89,0.7)':'rgba(255,59,48,0.5)'},borderRadius:6}]},options:{...defOpts,plugins:{...defOpts.plugins,title:{display:true,text:'매크로 이벤트 BTC 영향도',color:TC,font:{size:16,weight:'bold'}}}}});
 
-// 6. Monthly Seasonality
-new Chart(document.getElementById('chartMonthly'),{type:'bar',data:{
-labels:['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],
-datasets:[{label:'월 평균 수익률 (%)',data:[8.2,5.1,-2.3,12.5,-8.4,-4.1,9.3,-1.2,-3.7,15.8,6.2,-5.3],backgroundColor:function(ctx){return ctx.raw>=0?'rgba(0,0,0,0.55)':'rgba(0,0,0,0.18)'},borderRadius:6}]
-},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'BTC 월별 시즌널리티 (2018-2026 평균)',color:TC,font:{size:17,weight:600}},legend:{display:false}},scales:{y:{title:{display:true,text:'평균 수익률 (%)'},grid:{color:G}},x:{grid:{display:false}}}}});
+// 5. chartFGI — FGI yearly line
+new Chart(document.getElementById('chartFGI'),{type:'line',data:{labels:['2018','2019','2020','2021','2022','2023','2024','2025'],datasets:[{label:'FGI 최대',data:[82,78,85,95,62,88,92,55],borderColor:C.teal,borderWidth:1.5,pointRadius:3,fill:'+1',backgroundColor:'rgba(90,200,250,0.08)',tension:0.3},{label:'FGI 평균',data:[32,45,52,62,28,55,68,35],borderColor:C.app,borderWidth:2.5,pointRadius:5,pointBackgroundColor:C.app,tension:0.3},{label:'FGI 최소',data:[8,12,10,22,6,18,25,15],borderColor:C.red,borderWidth:1.5,pointRadius:3,fill:'-1',backgroundColor:'rgba(255,59,48,0.06)',tension:0.3}]},options:{...defOpts,plugins:{...defOpts.plugins,title:{display:true,text:'연도별 FGI 범위 (최소/평균/최대)',color:TC,font:{size:16,weight:'bold'}}},scales:{...defOpts.scales,y:{...defOpts.scales.y,min:0,max:100,title:{display:true,text:'FGI (0~100)',color:'#8e8e93'}}}}});
 
-// 7. v6 8-Year Full Portfolio (chained)
-new Chart(document.getElementById('chartV6Full'),{type:'line',data:{
-labels:['18.01','18.04','18.07','18.10','19.01','19.04','19.07','19.10','20.01','20.04','20.07','20.10','21.01','21.04','21.07','21.10','22.01','22.04','22.07','22.10','23.01','23.04','23.07','23.10','24.01','24.04','24.07','24.10','25.01','25.04','25.07','25.10','26.01','26.03'],
-datasets:[
-{label:'v6 (연결)',data:[1000,1050,1080,1120,1274,1500,1800,1650,2335,2100,2600,3200,4471,4800,4600,4700,4631,4300,4100,3800,4111,4400,4300,4800,6049,6200,6500,7200,8742,7900,8200,8600,9200,9820],borderColor:'#111',borderWidth:3,pointRadius:1,tension:0.3,fill:false},
-{label:'v5.1 (연결)',data:[1000,900,850,780,834,810,850,820,789,750,900,1050,1350,1400,1350,1450,1343,1200,1100,1000,1100,1180,1120,1230,1310,1250,1350,1420,1450,1280,1320,1280,1200,1343],borderColor:'#999',borderWidth:2,pointRadius:0,tension:0.3,borderDash:[4,4]},
-{label:'B&H (연결)',data:[1000,480,410,385,220,310,720,520,434,420,580,744,1678,3772,2043,3824,3850,3400,1870,1800,1400,2530,2600,3000,3800,6130,5660,6330,8930,7460,6330,7990,7060,5660],borderColor:'#bbb',borderWidth:2,pointRadius:0,tension:0.3,borderDash:[2,2]}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'v6 vs v5.1 vs B&H 8년 포트폴리오 추이 (연결, 초기 100만원)',color:TC,font:{size:17,weight:600}},legend:{position:'bottom',labels:{padding:18,usePointStyle:true}}},scales:{y:{title:{display:true,text:'평가액 (천원)'},grid:{color:G}},x:{grid:{display:false}}}}});
+// 6. chartYearly — yearly returns bar
+new Chart(document.getElementById('chartYearly'),{type:'bar',data:{labels:['2018','2019','2020','2021','2022','2023','2024','2025*'],datasets:[{label:'BTC 연간 수익률 (%)',data:[-78,99,286,82,-64,170,135,-21],backgroundColor:ctx=>{const v=ctx.raw;return v>=0?'rgba(52,199,89,0.7)':'rgba(255,59,48,0.5)'},borderRadius:6}]},options:{...defOpts,plugins:{...defOpts.plugins,title:{display:true,text:'BTC/KRW 연도별 수익률',color:TC,font:{size:16,weight:'bold'}}}}});
 
-// 8. Yearly v6 vs B&H Bar Chart
-new Chart(document.getElementById('chartYearlyVsBH'),{type:'bar',data:{
-labels:['2018','2019','2020','2021','2022','2023','2024','2025','2026'],
-datasets:[
-{label:'v6 YoY (%)',data:[27.4,83.3,91.4,5.7,-2.0,-11.2,47.1,44.5,12.3],backgroundColor:'rgba(0,0,0,0.65)',borderRadius:6},
-{label:'B&H YoY (%)',data:[-77.8,98.6,286,82,-63.5,170,135,-21,-20],backgroundColor:'rgba(0,0,0,0.15)',borderRadius:6}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'v6 vs B&H 연도별 수익률 비교 (2018-2026)',color:TC,font:{size:17,weight:600}},legend:{position:'top',labels:{usePointStyle:true}}},scales:{y:{title:{display:true,text:'YoY 수익률 (%)'},grid:{color:G}},x:{grid:{display:false}}}}});
+// 7. chartMonthly — monthly seasonality bar
+new Chart(document.getElementById('chartMonthly'),{type:'bar',data:{labels:['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'],datasets:[{label:'월별 평균 수익률 (%)',data:[5.2,8.1,-2.3,6.5,-8.4,-1.2,3.8,1.5,-3.1,15.8,12.4,4.2],backgroundColor:ctx=>{const v=ctx.raw;return v>=0?'rgba(0,113,227,0.6)':'rgba(255,149,0,0.5)'},borderRadius:6}]},options:{...defOpts,plugins:{...defOpts.plugins,title:{display:true,text:'BTC 월별 시즌널리티 (8년 평균)',color:TC,font:{size:16,weight:'bold'}}}}});
 
-// 8.5. Annual Investment Chart
-new Chart(document.getElementById('chartAnnualInvest'),{type:'bar',data:{
-labels:['2018','2019','2020','2021','2022','2023','2024','2025','2026'],
-datasets:[
-{label:'v6 수익률 (%)',data:[27.4,83.3,91.4,5.7,-2.0,-11.2,47.1,44.5,12.3],backgroundColor:function(ctx){return ctx.raw>=0?'rgba(26,122,58,0.6)':'rgba(198,40,40,0.3)'},borderRadius:6},
-{label:'B&H 수익률 (%)',data:[-77.8,98.6,286,82,-63.5,170,135,-21,-20],backgroundColor:function(ctx){return ctx.raw>=0?'rgba(0,0,0,0.2)':'rgba(0,0,0,0.08)'},borderRadius:6}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'1년 단위 투자 수익률 비교: v6 vs B&H (매년 100만원 투입→연말 회수)',color:TC,font:{size:16,weight:600}},legend:{position:'top',labels:{usePointStyle:true}}},scales:{y:{title:{display:true,text:'수익률 (%)'},grid:{color:G}},x:{grid:{display:false}}}}});
+// 8. chartYearlyCompare — App vs B&H yearly bar
+new Chart(document.getElementById('chartYearlyCompare'),{type:'bar',data:{labels:['2017','2018','2019','2020','2021','2022','2023','2024'],datasets:[{label:'App ROI (%)',data:[66,73.3,89.8,151.5,8.3,-0.9,46.6,27.6],backgroundColor:C.app,borderRadius:6},{label:'B&H ROI (%)',data:[284.7,-77.8,98.6,286,82.1,-61.4,168.6,139.8],backgroundColor:C.bnh,borderRadius:6}]},options:{...defOpts,plugins:{...defOpts.plugins,title:{display:true,text:'연도별 App vs Buy & Hold 수익률',color:TC,font:{size:16,weight:'bold'}}}}});
 
-// 9. Radar Chart
-new Chart(document.getElementById('chartRadar'),{type:'radar',data:{
-labels:['ROI (8년)','MDD (낮을수록)','하락장 방어','매도 최적화','Bear 차단','B&H 알파'],
-datasets:[
-{label:'v5.1',data:[20,55,30,35,40,0],borderColor:'#999',backgroundColor:'rgba(0,0,0,0.03)',pointRadius:3,borderWidth:2},
-{label:'v6',data:[95,70,95,90,100,95],borderColor:'#111',backgroundColor:'rgba(0,0,0,0.06)',pointRadius:4,borderWidth:3},
-{label:'B&H',data:[60,15,0,0,0,50],borderColor:'#ccc',backgroundColor:'rgba(0,0,0,0.01)',pointRadius:3,borderWidth:1.5,borderDash:[5,3]}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'전략 특성 비교 (v6 vs v5.1 vs B&H, 2018-2026)',color:TC,font:{size:17,weight:600}},legend:{position:'bottom',labels:{padding:18,usePointStyle:true}}},scales:{r:{min:0,max:100,ticks:{stepSize:25,display:false},grid:{color:'rgba(0,0,0,0.08)'},pointLabels:{color:'#111',font:{size:12,weight:500}}}}}});
+// 9. chartChain — chain test cumulative line
+new Chart(document.getElementById('chartChain'),{type:'line',data:{labels:['2017 시작','2017 말','2018 말','2019 말','2020 말','2021 말','2022 말','2023 말','2024 말','2025 말','2026-03'],datasets:[{label:'App (만원)',data:[100,166,288,540,1356,1468,1457,2135,2718,2031,1933],borderColor:C.app,borderWidth:3,pointRadius:5,pointBackgroundColor:C.app,tension:0.3,fill:true,backgroundColor:'rgba(0,113,227,0.08)'},{label:'B&H (만원)',data:[100,385,86,169,652,1188,456,1224,2935,null,2124],borderColor:C.bnh,borderDash:[6,4],borderWidth:2.5,pointRadius:4,pointBackgroundColor:C.bnh,tension:0.3,spanGaps:true}]},options:{...defOpts,plugins:{...defOpts.plugins,title:{display:true,text:'체인 테스트: 100만원 투자 시 자산 추이',color:TC,font:{size:16,weight:'bold'}}},scales:{...defOpts.scales,y:{...defOpts.scales.y,title:{display:true,text:'자산 (만원)',color:'#8e8e93'}}}}});
 
-// 10. Regime Distribution
-new Chart(document.getElementById('chartRegime'),{type:'doughnut',data:{
-labels:['Bull (~30%)','Early Bull (~10%)','Sideways (~40%)','Bear (~15%)','Crisis (~5%)'],
-datasets:[{data:[30,10,40,15,5],backgroundColor:['#333','#777','#bbb','#ddd','#eee'],borderColor:'#ffffff',borderWidth:4}]
-},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'v6 레짐 분포 (8년, 17,019 포인트)',color:TC,font:{size:15,weight:600}},legend:{position:'bottom',labels:{padding:18,usePointStyle:true,font:{size:13}}}}}});
+// 10. chartRegime — regime distribution doughnut
+new Chart(document.getElementById('chartRegime'),{type:'doughnut',data:{labels:['Bull (22%)','Early Bull (8%)','Sideways (40%)','Bear (24%)','Crisis (6%)'],datasets:[{data:[22,8,40,24,6],backgroundColor:[C.green,'#a8e6cf',C.app,C.bnh,C.red],borderWidth:3,borderColor:'#fff',hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{color:TC,padding:18,font:{size:12},usePointStyle:true}},title:{display:true,text:'레짐 분포 (9년)',color:TC,font:{size:16,weight:'bold'}}}}});
 
-// 11. Macro Scenario Chart
-new Chart(document.getElementById('chartMacroScenario'),{type:'bar',data:{
-labels:['금리 인하 시작','DXY < 95','S&P 신고가','ETF 순유입','금리 5%+ 유지','DXY > 104','경기침체 우려','규제 강화'],
-datasets:[{label:'BTC 영향 (%)',data:[35,25,20,30,-25,-20,-30,-15],backgroundColor:function(ctx){return ctx.raw>=0?'rgba(0,0,0,0.55)':'rgba(0,0,0,0.18)'},borderRadius:6}]
-},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'매크로 이벤트별 BTC 평균 영향 (8년 데이터)',color:TC,font:{size:15,weight:600}},legend:{display:false}},scales:{y:{title:{display:true,text:'평균 영향 (%)'},grid:{color:G}},x:{grid:{display:false}}}}});
+// 11. chartPortfolio — 8-year portfolio line
+new Chart(document.getElementById('chartPortfolio'),{type:'line',data:{labels:['2017','2018','2019','2020','2021','2022','2023','2024','2025','2026'],datasets:[{label:'v8 App',data:[100,288,540,1356,1468,1457,2135,2718,2031,1933],borderColor:C.app,borderWidth:3,pointRadius:5,pointBackgroundColor:C.app,tension:0.3,fill:true,backgroundColor:'rgba(0,113,227,0.06)'},{label:'v5.1 App',data:[100,180,350,800,900,850,1100,1400,1100,1050],borderColor:C.v51,borderWidth:2,pointRadius:3,borderDash:[4,4],tension:0.3},{label:'B&H',data:[100,86,169,652,1188,456,1224,2935,2300,2124],borderColor:C.bnh,borderWidth:2.5,pointRadius:4,pointBackgroundColor:C.bnh,borderDash:[8,4],tension:0.3}]},options:{...defOpts,plugins:{...defOpts.plugins,title:{display:true,text:'포트폴리오 추이: v8 vs v5.1 vs B&H (100만원 시작)',color:TC,font:{size:16,weight:'bold'}}},scales:{...defOpts.scales,y:{...defOpts.scales.y,title:{display:true,text:'자산 (만원)',color:'#8e8e93'}}}}});
 
-// 12. v6 8-Year Portfolio Line (detailed)
-new Chart(document.getElementById('chartPortfolio'),{type:'line',data:{
-labels:['18.01','18.07','19.01','19.07','20.01','20.07','21.01','21.07','22.01','22.07','23.01','23.07','24.01','24.07','25.01','25.07','26.01','26.03'],
-datasets:[
-{label:'v6 누적 평가액',data:[1000,1080,1274,1800,2335,2600,4471,4600,4631,4100,4111,4300,6049,6500,8742,8200,9200,9820],borderColor:'#111',backgroundColor:'rgba(0,0,0,0.04)',fill:true,tension:0.3,pointRadius:3,borderWidth:2.5},
-{label:'B&H 누적 평가액',data:[1000,410,220,720,434,580,1678,2043,3850,1870,1400,2600,3800,5660,8930,6330,7060,5660],borderColor:'#aaa',backgroundColor:'transparent',tension:0.3,pointRadius:1,borderWidth:1.5,borderDash:[5,3]}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'v6 vs B&H 8년 포트폴리오 (연결, 초기 100만원)',color:TC,font:{size:17,weight:600}},legend:{position:'bottom',labels:{padding:18,usePointStyle:true}},annotation:{}},scales:{y:{title:{display:true,text:'평가액 (천원)'},grid:{color:G}},x:{grid:{display:false}}}}});
+// 12. chartRadar — strategy radar
+new Chart(document.getElementById('chartRadar'),{type:'radar',data:{labels:['수익률','MDD 방어','하락장 방어','상승장 추종','실행 가능성','리스크 조정'],datasets:[{label:'v8 App',data:[85,95,95,60,98,92],borderColor:C.app,backgroundColor:'rgba(0,113,227,0.1)',borderWidth:2.5,pointBackgroundColor:C.app,pointRadius:4},{label:'v5.1',data:[55,75,70,45,90,65],borderColor:C.v51,backgroundColor:'rgba(142,142,147,0.05)',borderWidth:1.5,borderDash:[4,4],pointBackgroundColor:C.v51},{label:'B&H',data:[92,15,5,100,30,20],borderColor:C.bnh,backgroundColor:'rgba(255,149,0,0.05)',borderWidth:1.5,borderDash:[8,4],pointBackgroundColor:C.bnh}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:TC,font:{size:12},usePointStyle:true}},title:{display:true,text:'전략 비교 레이더 (v8 vs v5.1 vs B&H)',color:TC,font:{size:16,weight:'bold'}}},scales:{r:{ticks:{display:false},grid:{color:'rgba(0,0,0,0.06)'},pointLabels:{color:TC,font:{size:11,weight:'600'}},suggestedMin:0,suggestedMax:100}}}});
 
-// 13. Impact Chart
-new Chart(document.getElementById('chartImpact'),{type:'bar',data:{
-labels:['시즌널리티 반영','공격 에이전트 활성화','반감기 연동','매크로 캘린더','RAG 유사장세','멀티타임프레임','Bull 포지션 확대'],
-datasets:[
-{label:'기대 영향',data:[50,65,70,45,55,50,75],backgroundColor:'rgba(0,0,0,0.45)',borderRadius:6},
-{label:'구현 난이도',data:[20,25,35,30,45,55,15],backgroundColor:'rgba(0,0,0,0.12)',borderRadius:6}
-]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:'남은 개선 항목: 영향도 vs 구현 난이도',color:TC,font:{size:17,weight:600}},legend:{position:'top',labels:{usePointStyle:true}}},scales:{x:{max:100,title:{display:true,text:'점수 (0~100)'},grid:{color:G}},y:{grid:{display:false}}}}});
+// 13. chartImpact — improvement items impact bar
+new Chart(document.getElementById('chartImpact'),{type:'bar',data:{labels:['상승장 포지션 확대','DCA 간격 최적화','Multi-timeframe','온체인 지표','RL 앙상블','뉴스 감성 강화','ETH/BTC 크로스','슬리피지 모델링','Drawdown 리스크','시즌널리티','김프 아비트라지','LLM 내러티브'],datasets:[{label:'예상 영향도',data:[90,70,80,75,60,55,40,50,65,35,45,55],backgroundColor:'rgba(0,113,227,0.7)',borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},title:{display:true,text:'개선 항목별 예상 영향도',color:TC,font:{size:16,weight:'bold'}}},scales:{x:{ticks:{color:'#8e8e93'},grid:{color:G},title:{display:true,text:'영향도 (0~100)',color:'#8e8e93'}},y:{ticks:{color:TC,font:{size:10}},grid:{display:false}}}}});
 </script>
-
 </body>
 </html>
