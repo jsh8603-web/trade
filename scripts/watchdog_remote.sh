@@ -1230,10 +1230,30 @@ done <<< "$(tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}:#{window_na
 
 if [ "$live_count" -lt "$TARGET_RC_COUNT" ]; then
     deficit=$((TARGET_RC_COUNT - live_count))
-    log "WARN: Only $live_count/$TARGET_RC_COUNT RC sessions alive — creating $deficit more"
-    for i in $(seq 1 $deficit); do
-        create_new_rc_session
-    done
+    fails=$(get_fail_count)
+
+    # 연속 3회 이상 실패 시 → revive_rc.sh에 위임 (워치독 무한 반복 방지)
+    if [ "$fails" -ge 3 ]; then
+        log "ESCALATE: $fails consecutive failures — delegating to revive_rc.sh"
+        # 모든 rc/rc@ 윈도우 정리
+        for w in $(tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -E '^rc(@|$)'); do
+            tmux kill-window -t "$TMUX_SESSION:$w" 2>/dev/null
+        done
+        sleep 1
+        # revive_rc.sh 호출 (검증된 부활 스크립트)
+        bash "$PROJECT_DIR/scripts/revive_rc.sh" >> /tmp/watchdog_escalation.log 2>&1
+        reset_fail_count
+        save_health "escalated" "Delegated to revive_rc.sh after $fails failures"
+    else
+        log "WARN: Only $live_count/$TARGET_RC_COUNT RC sessions alive — creating $deficit more"
+        for i in $(seq 1 $deficit); do
+            if ! create_new_rc_session; then
+                fails=$((fails + 1))
+                set_fail_count "$fails"
+                log "WARN: create_new_rc_session failed (fail count: $fails)"
+            fi
+        done
+    fi
 fi
 
 # 6. 최종 상태 저장
