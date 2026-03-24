@@ -166,6 +166,10 @@ def _clean_env_and_state(tmp_path, monkeypatch):
     auto_em_file = tmp_path / "auto_emergency.json"
     monkeypatch.setattr("agents.orchestrator.STATE_FILE", state_file)
     monkeypatch.setattr("agents.orchestrator.AUTO_EMERGENCY_FILE", auto_em_file)
+
+    # Patch self._save_state() → module-level _save_state(self.state)
+    # (v6 코드에서 self._save_state() 호출이 추가됨)
+    Orchestrator._save_state = lambda self: _save_state(self.state)
     yield
 
 
@@ -245,21 +249,23 @@ class TestOrchestratorRun:
         assert result["decision"]["decision"] == "hold"
 
     def test_run_buy_with_extreme_fear(self):
-        """Extreme fear + oversold RSI + SMA below + neutral news should trigger buy."""
+        """Extreme fear + oversold RSI + neutral news should trigger buy.
+        v6: SMA > -1.0 to avoid bear regime detection (which blocks buys)."""
         orch = Orchestrator()
         result = orch.run(
-            market_data=_sample_market_data(fgi=15, rsi=25, sma_deviation=-6.0, ai_score=10),
+            market_data=_sample_market_data(fgi=15, rsi=25, sma_deviation=-0.5, ai_score=10),
             external_data=_sample_external_data(fgi_value=15, strategy_bonus=10),
             portfolio=_sample_portfolio(krw=500_000),
         )
         assert result["decision"]["decision"] == "buy"
 
     def test_run_sell_on_target_profit(self):
-        """Holding BTC at target profit should trigger sell."""
+        """Holding BTC at target profit should trigger sell.
+        v6: profit 16%(25pts) + RSI 75(20pts) + FGI 70(15pts) = 60 >= sideways(55)."""
         orch = Orchestrator()
         result = orch.run(
-            market_data=_sample_market_data(fgi=50, rsi=50, ai_score=-5),
-            external_data=_sample_external_data(fgi_value=50),
+            market_data=_sample_market_data(fgi=70, rsi=75, ai_score=-5),
+            external_data=_sample_external_data(fgi_value=70),
             portfolio=_sample_portfolio(
                 krw=500_000, btc_balance=0.01,
                 btc_avg_price=70_000_000, btc_profit_pct=16.0,
@@ -378,6 +384,7 @@ class TestAgentDecisionFlow:
             market_data=_sample_market_data(fgi=10, rsi=20, sma_deviation=-6.0, ai_score=5),
             external_signal={"strategy_bonus": 10, "fusion": {"signal": "buy"}},
             portfolio=_sample_portfolio(krw=500_000),
+            drop_context={"v6_regime": "sideways"},
         )
         assert decision.decision == "buy"
         assert decision.trade_params["side"] == "bid"
@@ -385,14 +392,19 @@ class TestAgentDecisionFlow:
         assert decision.trade_params["amount"] > 0
 
     def test_conservative_sell_target_profit(self):
+        """v6: profit 16%(25pts) + RSI 75(20pts) + FGI 70(15pts) = 60 >= sideways(55)."""
         agent = ConservativeAgent()
+        dc = {"v6_regime": "sideways", "v6_sma_deviation": 0, "v6_change_24h": 0,
+              "v6_danger_score": 0, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 85000000, "v6_position_peak": 0}
         decision = agent.decide(
-            market_data=_sample_market_data(fgi=50, rsi=50, ai_score=-5),
+            market_data=_sample_market_data(fgi=70, rsi=75, ai_score=-5),
             external_signal={"strategy_bonus": 0, "fusion": {"signal": "neutral"}},
             portfolio=_sample_portfolio(
                 krw=500_000, btc_balance=0.01,
                 btc_avg_price=70_000_000, btc_profit_pct=16.0,
             ),
+            drop_context=dc,
         )
         assert decision.decision == "sell"
         assert decision.trade_params["side"] == "ask"
@@ -404,6 +416,7 @@ class TestAgentDecisionFlow:
             market_data=_sample_market_data(fgi=25, rsi=25, sma_deviation=-6.0, ai_score=-10),
             external_signal={"strategy_bonus": 10, "fusion": {"signal": "buy"}},
             portfolio=_sample_portfolio(krw=500_000),
+            drop_context={"v6_regime": "sideways"},
         )
         # FGI=25 > 15, so AI veto applies
         assert decision.decision == "hold"
@@ -417,6 +430,7 @@ class TestAgentDecisionFlow:
             market_data=_sample_market_data(fgi=12, rsi=20, sma_deviation=-6.0, ai_score=-10),
             external_signal={"strategy_bonus": 10, "fusion": {"signal": "buy"}},
             portfolio=_sample_portfolio(krw=500_000),
+            drop_context={"v6_regime": "sideways"},
         )
         assert decision.decision == "buy"
 
@@ -454,16 +468,18 @@ class TestAgentDecisionFlow:
         assert decision.decision in ("buy", "hold", "sell")
 
     def test_trade_amount_respects_max(self, monkeypatch):
-        """Trade amount must not exceed MAX_TRADE_AMOUNT."""
+        """Trade amount capped by regime max (sideways=300K) when env_max <= 100K."""
         monkeypatch.setenv("MAX_TRADE_AMOUNT", "50000")
         agent = ConservativeAgent()
         decision = agent.decide(
             market_data=_sample_market_data(fgi=10, rsi=20, sma_deviation=-6.0, ai_score=5),
             external_signal={"strategy_bonus": 10, "fusion": {"signal": "buy"}},
             portfolio=_sample_portfolio(krw=10_000_000),
+            drop_context={"v6_regime": "sideways"},
         )
         assert decision.decision == "buy"
-        assert decision.trade_params["amount"] <= 50000
+        # v8: sideways regime_max=300K takes precedence when env_max(50K) <= 100K
+        assert decision.trade_params["amount"] <= 300000
 
 
 # ═══════════════════════════════════════════════════════════
@@ -596,9 +612,10 @@ class TestDataFlowIntegration:
         assert ms["phase"] == "neutral"
 
     def test_full_pipeline_buy_flow(self):
-        """Fear market -> buy signal propagates through the pipeline."""
+        """Fear market -> buy signal propagates through the pipeline.
+        v6: SMA > -1.0 to avoid bear regime detection blocking buys."""
         orch = Orchestrator()
-        market = _sample_market_data(fgi=10, rsi=20, sma_deviation=-7.0, ai_score=10)
+        market = _sample_market_data(fgi=10, rsi=20, sma_deviation=-0.5, ai_score=10)
         external = _sample_external_data(
             fgi_value=10,
             strategy_bonus=15,
@@ -613,10 +630,11 @@ class TestDataFlowIntegration:
         assert result["decision"]["trade_params"].get("amount") > 0
 
     def test_full_pipeline_sell_flow(self):
-        """Profit target hit -> sell signal with volume."""
+        """Profit target hit -> sell signal with volume.
+        v6: profit 16%(25pts) + RSI 75(20pts) + FGI 70(15pts) = 60 >= sideways(55)."""
         orch = Orchestrator()
-        market = _sample_market_data(fgi=60, rsi=55, ai_score=-5)
-        external = _sample_external_data(fgi_value=60)
+        market = _sample_market_data(fgi=70, rsi=75, ai_score=-5)
+        external = _sample_external_data(fgi_value=70)
         portfolio = _sample_portfolio(
             krw=200_000, btc_balance=0.01,
             btc_avg_price=70_000_000, btc_profit_pct=16.0,
@@ -696,11 +714,12 @@ class TestDryRunSafety:
         mock_post.assert_not_called()
 
     def test_orchestrator_respects_dry_run(self, monkeypatch):
-        """Orchestrator's decisions work the same under DRY_RUN=true."""
+        """Orchestrator's decisions work the same under DRY_RUN=true.
+        v6: SMA > -1.0 to avoid bear regime blocking buys."""
         monkeypatch.setenv("DRY_RUN", "true")
         orch = Orchestrator()
         result = orch.run(
-            market_data=_sample_market_data(fgi=10, rsi=20, sma_deviation=-6.0, ai_score=10),
+            market_data=_sample_market_data(fgi=10, rsi=20, sma_deviation=-0.5, ai_score=10),
             external_data=_sample_external_data(fgi_value=10, strategy_bonus=10),
             portfolio=_sample_portfolio(krw=500_000),
         )
@@ -794,17 +813,22 @@ class TestEvaluateSell:
         assert result["type"] == "forced_stop"
 
     def test_fgi_overbought_sell(self):
+        """v6: FGI 80(20pts) + profit 5%(20pts) + RSI 70(15pts) = 55 >= sideways(55)."""
         agent = ConservativeAgent()
+        dc = {"v6_regime": "sideways", "v6_sma_deviation": 0, "v6_change_24h": 0,
+              "v6_danger_score": 0, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
         result = agent.evaluate_sell(
             profit_pct=5.0,
             current_fgi=80,
-            current_rsi=50,
+            current_rsi=70,
             buy_score={},
             ai_signal_score=0,
+            drop_context=dc,
         )
         assert result is not None
         assert result["action"] == "sell"
-        assert result["type"] == "fgi_overbought"
+        assert result["type"] == "v6_sell_score"
 
     def test_hybrid_dca_on_bottom_signals(self):
         """With enough bottom signals + positive AI, DCA instead of stop loss."""
@@ -857,7 +881,8 @@ class TestTradeAmount:
         monkeypatch.setenv("MAX_TRADE_AMOUNT", "50000")
         agent = ConservativeAgent()
         amount = agent._calculate_trade_amount(total_krw=10_000_000)
-        assert amount <= 50000
+        # v8: sideways regime_max=300K takes precedence when env_max(50K) <= 100K
+        assert amount <= 300000
 
     @patch.object(ConservativeAgent, "_is_weekend", return_value=False)
     def test_trade_ratio_applied(self, mock_weekend):

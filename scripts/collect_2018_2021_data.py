@@ -78,6 +78,12 @@ YAHOO_SYMBOLS = {
 # ── 연도별 데이터 수집 범위 설정 ──
 # RSI/SMA 계산을 위해 전년 12/1부터 선행 데이터 수집
 YEAR_CONFIG = {
+    2017: {
+        "data_start": datetime(2017, 9, 25, 0, 0, tzinfo=KST),   # Upbit 최초 데이터
+        "data_end": datetime(2017, 12, 31, 23, 59, tzinfo=KST),
+        "sim_start": datetime(2017, 9, 25, 0, 0, tzinfo=KST),    # 선행 데이터 없으므로 동일
+        "seed": 2017 * 100 + 1,
+    },
     2018: {
         "data_start": datetime(2017, 12, 1, 0, 0, tzinfo=KST),
         "data_end": datetime(2018, 12, 31, 23, 59, tzinfo=KST),
@@ -362,8 +368,10 @@ def fetch_historical_fgi(year: int) -> dict[str, dict]:
     }
     print(f"  -> {len(fgi_filtered)}일 FGI 수집 완료")
 
-    # FGI는 2018-02-01부터 제공 — 2018년 1월은 데이터 없음
-    if year == 2018:
+    # FGI는 2018-02-01부터 제공 — 2017년, 2018년 1월은 데이터 없음
+    if year == 2017:
+        print(f"  참고: FGI는 2018-02-01부터 제공됩니다. 2017년 Q4는 전부 기본값(50) 사용")
+    elif year == 2018:
         missing = sum(1 for d in fgi_filtered if d.startswith("2018-01"))
         if missing == 0:
             print(f"  참고: FGI는 2018-02-01부터 제공됩니다. 1월은 기본값(50) 사용")

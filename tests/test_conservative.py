@@ -127,7 +127,8 @@ class TestConservativeBuy:
         md = _make_market_data(rsi=25, sma_deviation=-6.0, fgi=15, ai_score=5)
         port = _make_portfolio(krw=1000000)
         ext = _make_ext(strategy_bonus=10)
-        decision = agent.decide(md, ext, port)
+        # v6: drop_context로 sideways 지정 (auto-detect하면 bear로 잡힘)
+        decision = agent.decide(md, ext, port, drop_context={"v6_regime": "sideways"})
         assert decision.decision == "buy"
         assert decision.confidence > 0.5
 
@@ -145,7 +146,7 @@ class TestConservativeBuy:
         md = _make_market_data(rsi=25, sma_deviation=-6.0, fgi=20, ai_score=-5)
         port = _make_portfolio()
         ext = _make_ext(strategy_bonus=10)
-        decision = agent.decide(md, ext, port)
+        decision = agent.decide(md, ext, port, drop_context={"v6_regime": "sideways"})
         assert decision.decision == "hold"
         assert decision._was_ai_vetoed is True
         assert decision._original_action == "buy"
@@ -156,7 +157,7 @@ class TestConservativeBuy:
         md = _make_market_data(rsi=25, sma_deviation=-6.0, fgi=10, ai_score=-5)
         port = _make_portfolio()
         ext = _make_ext(strategy_bonus=10)
-        decision = agent.decide(md, ext, port)
+        decision = agent.decide(md, ext, port, drop_context={"v6_regime": "sideways"})
         assert decision.decision == "buy"
         assert "극단 공포" in decision.reason
 
@@ -166,7 +167,7 @@ class TestConservativeBuy:
         md = _make_market_data(rsi=25, sma_deviation=-6.0, fgi=15, ai_score=-5)
         port = _make_portfolio()
         ext = _make_ext(strategy_bonus=10)
-        decision = agent.decide(md, ext, port)
+        decision = agent.decide(md, ext, port, drop_context={"v6_regime": "sideways"})
         assert decision.decision == "buy"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
@@ -175,7 +176,7 @@ class TestConservativeBuy:
         md = _make_market_data(rsi=25, sma_deviation=-6.0, fgi=16, ai_score=-5)
         port = _make_portfolio()
         ext = _make_ext(strategy_bonus=10)
-        decision = agent.decide(md, ext, port)
+        decision = agent.decide(md, ext, port, drop_context={"v6_regime": "sideways"})
         assert decision.decision == "hold"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
@@ -205,19 +206,27 @@ class TestConservativeSell:
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_sell_fgi_overbought(self, agent):
-        md = _make_market_data(fgi=80, rsi=50)
+        """v6: FGI 80(20pts) + profit 5%(20pts) + RSI 70(15pts) = 55 >= sideways(55)."""
+        md = _make_market_data(fgi=80, rsi=70)
         port = _make_portfolio(btc_balance=0.01, profit_pct=5.0, total_eval=1500000)
         ext = _make_ext()
-        decision = agent.decide(md, ext, port)
+        dc = {"v6_regime": "sideways", "v6_sma_deviation": 0, "v6_change_24h": 0,
+              "v6_danger_score": 0, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
+        decision = agent.decide(md, ext, port, drop_context=dc)
         assert decision.decision == "sell"
         assert decision.trade_params["side"] == "ask"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_sell_target_profit(self, agent):
-        md = _make_market_data(fgi=50, rsi=50)
+        """v6: profit 16%(25pts) + RSI 75(20pts) + FGI 70(15pts) = 60 >= sideways(55)."""
+        md = _make_market_data(fgi=70, rsi=75)
         port = _make_portfolio(btc_balance=0.01, profit_pct=16.0, total_eval=1000000)
         ext = _make_ext()
-        decision = agent.decide(md, ext, port)
+        dc = {"v6_regime": "sideways", "v6_sma_deviation": 0, "v6_change_24h": 0,
+              "v6_danger_score": 0, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
+        decision = agent.decide(md, ext, port, drop_context=dc)
         assert decision.decision == "sell"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
@@ -263,21 +272,24 @@ class TestConservativeSell:
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_hold_defer_strong_ai(self, agent, tmp_path):
-        """목표 수익 + AI 강세 → hold_defer (첫 유예)."""
+        """v6: 매도 점수 충족 + AI 강세(25) → hold_defer (첫 유예)."""
         import json as _json
-        # agent_state.json에 deferred_target_profit=False로 설정하여 첫 유예 보장
         state_file = tmp_path / "agent_state.json"
         state_file.write_text(_json.dumps({"deferred_target_profit": False}))
-        md = _make_market_data(fgi=50, rsi=50, ai_score=25)
+        # profit 16%(25pts) + RSI 75(20pts) + FGI 80(20pts) = 65 >= 55
+        md = _make_market_data(fgi=80, rsi=75, ai_score=25)
         port = _make_portfolio(btc_balance=0.01, profit_pct=16.0, total_eval=1000000)
         ext = _make_ext()
+        dc = {"v6_regime": "sideways", "v6_sma_deviation": 0, "v6_change_24h": 0,
+              "v6_danger_score": 0, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
         _real_open = open
         def _mock_open(path, *args, **kwargs):
             if "agent_state" in str(path):
                 return _real_open(str(state_file), *args, **kwargs)
             return _real_open(path, *args, **kwargs)
         with patch("builtins.open", side_effect=_mock_open):
-            decision = agent.decide(md, ext, port)
+            decision = agent.decide(md, ext, port, drop_context=dc)
         assert decision.decision == "hold"
         assert "유예" in decision.reason or "보류" in decision.reason
 

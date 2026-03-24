@@ -126,7 +126,7 @@ def _extract_env_vars_from_code() -> set:
     env_vars = set()
     for root, dirs, files in os.walk(PROJECT_ROOT):
         # Skip non-project dirs
-        if ".venv" in root or ".git" in root or "node_modules" in root:
+        if ".venv" in root or ".git" in root or "node_modules" in root or ".claude" in root:
             continue
         for f in files:
             if not f.endswith(".py"):
@@ -197,7 +197,7 @@ def test_env_var_naming_consistency():
         offenders = []
         pat = re.compile(r'SUPABASE_SERVICE_KEY[^_]')
         for root, dirs, files in os.walk(PROJECT_ROOT):
-            if ".venv" in root or ".git" in root:
+            if ".venv" in root or ".git" in root or ".claude" in root:
                 continue
             for f in files:
                 if not f.endswith(".py") or "test_" in f:
@@ -581,7 +581,7 @@ def _extract_third_party_imports() -> set:
 
     third_party = set()
     for root, dirs, files in os.walk(PROJECT_ROOT):
-        if ".venv" in root or ".git" in root or "node_modules" in root:
+        if ".venv" in root or ".git" in root or "node_modules" in root or ".claude" in root:
             continue
         for f in files:
             if not f.endswith(".py"):
@@ -645,7 +645,7 @@ def test_no_hardcoded_absolute_paths_in_production_code():
     violations = []
 
     for root, dirs, files in os.walk(PROJECT_ROOT):
-        if ".venv" in root or ".git" in root or "node_modules" in root:
+        if ".venv" in root or ".git" in root or "node_modules" in root or ".claude" in root:
             continue
         for f in files:
             if not f.endswith(".py"):

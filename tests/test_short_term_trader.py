@@ -21,6 +21,24 @@ import requests
 
 import pytest
 
+# ---------------------------------------------------------------------------
+# Helper: mock _get_http_session to return a controllable mock Session
+# ---------------------------------------------------------------------------
+
+def _patch_http_session():
+    """Return a MagicMock that behaves like requests.Session.
+
+    Usage in tests:
+        mock_session = _patch_http_session()
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            ...
+    The caller can then configure mock_session.get / mock_session.post as needed.
+    """
+    from unittest.mock import MagicMock
+    sess = MagicMock(spec=requests.Session)
+    return sess
+
+
 # Patch environment and external dependencies before import
 _env_patch = patch.dict(os.environ, {
     "UPBIT_ACCESS_KEY": "test_ak",
@@ -283,6 +301,7 @@ class TestTradeSize:
     @patch("scripts.short_term_trader.db_insert")
     def test_amount_capped_at_max_trade(self, mock_db, mock_tg):
         trader = _make_trader(dry_run=True)
+        trader._last_context_update = time.time()
         signal = TradeSignal(
             strategy="news", action="buy", confidence=0.95,  # >=0.85 for 100% Kelly
             reason="test", suggested_amount=999_999,
@@ -295,6 +314,7 @@ class TestTradeSize:
     @patch("scripts.short_term_trader.db_insert")
     def test_amount_capped_at_remaining_budget(self, mock_db, mock_tg):
         trader = _make_trader(dry_run=True)
+        trader._last_context_update = time.time()
         trader.used_budget = 400_000  # only 100k remaining
         signal = TradeSignal(
             strategy="news", action="buy", confidence=0.8,
@@ -308,6 +328,7 @@ class TestTradeSize:
     @patch("scripts.short_term_trader.db_insert")
     def test_amount_below_minimum_rejected(self, mock_db, mock_tg):
         trader = _make_trader(dry_run=True)
+        trader._last_context_update = time.time()
         trader.used_budget = 498_000  # only 2000 remaining < 5000 min
         signal = TradeSignal(
             strategy="news", action="buy", confidence=0.8,
@@ -526,12 +547,14 @@ class TestSellPressureBlocking:
 class TestErrorCounter:
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
+    @patch("scripts.short_term_trader.acquire_lock", return_value=True)
     @patch("scripts.short_term_trader.check_lock", return_value=True)
     @patch("scripts.short_term_trader.upbit_order")
-    def test_consecutive_errors_trigger_emergency(self, mock_order, mock_lock, mock_db, mock_tg):
+    def test_consecutive_errors_trigger_emergency(self, mock_order, mock_lock, mock_acq, mock_db, mock_tg):
         """5 consecutive order failures should trigger emergency stop."""
         mock_order.return_value = {"ok": False, "data": {"error": {"name": "unknown"}}}
         trader = _make_trader(dry_run=False)
+        trader._last_context_update = time.time()
         trader.consecutive_errors = 4  # already at 4
 
         signal = TradeSignal(
@@ -568,6 +591,7 @@ class TestErrorCounter:
     def test_successful_trade_resets_error_counter(self, mock_db, mock_tg):
         """A successful dry-run trade should reset consecutive_errors to 0."""
         trader = _make_trader(dry_run=True)
+        trader._last_context_update = time.time()
         trader.consecutive_errors = 3
 
         signal = TradeSignal(
@@ -670,29 +694,33 @@ class TestLockFile:
 # ===========================================================================
 
 class TestDbInsert:
-    @patch("scripts.short_term_trader.requests.post")
-    def test_db_insert_with_credentials(self, mock_post, monkeypatch):
+    def test_db_insert_with_credentials(self, monkeypatch):
+        mock_session = _patch_http_session()
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "test_key")
-        db_insert("scalp_trades", {"strategy": "news", "side": "bid"})
-        mock_post.assert_called_once()
-        args, kwargs = mock_post.call_args
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            db_insert("scalp_trades", {"strategy": "news", "side": "bid"})
+        mock_session.post.assert_called_once()
+        args, kwargs = mock_session.post.call_args
         assert "scalp_trades" in args[0]
         assert kwargs["json"]["strategy"] == "news"
 
-    @patch("scripts.short_term_trader.requests.post")
-    def test_db_insert_without_credentials_skips(self, mock_post, monkeypatch):
+    def test_db_insert_without_credentials_skips(self, monkeypatch):
+        mock_session = _patch_http_session()
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "")
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "")
-        db_insert("scalp_trades", {"strategy": "news"})
-        mock_post.assert_not_called()
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            db_insert("scalp_trades", {"strategy": "news"})
+        mock_session.post.assert_not_called()
 
-    @patch("scripts.short_term_trader.requests.post", side_effect=Exception("network error"))
-    def test_db_insert_failure_does_not_raise(self, mock_post, monkeypatch):
+    def test_db_insert_failure_does_not_raise(self, monkeypatch):
+        mock_session = _patch_http_session()
+        mock_session.post.side_effect = Exception("network error")
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "test_key")
         # Should not raise
-        db_insert("scalp_trades", {"strategy": "news"})
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            db_insert("scalp_trades", {"strategy": "news"})
 
 
 # ===========================================================================
@@ -700,19 +728,21 @@ class TestDbInsert:
 # ===========================================================================
 
 class TestTelegram:
-    @patch("scripts.short_term_trader.requests.post")
-    def test_send_telegram_with_credentials(self, mock_post, monkeypatch):
+    def test_send_telegram_with_credentials(self, monkeypatch):
+        mock_session = _patch_http_session()
         monkeypatch.setattr("scripts.short_term_trader.os.getenv",
                             lambda k, d="": {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_USER_ID": "123"}.get(k, d))
-        send_telegram("test message")
-        mock_post.assert_called_once()
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            send_telegram("test message")
+        mock_session.post.assert_called_once()
 
-    @patch("scripts.short_term_trader.requests.post")
-    def test_send_telegram_missing_credentials_skips(self, mock_post, monkeypatch):
+    def test_send_telegram_missing_credentials_skips(self, monkeypatch):
+        mock_session = _patch_http_session()
         monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
         monkeypatch.delenv("TELEGRAM_USER_ID", raising=False)
-        send_telegram("test message")
-        mock_post.assert_not_called()
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            send_telegram("test message")
+        mock_session.post.assert_not_called()
 
 
 # ===========================================================================
@@ -748,6 +778,7 @@ class TestExecuteEntryDryRun:
         """Entry no longer writes to scalp_trades (Bug fix: 중복 기록 방지).
         DB insert only happens via log_signal_attempt (signal_attempt_log)."""
         trader = _make_trader(dry_run=True)
+        trader._last_context_update = time.time()
         signal = TradeSignal(strategy="news", action="buy", confidence=0.8, reason="test")
         trader.execute_entry(signal)
         # Entry should only log signal_attempt, NOT scalp_trades
@@ -1331,13 +1362,15 @@ class TestSpikeSellSignal:
 class TestErrorCounterEdgeCases:
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
+    @patch("scripts.short_term_trader.acquire_lock", return_value=True)
     @patch("scripts.short_term_trader.check_lock", return_value=True)
     @patch("scripts.short_term_trader.upbit_order")
-    def test_timeout_increments_error_counter(self, mock_order, mock_lock, mock_db, mock_tg):
+    def test_timeout_increments_error_counter(self, mock_order, mock_lock, mock_acq, mock_db, mock_tg):
         """Request timeout should increment consecutive_errors."""
         import requests as req
         mock_order.side_effect = req.exceptions.Timeout("timeout")
         trader = _make_trader(dry_run=False)
+        trader._last_context_update = time.time()
         trader.consecutive_errors = 0
 
         signal = TradeSignal(strategy="spike", action="buy", confidence=0.8, reason="test")
@@ -1364,13 +1397,15 @@ class TestErrorCounterEdgeCases:
 
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
+    @patch("scripts.short_term_trader.acquire_lock", return_value=True)
     @patch("scripts.short_term_trader.check_lock", return_value=True)
     @patch("scripts.short_term_trader.upbit_order")
-    def test_timeout_at_threshold_triggers_emergency(self, mock_order, mock_lock, mock_db, mock_tg):
+    def test_timeout_at_threshold_triggers_emergency(self, mock_order, mock_lock, mock_acq, mock_db, mock_tg):
         """Timeout at error threshold should trigger emergency stop."""
         import requests as req
         mock_order.side_effect = req.exceptions.Timeout("timeout")
         trader = _make_trader(dry_run=False)
+        trader._last_context_update = time.time()
         trader.consecutive_errors = 4
 
         signal = TradeSignal(strategy="spike", action="buy", confidence=0.8, reason="test")
@@ -1380,15 +1415,17 @@ class TestErrorCounterEdgeCases:
 
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
+    @patch("scripts.short_term_trader.acquire_lock", return_value=True)
     @patch("scripts.short_term_trader.check_lock", return_value=True)
     @patch("scripts.short_term_trader.upbit_order")
-    def test_no_authorization_triggers_immediate_stop(self, mock_order, mock_lock, mock_db, mock_tg):
+    def test_no_authorization_triggers_immediate_stop(self, mock_order, mock_lock, mock_acq, mock_db, mock_tg):
         """no_authorization error should trigger immediate emergency stop."""
         mock_order.return_value = {
             "ok": False,
             "data": {"error": {"name": "no_authorization"}},
         }
         trader = _make_trader(dry_run=False)
+        trader._last_context_update = time.time()
         trader.consecutive_errors = 0
 
         signal = TradeSignal(strategy="news", action="buy", confidence=0.8, reason="test")
@@ -1397,15 +1434,17 @@ class TestErrorCounterEdgeCases:
 
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
+    @patch("scripts.short_term_trader.acquire_lock", return_value=True)
     @patch("scripts.short_term_trader.check_lock", return_value=True)
     @patch("scripts.short_term_trader.upbit_order")
-    def test_invalid_access_key_triggers_immediate_stop(self, mock_order, mock_lock, mock_db, mock_tg):
+    def test_invalid_access_key_triggers_immediate_stop(self, mock_order, mock_lock, mock_acq, mock_db, mock_tg):
         """invalid_access_key error should trigger immediate emergency stop."""
         mock_order.return_value = {
             "ok": False,
             "data": {"error": {"name": "invalid_access_key"}},
         }
         trader = _make_trader(dry_run=False)
+        trader._last_context_update = time.time()
 
         signal = TradeSignal(strategy="news", action="buy", confidence=0.8, reason="test")
         trader.execute_entry(signal)
@@ -1455,6 +1494,7 @@ class TestLockFileEdgeCases:
     def test_lock_held_blocks_live_entry(self, mock_order, mock_lock, mock_db, mock_tg):
         """When lock is held by another process, live entry should be blocked."""
         trader = _make_trader(dry_run=False)
+        trader._last_context_update = time.time()
         signal = TradeSignal(strategy="news", action="buy", confidence=0.8, reason="test")
         trader.execute_entry(signal)
         assert len(trader.positions) == 0
@@ -1846,19 +1886,20 @@ class TestUpbitAuthHeader:
 # ===========================================================================
 
 class TestUpbitOrder:
-    @patch("scripts.short_term_trader.requests.post")
     @patch("scripts.short_term_trader.upbit_auth_header", return_value={"Authorization": "Bearer x", "Content-Type": "application/json"})
-    def test_bid_order_body(self, mock_auth, mock_post):
+    def test_bid_order_body(self, mock_auth):
+        mock_session = _patch_http_session()
         mock_resp = MagicMock()
         mock_resp.ok = True
         mock_resp.json.return_value = {"uuid": "abc"}
-        mock_post.return_value = mock_resp
+        mock_session.post.return_value = mock_resp
 
-        result = upbit_order("bid", "KRW-BTC", "100000")
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            result = upbit_order("bid", "KRW-BTC", "100000")
         assert result["ok"] is True
         assert result["data"] == {"uuid": "abc"}
 
-        call_kwargs = mock_post.call_args
+        call_kwargs = mock_session.post.call_args
         body = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
         assert body["side"] == "bid"
         assert body["ord_type"] == "price"
@@ -1866,35 +1907,37 @@ class TestUpbitOrder:
         assert body["market"] == "KRW-BTC"
         assert "volume" not in body
 
-    @patch("scripts.short_term_trader.requests.post")
     @patch("scripts.short_term_trader.upbit_auth_header", return_value={"Authorization": "Bearer x", "Content-Type": "application/json"})
-    def test_ask_order_body(self, mock_auth, mock_post):
+    def test_ask_order_body(self, mock_auth):
+        mock_session = _patch_http_session()
         mock_resp = MagicMock()
         mock_resp.ok = True
         mock_resp.json.return_value = {"uuid": "def"}
-        mock_post.return_value = mock_resp
+        mock_session.post.return_value = mock_resp
 
-        result = upbit_order("ask", "KRW-BTC", "0.001")
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            result = upbit_order("ask", "KRW-BTC", "0.001")
         assert result["ok"] is True
 
-        call_kwargs = mock_post.call_args
+        call_kwargs = mock_session.post.call_args
         body = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
         assert body["side"] == "ask"
         assert body["ord_type"] == "market"
         assert body["volume"] == "0.001"
         assert "price" not in body
 
-    @patch("scripts.short_term_trader.requests.post")
     @patch("scripts.short_term_trader.upbit_auth_header", return_value={"Authorization": "Bearer x", "Content-Type": "application/json"})
-    def test_posts_to_correct_url(self, mock_auth, mock_post):
+    def test_posts_to_correct_url(self, mock_auth):
+        mock_session = _patch_http_session()
         mock_resp = MagicMock()
         mock_resp.ok = False
         mock_resp.json.return_value = {"error": {"name": "some_error"}}
-        mock_post.return_value = mock_resp
+        mock_session.post.return_value = mock_resp
 
-        result = upbit_order("bid", "KRW-BTC", "50000")
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            result = upbit_order("bid", "KRW-BTC", "50000")
         assert result["ok"] is False
-        url = mock_post.call_args[0][0]
+        url = mock_session.post.call_args[0][0]
         assert url.endswith("/orders")
 
 
@@ -1903,16 +1946,17 @@ class TestUpbitOrder:
 # ===========================================================================
 
 class TestGetCurrentPrice:
-    @patch("scripts.short_term_trader.requests.get")
-    def test_returns_trade_price(self, mock_get):
+    def test_returns_trade_price(self):
+        mock_session = _patch_http_session()
         mock_resp = MagicMock()
         mock_resp.json.return_value = [{"trade_price": 95_000_000}]
-        mock_get.return_value = mock_resp
+        mock_session.get.return_value = mock_resp
 
-        price = get_current_price("KRW-BTC")
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            price = get_current_price("KRW-BTC")
         assert price == 95_000_000
-        mock_get.assert_called_once()
-        call_kwargs = mock_get.call_args
+        mock_session.get.assert_called_once()
+        call_kwargs = mock_session.get.call_args
         assert call_kwargs.kwargs.get("params") == {"markets": "KRW-BTC"} or \
                call_kwargs[1].get("params") == {"markets": "KRW-BTC"}
 
@@ -1923,10 +1967,12 @@ class TestGetCurrentPrice:
 
 class TestSendTelegramException:
     @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_USER_ID": "123"})
-    @patch("scripts.short_term_trader.requests.post", side_effect=ConnectionError("network down"))
-    def test_exception_silently_caught(self, mock_post):
+    def test_exception_silently_caught(self):
+        mock_session = _patch_http_session()
+        mock_session.post.side_effect = ConnectionError("network down")
         # Should not raise
-        send_telegram("test message")
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            send_telegram("test message")
 
 
 # ===========================================================================
@@ -1982,12 +2028,14 @@ class TestExecuteEntryBlockReason:
 class TestLiveEntrySuccess:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
+    @patch("scripts.short_term_trader.acquire_lock", return_value=True)
     @patch("scripts.short_term_trader.check_lock", return_value=True)
     @patch("scripts.short_term_trader.upbit_order")
-    def test_live_entry_creates_position(self, mock_order, mock_lock, mock_tg, mock_db):
+    def test_live_entry_creates_position(self, mock_order, mock_lock, mock_acq, mock_tg, mock_db):
         mock_order.return_value = {"ok": True, "data": {"uuid": "live-uuid"}}
 
         trader = _make_trader(dry_run=False)
+        trader._last_context_update = time.time()
         trader.current_price = 100_000_000
         trader.consecutive_errors = 3  # should reset on success
 
@@ -2097,6 +2145,7 @@ class TestPrintSummary:
         loss_pos.exit_reason = "stop_loss"
 
         trader.closed_positions = [win_pos, loss_pos]
+        trader.total_closed_count = 2
 
         trader.print_summary()
 
@@ -2241,52 +2290,54 @@ class TestWebsocketsImportFallback:
 # ===========================================================================
 
 class TestSendTelegramEdgeCases:
-    @patch("scripts.short_term_trader.requests.post")
-    def test_missing_bot_token_skips(self, mock_post, monkeypatch):
+    def test_missing_bot_token_skips(self, monkeypatch):
         """No TELEGRAM_BOT_TOKEN -> early return, no request made."""
+        mock_session = _patch_http_session()
         monkeypatch.setattr(
             "scripts.short_term_trader.os.getenv",
             lambda k, d="": {"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_USER_ID": "123"}.get(k, d),
         )
-        send_telegram("hello")
-        mock_post.assert_not_called()
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            send_telegram("hello")
+        mock_session.post.assert_not_called()
 
-    @patch("scripts.short_term_trader.requests.post")
-    def test_missing_user_id_skips(self, mock_post, monkeypatch):
+    def test_missing_user_id_skips(self, monkeypatch):
         """No TELEGRAM_USER_ID -> early return, no request made."""
+        mock_session = _patch_http_session()
         monkeypatch.setattr(
             "scripts.short_term_trader.os.getenv",
             lambda k, d="": {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_USER_ID": ""}.get(k, d),
         )
-        send_telegram("hello")
-        mock_post.assert_not_called()
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            send_telegram("hello")
+        mock_session.post.assert_not_called()
 
-    @patch("scripts.short_term_trader.requests.post")
-    def test_both_present_calls_post_with_correct_payload(self, mock_post, monkeypatch):
-        """Both token and user_id present -> requests.post called correctly."""
+    def test_both_present_calls_post_with_correct_payload(self, monkeypatch):
+        """Both token and user_id present -> _get_http_session().post called correctly."""
+        mock_session = _patch_http_session()
         monkeypatch.setattr(
             "scripts.short_term_trader.os.getenv",
             lambda k, d="": {"TELEGRAM_BOT_TOKEN": "mytoken", "TELEGRAM_USER_ID": "42"}.get(k, d),
         )
-        send_telegram("test msg")
-        mock_post.assert_called_once()
-        args, kwargs = mock_post.call_args
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            send_telegram("test msg")
+        mock_session.post.assert_called_once()
+        args, kwargs = mock_session.post.call_args
         assert "mytoken" in args[0]
         assert kwargs["json"]["chat_id"] == "42"
         assert kwargs["json"]["text"] == "test msg"
         assert kwargs["json"]["parse_mode"] == "HTML"
 
-    @patch(
-        "scripts.short_term_trader.requests.post",
-        side_effect=requests.exceptions.ConnectionError("conn refused"),
-    )
-    def test_connection_error_silently_caught(self, mock_post, monkeypatch):
-        """requests.post raises ConnectionError -> silently caught."""
+    def test_connection_error_silently_caught(self, monkeypatch):
+        """_get_http_session().post raises ConnectionError -> silently caught."""
+        mock_session = _patch_http_session()
+        mock_session.post.side_effect = requests.exceptions.ConnectionError("conn refused")
         monkeypatch.setattr(
             "scripts.short_term_trader.os.getenv",
             lambda k, d="": {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_USER_ID": "1"}.get(k, d),
         )
-        send_telegram("test")  # should not raise
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            send_telegram("test")  # should not raise
 
 
 # ===========================================================================
@@ -2393,6 +2444,7 @@ class TestExecuteEntryAmountEdgeCasesExtra:
     def test_amount_below_5000_after_budget_calc(self, mock_db, mock_tg):
         """After budget subtraction, amount < 5000 -> no position created."""
         trader = _make_trader(dry_run=True)
+        trader._last_context_update = time.time()
         trader.used_budget = 496_000  # only 4000 remaining
         signal = TradeSignal(
             strategy="spike", action="buy", confidence=0.9,
@@ -2427,6 +2479,7 @@ class TestExecuteEntryAmountEdgeCasesExtra:
     def test_exact_5000_boundary_creates_position(self, mock_db, mock_tg):
         """Exactly 5000 remaining -> should create position."""
         trader = _make_trader(dry_run=True)
+        trader._last_context_update = time.time()
         trader.used_budget = 495_000  # 5000 remaining
         signal = TradeSignal(
             strategy="news", action="buy", confidence=0.7,
@@ -2454,41 +2507,41 @@ class TestExecuteEntryAmountEdgeCasesExtra:
 # ===========================================================================
 
 class TestDbInsertEdgeCasesExtra:
-    @patch("scripts.short_term_trader.requests.post")
-    def test_missing_supabase_url_only_skips(self, mock_post, monkeypatch):
+    def test_missing_supabase_url_only_skips(self, monkeypatch):
         """SUPABASE_URL empty but key present -> early return."""
+        mock_session = _patch_http_session()
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "")
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "some_key")
-        db_insert("scalp_trades", {"foo": "bar"})
-        mock_post.assert_not_called()
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            db_insert("scalp_trades", {"foo": "bar"})
+        mock_session.post.assert_not_called()
 
-    @patch("scripts.short_term_trader.requests.post")
-    def test_missing_supabase_key_only_skips(self, mock_post, monkeypatch):
+    def test_missing_supabase_key_only_skips(self, monkeypatch):
         """SUPABASE_KEY empty but URL present -> early return."""
+        mock_session = _patch_http_session()
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "https://x.supabase.co")
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "")
-        db_insert("scalp_trades", {"foo": "bar"})
-        mock_post.assert_not_called()
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            db_insert("scalp_trades", {"foo": "bar"})
+        mock_session.post.assert_not_called()
 
-    @patch(
-        "scripts.short_term_trader.requests.post",
-        side_effect=requests.exceptions.Timeout("timeout"),
-    )
-    def test_timeout_exception_silently_caught(self, mock_post, monkeypatch):
-        """requests.post raises Timeout -> silently caught."""
+    def test_timeout_exception_silently_caught(self, monkeypatch):
+        """_get_http_session().post raises Timeout -> silently caught."""
+        mock_session = _patch_http_session()
+        mock_session.post.side_effect = requests.exceptions.Timeout("timeout")
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "https://x.supabase.co")
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "key123")
-        db_insert("scalp_trades", {"strategy": "news"})  # should not raise
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            db_insert("scalp_trades", {"strategy": "news"})  # should not raise
 
-    @patch(
-        "scripts.short_term_trader.requests.post",
-        side_effect=RuntimeError("unexpected"),
-    )
-    def test_generic_exception_silently_caught(self, mock_post, monkeypatch):
-        """Any exception from requests.post -> silently caught."""
+    def test_generic_exception_silently_caught(self, monkeypatch):
+        """Any exception from _get_http_session().post -> silently caught."""
+        mock_session = _patch_http_session()
+        mock_session.post.side_effect = RuntimeError("unexpected")
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "https://x.supabase.co")
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "key123")
-        db_insert("scalp_trades", {"strategy": "spike"})  # should not raise
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            db_insert("scalp_trades", {"strategy": "spike"})  # should not raise
 
 
 # ===========================================================================
@@ -3190,6 +3243,7 @@ class TestExecuteEntryLivePathDeep:
     def test_lock_check_fails_returns_early(self, mock_order, mock_lock, mock_db, mock_tg):
         """check_lock() False -> log warning, return (lines 762-764)."""
         trader = _make_trader(dry_run=False)
+        trader._last_context_update = time.time()
         signal = TradeSignal(strategy="spike", action="buy", confidence=0.8, reason="test")
         trader.execute_entry(signal)
 
@@ -3198,15 +3252,17 @@ class TestExecuteEntryLivePathDeep:
 
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
+    @patch("scripts.short_term_trader.acquire_lock", return_value=True)
     @patch("scripts.short_term_trader.check_lock", return_value=True)
     @patch("scripts.short_term_trader.upbit_order")
-    def test_ok_false_auth_error_emergency_stop(self, mock_order, mock_lock, mock_db, mock_tg):
+    def test_ok_false_auth_error_emergency_stop(self, mock_order, mock_lock, mock_acq, mock_db, mock_tg):
         """ok=False with jwt_verification -> emergency_stop (lines 773-774)."""
         mock_order.return_value = {
             "ok": False,
             "data": {"error": {"name": "jwt_verification"}},
         }
         trader = _make_trader(dry_run=False)
+        trader._last_context_update = time.time()
         trader.consecutive_errors = 0
 
         signal = TradeSignal(strategy="news", action="buy", confidence=0.8, reason="auth test")
@@ -3241,14 +3297,16 @@ class TestExecuteEntryLivePathDeep:
 
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
+    @patch("scripts.short_term_trader.acquire_lock", return_value=True)
     @patch("scripts.short_term_trader.check_lock", return_value=True)
     @patch("scripts.short_term_trader.upbit_order")
-    def test_timeout_increments_errors(self, mock_order, mock_lock, mock_db, mock_tg):
+    def test_timeout_increments_errors(self, mock_order, mock_lock, mock_acq, mock_db, mock_tg):
         """requests.exceptions.Timeout -> increment consecutive_errors (lines 782-787)."""
         import requests as req
         mock_order.side_effect = req.exceptions.Timeout("timed out")
 
         trader = _make_trader(dry_run=False)
+        trader._last_context_update = time.time()
         trader.consecutive_errors = 1
 
         signal = TradeSignal(strategy="spike", action="buy", confidence=0.8, reason="timeout test")
@@ -3260,13 +3318,15 @@ class TestExecuteEntryLivePathDeep:
 
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
+    @patch("scripts.short_term_trader.acquire_lock", return_value=True)
     @patch("scripts.short_term_trader.check_lock", return_value=True)
     @patch("scripts.short_term_trader.upbit_order")
-    def test_generic_exception_increments_errors(self, mock_order, mock_lock, mock_db, mock_tg):
+    def test_generic_exception_increments_errors(self, mock_order, mock_lock, mock_acq, mock_db, mock_tg):
         """Generic exception -> increment consecutive_errors (lines 788-793)."""
         mock_order.side_effect = RuntimeError("unexpected")
 
         trader = _make_trader(dry_run=False)
+        trader._last_context_update = time.time()
         trader.consecutive_errors = 0
 
         signal = TradeSignal(strategy="news", action="buy", confidence=0.7, reason="exception test")
@@ -3278,15 +3338,17 @@ class TestExecuteEntryLivePathDeep:
 
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.db_insert")
+    @patch("scripts.short_term_trader.acquire_lock", return_value=True)
     @patch("scripts.short_term_trader.check_lock", return_value=True)
     @patch("scripts.short_term_trader.upbit_order")
-    def test_ok_false_data_as_string_fallback(self, mock_order, mock_lock, mock_db, mock_tg):
+    def test_ok_false_data_as_string_fallback(self, mock_order, mock_lock, mock_acq, mock_db, mock_tg):
         """ok=False with data as string (not dict) -> err_name fallback (line 770)."""
         mock_order.return_value = {
             "ok": False,
             "data": "some plain error string",
         }
         trader = _make_trader(dry_run=False)
+        trader._last_context_update = time.time()
         trader.consecutive_errors = 0
 
         signal = TradeSignal(strategy="spike", action="buy", confidence=0.8, reason="str err")
@@ -3550,11 +3612,11 @@ class TestAlertMonitorRSI:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_rsi_extreme_oversold(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_rsi_extreme_oversold(self, mock_sound, mock_tg, mock_db):
         """RSI <= 25 triggers rsi_extreme_oversold alert."""
         closes = _candle_closes_for_rsi(20)
-        mock_get.return_value = _mock_candle_response(closes)
+        mock_session = _patch_http_session()
+        mock_session.get.return_value = _mock_candle_response(closes)
 
         trader = _make_trader()
         trader.current_price = 100_000_000
@@ -3562,7 +3624,8 @@ class TestAlertMonitorRSI:
         trader.price_history = deque(maxlen=600)
         trader.news_sentiment_score = 0.0
 
-        _run_alert_monitor(trader)
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            _run_alert_monitor(trader)
 
         calls = [c for c in mock_db.call_args_list
                  if c[0][0] == "strategy_alerts" and c[0][1].get("alert_type") == "rsi_extreme_oversold"]
@@ -3573,18 +3636,19 @@ class TestAlertMonitorRSI:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_rsi_oversold(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_rsi_oversold(self, mock_sound, mock_tg, mock_db):
         """RSI in (25, 30] triggers rsi_oversold alert."""
         closes = _candle_closes_for_rsi(28)
-        mock_get.return_value = _mock_candle_response(closes)
+        mock_session = _patch_http_session()
+        mock_session.get.return_value = _mock_candle_response(closes)
 
         trader = _make_trader()
         trader.whale_recent = deque(maxlen=20)
         trader.price_history = deque(maxlen=600)
         trader.news_sentiment_score = 0.0
 
-        _run_alert_monitor(trader)
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            _run_alert_monitor(trader)
 
         calls = [c for c in mock_db.call_args_list
                  if c[0][0] == "strategy_alerts" and c[0][1].get("alert_type") == "rsi_oversold"]
@@ -3593,18 +3657,19 @@ class TestAlertMonitorRSI:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_rsi_overbought(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_rsi_overbought(self, mock_sound, mock_tg, mock_db):
         """RSI >= 75 triggers rsi_overbought alert."""
         closes = _candle_closes_for_rsi(80)
-        mock_get.return_value = _mock_candle_response(closes)
+        mock_session = _patch_http_session()
+        mock_session.get.return_value = _mock_candle_response(closes)
 
         trader = _make_trader()
         trader.whale_recent = deque(maxlen=20)
         trader.price_history = deque(maxlen=600)
         trader.news_sentiment_score = 0.0
 
-        _run_alert_monitor(trader)
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            _run_alert_monitor(trader)
 
         calls = [c for c in mock_db.call_args_list
                  if c[0][0] == "strategy_alerts" and c[0][1].get("alert_type") == "rsi_overbought"]
@@ -3614,18 +3679,19 @@ class TestAlertMonitorRSI:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_rsi_normal_no_alert(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_rsi_normal_no_alert(self, mock_sound, mock_tg, mock_db):
         """RSI in normal range (30 < RSI < 75) -> no RSI alert."""
         closes = _candle_closes_for_rsi(50)
-        mock_get.return_value = _mock_candle_response(closes)
+        mock_session = _patch_http_session()
+        mock_session.get.return_value = _mock_candle_response(closes)
 
         trader = _make_trader()
         trader.whale_recent = deque(maxlen=20)
         trader.price_history = deque(maxlen=600)
         trader.news_sentiment_score = 0.0
 
-        _run_alert_monitor(trader)
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            _run_alert_monitor(trader)
 
         rsi_calls = [c for c in mock_db.call_args_list
                      if c[0][0] == "strategy_alerts" and "rsi" in c[0][1].get("alert_type", "")]
@@ -3634,13 +3700,13 @@ class TestAlertMonitorRSI:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_rsi_cooldown_suppresses_repeat(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_rsi_cooldown_suppresses_repeat(self, mock_sound, mock_tg, mock_db):
         """Same RSI alert within 1800s cooldown is suppressed."""
         import asyncio
 
         closes = _candle_closes_for_rsi(20)
-        mock_get.return_value = _mock_candle_response(closes)
+        mock_session = _patch_http_session()
+        mock_session.get.return_value = _mock_candle_response(closes)
 
         trader = _make_trader()
         trader.whale_recent = deque(maxlen=20)
@@ -3656,8 +3722,9 @@ class TestAlertMonitorRSI:
             if call_count >= 3:
                 trader.running = False
 
-        with patch("asyncio.sleep", side_effect=_fake_sleep):
-            asyncio.run(trader.strategy_alert_monitor())
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            with patch("asyncio.sleep", side_effect=_fake_sleep):
+                asyncio.run(trader.strategy_alert_monitor())
 
         rsi_calls = [c for c in mock_db.call_args_list
                      if c[0][0] == "strategy_alerts" and c[0][1].get("alert_type") == "rsi_extreme_oversold"]
@@ -3670,11 +3737,11 @@ class TestAlertMonitorWhale:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_whale_buy_reversal(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_whale_buy_reversal(self, mock_sound, mock_tg, mock_db):
         """4+ BID whales in last 5 -> whale_buy_reversal alert."""
         closes = _candle_closes_for_rsi(50)
-        mock_get.return_value = _mock_candle_response(closes)
+        mock_session = _patch_http_session()
+        mock_session.get.return_value = _mock_candle_response(closes)
 
         trader = _make_trader()
         trader.price_history = deque(maxlen=600)
@@ -3684,7 +3751,8 @@ class TestAlertMonitorWhale:
             maxlen=20,
         )
 
-        _run_alert_monitor(trader)
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            _run_alert_monitor(trader)
 
         calls = [c for c in mock_db.call_args_list
                  if c[0][0] == "strategy_alerts" and c[0][1].get("alert_type") == "whale_buy_reversal"]
@@ -3695,11 +3763,11 @@ class TestAlertMonitorWhale:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_whale_sell_pressure(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_whale_sell_pressure(self, mock_sound, mock_tg, mock_db):
         """4+ ASK whales in last 5 -> whale_sell_pressure alert."""
         closes = _candle_closes_for_rsi(50)
-        mock_get.return_value = _mock_candle_response(closes)
+        mock_session = _patch_http_session()
+        mock_session.get.return_value = _mock_candle_response(closes)
 
         trader = _make_trader()
         trader.price_history = deque(maxlen=600)
@@ -3709,7 +3777,8 @@ class TestAlertMonitorWhale:
             maxlen=20,
         )
 
-        _run_alert_monitor(trader)
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            _run_alert_monitor(trader)
 
         calls = [c for c in mock_db.call_args_list
                  if c[0][0] == "strategy_alerts" and c[0][1].get("alert_type") == "whale_sell_pressure"]
@@ -3722,11 +3791,11 @@ class TestAlertMonitorPriceSpike:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_price_spike_alert(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_price_spike_alert(self, mock_sound, mock_tg, mock_db):
         """1.5%+ increase in price_history -> price_spike alert."""
         closes = _candle_closes_for_rsi(50)
-        mock_get.return_value = _mock_candle_response(closes)
+        mock_session = _patch_http_session()
+        mock_session.get.return_value = _mock_candle_response(closes)
 
         trader = _make_trader()
         trader.whale_recent = deque(maxlen=20)
@@ -3736,7 +3805,8 @@ class TestAlertMonitorPriceSpike:
         trader.price_history = deque(prices, maxlen=600)
         trader.current_price = int(base_price * 1.02)
 
-        _run_alert_monitor(trader)
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            _run_alert_monitor(trader)
 
         calls = [c for c in mock_db.call_args_list
                  if c[0][0] == "strategy_alerts" and c[0][1].get("alert_type") == "price_spike"]
@@ -3745,11 +3815,11 @@ class TestAlertMonitorPriceSpike:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_price_crash_alert(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_price_crash_alert(self, mock_sound, mock_tg, mock_db):
         """1.5%+ decrease -> price_crash alert."""
         closes = _candle_closes_for_rsi(50)
-        mock_get.return_value = _mock_candle_response(closes)
+        mock_session = _patch_http_session()
+        mock_session.get.return_value = _mock_candle_response(closes)
 
         trader = _make_trader()
         trader.whale_recent = deque(maxlen=20)
@@ -3759,7 +3829,8 @@ class TestAlertMonitorPriceSpike:
         trader.price_history = deque(prices, maxlen=600)
         trader.current_price = int(base_price * 0.97)
 
-        _run_alert_monitor(trader)
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            _run_alert_monitor(trader)
 
         calls = [c for c in mock_db.call_args_list
                  if c[0][0] == "strategy_alerts" and c[0][1].get("alert_type") == "price_crash"]
@@ -3768,11 +3839,11 @@ class TestAlertMonitorPriceSpike:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_price_no_alert_below_threshold(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_price_no_alert_below_threshold(self, mock_sound, mock_tg, mock_db):
         """<1.5% change -> no price alert."""
         closes = _candle_closes_for_rsi(50)
-        mock_get.return_value = _mock_candle_response(closes)
+        mock_session = _patch_http_session()
+        mock_session.get.return_value = _mock_candle_response(closes)
 
         trader = _make_trader()
         trader.whale_recent = deque(maxlen=20)
@@ -3782,7 +3853,8 @@ class TestAlertMonitorPriceSpike:
         trader.price_history = deque(prices, maxlen=600)
         trader.current_price = int(base_price * 1.005)
 
-        _run_alert_monitor(trader)
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            _run_alert_monitor(trader)
 
         spike_calls = [c for c in mock_db.call_args_list
                        if c[0][0] == "strategy_alerts" and c[0][1].get("alert_type") in ("price_spike", "price_crash")]
@@ -3795,11 +3867,11 @@ class TestAlertMonitorSupportBreak:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_support_break_below_100m(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_support_break_below_100m(self, mock_sound, mock_tg, mock_db):
         """current_price < 100M -> support_break alert."""
         closes = _candle_closes_for_rsi(50)
-        mock_get.return_value = _mock_candle_response(closes)
+        mock_session = _patch_http_session()
+        mock_session.get.return_value = _mock_candle_response(closes)
 
         trader = _make_trader()
         trader.current_price = 99_000_000
@@ -3807,7 +3879,8 @@ class TestAlertMonitorSupportBreak:
         trader.price_history = deque(maxlen=600)
         trader.news_sentiment_score = 0.0
 
-        _run_alert_monitor(trader)
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            _run_alert_monitor(trader)
 
         calls = [c for c in mock_db.call_args_list
                  if c[0][0] == "strategy_alerts" and c[0][1].get("alert_type") == "support_break"]
@@ -3821,18 +3894,19 @@ class TestAlertMonitorNews:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_positive_news_extreme(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_positive_news_extreme(self, mock_sound, mock_tg, mock_db):
         """news_sentiment_score >= 0.6 -> positive news_extreme alert."""
         closes = _candle_closes_for_rsi(50)
-        mock_get.return_value = _mock_candle_response(closes)
+        mock_session = _patch_http_session()
+        mock_session.get.return_value = _mock_candle_response(closes)
 
         trader = _make_trader()
         trader.whale_recent = deque(maxlen=20)
         trader.price_history = deque(maxlen=600)
         trader.news_sentiment_score = 0.7
 
-        _run_alert_monitor(trader)
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            _run_alert_monitor(trader)
 
         calls = [c for c in mock_db.call_args_list
                  if c[0][0] == "strategy_alerts" and c[0][1].get("alert_type") == "news_extreme"]
@@ -3842,18 +3916,19 @@ class TestAlertMonitorNews:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_negative_news_extreme(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_negative_news_extreme(self, mock_sound, mock_tg, mock_db):
         """news_sentiment_score <= -0.6 -> negative news_extreme alert."""
         closes = _candle_closes_for_rsi(50)
-        mock_get.return_value = _mock_candle_response(closes)
+        mock_session = _patch_http_session()
+        mock_session.get.return_value = _mock_candle_response(closes)
 
         trader = _make_trader()
         trader.whale_recent = deque(maxlen=20)
         trader.price_history = deque(maxlen=600)
         trader.news_sentiment_score = -0.8
 
-        _run_alert_monitor(trader)
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+            _run_alert_monitor(trader)
 
         calls = [c for c in mock_db.call_args_list
                  if c[0][0] == "strategy_alerts" and c[0][1].get("alert_type") == "news_extreme"]
@@ -3866,8 +3941,7 @@ class TestAlertMonitorStrategySwitch:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_conservative_fgi_high_suggest_aggressive(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_conservative_fgi_high_suggest_aggressive(self, mock_sound, mock_tg, mock_db):
         """Conservative strategy + FGI >= 50 -> suggest aggressive."""
         closes = _candle_closes_for_rsi(50)
 
@@ -3875,7 +3949,8 @@ class TestAlertMonitorStrategySwitch:
         fgi_resp.ok = True
         fgi_resp.json.return_value = {"data": [{"value": "55"}]}
 
-        mock_get.side_effect = [_mock_candle_response(closes), fgi_resp]
+        mock_session = _patch_http_session()
+        mock_session.get.side_effect = [_mock_candle_response(closes), fgi_resp]
 
         trader = _make_trader()
         trader.whale_recent = deque(maxlen=20)
@@ -3884,13 +3959,14 @@ class TestAlertMonitorStrategySwitch:
 
         from pathlib import Path as _Path
         strategy_path = _Path(__file__).resolve().parent.parent / "strategy.md"
-        original = strategy_path.read_text() if strategy_path.exists() else None
+        original = strategy_path.read_text(encoding="utf-8") if strategy_path.exists() else None
         try:
-            strategy_path.write_text("# 보수적 전략\n매수 조건...")
-            _run_alert_monitor(trader)
+            strategy_path.write_text("# conservative strategy\nBuy conditions...", encoding="utf-8")
+            with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+                _run_alert_monitor(trader)
         finally:
             if original is not None:
-                strategy_path.write_text(original)
+                strategy_path.write_text(original, encoding="utf-8")
             elif strategy_path.exists():
                 strategy_path.unlink()
 
@@ -3901,8 +3977,7 @@ class TestAlertMonitorStrategySwitch:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_conservative_fgi_mid_suggest_moderate(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_conservative_fgi_mid_suggest_moderate(self, mock_sound, mock_tg, mock_db):
         """Conservative strategy + FGI >= 35 (but < 50) -> suggest moderate."""
         closes = _candle_closes_for_rsi(50)
 
@@ -3910,7 +3985,8 @@ class TestAlertMonitorStrategySwitch:
         fgi_resp.ok = True
         fgi_resp.json.return_value = {"data": [{"value": "40"}]}
 
-        mock_get.side_effect = [_mock_candle_response(closes), fgi_resp]
+        mock_session = _patch_http_session()
+        mock_session.get.side_effect = [_mock_candle_response(closes), fgi_resp]
 
         trader = _make_trader()
         trader.whale_recent = deque(maxlen=20)
@@ -3919,13 +3995,14 @@ class TestAlertMonitorStrategySwitch:
 
         from pathlib import Path as _Path
         strategy_path = _Path(__file__).resolve().parent.parent / "strategy.md"
-        original = strategy_path.read_text() if strategy_path.exists() else None
+        original = strategy_path.read_text(encoding="utf-8") if strategy_path.exists() else None
         try:
-            strategy_path.write_text("# 보수적 전략\n매수 조건...")
-            _run_alert_monitor(trader)
+            strategy_path.write_text("# conservative strategy\nBuy conditions...", encoding="utf-8")
+            with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+                _run_alert_monitor(trader)
         finally:
             if original is not None:
-                strategy_path.write_text(original)
+                strategy_path.write_text(original, encoding="utf-8")
             elif strategy_path.exists():
                 strategy_path.unlink()
 
@@ -3936,8 +4013,7 @@ class TestAlertMonitorStrategySwitch:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_aggressive_fgi_low_suggest_conservative(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_aggressive_fgi_low_suggest_conservative(self, mock_sound, mock_tg, mock_db):
         """Aggressive strategy + FGI <= 25 -> suggest conservative."""
         closes = _candle_closes_for_rsi(50)
 
@@ -3945,7 +4021,8 @@ class TestAlertMonitorStrategySwitch:
         fgi_resp.ok = True
         fgi_resp.json.return_value = {"data": [{"value": "20"}]}
 
-        mock_get.side_effect = [_mock_candle_response(closes), fgi_resp]
+        mock_session = _patch_http_session()
+        mock_session.get.side_effect = [_mock_candle_response(closes), fgi_resp]
 
         trader = _make_trader()
         trader.whale_recent = deque(maxlen=20)
@@ -3954,13 +4031,14 @@ class TestAlertMonitorStrategySwitch:
 
         from pathlib import Path as _Path
         strategy_path = _Path(__file__).resolve().parent.parent / "strategy.md"
-        original = strategy_path.read_text() if strategy_path.exists() else None
+        original = strategy_path.read_text(encoding="utf-8") if strategy_path.exists() else None
         try:
-            strategy_path.write_text("# aggressive 전략\n매수 조건...")
-            _run_alert_monitor(trader)
+            strategy_path.write_text("# aggressive strategy\nBuy conditions...", encoding="utf-8")
+            with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+                _run_alert_monitor(trader)
         finally:
             if original is not None:
-                strategy_path.write_text(original)
+                strategy_path.write_text(original, encoding="utf-8")
             elif strategy_path.exists():
                 strategy_path.unlink()
 
@@ -3984,8 +4062,7 @@ class TestAlertMonitorDCAStopLoss:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_dca_suggestion_with_buy_signal(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_dca_suggestion_with_buy_signal(self, mock_sound, mock_tg, mock_db):
         """Loss -3% to -5% with FGI <= 30 -> DCA suggestion."""
         closes = _candle_closes_for_rsi(50)
         fgi_resp = MagicMock()
@@ -3996,7 +4073,8 @@ class TestAlertMonitorDCAStopLoss:
         avg_buy_price = 100_000_000
 
         acct_resp = self._make_acct_response(avg_buy_price)
-        mock_get.side_effect = [_mock_candle_response(closes), fgi_resp, acct_resp]
+        mock_session = _patch_http_session()
+        mock_session.get.side_effect = [_mock_candle_response(closes), fgi_resp, acct_resp]
 
         trader = _make_trader(dry_run=False)
         trader.current_price = current_price
@@ -4006,13 +4084,14 @@ class TestAlertMonitorDCAStopLoss:
 
         from pathlib import Path as _Path
         strategy_path = _Path(__file__).resolve().parent.parent / "strategy.md"
-        original = strategy_path.read_text() if strategy_path.exists() else None
+        original = strategy_path.read_text(encoding="utf-8") if strategy_path.exists() else None
         try:
-            strategy_path.write_text("# 보수적 전략\n매수 조건...")
-            _run_alert_monitor(trader)
+            strategy_path.write_text("# conservative strategy\nBuy conditions...", encoding="utf-8")
+            with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+                _run_alert_monitor(trader)
         finally:
             if original is not None:
-                strategy_path.write_text(original)
+                strategy_path.write_text(original, encoding="utf-8")
             elif strategy_path.exists():
                 strategy_path.unlink()
 
@@ -4025,8 +4104,7 @@ class TestAlertMonitorDCAStopLoss:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_stop_loss_suggestion_no_buy_signal(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_stop_loss_suggestion_no_buy_signal(self, mock_sound, mock_tg, mock_db):
         """Loss -3% to -5% with FGI > 30 -> stop-loss suggestion."""
         closes = _candle_closes_for_rsi(50)
         fgi_resp = MagicMock()
@@ -4037,7 +4115,8 @@ class TestAlertMonitorDCAStopLoss:
         avg_buy_price = 100_000_000
 
         acct_resp = self._make_acct_response(avg_buy_price)
-        mock_get.side_effect = [_mock_candle_response(closes), fgi_resp, acct_resp]
+        mock_session = _patch_http_session()
+        mock_session.get.side_effect = [_mock_candle_response(closes), fgi_resp, acct_resp]
 
         trader = _make_trader(dry_run=False)
         trader.current_price = current_price
@@ -4047,13 +4126,14 @@ class TestAlertMonitorDCAStopLoss:
 
         from pathlib import Path as _Path
         strategy_path = _Path(__file__).resolve().parent.parent / "strategy.md"
-        original = strategy_path.read_text() if strategy_path.exists() else None
+        original = strategy_path.read_text(encoding="utf-8") if strategy_path.exists() else None
         try:
-            strategy_path.write_text("# 보수적 전략\n매수 조건...")
-            _run_alert_monitor(trader)
+            strategy_path.write_text("# conservative strategy\nBuy conditions...", encoding="utf-8")
+            with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+                _run_alert_monitor(trader)
         finally:
             if original is not None:
-                strategy_path.write_text(original)
+                strategy_path.write_text(original, encoding="utf-8")
             elif strategy_path.exists():
                 strategy_path.unlink()
 
@@ -4065,8 +4145,7 @@ class TestAlertMonitorDCAStopLoss:
     @patch("scripts.short_term_trader.db_insert")
     @patch("scripts.short_term_trader.send_telegram")
     @patch("scripts.short_term_trader.sound_alert")
-    @patch("scripts.short_term_trader.requests.get")
-    def test_emergency_stop_loss_below_5pct(self, mock_get, mock_sound, mock_tg, mock_db):
+    def test_emergency_stop_loss_below_5pct(self, mock_sound, mock_tg, mock_db):
         """Loss < -5% -> emergency stop-loss suggestion."""
         closes = _candle_closes_for_rsi(50)
         fgi_resp = MagicMock()
@@ -4077,7 +4156,8 @@ class TestAlertMonitorDCAStopLoss:
         avg_buy_price = 100_000_000
 
         acct_resp = self._make_acct_response(avg_buy_price)
-        mock_get.side_effect = [_mock_candle_response(closes), fgi_resp, acct_resp]
+        mock_session = _patch_http_session()
+        mock_session.get.side_effect = [_mock_candle_response(closes), fgi_resp, acct_resp]
 
         trader = _make_trader(dry_run=False)
         trader.current_price = current_price
@@ -4087,13 +4167,14 @@ class TestAlertMonitorDCAStopLoss:
 
         from pathlib import Path as _Path
         strategy_path = _Path(__file__).resolve().parent.parent / "strategy.md"
-        original = strategy_path.read_text() if strategy_path.exists() else None
+        original = strategy_path.read_text(encoding="utf-8") if strategy_path.exists() else None
         try:
-            strategy_path.write_text("# 보수적 전략\n매수 조건...")
-            _run_alert_monitor(trader)
+            strategy_path.write_text("# conservative strategy\nBuy conditions...", encoding="utf-8")
+            with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+                _run_alert_monitor(trader)
         finally:
             if original is not None:
-                strategy_path.write_text(original)
+                strategy_path.write_text(original, encoding="utf-8")
             elif strategy_path.exists():
                 strategy_path.unlink()
 

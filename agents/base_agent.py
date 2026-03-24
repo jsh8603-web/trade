@@ -171,6 +171,34 @@ class BaseStrategyAgent(ABC):
     weekend_reduction: float = 0.50    # 주말 축소 비율
     dca_max_ratio: float = 0.50        # DCA 최대 비율
 
+    # ── v7.2 매도 점수제 + 레짐별 포지션 사이징 ──
+    sell_score_threshold_bull: int = 85       # v7: 상승장 매도 억제
+    sell_score_threshold_early_bull: int = 70  # v8.1: 상승 초입 — bull보다 낮게 (빠른 탈출)
+    sell_score_threshold_sideways: int = 50   # v7.2: 55→50 (횡보 더 빠른 매도)
+    sell_score_threshold_bear: int = 40       # v7.2: 45→40 (하락 즉시 매도)
+
+    trailing_stop_bull: float = -15.0         # v7: 상승장 흔들림 허용
+    trailing_stop_early_bull: float = -12.0   # v7.2: early_bull 별도
+    trailing_stop_sideways: float = -4.0
+    trailing_stop_bear: float = -1.5          # v7.2: -2→-1.5 (하락 타이트)
+
+    buy_blocked_regimes: tuple = ("bear", "crisis")
+
+    # v7.2: 레짐별 포지션 비율 (상승장 더 공격, 하락장 방어 유지)
+    regime_trade_ratios: dict = None  # __init_subclass__에서 초기화
+
+    @classmethod
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls.regime_trade_ratios is None:
+            cls.regime_trade_ratios = {
+                "bull": 0.50,           # v7.2: 40→50% (상승장 풀베팅)
+                "early_bull": 0.35,     # v7.2: 30→35%
+                "sideways": 0.10,       # v7.1 유지
+                "bear": 0.03,           # v7.1 유지
+                "crisis": 0.00,
+            }
+
     # ── 점수 배점 ──
     fgi_points: int = 30
     rsi_points: int = 25
@@ -185,71 +213,84 @@ class BaseStrategyAgent(ABC):
         news_negative: bool,
         external_bonus: int,
         macd_golden_cross: bool = False,
+        fast: bool = False,
     ) -> dict:
-        """매수 점수를 계산한다."""
+        """매수 점수를 계산한다. fast=True: 백테스트용 (breakdown 생략)."""
         score = 0
-        breakdown: dict = {}
 
         # 1) FGI
         if fgi <= self.fgi_threshold:
             pts = self.fgi_points
             if fgi <= self.fgi_threshold * 0.5:
-                pts += 5  # 극단 보너스
+                pts += 5
             if fgi <= 20:
-                pts += 5  # 극공포 보너스
-            breakdown["fgi"] = {"score": pts, "value": fgi, "threshold": self.fgi_threshold}
+                pts += 5
             score += pts
         elif fgi <= self.fgi_threshold + 10:
-            pts = int(self.fgi_points * 0.5)
-            breakdown["fgi"] = {"score": pts, "value": fgi, "partial": True}
-            score += pts
-        else:
-            breakdown["fgi"] = {"score": 0, "value": fgi}
+            score += int(self.fgi_points * 0.5)
 
         # 2) RSI
         if rsi <= self.rsi_threshold:
-            pts = self.rsi_points
-            breakdown["rsi"] = {"score": pts, "value": round(rsi, 2), "threshold": self.rsi_threshold}
-            score += pts
+            score += self.rsi_points
         elif rsi <= self.rsi_threshold + 5:
-            pts = 15  # 부분 점수
-            breakdown["rsi"] = {"score": pts, "value": round(rsi, 2), "partial": True}
-            score += pts
-        else:
-            breakdown["rsi"] = {"score": 0, "value": round(rsi, 2)}
+            score += 15
 
         # 3) SMA 이탈
         if sma_deviation <= self.sma_deviation_pct:
-            pts = self.sma_points
-            breakdown["sma"] = {"score": pts, "value": round(sma_deviation, 2), "threshold": self.sma_deviation_pct}
-            score += pts
+            score += self.sma_points
         elif sma_deviation <= self.sma_deviation_pct / 2:
-            pts = 15
-            breakdown["sma"] = {"score": pts, "value": round(sma_deviation, 2), "partial": True}
-            score += pts
-        else:
-            breakdown["sma"] = {"score": 0, "value": round(sma_deviation, 2)}
+            score += 15
 
         # 4) 뉴스 감성
         if not news_negative:
-            breakdown["news"] = {"score": self.news_points, "negative": False}
             score += self.news_points
-        else:
-            breakdown["news"] = {"score": 0, "negative": True}
 
         # 5) MACD 보너스 (보통 전략만)
         if self.macd_bonus and macd_golden_cross:
-            pts = 10
-            breakdown["macd"] = {"score": pts, "golden_cross": True}
-            score += pts
+            score += 10
 
         # 6) 외부 지표 Data Fusion 보너스
-        breakdown["external"] = {"score": external_bonus}
         score += external_bonus
 
+        result = "buy" if score >= self.buy_score_threshold else "hold"
+
+        if fast:
+            return {"total": score, "threshold": self.buy_score_threshold, "result": result}
+
+        # 상세 breakdown (프로덕션/디버그용) — 다시 계산
+        breakdown: dict = {}
+        # FGI breakdown
+        if fgi <= self.fgi_threshold:
+            pts = self.fgi_points
+            if fgi <= self.fgi_threshold * 0.5: pts += 5
+            if fgi <= 20: pts += 5
+            breakdown["fgi"] = {"score": pts, "value": fgi, "threshold": self.fgi_threshold}
+        elif fgi <= self.fgi_threshold + 10:
+            breakdown["fgi"] = {"score": int(self.fgi_points * 0.5), "value": fgi, "partial": True}
+        else:
+            breakdown["fgi"] = {"score": 0, "value": fgi}
+        # RSI breakdown
+        if rsi <= self.rsi_threshold:
+            breakdown["rsi"] = {"score": self.rsi_points, "value": round(rsi, 2), "threshold": self.rsi_threshold}
+        elif rsi <= self.rsi_threshold + 5:
+            breakdown["rsi"] = {"score": 15, "value": round(rsi, 2), "partial": True}
+        else:
+            breakdown["rsi"] = {"score": 0, "value": round(rsi, 2)}
+        # SMA breakdown
+        if sma_deviation <= self.sma_deviation_pct:
+            breakdown["sma"] = {"score": self.sma_points, "value": round(sma_deviation, 2), "threshold": self.sma_deviation_pct}
+        elif sma_deviation <= self.sma_deviation_pct / 2:
+            breakdown["sma"] = {"score": 15, "value": round(sma_deviation, 2), "partial": True}
+        else:
+            breakdown["sma"] = {"score": 0, "value": round(sma_deviation, 2)}
+        # 나머지
+        breakdown["news"] = {"score": self.news_points if not news_negative else 0, "negative": news_negative}
+        if self.macd_bonus and macd_golden_cross:
+            breakdown["macd"] = {"score": 10, "golden_cross": True}
+        breakdown["external"] = {"score": external_bonus}
         breakdown["total"] = score
         breakdown["threshold"] = self.buy_score_threshold
-        breakdown["result"] = "buy" if score >= self.buy_score_threshold else "hold"
+        breakdown["result"] = result
 
         return breakdown
 
@@ -268,19 +309,23 @@ class BaseStrategyAgent(ABC):
         btc_position_ratio: float = 0.0,
     ) -> dict | None:
         """
-        매도 조건을 평가한다. 매도해야 하면 dict 반환, 아니면 None.
+        v6 매도 평가: 점수제 + 트레일링 스탑 + 안전망.
 
-        drop_context 키:
-          - cascade_risk (0~100): 캐스케이딩 하락 위험도
-          - price_change_4h: 최근 4시간 가격 변동률(%)
-          - volume_ratio: 최근 거래량/평균 거래량 비율
-          - external_bearish_count: 외부 약세 지표 겹침 수
-          - dca_already_done: 이미 DCA 1회 실행 여부
-          - trend_falling: 하락 추세 지속 여부
+        drop_context v6 키 (orchestrator가 주입):
+          - v6_regime: 시장 레짐 (bull/early_bull/sideways/bear/crisis)
+          - v6_danger_score: 위험도 점수 (0~100)
+          - v6_sma_deviation: SMA20 이탈률 (%)
+          - v6_change_24h: 24h 가격 변동률 (%)
+          - v6_macro_score: 매크로 점수
+          - v6_kimchi_pct: 김치 프리미엄 (%)
+          - v6_news_negative: 뉴스 약세 여부
+          - v6_current_price: 현재가
+          - v6_position_peak: 포지션 최고가 (트레일링용)
+        기존 drop_context 키도 하이브리드 DCA 안전망에서 계속 사용.
         """
         dc = drop_context or {}
 
-        # ── 포지션 과다 분할 매도 (일반 목표 수익보다 우선) ──
+        # ── 1. 포지션 과다 분할 매도 (최우선) ──
         max_position = float(os.getenv("MAX_POSITION_RATIO", "0.5"))
         if btc_position_ratio > max_position and profit_pct >= self.overweight_profit_threshold:
             return {
@@ -288,17 +333,35 @@ class BaseStrategyAgent(ABC):
                 "reason": (
                     f"포지션 과다 분할 매도: BTC 비중 {btc_position_ratio:.0%} > "
                     f"{max_position:.0%} 한도, 수익률 +{profit_pct:.1f}% >= "
-                    f"+{self.overweight_profit_threshold}% → 보유량 1/3 매도"
+                    f"+{self.overweight_profit_threshold}% -> 보유량 1/3 매도"
                 ),
                 "type": "overweight_rebalance",
                 "sell_ratio": self.overweight_sell_ratio,
             }
 
-        # 목표 수익 달성
-        if profit_pct >= self.target_profit_pct:
-            # AI 시그널이 강세면 매도 유예 (1회만)
-            if ai_signal_score > 20:
-                # 단일 lock으로 읽기+쓰기 통합 (기존 3회 lock → 1회)
+        # ── v6 컨텍스트 추출 ──
+        regime = dc.get("v6_regime", "sideways")
+        danger = dc.get("v6_danger_score", dc.get("cascade_risk", 0))
+        sma_dev = dc.get("v6_sma_deviation", 0.0)
+        change_24h = dc.get("v6_change_24h", dc.get("price_change_24h", 0))
+        macro_score = dc.get("v6_macro_score", 0.0)
+        kimchi_pct = dc.get("v6_kimchi_pct", 0.0)
+        news_negative = dc.get("v6_news_negative", False)
+        current_price = dc.get("v6_current_price", 0.0)
+        position_peak = dc.get("v6_position_peak", 0.0)
+
+        # ── 2. v6 매도 점수제 ──
+        sell_score = self.calculate_sell_score(
+            pnl_pct=profit_pct, rsi=current_rsi, fgi_val=current_fgi,
+            sma_dev=sma_dev, change_24h=change_24h, danger=danger,
+            news_negative=news_negative, macro_score=macro_score,
+            kimchi_pct=kimchi_pct,
+        )
+        threshold = self._get_sell_threshold(regime)
+
+        if sell_score["total"] >= threshold:
+            # AI 강세 시 1회 유예 (수익 중일 때만)
+            if ai_signal_score > 20 and profit_pct > 0:
                 state_file = Path(__file__).resolve().parent.parent / "data" / "agent_state.json"
                 lock_path = str(state_file) + ".lock"
                 already_deferred = False
@@ -321,41 +384,53 @@ class BaseStrategyAgent(ABC):
                 finally:
                     if _locked:
                         _release_lock(lock_path)
-                if already_deferred:
-                    # 이미 1회 유예함 → 매도 실행 (플래그는 위에서 False로 리셋됨)
+                if not already_deferred:
+                    # 첫 유예 (플래그 True로 설정됨)
                     return {
-                        "action": "sell",
-                        "reason": f"목표 수익 {profit_pct:.1f}% 달성, AI 시그널 강세({ai_signal_score})이나 이미 1회 유예 완료 → 매도",
-                        "type": "target_profit",
+                        "action": "hold_defer",
+                        "reason": (
+                            f"v6 매도점수 {sell_score['total']}>={threshold}이나 "
+                            f"AI 강세({ai_signal_score}) -> 1회 유예"
+                        ),
                     }
-                # 첫 유예 (플래그는 위에서 True로 설정됨)
+                # 이미 유예 완료 → 플래그 초기화 후 매도 진행
+            # v7.2: 상승장에서는 1/4만 부분매도 (나머지 유지)
+            if regime in ("bull", "early_bull"):
                 return {
-                    "action": "hold_defer",
-                    "reason": f"목표 수익 {profit_pct:.1f}% 달성이나 AI 시그널 강세({ai_signal_score}) → 1회 유예",
+                    "action": "sell_partial",
+                    "sell_ratio": 1 / 4,
+                    "reason": (
+                        f"v7.2 상승장 부분매도 1/4: 점수 {sell_score['total']}>={threshold} "
+                        f"(regime={regime}, pnl={profit_pct:+.1f}%)"
+                    ),
+                    "type": "v6_sell_score",
+                    "sell_score": sell_score,
                 }
             return {
                 "action": "sell",
-                "reason": f"목표 수익 달성: {profit_pct:.1f}% >= {self.target_profit_pct}%",
-                "type": "target_profit",
+                "reason": (
+                    f"v6 매도점수 {sell_score['total']}>={threshold} "
+                    f"(regime={regime}, pnl={profit_pct:+.1f}%)"
+                ),
+                "type": "v6_sell_score",
+                "sell_score": sell_score,
             }
 
-        # FGI 과열
-        if current_fgi >= self.sell_fgi_threshold:
-            return {
-                "action": "sell",
-                "reason": f"FGI 과열: {current_fgi} >= {self.sell_fgi_threshold}",
-                "type": "fgi_overbought",
-            }
+        # ── 3. v6 트레일링 스탑 ──
+        if profit_pct > 0 and position_peak > 0 and current_price > 0:
+            trail_from_peak = ((current_price / position_peak) - 1) * 100
+            trail_threshold = self._get_trailing_threshold(regime)
+            if trail_from_peak <= trail_threshold:
+                return {
+                    "action": "sell",
+                    "reason": (
+                        f"v6 트레일링 스탑: 피크 대비 {trail_from_peak:.1f}% <= "
+                        f"{trail_threshold}% (peak={position_peak:,.0f}, regime={regime})"
+                    ),
+                    "type": "v6_trailing_stop",
+                }
 
-        # RSI 과매수
-        if current_rsi >= self.sell_rsi_threshold:
-            return {
-                "action": "sell",
-                "reason": f"RSI 과매수: {current_rsi:.1f} >= {self.sell_rsi_threshold}",
-                "type": "rsi_overbought",
-            }
-
-        # 강제 손절 -- 어떤 상황에서도 무조건 매도
+        # ── 4. 강제 손절 (어떤 상황에서도) ──
         if profit_pct <= self.forced_stop_loss_pct:
             return {
                 "action": "sell",
@@ -363,7 +438,17 @@ class BaseStrategyAgent(ABC):
                 "type": "forced_stop",
             }
 
-        # ── 강화된 하이브리드 손절 ──
+        # ── 5. 하이브리드 DCA 안전망 (손절선 도달 시) ──
+        # v7.2: Bull/Early bull에서는 DCA 대신 손절 (상승장에서 물타기 금지)
+        if profit_pct <= self.stop_loss_pct and regime in ("bull", "early_bull"):
+            return {
+                "action": "sell",
+                "reason": (
+                    f"v7.2 상승장 손절: {profit_pct:.1f}% <= {self.stop_loss_pct}% "
+                    f"(regime={regime}, DCA 금지)"
+                ),
+                "type": "bull_stop_loss",
+            }
         if profit_pct <= self.stop_loss_pct:
             conditions_met = sum(1 for k in ["fgi", "rsi", "sma", "news"]
                                  if buy_score.get(k, {}).get("score", 0) > 0)
@@ -375,113 +460,82 @@ class BaseStrategyAgent(ABC):
             price_change_4h = dc.get("price_change_4h", 0)
             trend_falling = dc.get("trend_falling", False)
 
-            # ① DCA 이미 1회 실행 → 추가 물타기 금지
             if dca_already_done:
                 return {
                     "action": "sell",
-                    "reason": (
-                        f"손절선 도달({profit_pct:.1f}%), "
-                        f"이미 DCA 1회 실행됨 → 추가 물타기 금지, 즉시 손절"
-                    ),
+                    "reason": f"손절선 도달({profit_pct:.1f}%), DCA 1회 완료 -> 손절",
                     "type": "dca_exhausted",
                 }
 
-            # ② 캐스케이딩 위험 극심 (70+) → 무조건 손절
             if cascade_risk >= 70:
                 return {
                     "action": "sell",
                     "reason": (
                         f"손절선 도달({profit_pct:.1f}%), "
-                        f"캐스케이딩 위험 {cascade_risk}점 "
-                        f"(4h {price_change_4h:+.1f}%, 거래량 {volume_ratio:.1f}x, "
-                        f"약세지표 {external_bearish}개) → 즉시 손절"
+                        f"캐스케이딩 {cascade_risk}점 "
+                        f"(4h {price_change_4h:+.1f}%, vol {volume_ratio:.1f}x, "
+                        f"약세 {external_bearish}개) -> 손절"
                     ),
                     "type": "cascade_stop",
                 }
 
-            # ③ 캐스케이딩 위험 중간 (40~69) → 더 강한 바닥 근거 요구
             if cascade_risk >= 40:
                 if conditions_met >= 4 and ai_signal_score >= 0:
                     return {
                         "action": "dca",
                         "reason": (
-                            f"손절선 도달({profit_pct:.1f}%), "
-                            f"캐스케이딩 위험 중간({cascade_risk}점)이나 "
-                            f"강한 바닥 시그널 {conditions_met}개 + AI({ai_signal_score}) → 신중 DCA"
+                            f"손절선({profit_pct:.1f}%), 캐스케이딩 중간({cascade_risk}) "
+                            f"+ 바닥 {conditions_met}개 -> DCA"
                         ),
                         "type": "hybrid_dca_cautious",
                     }
                 return {
                     "action": "sell",
                     "reason": (
-                        f"손절선 도달({profit_pct:.1f}%), "
-                        f"캐스케이딩 위험 {cascade_risk}점, "
-                        f"바닥 시그널 부족({conditions_met}개) → 즉시 손절"
+                        f"손절선({profit_pct:.1f}%), 캐스케이딩 {cascade_risk}점 "
+                        f"+ 바닥 부족({conditions_met}개) -> 손절"
                     ),
                     "type": "cascade_moderate_stop",
                 }
 
-            # ④ 외부 약세 지표 3개+ 겹침 → 바닥 시그널 있어도 매도
             if external_bearish >= 3 and conditions_met >= 3:
                 return {
                     "action": "sell",
                     "reason": (
-                        f"손절선 도달({profit_pct:.1f}%), "
-                        f"바닥 시그널 {conditions_met}개이나 "
-                        f"외부 약세 지표 {external_bearish}개 동시 겹침 "
-                        f"(고래매도+펀딩+롱과밀+뉴스 등) → 즉시 손절"
+                        f"손절선({profit_pct:.1f}%), 외부 약세 {external_bearish}개 겹침 -> 손절"
                     ),
                     "type": "external_bearish_override",
                 }
 
-            # ⑤ 하락 추세 지속 중 → DCA 요건 강화
             if trend_falling and conditions_met >= 3 and ai_signal_score >= 0:
                 if conditions_met >= 4 or ai_signal_score >= 15:
                     return {
                         "action": "dca",
-                        "reason": (
-                            f"손절선 도달({profit_pct:.1f}%), "
-                            f"하락 추세 지속이나 강한 바닥 시그널 "
-                            f"{conditions_met}개 + AI({ai_signal_score}) → 신중 DCA"
-                        ),
+                        "reason": f"손절선({profit_pct:.1f}%), 하락추세 + 강한 바닥 -> DCA",
                         "type": "hybrid_dca_trend",
                     }
                 return {
                     "action": "sell",
-                    "reason": (
-                        f"손절선 도달({profit_pct:.1f}%), "
-                        f"하락 추세 지속 + 바닥 시그널 {conditions_met}개 "
-                        f"부족(추세 하락 시 4개+ 필요) → 즉시 손절"
-                    ),
+                    "reason": f"손절선({profit_pct:.1f}%), 하락추세 + 바닥 부족 -> 손절",
                     "type": "trend_stop",
                 }
 
-            # ⑥ 기본 하이브리드 (캐스케이딩/추세 위험 낮을 때)
             if conditions_met >= 3 and ai_signal_score >= 0:
                 return {
                     "action": "dca",
-                    "reason": (
-                        f"손절선 도달({profit_pct:.1f}%)이나 "
-                        f"바닥 시그널 {conditions_met}개 + AI({ai_signal_score}) → DCA"
-                    ),
+                    "reason": f"손절선({profit_pct:.1f}%) + 바닥 {conditions_met}개 -> DCA",
                     "type": "hybrid_dca",
                 }
             elif conditions_met >= 3 and ai_signal_score < -20:
                 return {
                     "action": "sell",
-                    "reason": (
-                        f"손절선 도달({profit_pct:.1f}%), 바닥 시그널이나 "
-                        f"AI 매도 압력 극심({ai_signal_score}) → 즉시 손절"
-                    ),
+                    "reason": f"손절선({profit_pct:.1f}%), AI 극매도({ai_signal_score}) -> 손절",
                     "type": "hybrid_forced",
                 }
             else:
                 return {
                     "action": "sell",
-                    "reason": (
-                        f"손절선 도달({profit_pct:.1f}%), "
-                        f"바닥 시그널 부족({conditions_met}개) → 즉시 손절"
-                    ),
+                    "reason": f"손절선({profit_pct:.1f}%), 바닥 부족({conditions_met}개) -> 손절",
                     "type": "stop_loss",
                 }
 
@@ -701,15 +755,191 @@ class BaseStrategyAgent(ABC):
         KST = datetime.timezone(datetime.timedelta(hours=9))
         return datetime.datetime.now(KST).weekday() >= 5
 
-    def _calculate_trade_amount(self, total_krw: float, external_bonus: int = 0) -> int:
-        """1회 매매 금액을 계산한다."""
-        amount = int(total_krw * self.max_trade_ratio)
+    # ── v6 레짐 감지 ──────────────────────────────────
+
+    @staticmethod
+    def detect_regime(sma_deviation: float, fgi_value: int,
+                      change_24h: float, atr_4h: float = 1.0,
+                      consecutive_up_days: int = 0) -> str:
+        """v8 시장 레짐을 5단계로 분류한다.
+
+        v7.2 문제: 완만한 상승장에서 SMA편차가 작아 sideways로 오판.
+        v8 개선: FGI 기반 심리 감지 추가 — 시장 심리가 탐욕이면 상승장.
+
+        Args:
+            consecutive_up_days: 연속 상승일 수 (0이면 미사용)
+        """
+        # ── Bull: 확실한 상승장 ──
+        if sma_deviation > 2.0 and fgi_value >= 45:
+            return "bull"
+        if sma_deviation > 1.5 and change_24h >= 3.0:
+            return "bull"
+        # 3일+ 연속 상승 시 bull 승격
+        if consecutive_up_days >= 3 and sma_deviation > 0.3 and fgi_value >= 30:
+            return "bull"
+        # v8: FGI 강한 탐욕 + SMA 양수 → bull
+        if fgi_value >= 65 and sma_deviation > 0.5:
+            return "bull"
+
+        # ── Early bull: 상승 초입 ──
+        if sma_deviation > 0.3 and fgi_value >= 30 and change_24h >= 0.5:
+            return "early_bull"
+        # v8: 심리 기반 — FGI 탐욕 + SMA 확실히 양수 = 완만한 상승장
+        # v8.1: FGI 50→55, SMA 0→0.3으로 상향 (sideways 오분류 방지)
+        if fgi_value >= 55 and sma_deviation > 0.3:
+            return "early_bull"
+
+        # ── Bear/Crisis ──
+        if sma_deviation < -2.0 and fgi_value <= 20 and atr_4h > 2.0:
+            return "crisis"
+        if sma_deviation < -0.5 and fgi_value <= 40:
+            return "bear"
+
+        return "sideways"
+
+    # ── v6 매도 점수 계산 ──────────────────────────────
+
+    @staticmethod
+    def calculate_sell_score(
+        pnl_pct: float, rsi: float, fgi_val: int, sma_dev: float,
+        change_24h: float, danger: int, news_negative: bool,
+        macro_score: float, kimchi_pct: float,
+        fast: bool = False,
+    ) -> dict:
+        """8개 시그널 합산 매도 점수 (최대 ~120점). fast=True: breakdown 생략."""
+        score = 0
+
+        # 1) 수익률 (max 25)
+        if pnl_pct >= 10: score += 25
+        elif pnl_pct >= 5: score += 20
+        elif pnl_pct >= 3: score += 15
+        elif pnl_pct >= 1: score += 8
+        elif pnl_pct <= -7: score += 25
+        elif pnl_pct <= -5: score += 20
+        elif pnl_pct <= -3: score += 12
+
+        # 2) RSI 과매수 (max 20)
+        if rsi >= 75: score += 20
+        elif rsi >= 70: score += 15
+        elif rsi >= 65: score += 8
+
+        # 3) FGI 탐욕 (max 20)
+        if fgi_val >= 80: score += 20
+        elif fgi_val >= 70: score += 15
+        elif fgi_val >= 60: score += 8
+
+        # 4) SMA 하회 추세 이탈 (max 15)
+        if sma_dev < -2.0: score += 15
+        elif sma_dev < -1.0: score += 10
+        elif sma_dev < 0: score += 5
+
+        # 5) 24h 모멘텀 하락 (max 15)
+        if change_24h <= -5: score += 15
+        elif change_24h <= -3: score += 10
+        elif change_24h <= -1: score += 5
+
+        # 6) 위험도 가산 (max 10)
+        if danger >= 60: score += 10
+        elif danger >= 40: score += 5
+
+        # 7) 뉴스/매크로 약세 (max 10)
+        ext_pts = 0
+        if news_negative: ext_pts += 5
+        if macro_score <= -10: ext_pts += 5
+        score += min(ext_pts, 10)
+
+        # 8) 김치 프리미엄 과열 (max 5)
+        if kimchi_pct >= 5: score += 5
+        elif kimchi_pct >= 3: score += 3
+
+        total = min(score, 120)
+        if fast:
+            return {"total": total}
+
+        # 상세 breakdown (프로덕션용)
+        breakdown = {}
+        # 각 항목 재계산 (점수는 이미 확정)
+        if pnl_pct >= 10: pts = 25
+        elif pnl_pct >= 5: pts = 20
+        elif pnl_pct >= 3: pts = 15
+        elif pnl_pct >= 1: pts = 8
+        elif pnl_pct <= -7: pts = 25
+        elif pnl_pct <= -5: pts = 20
+        elif pnl_pct <= -3: pts = 12
+        else: pts = 0
+        breakdown["profit"] = {"score": pts, "pnl_pct": round(pnl_pct, 2)}
+        if rsi >= 75: pts = 20
+        elif rsi >= 70: pts = 15
+        elif rsi >= 65: pts = 8
+        else: pts = 0
+        breakdown["rsi"] = {"score": pts, "value": round(rsi, 1)}
+        if fgi_val >= 80: pts = 20
+        elif fgi_val >= 70: pts = 15
+        elif fgi_val >= 60: pts = 8
+        else: pts = 0
+        breakdown["fgi"] = {"score": pts, "value": fgi_val}
+        if sma_dev < -2.0: pts = 15
+        elif sma_dev < -1.0: pts = 10
+        elif sma_dev < 0: pts = 5
+        else: pts = 0
+        breakdown["trend"] = {"score": pts, "sma_dev": round(sma_dev, 2)}
+        if change_24h <= -5: pts = 15
+        elif change_24h <= -3: pts = 10
+        elif change_24h <= -1: pts = 5
+        else: pts = 0
+        breakdown["momentum"] = {"score": pts, "change_24h": round(change_24h, 2)}
+        if danger >= 60: pts = 10
+        elif danger >= 40: pts = 5
+        else: pts = 0
+        breakdown["danger"] = {"score": pts, "danger": danger}
+        breakdown["external"] = {"score": min(ext_pts, 10)}
+        if kimchi_pct >= 5: pts = 5
+        elif kimchi_pct >= 3: pts = 3
+        else: pts = 0
+        breakdown["kimchi"] = {"score": pts, "pct": round(kimchi_pct, 2)}
+
+        return {"total": total, "breakdown": breakdown}
+
+    def _get_sell_threshold(self, regime: str) -> int:
+        if regime == "bull":
+            return self.sell_score_threshold_bull
+        elif regime == "early_bull":
+            return self.sell_score_threshold_early_bull
+        elif regime == "sideways":
+            return self.sell_score_threshold_sideways
+        return self.sell_score_threshold_bear
+
+    def _get_trailing_threshold(self, regime: str) -> float:
+        if regime == "bull":
+            return self.trailing_stop_bull
+        elif regime == "early_bull":
+            return self.trailing_stop_early_bull
+        elif regime == "sideways":
+            return self.trailing_stop_sideways
+        return self.trailing_stop_bear
+
+    # v7.2: 레짐별 1회 매매 상한 (상승장 확대, 하락장 축소)
+    REGIME_MAX_TRADE = {
+        "bull": 3_000_000,
+        "early_bull": 2_000_000,
+        "sideways": 300_000,
+        "bear": 100_000,
+        "crisis": 0,
+    }
+
+    def _calculate_trade_amount(self, total_krw: float, external_bonus: int = 0, regime: str = "sideways") -> int:
+        """1회 매매 금액을 계산한다. v7.2: 레짐별 포지션 비율 + 레짐별 MAX_TRADE."""
+        ratios = self.regime_trade_ratios or {}
+        trade_ratio = ratios.get(regime, self.max_trade_ratio)
+        amount = int(total_krw * trade_ratio)
         if self._is_weekend():
             if external_bonus >= 10:
                 pass  # 주말이더라도 외부 점수가 높으면 축소 룰 무효화 (불장/호재)
             else:
                 amount = int(amount * (1 - self.weekend_reduction))
-        # MAX_TRADE_AMOUNT 안전장치
-        import os
-        max_amount = int(os.getenv("MAX_TRADE_AMOUNT", "100000"))
+        # v8: 레짐별 MAX_TRADE (상승장 3M, 하락장 100K)
+        regime_max = self.REGIME_MAX_TRADE.get(regime, 300_000)
+        # .env MAX_TRADE_AMOUNT는 항상 안전 상한으로 작동 (절대 우회 불가)
+        env_max = int(os.getenv("MAX_TRADE_AMOUNT", "100000"))
+        max_amount = min(regime_max, env_max)
         return min(amount, max_amount)

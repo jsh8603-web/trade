@@ -144,11 +144,21 @@ class Orchestrator:
         self._active_agent_name = self.state.get("active_agent", "conservative")
         self._switch_reason = ""
         self._learning_data = None  # DB에서 로드한 학습 데이터
+        self._state_dirty = False   # 배치 저장용 플래그
+        self._cached_agent = None   # 에이전트 인스턴스 캐시
 
     @property
     def active_agent(self) -> BaseStrategyAgent:
-        cls = AGENTS.get(self._active_agent_name, ConservativeAgent)
-        return cls()
+        if self._cached_agent is None or self._cached_agent.name != self._active_agent_name:
+            cls = AGENTS.get(self._active_agent_name, ConservativeAgent)
+            self._cached_agent = cls()
+        return self._cached_agent
+
+    def _flush_state(self):
+        """변경된 state를 한번에 디스크에 저장한다."""
+        if self._state_dirty:
+            _save_state(self.state)
+            self._state_dirty = False
 
     def run(
         self,
@@ -188,7 +198,7 @@ class Orchestrator:
         if auto_em:
             # 자동 해제 조건 확인
             can_lift = self._can_lift_auto_emergency(
-                market_data, external_data, portfolio
+                market_data, external_data, portfolio, auto_em=auto_em
             )
             if can_lift:
                 self._deactivate_auto_emergency(
@@ -239,10 +249,42 @@ class Orchestrator:
         if switch_result:
             self._do_switch(switch_result)
             # DB에 전환 기록
-            self._record_switch_to_db(switch_result, market_state)
+            self._record_switch_to_db(switch_result, market_state,
+                                         btc_price=market_data.get("current_price", 0))
 
         # 하락 컨텍스트 구축 (매도 vs DCA 판단의 핵심)
         drop_context = self._build_drop_context(market_data, external_data, portfolio)
+
+        # ── v6 컨텍스트 주입 ──
+        indicators = market_data.get("indicators", {})
+        v6_sma_dev = indicators.get("sma_20_deviation_pct", 0)
+        v6_fgi = market_state.get("fgi", 50)
+        v6_change_24h = market_state.get("price_change_24h", 0)
+        v6_current_price = market_data.get("ticker", {}).get("trade_price", 0)
+
+        drop_context["v6_regime"] = BaseStrategyAgent.detect_regime(
+            sma_deviation=v6_sma_dev, fgi_value=v6_fgi,
+            change_24h=v6_change_24h,
+        )
+        drop_context["v6_danger_score"] = market_state.get("danger_score", 0)
+        drop_context["v6_sma_deviation"] = v6_sma_dev
+        drop_context["v6_change_24h"] = v6_change_24h
+        drop_context["v6_macro_score"] = market_state.get("macro_score", 0)
+        drop_context["v6_kimchi_pct"] = market_state.get("kimchi_pct", 0)
+        drop_context["v6_news_negative"] = market_state.get("news_sentiment") == "negative"
+        drop_context["v6_current_price"] = v6_current_price
+
+        # v6 트레일링 피크 추적
+        btc_held = portfolio.get("btc", {}).get("balance", 0) > 0
+        old_peak = self.state.get("v6_position_peak", 0.0)
+        if btc_held and v6_current_price > 0:
+            new_peak = max(old_peak, v6_current_price)
+            if new_peak > old_peak:
+                self.state["v6_position_peak"] = new_peak
+                self._state_dirty = True
+            drop_context["v6_position_peak"] = new_peak
+        else:
+            drop_context["v6_position_peak"] = old_peak
 
         # 자동 긴급정지 발동 여부 평가
         emergency_trigger = self._evaluate_auto_emergency(
@@ -328,16 +370,22 @@ class Orchestrator:
             agent.buy_score_threshold = original_threshold
 
         # 사용자 피드백 오버라이드: 강제 관망 / confidence 임계값
-        if self.state.get("force_hold_cycles", 0) > 0 and decision.decision in ("buy", "sell"):
+        force_hold = self.state.get("force_hold_cycles", 0)
+        if force_hold > 0 and decision.decision in ("buy", "sell"):
             decision = Decision(
                 decision="hold",
-                reason=f"[사용자 피드백] 강제 관망 ({self.state['force_hold_cycles']}사이클 남음) | 원래: {decision.decision}",
+                reason=f"[사용자 피드백] 강제 관망 ({force_hold}사이클 남음) | 원래: {decision.decision}",
                 confidence=decision.confidence,
                 buy_score=decision.buy_score,
                 trade_params={},
                 external_signal=decision.external_signal,
                 agent_name=decision.agent_name,
             )
+            # 관망 적용 후 차감
+            self.state["force_hold_cycles"] = force_hold - 1
+            if self.state["force_hold_cycles"] <= 0:
+                del self.state["force_hold_cycles"]
+            self._state_dirty = True
         conf_threshold = self.state.get("confidence_threshold_override")
         if conf_threshold and decision.decision == "buy" and decision.confidence < conf_threshold:
             decision = Decision(
@@ -353,6 +401,14 @@ class Orchestrator:
         # 감독 오버라이드: 에이전트 결정을 최종 검증
         decision = self._override_decision(decision, drop_context, market_state)
 
+        # v6 트레일링 피크 갱신: 매도 시 리셋, 매수 시 초기화
+        if decision.decision == "sell":
+            self.state["v6_position_peak"] = 0.0
+            self._state_dirty = True
+        elif decision.decision == "buy":
+            self.state["v6_position_peak"] = v6_current_price
+            self._state_dirty = True
+
         # 매수 점수 상세 저장 (ID 반환하여 decisions와 연결)
         buy_score_id = agent.save_buy_score_detail(decision, market_data)
 
@@ -362,7 +418,10 @@ class Orchestrator:
         # 상태 업데이트
         if decision.decision in ("buy", "sell"):
             self.state["last_trade_time"] = time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
-            _save_state(self.state)
+            self._state_dirty = True
+
+        # 변경된 상태를 한번에 저장 (디스크 I/O 최소화)
+        self._flush_state()
 
         return {
             "active_agent": f"{agent.emoji} {agent.name}",
@@ -389,6 +448,7 @@ class Orchestrator:
             rsi = raw_rsi
             self.state["last_valid_rsi"] = rsi
             self.state["last_valid_rsi_ts"] = time.time()
+            self._state_dirty = True
         else:
             cached_ts = self.state.get("last_valid_rsi_ts", 0)
             if "last_valid_rsi" in self.state and (time.time() - cached_ts) < 86400:
@@ -614,6 +674,10 @@ class Orchestrator:
             danger += int(10 * fb_strength)
         elif fb_bias == "aggressive" and fb_strength > 0:
             opportunity += int(10 * fb_strength)
+        elif fb_bias == "moderate" and fb_strength > 0:
+            # 보통 바이어스: 양쪽 극단 억제 (danger/opportunity 모두 약간 감소)
+            danger = max(0, danger - int(5 * fb_strength))
+            opportunity = max(0, opportunity - int(5 * fb_strength))
 
         target = self._decide_target(current, ms, danger, opportunity)
 
@@ -798,7 +862,7 @@ class Orchestrator:
             self.state["switch_history"] = []
         self.state["switch_history"].append(switch_info)
         self.state["switch_history"] = self.state["switch_history"][-30:]
-        _save_state(self.state)
+        self._state_dirty = True
 
         print(
             f"[orchestrator] 워밍업 전환 시작: {switch_info['from']}→{switch_info['to']} "
@@ -866,7 +930,7 @@ class Orchestrator:
         self.state["transition_from"] = None
         self.state["transition_started"] = None
         self.state["transition_duration_min"] = None
-        _save_state(self.state)
+        self._state_dirty = True
 
     def _get_warmup_threshold(self, agent: "BaseStrategyAgent") -> int | None:
         """워밍업 전환 중이면 블렌딩된 매수 임계값을 반환한다.
@@ -1005,7 +1069,7 @@ class Orchestrator:
 
         return adjust
 
-    def _record_switch_to_db(self, switch_info: dict, market_state: dict) -> None:
+    def _record_switch_to_db(self, switch_info: dict, market_state: dict, btc_price: int = 0) -> None:
         """전환 이력을 Supabase에 기록한다."""
         from utils.machine import skip_trade_db
         if skip_trade_db("agent_switches"):
@@ -1028,17 +1092,18 @@ class Orchestrator:
                 _cycle_id = _dt.now(_tz(_td(hours=9))).strftime("%Y%m%d-%H%M") + "-agent"
 
             # 전환 시 BTC 가격 기록 (성과 평가에 필수)
-            btc_price = 0
-            try:
-                price_resp = requests.get(
-                    "https://api.upbit.com/v1/ticker",
-                    params={"markets": "KRW-BTC"},
-                    timeout=5,
-                )
-                data = price_resp.json()
-                btc_price = int(data[0]["trade_price"]) if data else 0
-            except Exception:
-                pass
+            # run()에서 전달받은 가격 사용 (중복 API 호출 제거)
+            if not btc_price:
+                try:
+                    price_resp = requests.get(
+                        "https://api.upbit.com/v1/ticker",
+                        params={"markets": "KRW-BTC"},
+                        timeout=5,
+                    )
+                    data = price_resp.json()
+                    btc_price = int(data[0]["trade_price"]) if data else 0
+                except Exception:
+                    pass
 
             row = {
                 "cycle_id": _cycle_id,
@@ -1085,6 +1150,7 @@ class Orchestrator:
             elif "보통" in content or "moderate" in content:
                 self.state["feedback_bias"] = "moderate"
                 self.state["feedback_bias_set_at"] = time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
+        self._state_dirty = True
 
     def _get_feedback_bias_strength(self) -> float:
         """피드백 바이어스의 감쇠된 강도를 반환한다 (7일 half-life).
@@ -1110,6 +1176,7 @@ class Orchestrator:
             if strength < 0.1:
                 self.state.pop("feedback_bias", None)
                 self.state.pop("feedback_bias_set_at", None)
+                self._state_dirty = True
                 return 0.0
             return strength
         except Exception:
@@ -1123,14 +1190,8 @@ class Orchestrator:
         - confidence_threshold_override: 높은 confidence만 매매 허용
         - min_trade_interval_override: 매매 간격 확대
         """
-        # force_hold_cycles 소진 (0보다 클 때만 차감 및 저장)
-        force_hold = self.state.get("force_hold_cycles", 0)
-        if force_hold > 0:
-            self.state["force_hold_cycles"] = force_hold - 1
-            # 0이 되면 키 정리
-            if self.state["force_hold_cycles"] == 0:
-                del self.state["force_hold_cycles"]
-            _save_state(self.state)
+        # force_hold_cycles: 차감은 run()에서 실제 관망 적용 후 수행
+        # (여기서 미리 차감하면 off-by-one 발생)
 
         # force_retrain 플래그는 continuous_learner가 소비
 
@@ -1206,6 +1267,9 @@ class Orchestrator:
         """
         # ── 1) 하락 속도: 4시간봉 기반 단기 가격 변동 ──
         candles_4h = market_data.get("candles_4h", [])
+        # Upbit API는 역순(최신 먼저) 반환 → 오름차순 정렬
+        if candles_4h and "candle_date_time_kst" in candles_4h[0]:
+            candles_4h = sorted(candles_4h, key=lambda c: c["candle_date_time_kst"])
         price_change_4h = 0.0
         price_change_12h = 0.0
         if len(candles_4h) >= 2:
@@ -1219,9 +1283,11 @@ class Orchestrator:
             if prev_3 > 0:
                 price_change_12h = (latest - prev_3) / prev_3 * 100
 
-        price_change_24h = market_data.get("change_rate_24h", 0) * 100
-        # fallback: ticker 구조도 지원
-        if price_change_24h is None or price_change_24h == 0:
+        raw_24h = market_data.get("change_rate_24h")
+        if raw_24h is not None:
+            price_change_24h = raw_24h * 100
+        else:
+            # fallback: ticker 구조도 지원
             price_change_24h = (
                 market_data.get("ticker", {}).get("signed_change_rate", 0) * 100
             )
@@ -1444,7 +1510,7 @@ class Orchestrator:
                 changed = True
 
         if changed:
-            _save_state(self.state)
+            self._state_dirty = True
 
     # ── 자동 긴급정지 시스템 ────────────────────────
 
@@ -1575,6 +1641,7 @@ class Orchestrator:
         market_data: dict,
         external_data: dict,
         portfolio: dict,
+        auto_em: dict | None = None,
     ) -> bool:
         """
         자동 긴급정지 해제 조건:
@@ -1585,7 +1652,8 @@ class Orchestrator:
         """
         from datetime import datetime, timedelta, timezone as tz
 
-        auto_em = self._check_auto_emergency_active()
+        if not auto_em:
+            auto_em = self._check_auto_emergency_active()
         if not auto_em:
             return False
 
@@ -1603,6 +1671,8 @@ class Orchestrator:
         # 현재 시장 상태 간이 평가
         # (full market_state는 아직 계산 전이므로 간이 지표 사용)
         candles = market_data.get("candles_4h", [])
+        if candles:
+            candles = sorted(candles, key=lambda c: c.get("candle_date_time_kst", ""))
         pc4h = 0.0
         if len(candles) >= 2:
             latest = candles[-1].get("trade_price", 0)

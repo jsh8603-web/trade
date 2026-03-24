@@ -30,7 +30,7 @@ UPDATE_ID_FILE = PROJECT_DIR / "data" / ".tg_update_id"
 def get_env_var(key: str) -> str:
     if not ENV_FILE.exists():
         return ""
-    with open(ENV_FILE, "r") as f:
+    with open(ENV_FILE, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line.startswith(f"{key}="):

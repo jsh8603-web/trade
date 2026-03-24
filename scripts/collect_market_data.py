@@ -429,5 +429,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        json.dump({"error": str(e)}, sys.stdout, ensure_ascii=False)
+        json.dump({"error": str(e)}, sys.stderr, ensure_ascii=False)
         sys.exit(1)

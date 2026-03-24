@@ -330,15 +330,30 @@ class TestEvaluateSell:
 
     # ── 기본 매도 조건 ──
 
+    def _v6_dc(self, **overrides):
+        """v6 매도 점수 테스트용 기본 drop_context."""
+        dc = {"v6_regime": "sideways", "v6_sma_deviation": 0,
+              "v6_change_24h": 0, "v6_danger_score": 0,
+              "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000,
+              "v6_position_peak": 0}
+        dc.update(overrides)
+        return dc
+
     def test_target_profit_sell(self, conservative):
+        """v6: 높은 수익률(16%) → sell_score >= sideways(55) → 매도."""
+        # profit 16% → 25pts, regime=sideways threshold=55
+        # RSI 75 → 20pts, FGI 80 → 20pts = 65 >= 55
         result = conservative.evaluate_sell(
-            profit_pct=16.0, current_fgi=50, current_rsi=50,
+            profit_pct=16.0, current_fgi=80, current_rsi=75,
             buy_score={}, ai_signal_score=0,
+            drop_context=self._v6_dc(),
         )
         assert result["action"] == "sell"
-        assert result["type"] == "target_profit"
+        assert result["type"] == "v6_sell_score"
 
     def test_target_profit_deferred_by_ai(self, conservative):
+        """v6: 매도 점수 충족 + AI 강세 → 1회 유예."""
         import json
         from pathlib import Path as _P
         sf = _P(__file__).resolve().parent.parent / "data" / "agent_state.json"
@@ -347,9 +362,11 @@ class TestEvaluateSell:
             st = json.loads(backup) if backup else {}
             st["deferred_target_profit"] = False
             sf.write_text(json.dumps(st, ensure_ascii=False, indent=2), encoding="utf-8")
+            # profit 16% → 25pts, RSI 75 → 20pts, FGI 80 → 20pts = 65 >= 55
             result = conservative.evaluate_sell(
-                profit_pct=16.0, current_fgi=50, current_rsi=50,
+                profit_pct=16.0, current_fgi=80, current_rsi=75,
                 buy_score={}, ai_signal_score=25,
+                drop_context=self._v6_dc(),
             )
             assert result["action"] == "hold_defer"
         finally:
@@ -358,40 +375,55 @@ class TestEvaluateSell:
 
     def test_target_profit_not_deferred_low_ai(self, conservative):
         """AI 시그널이 20 이하면 유예하지 않음."""
+        # profit 16% → 25pts, RSI 75 → 20pts, FGI 80 → 20pts = 65 >= 55
         result = conservative.evaluate_sell(
-            profit_pct=16.0, current_fgi=50, current_rsi=50,
+            profit_pct=16.0, current_fgi=80, current_rsi=75,
             buy_score={}, ai_signal_score=20,
+            drop_context=self._v6_dc(),
         )
         assert result["action"] == "sell"
 
     def test_fgi_overbought_sell(self, conservative):
+        """v6: FGI 80 + profit 5% → v6_sell_score."""
+        # profit 5% → 20pts, FGI 80 → 20pts, RSI 70 → 15pts = 55 >= 55
         result = conservative.evaluate_sell(
-            profit_pct=5.0, current_fgi=80, current_rsi=50,
+            profit_pct=5.0, current_fgi=80, current_rsi=70,
             buy_score={}, ai_signal_score=0,
+            drop_context=self._v6_dc(),
         )
-        assert result["type"] == "fgi_overbought"
+        assert result["type"] == "v6_sell_score"
 
     def test_fgi_at_exact_sell_threshold(self, conservative):
+        """v6: FGI 75 + profit 5% + RSI 70 → v6_sell_score."""
+        # profit 5% → 20pts, FGI 75 → 15pts, RSI 70 → 15pts = 50 < 55
+        # Need more: add danger
         result = conservative.evaluate_sell(
-            profit_pct=5.0, current_fgi=conservative.sell_fgi_threshold,
-            current_rsi=50, buy_score={}, ai_signal_score=0,
+            profit_pct=5.0, current_fgi=75, current_rsi=70,
+            buy_score={}, ai_signal_score=0,
+            drop_context=self._v6_dc(v6_danger_score=40),
         )
-        assert result["type"] == "fgi_overbought"
+        # 20 + 15 + 15 + 5(danger>=40) = 55 >= 55
+        assert result["type"] == "v6_sell_score"
 
     def test_fgi_below_sell_threshold(self, conservative):
+        """v6: 모든 신호 약하면 매도 점수 부족 → None."""
         result = conservative.evaluate_sell(
-            profit_pct=5.0, current_fgi=conservative.sell_fgi_threshold - 1,
-            current_rsi=50, buy_score={}, ai_signal_score=0,
+            profit_pct=2.0, current_fgi=50, current_rsi=50,
+            buy_score={}, ai_signal_score=0,
+            drop_context=self._v6_dc(),
         )
-        # RSI is below sell threshold too → no sell
+        # profit 2% → 0, FGI 50 → 0, RSI 50 → 0 = 0 < 55
         assert result is None
 
     def test_rsi_overbought_sell(self, conservative):
+        """v6: RSI 75 + profit 5% → v6_sell_score."""
+        # profit 5% → 20pts, RSI 75 → 20pts, FGI 70 → 15pts = 55 >= 55
         result = conservative.evaluate_sell(
-            profit_pct=5.0, current_fgi=50, current_rsi=75,
+            profit_pct=5.0, current_fgi=70, current_rsi=75,
             buy_score={}, ai_signal_score=0,
+            drop_context=self._v6_dc(),
         )
-        assert result["type"] == "rsi_overbought"
+        assert result["type"] == "v6_sell_score"
 
     def test_forced_stop_loss(self, conservative):
         result = conservative.evaluate_sell(
@@ -688,9 +720,10 @@ class TestCalculateTradeAmount:
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_aggressive_higher_ratio(self, aggressive):
+        """regime_trade_ratios sideways=0.1 → min(0.20, 0.10) = 0.10"""
         with patch.object(aggressive, '_is_weekend', return_value=False):
             amount = aggressive._calculate_trade_amount(500000)
-            assert amount == 100000  # 500000 * 0.2 = 100000
+            assert amount == 50000  # 500000 * min(0.20, 0.10) = 50000
 
 
 # ============================================================

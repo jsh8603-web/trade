@@ -112,7 +112,7 @@ def release_lock():
     try:
         # 안전한 해제: 현재 pid가 일치할 때만 해제 (필요에 따라 강제 해제 허용)
         if LOCK_FILE.exists():
-            data = json.loads(LOCK_FILE.read_text())
+            data = json.loads(LOCK_FILE.read_text(encoding="utf-8"))
             if data.get("pid") == os.getpid():
                 LOCK_FILE.unlink(missing_ok=True)
     except (json.JSONDecodeError, FileNotFoundError, PermissionError):

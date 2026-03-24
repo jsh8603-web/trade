@@ -45,7 +45,7 @@ KST = timezone(timedelta(hours=9))
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
-VALID_YEARS = [2018, 2019, 2020, 2021]
+VALID_YEARS = [2017, 2018, 2019, 2020, 2021]
 
 # ── 매매 시뮬레이션 파라미터 (에이전트 로직 기반) ──
 # Moderate agent 기준: buy_threshold=50, tp=+10%, sl=-5%

@@ -157,7 +157,7 @@ def db_insert(table: str, row: dict):
 def load_params() -> dict:
     """현재 파라미터 로드 (파일 → 기본값)"""
     if PARAM_FILE.exists():
-        with open(PARAM_FILE) as f:
+        with open(PARAM_FILE, encoding="utf-8") as f:
             return json.load(f)
     return {k: v["default"] for k, v in PARAM_RANGES.items()}
 
@@ -165,13 +165,13 @@ def load_params() -> dict:
 def save_params(params: dict):
     """파라미터 저장"""
     PARAM_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(PARAM_FILE, "w") as f:
+    with open(PARAM_FILE, "w", encoding="utf-8") as f:
         json.dump(params, f, indent=2)
 
 
 def load_history() -> list:
     if HISTORY_FILE.exists():
-        with open(HISTORY_FILE) as f:
+        with open(HISTORY_FILE, encoding="utf-8") as f:
             return json.load(f)
     return []
 
@@ -179,7 +179,7 @@ def load_history() -> list:
 def save_history(history: list):
     HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
     # 최근 200개만 유지
-    with open(HISTORY_FILE, "w") as f:
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
         json.dump(history[-200:], f, indent=2, default=str)
 
 
@@ -539,7 +539,7 @@ def deploy_params(params: dict):
         trader_script = str(PROJECT_DIR / "scripts" / "short_term_trader.py")
         log_path = str(PROJECT_DIR / "logs" / f"short_term_pc36_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
 
-        with open(log_path, "w") as log_f:
+        with open(log_path, "w", encoding="utf-8") as log_f:
             proc = subprocess.Popen(
                 [python, "-u", trader_script, "--dry-run"],
                 stdout=log_f, stderr=subprocess.STDOUT,

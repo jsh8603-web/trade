@@ -705,7 +705,7 @@ class TestOrchestratorClearTransition:
 
     @patch("agents.orchestrator._save_state")
     def test_clears_all_fields(self, mock_save):
-        """전환 필드 모두 None으로 초기화"""
+        """전환 필드 모두 None으로 초기화, _state_dirty 플래그 설정"""
         orch = _make_orchestrator(state_overrides={
             "transition_from": "conservative",
             "transition_started": _now_kst_iso(),
@@ -715,7 +715,7 @@ class TestOrchestratorClearTransition:
         assert orch.state["transition_from"] is None
         assert orch.state["transition_started"] is None
         assert orch.state["transition_duration_min"] is None
-        mock_save.assert_called()
+        assert orch._state_dirty is True  # batch save: _save_state 대신 dirty 플래그
 
 
 class TestOrchestratorGetWarmupThreshold:

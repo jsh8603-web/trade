@@ -125,14 +125,17 @@ class TestModerateBuy:
         """MACD 골든크로스 보너스로 매수 점수 도달."""
         md = _md(rsi=38, sma_deviation=-4.0, fgi=40, ai_score=5,
                  macd_histogram=1.0, signal_cross=True)
-        decision = agent.decide(md, _ext(strategy_bonus=5), _port())
+        # v8 레짐 감지: sma=-4, fgi=40 → bear (매수 차단). sideways 명시로 매수 허용.
+        decision = agent.decide(md, _ext(strategy_bonus=5), _port(),
+                                drop_context={"v6_regime": "sideways"})
         assert decision.decision == "buy"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_buy_without_macd_still_possible(self, agent):
         """MACD 없이도 다른 점수로 매수 가능."""
         md = _md(rsi=30, sma_deviation=-5.0, fgi=30, ai_score=5)
-        decision = agent.decide(md, _ext(strategy_bonus=10), _port())
+        decision = agent.decide(md, _ext(strategy_bonus=10), _port(),
+                                drop_context={"v6_regime": "sideways"})
         assert decision.decision == "buy"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
@@ -162,7 +165,8 @@ class TestModerateAiVeto:
     def test_ai_veto_fgi_above_20(self, agent):
         """AI 음수 + FGI > 20 → 보류."""
         md = _md(rsi=35, sma_deviation=-4.0, fgi=30, ai_score=-3)
-        decision = agent.decide(md, _ext(strategy_bonus=10), _port())
+        decision = agent.decide(md, _ext(strategy_bonus=10), _port(),
+                                drop_context={"v6_regime": "sideways"})
         assert decision.decision == "hold"
         assert decision._was_ai_vetoed is True
 
@@ -170,28 +174,32 @@ class TestModerateAiVeto:
     def test_ai_veto_override_fgi_20(self, agent):
         """FGI <= 20 → AI 거부권 무시."""
         md = _md(rsi=35, sma_deviation=-4.0, fgi=18, ai_score=-3)
-        decision = agent.decide(md, _ext(strategy_bonus=10), _port())
+        decision = agent.decide(md, _ext(strategy_bonus=10), _port(),
+                                drop_context={"v6_regime": "sideways"})
         assert decision.decision == "buy"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_ai_veto_boundary_fgi_20(self, agent):
         """FGI = 20 → 매수 허용."""
         md = _md(rsi=35, sma_deviation=-4.0, fgi=20, ai_score=-3)
-        decision = agent.decide(md, _ext(strategy_bonus=10), _port())
+        decision = agent.decide(md, _ext(strategy_bonus=10), _port(),
+                                drop_context={"v6_regime": "sideways"})
         assert decision.decision == "buy"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_ai_veto_boundary_fgi_21(self, agent):
         """FGI = 21 > 20 → AI 거부권 발동."""
         md = _md(rsi=35, sma_deviation=-4.0, fgi=21, ai_score=-3)
-        decision = agent.decide(md, _ext(strategy_bonus=10), _port())
+        decision = agent.decide(md, _ext(strategy_bonus=10), _port(),
+                                drop_context={"v6_regime": "sideways"})
         assert decision.decision == "hold"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_ai_positive_no_veto(self, agent):
         """AI 양수면 거부권 없음."""
         md = _md(rsi=35, sma_deviation=-4.0, fgi=30, ai_score=5)
-        decision = agent.decide(md, _ext(strategy_bonus=10), _port())
+        decision = agent.decide(md, _ext(strategy_bonus=10), _port(),
+                                drop_context={"v6_regime": "sideways"})
         assert decision.decision == "buy"
 
 
@@ -203,26 +211,37 @@ class TestModerateSell:
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_sell_lower_fgi_threshold(self, agent):
-        """Moderate: 매도 FGI 임계(70)가 Conservative(75)보다 낮음."""
-        md = _md(fgi=72, rsi=50)
+        """v6: FGI 72(15pts) + profit 3%(15pts) + RSI 70(15pts) + danger 40(5pts) = 50 + need more.
+        Use bear regime (threshold=45): 15+15+15 = 45 >= 45."""
+        md = _md(fgi=72, rsi=70)
         port = _port(btc_balance=0.01, profit_pct=3.0, total_eval=1000000)
-        decision = agent.decide(md, _ext(), port)
+        dc = {"v6_regime": "bear", "v6_sma_deviation": 0, "v6_change_24h": 0,
+              "v6_danger_score": 0, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
+        decision = agent.decide(md, _ext(), port, drop_context=dc)
         assert decision.decision == "sell"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_sell_lower_rsi_threshold(self, agent):
-        """Moderate: 매도 RSI 임계(65)."""
-        md = _md(fgi=50, rsi=66)
+        """v6: RSI 66(8pts) + profit 3%(15pts) + FGI 60(8pts) + danger 60(10pts) = 41.
+        Use bear threshold(45): add sma_dev=-2(15pts) = 56 >= 45."""
+        md = _md(fgi=60, rsi=66)
         port = _port(btc_balance=0.01, profit_pct=3.0, total_eval=1000000)
-        decision = agent.decide(md, _ext(), port)
+        dc = {"v6_regime": "bear", "v6_sma_deviation": -2.5, "v6_change_24h": 0,
+              "v6_danger_score": 60, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
+        decision = agent.decide(md, _ext(), port, drop_context=dc)
         assert decision.decision == "sell"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_target_profit_10pct(self, agent):
-        """목표 수익 10%."""
-        md = _md(fgi=50, rsi=50)
+        """v6: profit 11%(25pts) + RSI 75(20pts) + FGI 70(15pts) = 60 >= sideways(55)."""
+        md = _md(fgi=70, rsi=75)
         port = _port(btc_balance=0.01, profit_pct=11.0, total_eval=1000000)
-        decision = agent.decide(md, _ext(), port)
+        dc = {"v6_regime": "sideways", "v6_sma_deviation": 0, "v6_change_24h": 0,
+              "v6_danger_score": 0, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
+        decision = agent.decide(md, _ext(), port, drop_context=dc)
         assert decision.decision == "sell"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
@@ -246,7 +265,7 @@ class TestModerateSell:
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "500000"})
     def test_trade_ratio_15pct(self, agent):
-        """1회 매매 15%."""
+        """1회 매매: sideways 레짐 비율 10% 적용 (min(0.15, 0.10) = 0.10)."""
         with patch.object(agent, '_is_weekend', return_value=False):
             amount = agent._calculate_trade_amount(1000000)
-            assert amount == 150000
+            assert amount == 100000

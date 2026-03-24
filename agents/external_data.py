@@ -33,7 +33,7 @@ import subprocess
 try:
     from scripts.hide_console import subprocess_kwargs
 except ImportError:
-    subprocess_kwargs = {}
+    subprocess_kwargs = lambda: {}
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -333,6 +333,21 @@ class ExternalDataAgent:
     def __init__(self, snapshot_dir: Path | None = None):
         self.snapshot_dir = snapshot_dir
         self._saved_signal_id: str | None = None
+        # Supabase HTTP 세션 (connection reuse + keep-alive)
+        self._supa_session: requests.Session | None = None
+
+    def _get_supa_session(self) -> requests.Session:
+        """Supabase 전용 requests.Session을 반환한다 (재사용으로 TCP 핸드셰이크 절약)."""
+        if self._supa_session is None:
+            url = os.getenv("SUPABASE_URL", "")
+            key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+            self._supa_session = requests.Session()
+            self._supa_session.headers.update({
+                "apikey": key,
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json",
+            })
+        return self._supa_session
 
     @property
     def saved_signal_id(self) -> str | None:
@@ -848,15 +863,11 @@ class ExternalDataAgent:
         row = {k: v for k, v in row.items() if v is not None}
 
         try:
-            resp = requests.post(
+            sess = self._get_supa_session()
+            resp = sess.post(
                 f"{url}/rest/v1/external_signal_log",
                 json=row,
-                headers={
-                    "apikey": key,
-                    "Authorization": f"Bearer {key}",
-                    "Content-Type": "application/json",
-                    "Prefer": "return=representation",
-                },
+                headers={"Prefer": "return=representation"},
                 timeout=10,
             )
             if resp.status_code in (200, 201):
@@ -942,15 +953,11 @@ class ExternalDataAgent:
         row = {k: v for k, v in row.items() if v is not None}
 
         try:
-            resp = requests.post(
+            sess = self._get_supa_session()
+            resp = sess.post(
                 f"{url}/rest/v1/newsrang_signals",
                 json=row,
-                headers={
-                    "apikey": key,
-                    "Authorization": f"Bearer {key}",
-                    "Content-Type": "application/json",
-                    "Prefer": "return=minimal",
-                },
+                headers={"Prefer": "return=minimal"},
                 timeout=10,
             )
             if resp.status_code in (200, 201):

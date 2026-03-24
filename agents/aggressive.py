@@ -58,6 +58,16 @@ class AggressiveAgent(BaseStrategyAgent):
             external_bonus=external_bonus,
         )
 
+        # v6: 레짐 감지 (매도/DCA에서도 사용하므로 먼저 계산)
+        dc = drop_context or {}
+        regime = dc.get("v6_regime")
+        if not regime:
+            regime = self.detect_regime(
+                sma_deviation=ind["sma_deviation"],
+                fgi_value=fgi,
+                change_24h=ind.get("price_change_24h", 0),
+            )
+
         # 보유 중이면 매도 조건 먼저
         btc_holding = portfolio.get("btc", {})
         if btc_holding.get("balance", 0) > 0:
@@ -114,7 +124,7 @@ class AggressiveAgent(BaseStrategyAgent):
                         avg_price = market_data.get("current_price") or ind.get("current_price") or 0
                     dca_amount = max(0, min(
                         int(avg_price * btc_holding.get("balance", 0) * self.dca_max_ratio),
-                        self._calculate_trade_amount(total_krw, external_bonus),
+                        self._calculate_trade_amount(total_krw, external_bonus, regime=regime),
                     ))
                     if dca_amount < 5000:  # Upbit minimum order is 5000 KRW
                         return Decision(decision="hold", reason="DCA 금액 부족 (최소 5000원 미만)", confidence=0.3, buy_score=buy_score, trade_params={}, external_signal=external_signal, agent_name=f"{self.emoji} {self.name}")
@@ -140,8 +150,18 @@ class AggressiveAgent(BaseStrategyAgent):
 
         # 매수 판단 (공격적: AI 필터 완화)
         if buy_score["result"] == "buy":
+            # v6: Bear/Crisis 매수 차단
+            if regime in self.buy_blocked_regimes:
+                return Decision(
+                    decision="hold", confidence=0.7,
+                    reason=f"v6 {regime} 레짐 매수 차단 (점수 {buy_score['total']}점)",
+                    buy_score=buy_score, trade_params={},
+                    external_signal=external_signal,
+                    agent_name=f"{self.emoji} {self.name}",
+                )
+
             total_krw = portfolio.get("krw_balance", 0)
-            amount = self._calculate_trade_amount(total_krw, external_bonus)
+            amount = self._calculate_trade_amount(total_krw, external_bonus, regime=regime)
 
             return Decision(
                 decision="buy",

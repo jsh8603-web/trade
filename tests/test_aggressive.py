@@ -174,60 +174,81 @@ class TestAggressiveSell:
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_target_profit_7pct(self, agent):
-        """목표 수익 7%로 빠른 익절."""
-        md = _md(fgi=50, rsi=50)
+        """v6: profit 8%(25pts) + RSI 75(20pts) + FGI 70(15pts) = 60 >= sideways(55)."""
+        md = _md(fgi=70, rsi=75)
         port = _port(btc_balance=0.01, profit_pct=8.0, total_eval=1000000)
-        decision = agent.decide(md, _ext(), port)
+        dc = {"v6_regime": "sideways", "v6_sma_deviation": 0, "v6_change_24h": 0,
+              "v6_danger_score": 0, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
+        decision = agent.decide(md, _ext(), port, drop_context=dc)
         assert decision.decision == "sell"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_target_profit_boundary(self, agent):
-        """정확히 7.0% 시 매도."""
-        md = _md(fgi=50, rsi=50)
+        """v6: profit 7%(25pts) + RSI 75(20pts) + FGI 70(15pts) = 60 >= sideways(55)."""
+        md = _md(fgi=70, rsi=75)
         port = _port(btc_balance=0.01, profit_pct=7.0, total_eval=1000000)
-        decision = agent.decide(md, _ext(), port)
+        dc = {"v6_regime": "sideways", "v6_sma_deviation": 0, "v6_change_24h": 0,
+              "v6_danger_score": 0, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
+        decision = agent.decide(md, _ext(), port, drop_context=dc)
         assert decision.decision == "sell"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_target_profit_below(self, agent):
-        """6.9%는 목표 미달 → 매도 안 함 (다른 트리거 없을 때)."""
+        """v6: profit 6.9%(25pts) 단독으로는 sideways(55) 미달 → 매도 안 함."""
         md = _md(fgi=50, rsi=50)
         port = _port(btc_balance=0.01, profit_pct=6.9, total_eval=1000000)
-        decision = agent.decide(md, _ext(), port)
-        # No FGI/RSI trigger either
-        assert decision.decision != "sell" or "target_profit" not in decision.reason
+        dc = {"v6_regime": "sideways", "v6_sma_deviation": 0, "v6_change_24h": 0,
+              "v6_danger_score": 0, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
+        decision = agent.decide(md, _ext(), port, drop_context=dc)
+        # profit 5%+ → 20pts, FGI 50 → 0, RSI 50 → 0 = 20 < 55
+        assert decision.decision != "sell" or "v6_sell_score" not in decision.reason
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_forced_stop_7pct(self, agent):
-        """강제 손절 -7%."""
+        """강제 손절 -7% (aggressive forced_stop_loss_pct = -7)."""
         md = _md(fgi=50, rsi=50)
         port = _port(btc_balance=0.01, profit_pct=-8.0, total_eval=1000000)
-        decision = agent.decide(md, _ext(), port)
+        dc = {"v6_regime": "sideways", "v6_sma_deviation": 0, "v6_change_24h": 0,
+              "v6_danger_score": 0, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
+        decision = agent.decide(md, _ext(), port, drop_context=dc)
         assert decision.decision == "sell"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_stop_loss_3pct(self, agent):
-        """일반 손절 -3%."""
-        # FGI/RSI 높게 → 바닥 시그널 없음 → DCA 아닌 즉시 손절
+        """일반 손절 -3.5%: FGI/RSI 높아 바닥 시그널 없음 → 손절."""
         md = _md(fgi=80, rsi=75)
         port = _port(btc_balance=0.01, profit_pct=-3.5, total_eval=1000000)
-        decision = agent.decide(md, _ext(), port)
+        dc = {"v6_regime": "sideways", "v6_sma_deviation": 0, "v6_change_24h": 0,
+              "v6_danger_score": 0, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
+        decision = agent.decide(md, _ext(), port, drop_context=dc)
         assert decision.decision == "sell"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_sell_lower_fgi_threshold(self, agent):
-        """FGI 65에서 과열 매도."""
-        md = _md(fgi=66, rsi=50)
+        """v6: FGI 66(8pts) + profit 3%(15pts) + RSI 65(8pts) + danger 60(10pts) = 41.
+        With bear regime threshold(45): add sma_dev=-2(15pts) = 56 >= 45."""
+        md = _md(fgi=66, rsi=65)
         port = _port(btc_balance=0.01, profit_pct=3.0, total_eval=1000000)
-        decision = agent.decide(md, _ext(), port)
+        dc = {"v6_regime": "bear", "v6_sma_deviation": -2.5, "v6_change_24h": 0,
+              "v6_danger_score": 60, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
+        decision = agent.decide(md, _ext(), port, drop_context=dc)
         assert decision.decision == "sell"
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "100000"})
     def test_sell_lower_rsi_threshold(self, agent):
-        """RSI 60에서 과매수 매도."""
-        md = _md(fgi=50, rsi=62)
+        """v6: RSI 65(8pts) + profit 3%(15pts) + FGI 60(8pts) + danger 60(10pts) + sma_dev(15pts) = 56 >= bear(45)."""
+        md = _md(fgi=60, rsi=65)
         port = _port(btc_balance=0.01, profit_pct=3.0, total_eval=1000000)
-        decision = agent.decide(md, _ext(), port)
+        dc = {"v6_regime": "bear", "v6_sma_deviation": -2.5, "v6_change_24h": 0,
+              "v6_danger_score": 60, "v6_macro_score": 0, "v6_kimchi_pct": 0,
+              "v6_news_negative": False, "v6_current_price": 50000000, "v6_position_peak": 0}
+        decision = agent.decide(md, _ext(), port, drop_context=dc)
         assert decision.decision == "sell"
 
 
@@ -239,17 +260,18 @@ class TestAggressiveTrading:
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "500000"})
     def test_trade_ratio_20pct(self, agent):
+        """regime_trade_ratios sideways=0.1 → min(0.20, 0.10) = 0.10"""
         with patch.object(agent, '_is_weekend', return_value=False):
             amount = agent._calculate_trade_amount(1000000)
-            assert amount == 200000
+            assert amount == 100000  # sideways 레짐 기본
 
     @patch.dict(os.environ, {"MAX_TRADE_AMOUNT": "500000"})
     def test_no_weekend_reduction(self, agent):
         """Aggressive는 주말 축소 없음."""
         with patch.object(agent, '_is_weekend', return_value=True):
             amount = agent._calculate_trade_amount(1000000, external_bonus=0)
-            # weekend_reduction = 0.0, so no change
-            assert amount == 200000
+            # weekend_reduction = 0.0, regime sideways=0.1
+            assert amount == 100000
 
 
 # ============================================================
