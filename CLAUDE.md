@@ -132,6 +132,9 @@ claude-coin-trading/
 │   ├── collect_ai_signal.py       # AI 복합 시그널 수집 (6가지 실시간 분석)
 │   ├── short_term_trader.py       # AI 단타 트레이딩 봇 (뉴스/급등급락/고래 3전략)
 │   ├── notify_telegram.py         # 텔레그램 알림 전송
+│   ├── minirang.py                # 미니랑(MiniRang) — Computer Use 에이전트 (OAuth, 무료)
+│   ├── minirang_executor.py       # 미니랑 Executor — cliclick/screencapture macOS 조작
+│   ├── run_minirang.sh            # 미니랑 실행 래퍼
 │   ├── run_analysis.sh            # LLM 프롬프트 파이프라인 (레거시)
 │   ├── run_agents.sh              # 에이전트 모드 파이프라인 (신규)
 │   ├── cron_run.sh                # cron 실행 래퍼 (로깅, 에러 알림)
@@ -141,6 +144,8 @@ claude-coin-trading/
 │       └── decision_result.json   # 매매 결정 JSON 스키마
 ├── data/
 │   ├── agent_state.json           # 에이전트 상태 (활성 전략, 전환 이력)
+│   ├── minirang_state.json        # 미니랑 상태
+│   ├── minirang_screenshots/      # 미니랑 스크린샷 캐시
 │   ├── charts/                    # 캡처된 차트 이미지
 │   └── snapshots/                 # 실행 시점 데이터 스냅샷
 ├── logs/

@@ -45,7 +45,18 @@ fi
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 SNAPSHOT_DIR="data/snapshots/${TIMESTAMP}"
-mkdir -p "$SNAPSHOT_DIR" "logs/executions"
+LOG_EXEC_DIR="logs/executions"
+mkdir -p "$SNAPSHOT_DIR" "$LOG_EXEC_DIR" 2>/dev/null
+# 외장하드 심볼릭 쓰기 불가 시 /tmp fallback
+if ! touch "$SNAPSHOT_DIR/.write_test" 2>/dev/null; then
+    SNAPSHOT_DIR="/tmp/blockchain_logs/snapshots/${TIMESTAMP}"
+    mkdir -p "$SNAPSHOT_DIR"
+fi
+rm -f "$SNAPSHOT_DIR/.write_test" 2>/dev/null
+if ! touch "$LOG_EXEC_DIR/.write_test" 2>/dev/null; then
+    mkdir -p "/tmp/blockchain_logs/executions"
+fi
+rm -f "$LOG_EXEC_DIR/.write_test" 2>/dev/null
 
 echo "[$(date)] 데이터 수집 시작..." >&2
 

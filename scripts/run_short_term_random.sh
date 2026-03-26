@@ -40,8 +40,15 @@ RANDOM_WAIT_M=$(((RANDOM_WAIT % 3600) / 60))
 
 START_TIME=$(date -v+${RANDOM_WAIT}S '+%H:%M' 2>/dev/null || date -d "+${RANDOM_WAIT} seconds" '+%H:%M' 2>/dev/null || echo "??:??")
 
-LOG_FILE="logs/short_term/random_$(date +%Y%m%d).log"
-mkdir -p logs/short_term
+LOG_DIR="logs/short_term"
+mkdir -p "$LOG_DIR" 2>/dev/null
+# 외장하드 심볼릭 쓰기 불가 시 /tmp fallback
+if ! touch "$LOG_DIR/.write_test" 2>/dev/null; then
+    LOG_DIR="/tmp/blockchain_logs/short_term"
+    mkdir -p "$LOG_DIR"
+fi
+rm -f "$LOG_DIR/.write_test" 2>/dev/null
+LOG_FILE="${LOG_DIR}/random_$(date +%Y%m%d).log"
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] 랜덤 단타 스케줄러 시작" | tee -a "$LOG_FILE"
 echo "  대기: ${RANDOM_WAIT_H}시간 ${RANDOM_WAIT_M}분 → 예상 시작: ${START_TIME}" | tee -a "$LOG_FILE"

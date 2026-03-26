@@ -60,7 +60,22 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 CYCLE_ID="$(date +%Y%m%d-%H%M)-agent"
 SNAPSHOT_DIR="data/snapshots/${TIMESTAMP}"
 LOG_DIR="logs/executions"
-mkdir -p "$SNAPSHOT_DIR" "$LOG_DIR"
+mkdir -p "$SNAPSHOT_DIR" "$LOG_DIR" 2>/dev/null
+
+# 외장하드 심볼릭 쓰기 불가 시 /tmp fallback
+if ! touch "$SNAPSHOT_DIR/.write_test" 2>/dev/null; then
+    SNAPSHOT_DIR="/tmp/blockchain_logs/snapshots/${TIMESTAMP}"
+    mkdir -p "$SNAPSHOT_DIR"
+    echo "[WARN] data/snapshots 쓰기 불가 → /tmp fallback: $SNAPSHOT_DIR" >&2
+fi
+rm -f "$SNAPSHOT_DIR/.write_test" 2>/dev/null
+
+if ! touch "$LOG_DIR/.write_test" 2>/dev/null; then
+    LOG_DIR="/tmp/blockchain_logs/executions"
+    mkdir -p "$LOG_DIR"
+    echo "[WARN] logs/executions 쓰기 불가 → /tmp fallback: $LOG_DIR" >&2
+fi
+rm -f "$LOG_DIR/.write_test" 2>/dev/null
 
 echo "[$(date)] ═══ 에이전트 모드 시작 ═══" >&2
 
