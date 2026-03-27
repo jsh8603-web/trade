@@ -43,9 +43,14 @@ $PYTHON scripts/scalp_retrospective.py >> "$LOG_FILE" 2>&1 || true
 echo "[$(date '+%H:%M:%S')] DB 정리 실행" >> "$LOG_FILE"
 $PYTHON scripts/db_cleanup.py >> "$LOG_FILE" 2>&1 || true
 
+# 3. 메모리 시스템 유지보수 (decay + consolidate)
+echo "[$(date '+%H:%M:%S')] 메모리 decay 실행" >> "$LOG_FILE"
+$PYTHON scripts/memory.py decay >> "$LOG_FILE" 2>&1 || true
+$PYTHON scripts/memory.py consolidate >> "$LOG_FILE" 2>&1 || true
+
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] 일일 유지보수 완료" >> "$LOG_FILE"
 
-# 3. 브라우저/시스템 캐시 정리 (04:30 실행 시만)
+# 4. 브라우저/시스템 캐시 정리 (04:30 실행 시만)
 CURRENT_HOUR=$(date +%H)
 if [ "$CURRENT_HOUR" = "04" ]; then
   echo "[$(date '+%H:%M:%S')] 캐시 정리 실행" >> "$LOG_FILE"
