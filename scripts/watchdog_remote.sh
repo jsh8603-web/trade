@@ -54,8 +54,11 @@ TARGET_RC_COUNT=1        # RC 세션 1개 안정 유지
 ESCALATION_PAUSE_SEC=1800  # 30분 (수동 개입 대기)
 REVIVE_INTERVAL=3600       # 1시간마다 강제 RC 부활
 REVIVE_TS_FILE="$PROJECT_DIR/data/.rc_revive_ts"
+SCREEN_HASH_DIR="$PROJECT_DIR/data/.rc_screen_hashes"
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+mkdir -p "$SCREEN_HASH_DIR"
 
 mkdir -p "$(dirname "$LOG_FILE")" "$PROJECT_DIR/data"
 
@@ -128,6 +131,42 @@ increment_healthy_count() {
 
 reset_healthy_count() {
     echo "0" > "$HEALTHY_COUNT_FILE"
+}
+
+# ─── 세션 활동 감지: 작업 중이면 kill/restart 차단 ───
+# 반환: 0=작업중(보호), 1=idle(재시작 가능)
+is_session_busy() {
+    local win="$1"
+    local screen
+    screen=$(tmux capture-pane -t "$TMUX_SESSION:$win" -p 2>/dev/null)
+
+    # 1) Claude가 응답 생성 중 (상태 표시 + 시간 패턴 감지)
+    #    예: "✶ Cooking… (2m 32s", "✳ Moseying… (1m 15s", "⏳ Thinking…"
+    if echo "$screen" | grep -qE 'Cooking|Thinking|Running…|Generating|Streaming|Moseying|Ambling|Strolling|Pondering|[✶✳⏳☵].*\(.*[0-9]+[ms]'; then
+        log "PROTECT: Window $win is busy (Claude generating)"
+        return 0
+    fi
+
+    # 2) 도구 실행 중 (Bash, Read, Edit, Agent 등)
+    if echo "$screen" | grep -qE '⎿\s+Running|Bash\(|Read\(|Edit\(|Agent\(|Write\('; then
+        log "PROTECT: Window $win is busy (tool executing)"
+        return 0
+    fi
+
+    # 3) 사용자가 입력 중 (프롬프트에 텍스트가 있음)
+    # ❯ 뒤에 공백 아닌 문자가 있으면 입력 중
+    if echo "$screen" | grep -qE '❯\s+\S'; then
+        log "PROTECT: Window $win is busy (user typing)"
+        return 0
+    fi
+
+    # 4) 컨텍스트 압축 중
+    if echo "$screen" | grep -qE 'Compressing|compacting'; then
+        log "PROTECT: Window $win is busy (context compressing)"
+        return 0
+    fi
+
+    return 1  # idle — 재시작 가능
 }
 
 # ─── 에스컬레이션: 진단 정보 수집 ───
@@ -440,26 +479,25 @@ check_oauth() {
         return 1
     fi
 
-    # 2차: 감시 대상 세션의 디버그 로그에서 Transport 상태 확인
-    # 감시 윈도우의 Claude PID 기반으로 해당 세션의 디버그 로그 찾기
-    local PANE_PID CLAUDE_PID session_id latest_debug
-    PANE_PID=$(tmux list-panes -t "$TMUX_SESSION:$TMUX_WINDOW" -F '#{pane_pid}' 2>/dev/null)
-    [ -z "$PANE_PID" ] && return 1
-
-    # 해당 세션의 디버그 로그에서 Transport 확인
-    # 최신 로그 파일 2개를 확인 (세션 로그 매핑이 어려우므로)
+    # 2차: 디버그 로그에서 Transport 상태 확인 (로그 파일이 있을 때만)
     local transport_errors=0
-    for f in $(ls -t ~/.claude/debug/*.txt 2>/dev/null | head -3); do
-        local count
-        count=$(tail -30 "$f" 2>/dev/null | grep -c "Transport not configured")
-        transport_errors=$((transport_errors + count))
-    done
+    local debug_files
+    debug_files=$(ls -t ~/.claude/debug/*.txt 2>/dev/null | head -3)
+    if [ -n "$debug_files" ]; then
+        for f in $debug_files; do
+            local count
+            count=$(tail -30 "$f" 2>/dev/null | grep -c "Transport not configured")
+            transport_errors=$((transport_errors + count))
+        done
 
-    if [ "$transport_errors" -gt 5 ]; then
-        log "DIAG: Transport not configured detected ($transport_errors recent errors)"
-        return 1  # OAuth/Transport 문제
+        if [ "$transport_errors" -gt 5 ]; then
+            log "DIAG: Transport not configured detected ($transport_errors recent errors)"
+            return 1  # OAuth/Transport 문제
+        fi
     fi
-    return 0  # OK
+
+    # 키체인 OK + 디버그 로그 문제 없음 (또는 로그 없음) → OK
+    return 0
 }
 
 # ─── OAuth 재로그인 시도 ───
@@ -491,10 +529,11 @@ health_check() {
     fi
 
     # Layer 2: Claude 프로세스 살아있나?
+    # NOTE: macOS pgrep -P는 프로세스 그룹 리더를 못 찾는 버그 있음 → ps 기반으로 검색
     local PANE_PID CLAUDE_PID
     PANE_PID=$(tmux list-panes -t "$TMUX_SESSION:$TMUX_WINDOW" -F '#{pane_pid}' 2>/dev/null)
     if [ -n "$PANE_PID" ]; then
-        CLAUDE_PID=$(pgrep -P "$PANE_PID" -f "claude" 2>/dev/null | head -1)
+        CLAUDE_PID=$(ps -eo pid=,ppid=,comm= 2>/dev/null | awk -v ppid="$PANE_PID" '$2 == ppid && $3 == "claude" {print $1; exit}')
         if [ -z "$CLAUDE_PID" ]; then
             echo "no_claude"
             return
@@ -526,19 +565,17 @@ health_check() {
         return
     fi
 
-    # Layer 4: 좀비 감지 — "active"인데 실제로 살아있는지 확인
-    # 방법: 상태바(status line)의 마지막 갱신 시간으로 판단
-    # Claude가 실제 동작 중이면 상태바가 주기적으로 갱신됨
-    # 프로세스의 CPU 사용률로 좀비 판단 (완전 멈추면 0%)
+    # Layer 4: 좀비 감지 — "active"인데 실제로 살아있는지 다각도 확인
+    # 4a: 프로세스 존재 확인
     local cpu_usage
     cpu_usage=$(ps -p "$CLAUDE_PID" -o %cpu= 2>/dev/null | tr -d ' ')
     if [ -z "$cpu_usage" ]; then
+        log "WARN: Claude PID $CLAUDE_PID disappeared — zombie"
         echo "zombie"
         return
     fi
 
-    # Claude 프로세스가 존재하고, RC active 텍스트가 있고, 프로세스도 살아있음
-    # 추가 검증: 마지막 keepalive 이후 너무 오래됐으면 의심
+    # 4b: keepalive 경과 시간 체크
     local last_ping now elapsed
     last_ping=0
     [ -f "$KEEPALIVE_FILE" ] && last_ping=$(cat "$KEEPALIVE_FILE" 2>/dev/null)
@@ -556,6 +593,30 @@ health_check() {
     # 마지막 keepalive가 15분 이상 전이면 좀비 의심
     if [ "$elapsed" -gt 900 ]; then
         log "WARN: Last keepalive was ${elapsed}s ago — possible zombie"
+        echo "zombie"
+        return
+    fi
+
+    # 4c: 화면 해시 비교 — 화면이 3회 연속(12분+) 동일하면 좀비
+    # (정상 RC는 idle에서도 시계/상태줄이 갱신됨)
+    local screen_hash hash_file prev_hash prev_count
+    screen_hash=$(echo "$screen" | grep -v '^$' | tail -20 | md5 -q 2>/dev/null || echo "$screen" | grep -v '^$' | tail -20 | md5sum 2>/dev/null | cut -d' ' -f1)
+    hash_file="$SCREEN_HASH_DIR/main_${TMUX_WINDOW}"
+    prev_hash=""
+    prev_count=0
+    if [ -f "$hash_file" ]; then
+        prev_hash=$(head -1 "$hash_file" 2>/dev/null)
+        prev_count=$(tail -1 "$hash_file" 2>/dev/null)
+        [ -z "$prev_count" ] && prev_count=0
+    fi
+    if [ "$screen_hash" = "$prev_hash" ]; then
+        prev_count=$((prev_count + 1))
+    else
+        prev_count=0
+    fi
+    printf '%s\n%s\n' "$screen_hash" "$prev_count" > "$hash_file"
+    if [ "$prev_count" -ge 3 ]; then
+        log "WARN: Screen unchanged for $prev_count checks (hash=$screen_hash) — frozen zombie"
         echo "zombie"
         return
     fi
@@ -593,14 +654,26 @@ send_keepalive() {
 # 핵심 패턴: 기존 윈도우 정리 → 새 tmux 윈도우 → Claude --continue → /remote-control → URL 텔레그램 전송
 fast_restart() {
     local reason="$1"
-    log "ACTION: Fast restart ($reason)"
+    log "ACTION: Fast restart requested ($reason)"
+
+    # ──── 활동 보호: 작업 중이면 재시작 차단 ────
+    if [ -n "$TMUX_WINDOW" ] && is_session_busy "$TMUX_WINDOW"; then
+        log "BLOCKED: Fast restart skipped — session is actively working"
+        send_telegram "⏸️ RC 재시작 보류 — 세션이 작업 중
+이유: $reason
+다음 체크 때 재시도합니다"
+        return 2  # 2 = 보호로 인한 스킵
+    fi
+
+    # 0) 화면 해시 파일 정리 (좀비 판별 카운터 리셋)
+    rm -f "$SCREEN_HASH_DIR/main_${TMUX_WINDOW}" "$SCREEN_HASH_DIR/win_${TMUX_WINDOW}" 2>/dev/null
 
     # 1) 기존 rc 윈도우 정리 — Claude 프로세스 kill + 윈도우 삭제
     if [ -n "$TMUX_WINDOW" ] && tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}:#{window_name}' 2>/dev/null | grep -qE "(^${TMUX_WINDOW}:|:${TMUX_WINDOW}$)"; then
         local PANE_PID CLAUDE_PIDS
         PANE_PID=$(tmux list-panes -t "$TMUX_SESSION:$TMUX_WINDOW" -F '#{pane_pid}' 2>/dev/null)
         if [ -n "$PANE_PID" ]; then
-            CLAUDE_PIDS=$(pgrep -P "$PANE_PID" 2>/dev/null)
+            CLAUDE_PIDS=$(ps -eo pid=,ppid= 2>/dev/null | awk -v ppid="$PANE_PID" '$2 == ppid {print $1}')
             if [ -n "$CLAUDE_PIDS" ]; then
                 echo "$CLAUDE_PIDS" | xargs kill -9 2>/dev/null
                 log "OK: Killed processes: $CLAUDE_PIDS"
@@ -675,7 +748,7 @@ fast_restart() {
         # Claude가 살아있으면 RC만 재시도
         local pane_pid has_claude=false
         pane_pid=$(tmux list-panes -t "$TMUX_SESSION:$rc_time_label" -F '#{pane_pid}' 2>/dev/null)
-        if [ -n "$pane_pid" ] && pgrep -P "$pane_pid" > /dev/null 2>&1; then
+        if [ -n "$pane_pid" ] && ps -eo ppid= 2>/dev/null | grep -qw "$pane_pid"; then
             has_claude=true
         fi
 
@@ -701,7 +774,7 @@ fast_restart() {
     local pane_pid
     pane_pid=$(tmux list-panes -t "$TMUX_SESSION:$rc_time_label" -F '#{pane_pid}' 2>/dev/null)
     if [ -n "$pane_pid" ]; then
-        pgrep -P "$pane_pid" 2>/dev/null | xargs kill -9 2>/dev/null
+        ps -eo pid=,ppid= 2>/dev/null | awk -v ppid="$pane_pid" '$2 == ppid {print $1}' | xargs kill -9 2>/dev/null
     fi
     tmux kill-window -t "$TMUX_SESSION:$rc_time_label" 2>/dev/null
 
@@ -819,7 +892,7 @@ cleanup_dead_sessions() {
             fi
 
             # 쉘은 살아있는데 claude 자식 프로세스가 없으면 = 빈 윈도우
-            child_claude=$(pgrep -P "$pane_pid" -f "claude" 2>/dev/null | head -1)
+            child_claude=$(ps -eo pid=,ppid=,comm= 2>/dev/null | awk -v ppid="$pane_pid" '$2 == ppid && $3 == "claude" {print $1; exit}')
             if [ -z "$child_claude" ]; then
                 # RC 윈도우(현재 감시 대상)가 아닌 빈 claude 윈도우만 정리
                 if [ "$idx" != "$TMUX_WINDOW" ]; then
@@ -858,7 +931,7 @@ has_live_rc_session() {
             # RC active 텍스트가 있고, claude 프로세스도 살아있는지 확인
             local pane_pid child_claude
             pane_pid=$(tmux list-panes -t "${TMUX_SESSION}:${idx}" -F '#{pane_pid}' 2>/dev/null | head -1)
-            child_claude=$(pgrep -P "$pane_pid" -f "claude" 2>/dev/null | head -1)
+            child_claude=$(ps -eo pid=,ppid=,comm= 2>/dev/null | awk -v ppid="$pane_pid" '$2 == ppid && $3 == "claude" {print $1; exit}')
 
             if [ -n "$child_claude" ] && is_claude_alive "$child_claude"; then
                 log "CHECK: Live RC session found at window ${idx}:${name} (PID=$child_claude)"
@@ -925,10 +998,11 @@ check_rc_window_health() {
     local win_idx="$1"
 
     # Claude 프로세스 살아있나?
+    # NOTE: macOS pgrep -P는 프로세스 그룹 리더를 못 찾는 버그 있음 → ps 기반으로 검색
     local pane_pid claude_pid
     pane_pid=$(tmux list-panes -t "$TMUX_SESSION:$win_idx" -F '#{pane_pid}' 2>/dev/null)
     if [ -n "$pane_pid" ]; then
-        claude_pid=$(pgrep -P "$pane_pid" -f "claude" 2>/dev/null | head -1)
+        claude_pid=$(ps -eo pid=,ppid=,comm= 2>/dev/null | awk -v ppid="$pane_pid" '$2 == ppid && $3 == "claude" {print $1; exit}')
         if [ -z "$claude_pid" ]; then
             echo "no_claude"
             return
@@ -959,10 +1033,50 @@ check_rc_window_health() {
         return
     fi
 
-    # 좀비 감지
+    # 좀비 감지 — 다각도 확인
+
+    # 1) 프로세스 존재 확인
     local cpu_usage
     cpu_usage=$(ps -p "$claude_pid" -o %cpu= 2>/dev/null | tr -d ' ')
     if [ -z "$cpu_usage" ]; then
+        log "WARN: Window $win_idx Claude PID $claude_pid disappeared — zombie"
+        echo "zombie"
+        return
+    fi
+
+    # 2) keepalive 경과 시간 체크 (health_check와 동일 기준)
+    local last_ping now elapsed
+    last_ping=0
+    [ -f "$KEEPALIVE_FILE" ] && last_ping=$(cat "$KEEPALIVE_FILE" 2>/dev/null)
+    now=$(date +%s)
+    if [ "$last_ping" -gt 0 ] 2>/dev/null && [ -n "$last_ping" ]; then
+        elapsed=$((now - last_ping))
+        if [ "$elapsed" -gt 900 ]; then
+            log "WARN: Window $win_idx keepalive ${elapsed}s ago — possible zombie"
+            echo "zombie"
+            return
+        fi
+    fi
+
+    # 3) 화면 해시 비교 — 3회 연속 동일하면 좀비
+    local screen_hash hash_file prev_hash prev_count
+    screen_hash=$(echo "$screen" | grep -v '^$' | tail -20 | md5 -q 2>/dev/null || echo "$screen" | grep -v '^$' | tail -20 | md5sum 2>/dev/null | cut -d' ' -f1)
+    hash_file="$SCREEN_HASH_DIR/win_${win_idx}"
+    prev_hash=""
+    prev_count=0
+    if [ -f "$hash_file" ]; then
+        prev_hash=$(head -1 "$hash_file" 2>/dev/null)
+        prev_count=$(tail -1 "$hash_file" 2>/dev/null)
+        [ -z "$prev_count" ] && prev_count=0
+    fi
+    if [ "$screen_hash" = "$prev_hash" ]; then
+        prev_count=$((prev_count + 1))
+    else
+        prev_count=0
+    fi
+    printf '%s\n%s\n' "$screen_hash" "$prev_count" > "$hash_file"
+    if [ "$prev_count" -ge 3 ]; then
+        log "WARN: Window $win_idx screen frozen for $prev_count checks — zombie"
         echo "zombie"
         return
     fi
@@ -1023,7 +1137,7 @@ create_new_rc_session() {
         local pane_pid
         pane_pid=$(tmux list-panes -t "$TMUX_SESSION:$win_name" -F '#{pane_pid}' 2>/dev/null)
         if [ -n "$pane_pid" ]; then
-            pgrep -P "$pane_pid" 2>/dev/null | xargs kill -9 2>/dev/null
+            ps -eo pid=,ppid= 2>/dev/null | awk -v ppid="$pane_pid" '$2 == ppid {print $1}' | xargs kill -9 2>/dev/null
         fi
         tmux kill-window -t "$TMUX_SESSION:$win_name" 2>/dev/null
         return 1
@@ -1054,7 +1168,7 @@ create_new_rc_session() {
         local pane_pid
         pane_pid=$(tmux list-panes -t "$TMUX_SESSION:$win_name" -F '#{pane_pid}' 2>/dev/null)
         if [ -n "$pane_pid" ]; then
-            pgrep -P "$pane_pid" 2>/dev/null | xargs kill -9 2>/dev/null
+            ps -eo pid=,ppid= 2>/dev/null | awk -v ppid="$pane_pid" '$2 == ppid {print $1}' | xargs kill -9 2>/dev/null
         fi
         tmux kill-window -t "$TMUX_SESSION:$win_name" 2>/dev/null
         return 1
@@ -1082,9 +1196,15 @@ if [ "$REVIVE_ELAPSED" -ge "$REVIVE_INTERVAL" ]; then
     # 기존 RC 윈도우 찾기
     TMUX_WINDOW=$(find_rc_window "$TMUX_SESSION")
     fast_restart "hourly forced revive"
+    restart_result=$?
 
-    # 타임스탬프는 fast_restart 성공 후 기록
-    echo "$(date +%s)" > "$REVIVE_TS_FILE"
+    if [ "$restart_result" -eq 2 ]; then
+        # 세션 보호로 스킵됨 — 타임스탬프 갱신하지 않고 다음 체크에서 재시도
+        log "REVIVE: Deferred — session busy, will retry next cycle"
+    else
+        # 성공 또는 실패 — 타임스탬프 기록
+        echo "$(date +%s)" > "$REVIVE_TS_FILE"
+    fi
 
     # 부활 완료 → 나머지 체크 건너뜀
     exit 0
@@ -1174,6 +1294,11 @@ for sick_entry in "${SICK_RC_WINDOWS[@]}"; do
     case "$sick_status" in
         no_rc)
             # Claude는 살아있는데 RC가 없음 → /remote-control 시도 (윈도우 재사용)
+            # 단, 작업 중이면 건드리지 않음
+            if is_session_busy "$sick_idx"; then
+                log "PROTECT: Window $sick_idx ($sick_name): no RC but session busy — skipping"
+                continue
+            fi
             log "WARN: Window $sick_idx ($sick_name): no RC — trying /remote-control"
             dismiss_rating_prompt 2>/dev/null
             tmux send-keys -t "$TMUX_SESSION:$sick_idx" "/remote-control" Enter
