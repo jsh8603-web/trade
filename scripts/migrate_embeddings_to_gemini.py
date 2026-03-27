@@ -26,7 +26,7 @@ import requests
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-PROJECT_REF = "REDACTED_PROJECT_REF"
+PROJECT_REF = os.getenv("SUPABASE_PROJECT_REF", "")
 
 # 실매매 소스만 (훈련 데이터 제외)
 REAL_TRADE_SOURCES = ["agent", "short_term", "llm", "manual", "agent+rl"]

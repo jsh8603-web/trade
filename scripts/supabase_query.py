@@ -35,7 +35,7 @@ except ImportError:
     print("requests 패키지 필요: pip install requests", file=sys.stderr)
     sys.exit(1)
 
-PROJECT_REF = "REDACTED_PROJECT_REF"
+PROJECT_REF = os.environ.get("SUPABASE_PROJECT_REF", "")
 API_URL = f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query"
 
 
