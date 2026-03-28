@@ -66,11 +66,14 @@ RESPONSE_FILE="${RESPONSE_DIR}/${TIMESTAMP}.txt"
 
 echo "[$(date)] === cron 실행 시작 ===" > "$LOG_FILE"
 
+# 머신 이름 (텔레그램 에러 메시지에 포함)
+MACHINE_NAME="${MACHINE_NAME:-$("$PYTHON" -c "from utils.machine import get_machine_name; print(get_machine_name())" 2>/dev/null || hostname -s)}"
+
 # 에러 발생 시 텔레그램 알림
 notify_error() {
   local msg="$1"
   echo "[$(date)] ERROR: ${msg}" >> "$LOG_FILE"
-  "$PYTHON" scripts/notify_telegram.py error "cron 실행 오류" "$msg" 2>/dev/null || true
+  "$PYTHON" scripts/notify_telegram.py error "cron 실행 오류 [${MACHINE_NAME}]" "$msg" 2>/dev/null || true
 }
 
 # ══════════════════════════════════════════════════════════

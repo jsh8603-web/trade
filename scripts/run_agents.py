@@ -336,8 +336,10 @@ def notify_error(msg: str, detail: str):
     try:
         import subprocess
         from scripts.hide_console import subprocess_kwargs
+        from utils.machine import get_machine_name
+        tagged_msg = f"{msg} [{get_machine_name()}]"
         subprocess.run(
-            [sys.executable, "scripts/notify_telegram.py", "error", msg, detail],
+            [sys.executable, "scripts/notify_telegram.py", "error", tagged_msg, detail],
             cwd=str(PROJECT_DIR),
             check=False,
             capture_output=True,
@@ -878,7 +880,9 @@ def main():
         except Exception:
             pass
 
-    summary_msg = f"[{agent_name}] {decision.upper()} 결정 ({confidence}%)"
+    from utils.machine import get_machine_name
+    machine_tag = get_machine_name()
+    summary_msg = f"[{agent_name}] {decision.upper()} 결정 ({confidence}%) [{machine_tag}]"
     if rl_advisory:
         rl_parts = [f"- RL 앙상블: {rl_advisory['direction']}({rl_advisory['action']:+.4f}) [{rl_advisory.get('num_models', 1)}모델]"]
         for src, info in rl_advisory.get("models", {}).items():
