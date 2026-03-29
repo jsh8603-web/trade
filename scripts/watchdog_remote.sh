@@ -80,6 +80,7 @@ log() {
 
 send_telegram() {
     [ -z "${TELEGRAM_BOT_TOKEN:-}" ] && return
+    [ "${WATCHDOG_TELEGRAM_DISABLE:-true}" = "true" ] && return
     curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
         -d "chat_id=${TELEGRAM_USER_ID}" \
         --data-urlencode "text=$1" \
@@ -724,7 +725,7 @@ fast_restart() {
         tmux send-keys -t "$TMUX_SESSION:$rc_time_label" "/remote-control" Enter
         sleep 5
         tmux send-keys -t "$TMUX_SESSION:$rc_time_label" Enter
-        sleep 20
+        sleep 30
 
         # 결과 확인
         local screen new_url
@@ -873,9 +874,9 @@ cleanup_dead_sessions() {
         windows=$(tmux list-windows -t "$TMUX_SESSION" -F '#{window_index}:#{window_name}' 2>/dev/null)
 
         while IFS=: read -r idx name; do
-            # "claude" 또는 "rc@*" 이름 윈도우만 정리 대상 (워치독이 생성한 RC용 윈도우)
+            # "claude", "rc", "rc@*" 이름 윈도우만 정리 대상 (워치독이 생성한 RC용 윈도우)
             # 그 외 모든 윈도우는 사용자 소유로 간주하고 건드리지 않음
-            if [ "$name" != "claude" ] && ! echo "$name" | grep -q "^rc@"; then
+            if [ "$name" != "claude" ] && [ "$name" != "rc" ] && ! echo "$name" | grep -q "^rc@"; then
                 continue
             fi
 
@@ -1147,7 +1148,7 @@ create_new_rc_session() {
     tmux send-keys -t "$TMUX_SESSION:$win_name" "/remote-control" Enter
     sleep 5
     tmux send-keys -t "$TMUX_SESSION:$win_name" Enter
-    sleep 20
+    sleep 30
 
     # 4) URL 추출 → 텔레그램 전송
     local screen new_url

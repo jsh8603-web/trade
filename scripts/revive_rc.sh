@@ -59,8 +59,14 @@ fi
 
 echo "🔄 RC 부활 시작 (세션: $TMUX_SESSION)"
 
-# 기존 rc / rc@HHMM 윈도우 정리
+# 기존 rc / rc@HHMM 윈도우 정리 (활동 중 세션 보호)
 for w in $(tmux list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -E '^rc(@|$)'); do
+    # 작업 중인 세션은 건드리지 않음
+    SCREEN_CHECK=$(tmux capture-pane -t "$TMUX_SESSION:$w" -p 2>/dev/null)
+    if echo "$SCREEN_CHECK" | grep -qE 'Cooking|Thinking|Running…|Generating|Streaming|Moseying|Ambling|Strolling|Pondering'; then
+        echo "⏸️ 세션 $w 작업 중 — 보호"
+        continue
+    fi
     tmux kill-window -t "$TMUX_SESSION:$w" 2>/dev/null
 done
 sleep 1
