@@ -337,7 +337,7 @@ class TestDB:
             with patch.dict(os.environ, {
                 "SUPABASE_URL": "https://test.supabase.co",
                 "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-            }, clear=False):
+            }, clear=False), patch("utils.machine.skip_trade_db", return_value=False):
                 db = KimchirangDB(DBConfig())
                 mock_resp = MagicMock(status_code=201, text="")
                 db._session.post = MagicMock(return_value=mock_resp)
@@ -551,7 +551,7 @@ class TestDBKPSnapshot:
             with patch.dict(os.environ, {
                 "SUPABASE_URL": "https://test.supabase.co",
                 "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-            }, clear=False):
+            }, clear=False), patch("utils.machine.skip_trade_db", return_value=False):
                 db = KimchirangDB(DBConfig())
                 import kimchirang.db as db_mod
                 original_dir = db_mod.LOCAL_DATA_DIR
@@ -620,7 +620,7 @@ class TestDBRLModel:
             with patch.dict(os.environ, {
                 "SUPABASE_URL": "https://test.supabase.co",
                 "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-            }, clear=False):
+            }, clear=False), patch("utils.machine.skip_trade_db", return_value=False):
                 db = KimchirangDB(DBConfig())
                 import kimchirang.db as db_mod
                 original_dir = db_mod.LOCAL_DATA_DIR

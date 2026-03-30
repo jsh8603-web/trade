@@ -347,7 +347,7 @@ class TestKimchirangDBRLModel:
             with patch.dict(os.environ, {
                 "SUPABASE_URL": "https://test.supabase.co",
                 "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-            }, clear=False):
+            }, clear=False), patch("utils.machine.skip_trade_db", return_value=False):
                 db = KimchirangDB(DBConfig())
                 with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
                     mock_resp = MagicMock(status_code=201, text="")

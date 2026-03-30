@@ -351,13 +351,14 @@ class TestSentinel:
              patch("scripts.lifeline.sentinel.check_junk_files", return_value=ok_result), \
              patch("scripts.lifeline.sentinel.check_core_processes", return_value=ok_result), \
              patch("scripts.lifeline.sentinel.check_bot_processes", return_value=ok_result), \
+             patch("scripts.lifeline.sentinel.check_symlinks", return_value=ok_result), \
              patch("scripts.lifeline.sentinel.check_git_status", return_value=ok_result), \
              patch("scripts.lifeline.sentinel.check_log_size", return_value=ok_result):
             result = run_all_checks()
 
         assert result["overall_status"] == "ERROR"
-        assert result["summary"]["total"] == 14
-        assert result["summary"]["ok"] == 12
+        assert result["summary"]["total"] == 15
+        assert result["summary"]["ok"] == 13
         assert result["summary"]["warning"] == 1
         assert result["summary"]["error"] == 1
         assert "timestamp" in result
@@ -410,12 +411,12 @@ class TestDiagnostician:
         assert result["auto_healable"] is True
 
     def test_diagnose_disk_warning(self, diagnostician):
-        """disk WARNING → alert_only 추천."""
+        """disk WARNING → clear_cache 추천."""
         check = {"component": "disk", "status": "WARNING", "message": "디스크 사용량 높음"}
         result = diagnostician.diagnose(check)
 
-        assert result["recommended_action"] == "alert_only"
-        assert result["auto_healable"] is False
+        assert result["recommended_action"] == "clear_cache"
+        assert result["auto_healable"] is True
 
     def test_diagnose_memory_critical(self, diagnostician):
         """memory CRITICAL → restart_process 추천."""

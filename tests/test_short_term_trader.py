@@ -698,7 +698,8 @@ class TestDbInsert:
         mock_session = _patch_http_session()
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "test_key")
-        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session), \
+             patch("utils.machine.skip_trade_db", return_value=False):
             db_insert("scalp_trades", {"strategy": "news", "side": "bid"})
         mock_session.post.assert_called_once()
         args, kwargs = mock_session.post.call_args

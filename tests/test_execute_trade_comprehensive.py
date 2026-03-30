@@ -86,6 +86,9 @@ def _patch_lock_and_project(tmp_path, monkeypatch):
     monkeypatch.setattr(mod, "_get_btc_position_ratio", lambda: 0.0)
     monkeypatch.setattr(mod, "_increment_daily_trades", lambda: None)
     monkeypatch.setattr(mod, "_update_last_trade_time", lambda: None)
+    # Ensure skip_trade_db returns False so DB-recording tests work on worker machines
+    import utils.machine as _machine_mod
+    monkeypatch.setattr(_machine_mod, "skip_trade_db", lambda table: False)
 
 
 @pytest.fixture
@@ -283,16 +286,9 @@ class TestAcquireLock:
         assert data["pid"] == os.getpid()
 
     def test_active_lock_raises_timeout(self, lock_path, monkeypatch):
-        fake_pid = 77777
-        _write_lock(lock_path, pid=fake_pid, age_seconds=5)
-
-        original_kill = os.kill
-        def fake_kill(pid, sig):
-            if pid == fake_pid and sig == 0:
-                return
-            return original_kill(pid, sig)
-
-        monkeypatch.setattr(os, "kill", fake_kill)
+        # Use the current process PID -- it's guaranteed to be alive on all platforms,
+        # so the lock will not be detected as stale (no need to mock os.kill or ctypes).
+        _write_lock(lock_path, pid=os.getpid(), age_seconds=5)
         with pytest.raises((TimeoutError, RuntimeError)):
             acquire_lock(timeout=1)
 
@@ -592,8 +588,9 @@ class TestRecordTradeToDb:
         assert exec_result["order_uuid"] == "order-123"
         assert exec_result["status"] == "success"
 
+    @patch("utils.machine.skip_trade_db", return_value=False)
     @patch("scripts.execute_trade.requests.post")
-    def test_records_failed_trade(self, mock_post, monkeypatch):
+    def test_records_failed_trade(self, mock_post, mock_skip, monkeypatch):
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "key123")
 
@@ -615,8 +612,9 @@ class TestRecordTradeToDb:
         assert row["decision"] == "매도"
         assert row["execution_attempted"] is False
 
+    @patch("utils.machine.skip_trade_db", return_value=False)
     @patch("scripts.execute_trade.requests.post")
-    def test_retries_without_dry_run_column(self, mock_post, monkeypatch):
+    def test_retries_without_dry_run_column(self, mock_post, mock_skip, monkeypatch):
         """If DB rejects dry_run column, retries without it."""
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "key123")

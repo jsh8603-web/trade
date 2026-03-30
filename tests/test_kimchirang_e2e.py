@@ -43,6 +43,8 @@ async def test_e2e():
     print(f"  Config errors: {errors if errors else 'None (API keys set)'}")
 
     assert config.trading.dry_run, "DRY_RUN must be true"
+    # RL defaults to enabled; disable it for this test
+    config.rl.enabled = False
     assert not config.rl.enabled, "RL should be disabled for this test"
     print("  [OK] Config validation passed")
 

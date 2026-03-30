@@ -347,9 +347,10 @@ class TestSaveDecision:
 # update_past_performance
 # ---------------------------------------------------------------------------
 class TestUpdatePastPerformance:
+    @patch("utils.machine.skip_trade_db", return_value=False)
     @patch("save_decision.requests.patch")
     @patch("save_decision.requests.get")
-    def test_buy_decision_profit_loss(self, mock_get, mock_patch):
+    def test_buy_decision_profit_loss(self, mock_get, mock_patch, _skip):
         """매수 결정: (현재-결정)/결정 * 100 = profit_loss"""
         # First call: supabase GET decisions
         supabase_resp = MagicMock()
@@ -371,9 +372,10 @@ class TestUpdatePastPerformance:
         # profit_loss for 매수 = (51000000 - 50000000) / 50000000 * 100 = 2.0
         assert call_kwargs[1]["json"]["profit_loss"] == 2.0
 
+    @patch("utils.machine.skip_trade_db", return_value=False)
     @patch("save_decision.requests.patch")
     @patch("save_decision.requests.get")
-    def test_sell_decision_profit_loss(self, mock_get, mock_patch):
+    def test_sell_decision_profit_loss(self, mock_get, mock_patch, _skip):
         """매도 결정: -(현재-결정)/결정 * 100"""
         supabase_resp = MagicMock()
         supabase_resp.ok = True
@@ -391,9 +393,10 @@ class TestUpdatePastPerformance:
         # 매도: -price_change_pct = -(51M-50M)/50M*100 = -2.0
         assert call_kwargs[1]["json"]["profit_loss"] == -2.0
 
+    @patch("utils.machine.skip_trade_db", return_value=False)
     @patch("save_decision.requests.patch")
     @patch("save_decision.requests.get")
-    def test_hold_decision_profit_loss(self, mock_get, mock_patch):
+    def test_hold_decision_profit_loss(self, mock_get, mock_patch, _skip):
         """관망 결정: -price_change_pct (기회비용)"""
         supabase_resp = MagicMock()
         supabase_resp.ok = True
@@ -411,9 +414,10 @@ class TestUpdatePastPerformance:
         # 관망: -price_change_pct = -(52M-50M)/50M*100 = -4.0
         assert call_kwargs[1]["json"]["profit_loss"] == -4.0
 
+    @patch("utils.machine.skip_trade_db", return_value=False)
     @patch("save_decision.requests.patch")
     @patch("save_decision.requests.get")
-    def test_batch_grouping_by_profit_loss(self, mock_get, mock_patch):
+    def test_batch_grouping_by_profit_loss(self, mock_get, mock_patch, _skip):
         """같은 profit_loss 값을 가진 결정들이 한 PATCH로 묶인다."""
         supabase_resp = MagicMock()
         supabase_resp.ok = True
@@ -514,9 +518,10 @@ class TestUpdatePastPerformance:
 # mark_feedback_applied
 # ---------------------------------------------------------------------------
 class TestMarkFeedbackApplied:
+    @patch("utils.machine.skip_trade_db", return_value=False)
     @patch("save_decision.requests.patch")
     @patch("save_decision.requests.get")
-    def test_normal_feedback_applied(self, mock_get, mock_patch):
+    def test_normal_feedback_applied(self, mock_get, mock_patch, _skip):
         """미반영 피드백을 가져와 applied=true로 PATCH한다."""
         resp = MagicMock()
         resp.ok = True

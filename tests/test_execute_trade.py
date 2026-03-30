@@ -163,19 +163,11 @@ class TestAcquireLock:
 
     # 8. Active lock (live process, recent timestamp)
     def test_active_lock_raises(self, lock_path, monkeypatch):
-        fake_pid = 77777
-        _write_lock(lock_path, pid=fake_pid, age_seconds=5)
-        # Make os.kill think the process is alive
-        original_kill = os.kill
-
-        def fake_kill(pid, sig):
-            if pid == fake_pid and sig == 0:
-                return  # pretend process exists
-            return original_kill(pid, sig)
-
-        monkeypatch.setattr(os, "kill", fake_kill)
+        # Use the current process PID -- it's guaranteed to be alive on all platforms,
+        # so the lock will not be detected as stale (no need to mock os.kill or ctypes).
+        _write_lock(lock_path, pid=os.getpid(), age_seconds=5)
         with pytest.raises(TimeoutError, match="다른 매매 프로세스 실행 중"):
-            acquire_lock()
+            acquire_lock(timeout=1)
 
     # 9. Corrupt JSON
     def test_corrupt_json_lock(self, lock_path):
