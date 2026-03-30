@@ -23,7 +23,6 @@ import copy
 import json
 import logging
 import os
-import signal
 import subprocess
 import sys
 import time
@@ -597,7 +596,7 @@ def report_cycle(cycle: int, eval_result: dict, recommendations: dict,
     )
 
     if changes:
-        msg += f"변경:\n" + "\n".join(changes[:5]) + "\n"
+        msg += "변경:\n" + "\n".join(changes[:5]) + "\n"
     if retrain_result.get("retrained"):
         msg += f"RL: {retrain_result.get('pre_win_rate', 0):.1%}→{retrain_result.get('post_win_rate', 0):.1%}\n"
     if win_rate >= TARGET_WIN_RATE:

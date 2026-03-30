@@ -393,18 +393,15 @@ def test_init_py_exists(pkg_path):
     assert init_file.exists(), f"Missing __init__.py in {pkg_path}/"
 
 
-def test_scripts_no_init_py():
-    """scripts/ directory should NOT have __init__.py (it is not a package).
+def test_scripts_has_init_py():
+    """scripts/ directory must have __init__.py to be a proper package.
 
-    Tests import scripts via sys.path manipulation. The agents/ code imports
-    via 'from scripts.cycle_id import ...' which works because PROJECT_ROOT
-    is on sys.path. If scripts/ had __init__.py it could cause double-import
-    issues, but currently the design relies on sys.path having PROJECT_ROOT.
+    Without __init__.py, mypy discovers modules like cycle_id.py as both
+    'cycle_id' (via sys.path containing scripts/) and 'scripts.cycle_id'
+    (via sys.path containing PROJECT_ROOT), causing duplicate module errors.
     """
-    # This is informational: scripts/ works both ways, but currently no __init__.py
     init_file = PROJECT_ROOT / "scripts" / "__init__.py"
-    # We just check it exists or not — no assertion, just note the state
-    assert not init_file.exists() or True  # pass either way
+    assert init_file.exists(), "scripts/__init__.py is required to prevent mypy duplicate module errors"
 
 
 # ---------------------------------------------------------------------------

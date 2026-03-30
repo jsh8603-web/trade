@@ -41,8 +41,6 @@ import re
 import yaml
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import Optional
-
 from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -435,7 +433,7 @@ def _batch_touch(ids: list[str]):
 def _print_recall_results(rows: list, limit: int):
     """recall 결과 출력."""
     for r in rows[:limit]:
-        sim = r.get("similarity", 0)
+        # sim = r.get("similarity", 0)  # available but unused in display
         tier = "🟢" if r.get("memory_tier") == "short_term" else "🔵"
         pin = "📌" if r.get("pinned") else ""
         cat = r.get("category", "?")[:4]
@@ -499,7 +497,7 @@ def cmd_get(args):
     print(f"Tags: {row.get('tags', [])}")
     print(f"Relevance: {row.get('relevance_score', 0):.3f} | Access: {row.get('access_count', 0)}")
     print(f"Created: {row.get('created_at', '')[:19]} | Last accessed: {(row.get('last_accessed') or 'never')[:19]}")
-    print(f"─" * 60)
+    print("─" * 60)
     print(row.get("content", ""))
     if row.get("summary"):
         print(f"\n📝 Summary: {row['summary']}")
@@ -619,7 +617,7 @@ def cmd_consolidate(args):
         print(f"  ✅ {mem['title'][:40]} → long_term")
 
     if args.dry_run:
-        print(f"\n(dry run — --dry-run 제거하여 실행)")
+        print("\n(dry run — --dry-run 제거하여 실행)")
 
 
 def cmd_decay(args):
@@ -653,11 +651,11 @@ def cmd_stats(args):
         c = e.get("c", "?")
         cats[c] = cats.get(c, 0) + 1
 
-    print(f"📊 메모리 통계")
+    print("📊 메모리 통계")
     print(f"  전체: {total}건 (short_term: {short}, long_term: {long}, pinned: {pinned})")
     print(f"  평균 관련성: {avg_rel:.3f}, 평균 접근: {avg_acc:.1f}회")
     print(f"  인덱스 파일: {INDEX_FILE} ({INDEX_FILE.stat().st_size} bytes)")
-    print(f"  카테고리별:")
+    print("  카테고리별:")
     for c, n in sorted(cats.items()):
         print(f"    {c}: {n}건")
 

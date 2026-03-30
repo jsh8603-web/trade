@@ -38,7 +38,7 @@ from scripts.collect_market_data import (
 )
 from scripts.save_decision import (
     generate_state_embedding, _update_embedding_via_sql,
-    supabase_post, supabase_headers, save_market_context,
+    supabase_post, save_market_context,
     SUPABASE_URL, SUPABASE_KEY,
 )
 
@@ -813,7 +813,7 @@ def save_to_db(
 ) -> str | None:
     """decisions + market_context_log DB 저장. 반환: decision_id."""
     if dry_run:
-        print(f"  [dry-run] DB 저장 스킵", file=sys.stderr)
+        print("  [dry-run] DB 저장 스킵", file=sys.stderr)
         return None
 
     # ── decisions 테이블 ──

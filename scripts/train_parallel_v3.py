@@ -90,7 +90,6 @@ def train_variant(vid: int, candles: list[dict]) -> dict:
     from stable_baselines3 import PPO
     from rl_hybrid.rl.environment_v2 import BitcoinTradingEnvV2
     from stable_baselines3.common.callbacks import EvalCallback
-    import numpy as np
 
     variants = {
         1: {
@@ -204,7 +203,7 @@ def train_variant(vid: int, candles: list[dict]) -> dict:
     best_path = Path(best_dir) / "best_model.zip"
     if best_path.exists():
         best_model = PPO.load(str(best_path))
-        log(f"Best model 로드 완료", f"V{vid}")
+        log("Best model 로드 완료", f"V{vid}")
     else:
         best_model = model
 
@@ -290,7 +289,7 @@ def main():
         best.save(str(PROJECT_DIR / "data" / "rl_models" / "ppo_btc_best.zip"))
         log("")
         log(f"  ★ 최고 모델: V{best_vid} (수익률 {best_profit:+.2f}%)")
-        log(f"  ★ 저장: data/rl_models/v5/final_v5 + ppo_btc_best.zip")
+        log("  ★ 저장: data/rl_models/v5/final_v5 + ppo_btc_best.zip")
 
     # DB 기록
     try:

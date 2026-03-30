@@ -68,7 +68,7 @@ def fetch_cryptocompare_news(max_articles: int = 20) -> dict:
 
         for a in articles:
             title = a.get("title", "")
-            body = a.get("body", "")[:200]
+            # body = a.get("body", "")[:200]  # available but unused
             source = a.get("source_info", {}).get("name", a.get("source", ""))
             categories = a.get("categories", "")
             published = a.get("published_on", 0)

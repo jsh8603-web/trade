@@ -339,7 +339,6 @@ class ExternalDataAgent:
     def _get_supa_session(self) -> requests.Session:
         """Supabase 전용 requests.Session을 반환한다 (재사용으로 TCP 핸드셰이크 절약)."""
         if self._supa_session is None:
-            url = os.getenv("SUPABASE_URL", "")
             key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
             self._supa_session = requests.Session()
             self._supa_session.headers.update({
@@ -602,10 +601,10 @@ class ExternalDataAgent:
             w_dir = whale_sum.get("net_direction", "neutral")
             if w_dir == "sell":
                 extra_score -= 5
-                extra_details.append(f"X 고래알림 매도압력: -5점")
+                extra_details.append("X 고래알림 매도압력: -5점")
             elif w_dir == "buy":
                 extra_score += 5
-                extra_details.append(f"X 고래알림 매수압력: +5점")
+                extra_details.append("X 고래알림 매수압력: +5점")
 
         # 소셜 감성 종합 (±10) — CryptoCompare + CoinGecko + Santiment
         social = results.get("social_sentiment", {}) or {}
@@ -808,7 +807,6 @@ class ExternalDataAgent:
         # -- ETH/BTC --
         eth = sources.get("eth_btc", {})
         eth_btc_ratio = eth.get("eth_btc_ratio", None)
-        eth_btc_z = eth.get("eth_btc_z_score", None)
         eth_btc_score = ext_sig.get("extra_components", {}).get("eth_btc", {}).get("score", None)
         eth_btc_trend = eth.get("signal", None)
 

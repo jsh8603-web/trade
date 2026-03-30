@@ -312,17 +312,17 @@ def _send_telegram_alert(health: dict):
 
     body_lines = [
         f"상태: {emoji} {status} ({label})",
-        f"",
+        "",
         f"승률 7일: {health['win_rate_7d']:.1%}",
         f"승률 3일: {health['win_rate_3d']:.1%}",
         f"평균 ROI 7일: {health['avg_roi_7d']:+.2f}%",
         f"연패: {health['consecutive_losses']}회",
         f"샤프비: {health['sharpe_7d']:.3f}",
         f"총 거래: {health['total_trades_7d']}건",
-        f"",
+        "",
         f"최고 에이전트: {health.get('best_agent', 'N/A')}",
         f"최약 에이전트: {health.get('worst_agent', 'N/A')}",
-        f"",
+        "",
         f"제안: {health['suggestion']}",
     ]
 

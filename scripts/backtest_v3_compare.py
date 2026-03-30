@@ -12,12 +12,9 @@ v2(기존)와 v3(매크로+집중방지+선제매도)를 동시에 돌려 비교
 from __future__ import annotations
 
 import json
-import math
-import os
 import random
 import sys
 import time
-from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -223,8 +220,6 @@ def get_fgi_for_date(fgi_map: dict, dt: datetime) -> dict:
 # =====================================================
 
 def simulate_external_data(dt: datetime, indicators: dict, fgi: dict) -> dict:
-    price = indicators["current_price"]
-    rsi = indicators["rsi_14"]
     change_24h = indicators["price_change_24h"]
     fgi_val = fgi["value"]
 
@@ -378,7 +373,6 @@ class TradingSimulator:
 
     def calc_danger(self, indicators: dict, ext: dict, portfolio: dict) -> int:
         score = 0
-        fgi_val = ext["_fgi_value"]
         change_24h = indicators["price_change_24h"]
         bs = ext["sources"]["binance_sentiment"]
         kimchi_pct = bs["kimchi_premium"]["premium_pct"]
@@ -616,9 +610,8 @@ def main():
     results_v2 = []
     results_v3 = []
 
-    print(f"\n[4/4] v2 vs v3 비교 시뮬레이션 실행 중...")
+    print("\n[4/4] v2 vs v3 비교 시뮬레이션 실행 중...")
 
-    prev_externals_for_seed = []
     for step_i, idx in enumerate(sim_indices):
         dt = candles[idx]["_dt_kst"]
         indicators = compute_indicators(candles, idx)
@@ -686,7 +679,7 @@ def main():
     roi_v3 = (eval_v3 - INITIAL_KRW) / INITIAL_KRW * 100
 
     p(f"\n{'=' * 35}")
-    p(f"  [v3 개선 효과]")
+    p("  [v3 개선 효과]")
     p(f"{'=' * 35}")
     p(f"  수익률 차이:     {roi_v3 - roi_v2:>+13.2f}%p")
     p(f"  평가액 차이:     {eval_v3 - eval_v2:>+14,.0f}원")
@@ -695,7 +688,7 @@ def main():
     p(f"  매도 횟수 차이:  {sim_v3.total_sells - sim_v2.total_sells:>+9}회")
 
     # v3는 매수 필터만 다름 (매도 로직 동일)
-    p(f"\n  v3 차이: 매수 필터(매크로+집중방지)만 적용, 매도 로직은 v2와 동일")
+    p("\n  v3 차이: 매수 필터(매크로+집중방지)만 적용, 매도 로직은 v2와 동일")
 
     # 의사결정 차이 분석
     diff_count = 0
@@ -718,7 +711,7 @@ def main():
 
     # 월별 비교
     p(f"\n{'=' * 70}")
-    p(f"  월별 상세 비교")
+    p("  월별 상세 비교")
     p(f"{'=' * 70}")
     p(f"  {'월':>8} | {'v2 매수':>7} {'v2 매도':>7} {'v2 PnL':>10} | {'v3 매수':>7} {'v3 매도':>7} {'v3 PnL':>10} | {'차이':>10}")
     p(f"  {'-'*8}-+-{'-'*27}-+-{'-'*27}-+-{'-'*10}")
@@ -733,7 +726,7 @@ def main():
 
     # BTC 보유 비교 (특정 시점)
     p(f"\n{'=' * 70}")
-    p(f"  핵심 개선 포인트 분석")
+    p("  핵심 개선 포인트 분석")
     p(f"{'=' * 70}")
 
     # 매크로 부정 구간에서의 매수 차이
@@ -764,14 +757,14 @@ def main():
     p(f"     -> {greed_v3_sells - greed_v2_sells}회 추가 익절")
 
     p(f"\n{'=' * 70}")
-    p(f"  결론")
+    p("  결론")
     p(f"{'=' * 70}")
     if roi_v3 > roi_v2:
         p(f"\n  v3 개선이 수익률을 {roi_v3 - roi_v2:+.2f}%p 향상시켰습니다.")
     elif roi_v3 < roi_v2:
         p(f"\n  v3가 {roi_v2 - roi_v3:.2f}%p 수익률 하락. 추가 조정 필요.")
     else:
-        p(f"\n  v2와 v3 수익률 동일. 리스크 관리 면에서 차이를 확인하세요.")
+        p("\n  v2와 v3 수익률 동일. 리스크 관리 면에서 차이를 확인하세요.")
 
     if sim_v3.max_drawdown < sim_v2.max_drawdown:
         p(f"  MDD가 {sim_v2.max_drawdown - sim_v3.max_drawdown:.2f}%p 개선 (리스크 감소).")

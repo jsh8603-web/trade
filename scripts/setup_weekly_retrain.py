@@ -42,7 +42,7 @@ def register_task():
     result = subprocess.run(cmd, capture_output=True, text=True, **subprocess_kwargs())
     if result.returncode == 0:
         print(f"[OK] 작업 등록 완료: {TASK_NAME}")
-        print(f"  실행: 매주 일요일 03:00")
+        print("  실행: 매주 일요일 03:00")
         print(f"  Python: {python}")
         print(f"  스크립트: {script}")
     else:

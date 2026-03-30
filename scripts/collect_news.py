@@ -235,7 +235,7 @@ def main():
         categories[cat] = categories.get(cat, 0) + 1
 
     day_type = "weekend" if is_weekend else "weekday"
-    calls_per_day = api_calls * 6
+    # calls_per_day = api_calls * 6  # computed but unused
 
     result = {
         "timestamp": datetime.now(timezone(timedelta(hours=9))).isoformat(),

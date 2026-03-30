@@ -351,7 +351,6 @@ def notify_error(msg: str, detail: str):
 
 async def run_script(script_name: str) -> dict:
     """별도 프로세스로 스크립트를 실행하여 JSON 결과 반환"""
-    import subprocess
     from scripts.hide_console import subprocess_kwargs
     try:
         proc = await asyncio.create_subprocess_exec(

@@ -17,7 +17,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 from pathlib import Path
 
 import requests
@@ -195,7 +195,7 @@ def process_year(year: int, dry_run: bool = False):
     print(f"  기존: {len(existing)}건 (스킵)")
 
     if dry_run:
-        print(f"  [DRY RUN] 실제 삽입하지 않음")
+        print("  [DRY RUN] 실제 삽입하지 않음")
         sample = data_points[0]
         print(f"  샘플: {sample['datetime']}, price={sample['indicators']['current_price']}")
         return

@@ -532,7 +532,7 @@ if __name__ == "__main__":
     score = report["diversity_score"]
     samples = report["sample_count"]
 
-    print(f"=== RL 모델 다양성 검증 ===\n")
+    print("=== RL 모델 다양성 검증 ===\n")
     print(f"  다양성 점수: {score}/100 [{summary['status']}]")
     print(f"  분석 샘플: {samples}건 (최근 7일)\n")
 

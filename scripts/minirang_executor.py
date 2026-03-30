@@ -118,7 +118,7 @@ class MiniRangExecutor:
     def _screenshot(self):
         """화면 캡처 → 리사이즈 → base64"""
         raw_path = "/tmp/minirang_raw.png"
-        resized_path = f"/tmp/minirang_scaled.png"
+        resized_path = "/tmp/minirang_scaled.png"
 
         # 화면 깨우기
         self._run("caffeinate -u -t 2")
@@ -194,7 +194,7 @@ class MiniRangExecutor:
             self._run(f"cliclick t:'{text}'")
         else:
             # 한글/유니코드: 클립보드 → Cmd+V
-            proc = subprocess.run(
+            subprocess.run(
                 ["pbcopy"], input=text.encode("utf-8"), check=False
             )
             time.sleep(0.1)
@@ -253,17 +253,6 @@ class MiniRangExecutor:
         self._run(f"cliclick m:{sx},{sy}")
         time.sleep(0.1)
 
-        # osascript로 스크롤 이벤트 전송
-        scroll_y = amount if direction == "up" else -amount if direction == "down" else 0
-        scroll_x = amount if direction == "right" else -amount if direction == "left" else 0
-
-        apple_script = f'''
-        tell application "System Events"
-            set curX to {sx}
-            set curY to {sy}
-        end tell
-        do shell script "cliclick m:{sx},{sy}"
-        '''
         # cliclick 스크롤 (화살키 기반)
         arrow = {
             "up": "arrow-up", "down": "arrow-down",
@@ -291,7 +280,6 @@ class MiniRangExecutor:
         w = sx2 - sx1
         h = sy2 - sy1
 
-        raw_path = "/tmp/minirang_raw.png"
         zoom_path = "/tmp/minirang_zoom.png"
 
         self._run(f"screencapture -x -R {sx1},{sy1},{w},{h} {zoom_path}")

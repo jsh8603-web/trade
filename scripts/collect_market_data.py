@@ -268,7 +268,7 @@ def collect_eth_btc_ratio() -> dict:
             f_eth_daily = pool.submit(api_get, "/candles/days", {"market": "KRW-ETH", "count": "60"})
 
         eth_ticker = f_eth_ticker.result()[0]
-        btc_ticker = f_btc_ticker.result()[0]
+        f_btc_ticker.result()  # consume future
         btc_daily = f_btc_daily.result()
         eth_daily = f_eth_daily.result()
 

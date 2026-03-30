@@ -11,11 +11,9 @@
 
 import hide_console
 import argparse
-import json
 import os
 import subprocess
 from scripts.hide_console import subprocess_kwargs
-import sys
 import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -228,14 +226,14 @@ def weekly_report():
 
     # 5. 리포트 생성
     lines = [
-        f"<b>📊 주간 성과 리포트</b>",
+        "<b>📊 주간 성과 리포트</b>",
         f"<i>{(now - timedelta(days=7)):%m/%d} ~ {now:%m/%d}</i>",
         "",
-        f"<b>📋 결정 통계</b>",
+        "<b>📋 결정 통계</b>",
         f"  총 결정: {total_decisions}건",
         f"  매수: {len(buy_decisions)} | 관망: {len(hold_decisions)} | 매도: {len(sell_decisions)}",
         "",
-        f"<b>🎯 정확도</b>",
+        "<b>🎯 정확도</b>",
     ]
 
     if acc_1h is not None:
@@ -354,9 +352,7 @@ def backtest_30d():
     buy_decisions = [d for d in decisions
                      if d.get("decision") in ("매수", "buy")
                      and d.get("outcome_4h_pct") is not None]
-    sell_decisions = [d for d in decisions
-                      if d.get("decision") in ("매도", "sell")
-                      and d.get("outcome_4h_pct") is not None]
+    # sell_decisions with outcome filtering not used in this section
     hold_missed = [d for d in decisions
                    if d.get("decision") in ("관망", "hold")
                    and d.get("outcome_24h_pct") is not None
@@ -393,7 +389,7 @@ def backtest_30d():
             drawdown = (max_val - min_val) / max_val * 100 if max_val > 0 else 0
             total_return = (end_val - start_val) / start_val * 100
 
-            print(f"\n=== 포트폴리오 (30일) ===")
+            print("\n=== 포트폴리오 (30일) ===")
             print(f"  시작: {start_val:,.0f}원")
             print(f"  현재: {end_val:,.0f}원")
             print(f"  수익률: {total_return:+.2f}%")

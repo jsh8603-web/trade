@@ -79,7 +79,7 @@ def send_health_alert(critical_issues: list[dict]) -> bool:
         return False
 
     ts = datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S KST")
-    lines = [f"\U0001f3e5 *Lifeline Health Alert*\n"]
+    lines = ["\U0001f3e5 *Lifeline Health Alert*\n"]
 
     for issue in critical_issues:
         check = issue.get("check", issue)

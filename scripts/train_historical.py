@@ -25,10 +25,8 @@ from __future__ import annotations
 import io
 import json
 import logging
-import os
 import sys
 import time
-from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 # Windows cp949 방지
@@ -111,8 +109,7 @@ def train_full_history(candles: list[dict], steps: int = 500_000, algo: str = "p
     logger.info(f"데이터: train={len(train_candles):,}, eval={len(eval_candles):,}")
 
     # FGI를 external signal로 변환
-    train_signals = _candles_to_signals(train_candles)
-    eval_signals = _candles_to_signals(eval_candles)
+    # signals computed from candles but not passed to env (env extracts internally)
 
     train_env = BitcoinTradingEnv(
         candles=train_candles,
@@ -148,7 +145,7 @@ def train_full_history(candles: list[dict], steps: int = 500_000, algo: str = "p
     avg_mdd = np.mean([s.get("max_drawdown", s.get("max_drawdown_pct", 0)) for s in stats])
     trades = np.mean([s["trade_count"] for s in stats])
 
-    logger.info(f"=== 전체 7년 훈련 결과 ===")
+    logger.info("=== 전체 7년 훈련 결과 ===")
     logger.info(f"  수익률: {avg_return:+.2f}%")
     logger.info(f"  Sharpe: {avg_sharpe:.3f}")
     logger.info(f"  MDD: {avg_mdd:.2f}%")
@@ -172,7 +169,7 @@ def train_crisis_focused(candles: list[dict], steps: int = 300_000, algo: str = 
 
     bear_strong + volatile 구간을 2배 가중하여 위기 대응력을 키운다.
     """
-    logger.info(f"=== 위기 강화 훈련 시작 ===")
+    logger.info("=== 위기 강화 훈련 시작 ===")
 
     # 위기 캔들 2배 포함 (데이터 오버샘플링)
     crisis_labels = [
@@ -195,8 +192,7 @@ def train_crisis_focused(candles: list[dict], steps: int = 300_000, algo: str = 
     from rl_hybrid.rl.train import get_trader_class, evaluate
 
     train_candles, eval_candles = split_train_eval(augmented)
-    train_signals = _candles_to_signals(train_candles)
-    eval_signals = _candles_to_signals(eval_candles)
+    # signals computed from candles but not passed to env (env extracts internally)
 
     train_env = BitcoinTradingEnv(
         candles=train_candles,
@@ -222,7 +218,7 @@ def train_crisis_focused(candles: list[dict], steps: int = 300_000, algo: str = 
     avg_return = np.mean([s["total_return_pct"] for s in stats])
     avg_sharpe = np.mean([s["sharpe_ratio"] for s in stats])
 
-    logger.info(f"=== 위기 강화 훈련 결과 ===")
+    logger.info("=== 위기 강화 훈련 결과 ===")
     logger.info(f"  수익률: {avg_return:+.2f}%, Sharpe: {avg_sharpe:.3f}")
     logger.info(f"  모델: {model_path}")
 
@@ -237,7 +233,7 @@ def train_crisis_focused(candles: list[dict], steps: int = 300_000, algo: str = 
 
 def train_regime_experts(candles: list[dict], steps: int = 200_000, algo: str = "ppo"):
     """모드 3: 레짐별 전문가 모델 훈련"""
-    logger.info(f"=== 레짐별 전문가 훈련 시작 ===")
+    logger.info("=== 레짐별 전문가 훈련 시작 ===")
 
     from rl_hybrid.rl.environment import BitcoinTradingEnv
     from rl_hybrid.rl.train import get_trader_class, evaluate
@@ -258,8 +254,7 @@ def train_regime_experts(candles: list[dict], steps: int = 200_000, algo: str = 
             logger.warning(f"  {regime}: 분할 후 데이터 부족 → 스킵")
             continue
 
-        train_signals = _candles_to_signals(train_c)
-        eval_signals = _candles_to_signals(eval_c)
+        # signals computed from candles but not passed to env
 
         train_env = BitcoinTradingEnv(
             candles=train_c,
@@ -290,7 +285,7 @@ def train_regime_experts(candles: list[dict], steps: int = 200_000, algo: str = 
         }
         logger.info(f"  {regime}: return={avg_return:+.2f}%, sharpe={avg_sharpe:.3f}")
 
-    logger.info(f"\n=== 레짐별 전문가 훈련 완료 ===")
+    logger.info("\n=== 레짐별 전문가 훈련 완료 ===")
     for regime, r in results.items():
         logger.info(f"  {regime}: {r['return_pct']:+.2f}% (sharpe={r['sharpe']:.3f})")
 
@@ -302,7 +297,7 @@ def train_halving_pattern(candles: list[dict], steps: int = 200_000, algo: str =
 
     반감기 ±6개월 데이터로 반감기 사이클 패턴을 학습한다.
     """
-    logger.info(f"=== 반감기 패턴 훈련 시작 ===")
+    logger.info("=== 반감기 패턴 훈련 시작 ===")
 
     halving_events = [
         "halving_2020", "post_halving_consolidation",
@@ -321,8 +316,7 @@ def train_halving_pattern(candles: list[dict], steps: int = 200_000, algo: str =
     from rl_hybrid.rl.train import get_trader_class, evaluate
 
     train_c, eval_c = split_train_eval(halving_candles)
-    train_signals = _candles_to_signals(train_c)
-    eval_signals = _candles_to_signals(eval_c)
+    # signals computed from candles but not passed to env
 
     train_env = BitcoinTradingEnv(
         candles=train_c,
@@ -345,7 +339,7 @@ def train_halving_pattern(candles: list[dict], steps: int = 200_000, algo: str =
     avg_return = np.mean([s["total_return_pct"] for s in stats])
     avg_sharpe = np.mean([s["sharpe_ratio"] for s in stats])
 
-    logger.info(f"=== 반감기 패턴 훈련 결과 ===")
+    logger.info("=== 반감기 패턴 훈련 결과 ===")
     logger.info(f"  수익률: {avg_return:+.2f}%, Sharpe: {avg_sharpe:.3f}")
 
     return {
@@ -400,7 +394,7 @@ if __name__ == "__main__":
     from collections import Counter
     regime_counts = Counter(c.get("event_regime", "unknown") for c in candles)
     event_counts = Counter(c.get("event_label", "unknown") for c in candles)
-    print(f"\n=== 데이터 구성 ===")
+    print("\n=== 데이터 구성 ===")
     print(f"  전체: {len(candles):,}개 캔들")
     for regime, count in regime_counts.most_common():
         print(f"  {regime}: {count:,}개 ({count/len(candles)*100:.1f}%)")

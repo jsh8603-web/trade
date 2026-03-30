@@ -216,7 +216,7 @@ def _update_embedding_via_sql(decision_id: str, embedding: list, embedding_text:
                 timeout=15,
             )
             if r.ok:
-                print(f"[save_decision] 임베딩 저장 완료 (REST API)", file=sys.stderr)
+                print("[save_decision] 임베딩 저장 완료 (REST API)", file=sys.stderr)
                 return
             else:
                 print(f"[save_decision] REST API 임베딩 PATCH 실패 ({r.status_code}), Management API fallback", file=sys.stderr)
@@ -259,7 +259,7 @@ def _update_embedding_via_sql(decision_id: str, embedding: list, embedding_text:
             timeout=30,
         )
         if r.ok:
-            print(f"[save_decision] 임베딩 저장 완료 (Management API)", file=sys.stderr)
+            print("[save_decision] 임베딩 저장 완료 (Management API)", file=sys.stderr)
         else:
             print(f"[save_decision] 임베딩 저장 실패 ({r.status_code}): {r.text[:200]}", file=sys.stderr)
     except Exception as e:

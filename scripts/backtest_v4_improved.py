@@ -17,7 +17,6 @@ v4 개선사항 적용 백테스트 — v2(기존) vs v4(개선) 비교
 from __future__ import annotations
 
 import json
-import os
 import random
 import sys
 import time
@@ -261,7 +260,6 @@ def compute_indicators(candles, idx):
 
 
 def simulate_external_data(dt, indicators, fgi):
-    price = indicators["current_price"]
     change_24h = indicators["price_change_24h"]
     fgi_val = fgi["value"]
 
@@ -1027,7 +1025,7 @@ def main():
                 else:
                     blocked_bad += 1
 
-        p(f"  v5.1이 차단한 매수 중:")
+        p("  v5.1이 차단한 매수 중:")
         p(f"    24h 후 하락 (차단 성공): {blocked_good}건")
         p(f"    24h 후 상승 (차단 실패): {blocked_bad}건")
         if blocked_good + blocked_bad > 0:
@@ -1046,17 +1044,17 @@ def main():
 
     p(f"\n  [v5.1 vs v2] ROI: {roi_v51v2:+.2f}%p | 평가액: {eval_v51v2:+,}원 | MDD: {mdd_v51v2:+.2f}%p")
     p(f"  [v5.1 vs v5] ROI: {roi_v51v5:+.2f}%p (Bull 강화 효과)")
-    p(f"")
+    p("")
     p(f"  v2   ROI: {s_v2['roi']:+.2f}% | 매수 {s_v2['buys']}회 | MDD -{s_v2['mdd']:.1f}%")
     p(f"  v5   ROI: {s_v5['roi']:+.2f}% | 매수 {s_v5['buys']}회 | MDD -{s_v5['mdd']:.1f}%")
     p(f"  v5.1 ROI: {s_v51['roi']:+.2f}% | 매수 {s_v51['buys']}회 | MDD -{s_v51['mdd']:.1f}%")
     p(f"  BTC B&H:  {btc_bnh_roi:+.1f}%")
 
-    p(f"\n  v5.1 개선사항 요약:")
-    p(f"    1. Bull 조기 감지: FGI 40->30 완화, 24h+2% 모멘텀 대안, early_bull 레짐 추가")
-    p(f"    2. Bull 익절 확대: tp_multiplier 1.5x (let winners run)")
-    p(f"    3. Bear 손절 강화: sl_multiplier 0.7x (빠른 탈출)")
-    p(f"    4. 과매매 억제: sideways +5, bear +10, crisis +15 매수 점수 가산")
+    p("\n  v5.1 개선사항 요약:")
+    p("    1. Bull 조기 감지: FGI 40->30 완화, 24h+2% 모멘텀 대안, early_bull 레짐 추가")
+    p("    2. Bull 익절 확대: tp_multiplier 1.5x (let winners run)")
+    p("    3. Bear 손절 강화: sl_multiplier 0.7x (빠른 탈출)")
+    p("    4. 과매매 억제: sideways +5, bear +10, crisis +15 매수 점수 가산")
 
     elapsed = time.time() - t0
     p(f"\n  소요시간: {elapsed:.0f}초")

@@ -135,7 +135,7 @@ def extract_metrics(row):
     # 매수 점수 (에이전트 시스템 핵심 지표)
     total_buy_score = safe_float(buy_score.get('total'), 0)
     buy_threshold = safe_float(buy_score.get('threshold'), 0)
-    buy_result = buy_score.get('result', '')
+    # buy_result = buy_score.get('result', '')  # available but unused
 
     # 24h 변화율
     change_24h = safe_float(indicators.get('price_change_24h'), 0)
@@ -158,7 +158,7 @@ def extract_metrics(row):
     # MACD
     macd_data = indicators.get('macd', {})
     macd = safe_float(macd_data.get('macd') if isinstance(macd_data, dict) else 0, 0)
-    macd_signal = safe_float(macd_data.get('signal') if isinstance(macd_data, dict) else 0, 0)
+    # macd_signal = safe_float(macd_data.get('signal') if isinstance(macd_data, dict) else 0, 0)  # available but unused
     macd_golden = macd_data.get('golden_cross', False) if isinstance(macd_data, dict) else False
 
     # swing 수익률
@@ -325,7 +325,7 @@ def generate_report(rows):
     report.append("█" * 80)
 
     decisions = Counter(m['decision'] for m in metrics)
-    report.append(f"\n### 매매 결정 분포")
+    report.append("\n### 매매 결정 분포")
     total = len(metrics)
     for dec, cnt in decisions.most_common():
         pct = cnt / total * 100
@@ -335,7 +335,7 @@ def generate_report(rows):
     # BTC 가격 통계
     prices = [m['btc_price'] for m in metrics if m['btc_price'] > 0]
     if prices:
-        report.append(f"\n### BTC 가격 통계")
+        report.append("\n### BTC 가격 통계")
         report.append(f"  최저가: {min(prices):>15,.0f} KRW")
         report.append(f"  최고가: {max(prices):>15,.0f} KRW")
         report.append(f"  평균가: {avg(prices):>15,.0f} KRW")
@@ -348,7 +348,7 @@ def generate_report(rows):
     # 신뢰도 통계
     confs = [m['confidence'] for m in metrics if m['confidence'] > 0]
     if confs:
-        report.append(f"\n### 매매 신뢰도")
+        report.append("\n### 매매 신뢰도")
         report.append(f"  평균: {avg(confs):.1f}%")
         report.append(f"  중앙값: {median(confs):.1f}%")
         report.append(f"  최저: {min(confs):.1f}%")
@@ -356,7 +356,7 @@ def generate_report(rows):
 
     # 소스별 분포
     sources = Counter(m['source'] for m in metrics)
-    report.append(f"\n### 데이터 소스 분포")
+    report.append("\n### 데이터 소스 분포")
     for src, cnt in sources.most_common():
         report.append(f"  {src:30s}: {cnt:5d}건 ({cnt/total*100:.1f}%)")
 
@@ -583,7 +583,7 @@ def generate_report(rows):
         else:
             dxy_ranges['109 이상'].append(m)
 
-    report.append(f"\n  DXY 수준별 BTC 평균가:")
+    report.append("\n  DXY 수준별 BTC 평균가:")
     for rng, items in dxy_ranges.items():
         if items:
             avg_p = avg([m['btc_price'] for m in items if m['btc_price'] > 0])
@@ -691,19 +691,19 @@ def generate_report(rows):
                    m['fgi'] > 0 and m['fgi'] <= 30 and
                    m['rsi'] > 0 and m['rsi'] <= 35 and
                    m['macro_score'] >= 3]
-    report.append(f"\n  조건1: FGI≤30 + RSI≤35 + 매크로≥3 (공포+과매도+긍정)")
+    report.append("\n  조건1: FGI≤30 + RSI≤35 + 매크로≥3 (공포+과매도+긍정)")
     if optimal_buy:
         buys = sum(1 for m in optimal_buy if 'buy' in m['decision'] or '매수' in m['decision'])
         report.append(f"    발생: {len(optimal_buy)}건, 매수: {buys}건 ({buys/len(optimal_buy)*100:.0f}%)")
         report.append(f"    평균 BTC가: {avg([m['btc_price'] for m in optimal_buy]):,.0f}")
     else:
-        report.append(f"    발생: 0건")
+        report.append("    발생: 0건")
 
     # FGI 공포 + RSI 중립~약세
     fear_buy = [m for m in metrics if
                 m['fgi'] > 0 and m['fgi'] <= 30 and
                 m['rsi'] > 0 and m['rsi'] <= 45]
-    report.append(f"\n  조건2: FGI≤30 + RSI≤45 (공포+약세)")
+    report.append("\n  조건2: FGI≤30 + RSI≤45 (공포+약세)")
     if fear_buy:
         buys = sum(1 for m in fear_buy if 'buy' in m['decision'] or '매수' in m['decision'])
         report.append(f"    발생: {len(fear_buy)}건, 매수: {buys}건 ({buys/len(fear_buy)*100:.0f}%)")
@@ -712,7 +712,7 @@ def generate_report(rows):
     greedy_macro = [m for m in metrics if
                     m['fgi'] >= 70 and
                     m['macro_score'] >= 5]
-    report.append(f"\n  조건3: FGI≥70 + 매크로≥5 (탐욕+긍정 = 과열 주의)")
+    report.append("\n  조건3: FGI≥70 + 매크로≥5 (탐욕+긍정 = 과열 주의)")
     if greedy_macro:
         sells = sum(1 for m in greedy_macro if 'sell' in m['decision'] or '매도' in m['decision'])
         report.append(f"    발생: {len(greedy_macro)}건, 매도: {sells}건 ({sells/len(greedy_macro)*100:.0f}%)")
@@ -721,24 +721,24 @@ def generate_report(rows):
     report.append("\n### 6-2. 위험 구간 분석")
     danger = [m for m in metrics if
               m['fgi'] >= 80 and m['rsi'] >= 70]
-    report.append(f"\n  FGI≥80 + RSI≥70 (극단적 탐욕 + 과매수)")
+    report.append("\n  FGI≥80 + RSI≥70 (극단적 탐욕 + 과매수)")
     if danger:
         sells = sum(1 for m in danger if 'sell' in m['decision'] or '매도' in m['decision'])
         report.append(f"    발생: {len(danger)}건, 매도: {sells}건 ({sells/len(danger)*100:.0f}%)")
     else:
-        report.append(f"    발생: 0건")
+        report.append("    발생: 0건")
 
     # S&P500 급락 + 매크로 부정
     crisis = [m for m in metrics if
               m['sp500_chg'] < -1.0 and m['macro_score'] <= -5]
-    report.append(f"\n  S&P500 -1%↓ + 매크로≤-5 (글로벌 위기)")
+    report.append("\n  S&P500 -1%↓ + 매크로≤-5 (글로벌 위기)")
     if crisis:
         sells = sum(1 for m in crisis if 'sell' in m['decision'] or '매도' in m['decision'])
         avg_btc = avg([m['btc_price'] for m in crisis if m['btc_price'] > 0])
         report.append(f"    발생: {len(crisis)}건, 매도: {sells}건 ({sells/len(crisis)*100:.0f}%)")
         report.append(f"    평균 BTC가: {avg_btc:,.0f}")
     else:
-        report.append(f"    발생: 0건")
+        report.append("    발생: 0건")
 
     # ═══════════════════════════════════════════════════════
     # 7. 가격 구간별 분석
@@ -849,14 +849,14 @@ def generate_report(rows):
     sell_items = [m for m in metrics if 'sell' in m['decision'] or '매도' in m['decision']]
 
     if buy_items:
-        report.append(f"\n  [매수 시그널이 강했던 조건]")
+        report.append("\n  [매수 시그널이 강했던 조건]")
         report.append(f"  평균 FGI: {avg([m['fgi'] for m in buy_items if m['fgi']>0]):.1f}")
         report.append(f"  평균 RSI: {avg([m['rsi'] for m in buy_items if m['rsi']>0]):.1f}")
         report.append(f"  평균 매크로: {avg([m['macro_score'] for m in buy_items]):+.1f}")
         report.append(f"  평균 BTC가: {avg([m['btc_price'] for m in buy_items if m['btc_price']>0]):,.0f}")
 
     if sell_items:
-        report.append(f"\n  [매도 시그널이 강했던 조건]")
+        report.append("\n  [매도 시그널이 강했던 조건]")
         report.append(f"  평균 FGI: {avg([m['fgi'] for m in sell_items if m['fgi']>0]):.1f}")
         report.append(f"  평균 RSI: {avg([m['rsi'] for m in sell_items if m['rsi']>0]):.1f}")
         report.append(f"  평균 매크로: {avg([m['macro_score'] for m in sell_items]):+.1f}")

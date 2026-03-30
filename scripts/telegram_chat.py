@@ -198,7 +198,6 @@ def print_incoming(sender_name: str, text: str, chat_id: str = ""):
 def print_outgoing(target_name: str, text: str, ok: bool):
     ts = ts_now()
     status = f"{GREEN}✓{RESET}" if ok else f"{RED}✗ 전송실패{RESET}"
-    color = get_color_for("")  # 나 = 기본
     print(f" {DIM}[{ts}]{RESET} {CYAN}나 → {target_name}{RESET}: {text}  {status}", flush=True)
 
 
@@ -416,7 +415,7 @@ def load_recent_for(chat_id: str, limit: int = 10):
 # ── 로컬 입력 처리 ──────────────────────────────
 def handle_input(text: str):
     """터미널 입력 처리"""
-    global _current_target, _contacts
+    global _current_target
     text = text.strip()
     if not text:
         return
@@ -537,7 +536,7 @@ def handle_input(text: str):
 
 # ── 메인 ──────────────────────────────────
 def main():
-    global _running, _contacts
+    global _running
 
     if not TG_TOKEN:
         print("TELEGRAM_BOT_TOKEN 미설정")
@@ -572,7 +571,7 @@ def main():
 
     if not _contacts:
         print(f"  {RED}등록된 연락처가 없습니다.{RESET}")
-        print(f"  텔레그램에서 봇에게 /start 를 보내면 등록됩니다.\n")
+        print("  텔레그램에서 봇에게 /start 를 보내면 등록됩니다.\n")
     else:
         draw_contact_bar()
         print()

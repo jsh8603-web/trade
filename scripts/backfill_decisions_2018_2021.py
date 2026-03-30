@@ -23,7 +23,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 from pathlib import Path
 
 import requests
@@ -170,15 +170,12 @@ def simulate_decisions(data_points: list[dict]) -> list[dict]:
     decisions = []
     holding = False
     entry_price = 0
-    entry_idx = 0
+    # entry_idx tracking removed (unused)
 
     for i, dp in enumerate(data_points):
         ind = dp["indicators"]
         price = ind["current_price"]
         rsi = ind["rsi_14"]
-        fgi_val = dp["fgi"]["value"]
-        change_24h = ind["price_change_24h"]
-
         buy_score, reason_parts = calc_buy_score(dp)
 
         if holding:
@@ -211,7 +208,6 @@ def simulate_decisions(data_points: list[dict]) -> list[dict]:
                 reason = f"매수점수 {buy_score}점, {reason_parts}"
                 holding = True
                 entry_price = price
-                entry_idx = i
             else:
                 decision = "관망"
                 confidence = max(0.3, 1.0 - buy_score / 100)
@@ -231,7 +227,7 @@ def simulate_decisions(data_points: list[dict]) -> list[dict]:
 def calc_outcomes(data_points: list[dict], idx: int) -> dict:
     """1h/4h/24h 후 가격과 outcome을 계산한다."""
     price = data_points[idx]["indicators"]["current_price"]
-    decision = None  # will be set by caller
+    # decision will be set by caller
     result = {}
 
     # 4시간봉 기준: 1h 후 = 없음(근사치로 다음봉의 중간), 4h = +1봉, 24h = +6봉
@@ -337,7 +333,7 @@ def backfill_year(year: int, dry_run: bool = False):
     print(f"{'='*60}\n")
 
     # 1) 데이터 로드
-    print(f"[1/4] 데이터 로드 중...")
+    print("[1/4] 데이터 로드 중...")
     with open(points_path, "r", encoding="utf-8") as f:
         data_points = json.load(f)
     print(f"  sim_data_points: {len(data_points)}개")
@@ -351,10 +347,10 @@ def backfill_year(year: int, dry_run: bool = False):
             embedding_map[v["seq"]] = v["embedding"]
         print(f"  embedding_vectors: {len(embedding_map)}개")
     else:
-        print(f"  embedding_vectors: 없음 (임베딩 없이 진행)")
+        print("  embedding_vectors: 없음 (임베딩 없이 진행)")
 
     # 2) 매매 결정 시뮬레이션
-    print(f"[2/4] 매매 결정 시뮬레이션 중...")
+    print("[2/4] 매매 결정 시뮬레이션 중...")
     sim_decisions = simulate_decisions(data_points)
 
     buy_count = sum(1 for d in sim_decisions if d["decision"] == "매수")
@@ -363,7 +359,7 @@ def backfill_year(year: int, dry_run: bool = False):
     print(f"  매수: {buy_count}, 매도: {sell_count}, 관망: {hold_count}")
 
     # 3) decisions 레코드 생성
-    print(f"[3/4] decisions 레코드 생성 중...")
+    print("[3/4] decisions 레코드 생성 중...")
     records = []
     for i, (dp, dec) in enumerate(zip(data_points, sim_decisions)):
         ind = dp["indicators"]
@@ -453,7 +449,7 @@ def backfill_year(year: int, dry_run: bool = False):
 
     # 4) Supabase 저장
     if dry_run:
-        print(f"[4/4] DRY RUN - Supabase 저장 건너뜀")
+        print("[4/4] DRY RUN - Supabase 저장 건너뜀")
         ok, fail = 0, 0
     else:
         print(f"[4/4] Supabase decisions 테이블 저장 중... ({len(records)}개)")

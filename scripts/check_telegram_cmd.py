@@ -10,18 +10,9 @@ Watchdog이 3분마다 이 스크립트를 실행해, 사용자가 텔레그램�
 import os
 import sys
 import json
-import logging
+import urllib.request
+import urllib.error
 from pathlib import Path
-
-# VENV 로드나 의존성 이슈 방지를 위해 내장 모듈 사용
-# 만약 requests가 없다면 urllib.request로 폴백
-try:
-    import requests
-    USE_REQUESTS = True
-except ImportError:
-    import urllib.request
-    import urllib.error
-    USE_REQUESTS = False
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 ENV_FILE = PROJECT_DIR / ".env"
@@ -112,7 +103,7 @@ def main():
                                         
                                         # tmux 세션에 클로드가 인지하도록 메시지 전송
                                         os.system(f"tmux send-keys -t blockchain:claude '사용자가 텔레그램을 통해 아이폰 스크린샷 1장을 전송했습니다. 확인해주세요: {save_path}' Enter")
-                        except Exception as e:
+                        except Exception:
                             pass # 이미지 다운로드 실패 무시
 
         # update_id 저장 (다음 번엔 이 메시지들을 무시함)

@@ -16,7 +16,6 @@ import random
 import sys
 import time
 from datetime import datetime, timedelta, timezone
-from itertools import product
 from pathlib import Path
 
 import requests
@@ -606,7 +605,7 @@ def main():
 
     results = []
     best_roi = -999
-    best_params = None
+    # best_params/best_idx tracked inside loop but not used after
 
     for ci, params in enumerate(combos):
         random.seed(42)  # 동일 난수 보장
@@ -629,8 +628,6 @@ def main():
 
         # 시뮬 돌리기
         for dt, indicators, fgi, ext in all_sim_points:
-            # sideways_weak 체크를 위한 오버라이드
-            regime_before = sim._market_regime
             sim.step(dt, indicators, fgi, ext)
 
             # sideways_weak: sideways + SMA < -1 이면 추가 차단
@@ -649,8 +646,7 @@ def main():
 
         if roi > best_roi:
             best_roi = roi
-            best_params = params
-            best_idx = ci
+            pass  # best updated
 
         if (ci + 1) % 50 == 0:
             print(f"  ... {ci+1}/{len(combos)} done, best so far: ROI {best_roi:+.1f}%")
@@ -674,7 +670,7 @@ def main():
               f"{br:>15s} {p['bull_trade_ratio']}")
 
     # 최악 5개도 표시
-    print(f"\n  --- Worst 5 ---")
+    print("\n  --- Worst 5 ---")
     for r in results[-5:]:
         p = r["params"]
         br = "+".join(p["block_regimes"]) if isinstance(p["block_regimes"], list) else str(p["block_regimes"])

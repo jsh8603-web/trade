@@ -293,7 +293,7 @@ def main():
     print(f"  Price: {first_price:,.0f} -> {last_price:,.0f} KRW")
     print(f"  B&H ROI: {bh_roi:+.1f}%")
 
-    print(f"\n[2] Running simulations...")
+    print("\n[2] Running simulations...")
     sim_v6 = Simulator("v6")
     sim_v51 = Simulator("v5.1")
 
@@ -309,13 +309,12 @@ def main():
     final_price = points[-1][1]["current_price"]
 
     print(f"\n{'=' * 70}")
-    print(f"  RESULTS (2017-2021)")
+    print("  RESULTS (2017-2021)")
     print(f"{'=' * 70}")
     print(f"  B&H ROI: {bh_roi:+.1f}%")
 
     for label, sim in [("v6", sim_v6), ("v5.1", sim_v51)]:
         roi = (sim.total_eval(final_price) / INITIAL_KRW - 1) * 100
-        total_trades = sim.total_buys + sim.total_sells
         wr = sim.win_trades / sim.total_sells * 100 if sim.total_sells > 0 else 0
         print(f"\n  --- {label} ---")
         print(f"  ROI: {roi:+.1f}%  (eval={sim.total_eval(final_price):,.0f} KRW)")
@@ -330,7 +329,7 @@ def main():
             btc_r = (sim.btc * final_price) / sim.total_eval(final_price) * 100 if sim.total_eval(final_price) > 0 else 0
             print(f"  Final State: KRW={sim.krw:,.0f}, BTC={sim.btc:.8f} (ratio={btc_r:.1f}%)")
 
-        print(f"\n  Yearly:")
+        print("\n  Yearly:")
         for year in sorted(sim.yearly_stats.keys()):
             ys = sim.yearly_stats[year]
             if ys["start_eval"] > 0:
@@ -340,8 +339,8 @@ def main():
             print(f"    {year}: ROI {yr_roi:+.1f}%  B={ys['buys']} S={ys['sells']} PnL={ys['pnl']:+,.0f}")
 
     # B&H yearly
-    print(f"\n  --- B&H Yearly ---")
-    prev_price = first_price
+    print("\n  --- B&H Yearly ---")
+    # prev_price tracking removed (unused)
     for year in [2017, 2018, 2019, 2020, 2021]:
         year_points = [(dt, ind) for dt, ind, _, _ in points if dt.year == year]
         if year_points:

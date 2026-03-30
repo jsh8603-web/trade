@@ -33,7 +33,7 @@ import os
 import json
 import argparse
 from pathlib import Path
-from datetime import datetime, timezone, timedelta
+from datetime import timezone, timedelta
 
 if sys.stdout.encoding != "utf-8":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")

@@ -16,7 +16,6 @@
 from __future__ import annotations
 
 import json
-import os
 import random
 import sys
 import time
@@ -76,8 +75,7 @@ def convert_historical_to_sim_format(dp: dict) -> tuple[datetime, dict, dict, di
 
     # 외부 데이터를 시뮬레이터가 기대하는 형식으로 매핑
     news = ext.get("news", {})
-    whale = ext.get("whale", {})
-    sns = ext.get("sns", {})
+    # whale/sns extracted but unused in formatting
     binance = ext.get("binance", {})
     macro = ext.get("macro", {})
     fusion = ext.get("fusion", {})
@@ -265,8 +263,6 @@ def compute_indicators(candles: list[dict], idx: int) -> dict:
 
 
 def simulate_external_data(dt: datetime, indicators: dict, fgi: dict) -> dict:
-    price = indicators["current_price"]
-    rsi = indicators["rsi_14"]
     change_24h = indicators["price_change_24h"]
     fgi_val = fgi["value"]
 
@@ -454,7 +450,6 @@ class TradingSimulator:
     def step(self, dt: datetime, indicators: dict, fgi: dict, ext: dict) -> dict:
         price = indicators["current_price"]
         portfolio = self.get_portfolio(price)
-        macro_score = ext["_macro_score"]
 
         danger = self.calc_danger(indicators, ext, portfolio)
         opportunity = self.calc_opportunity(indicators, ext)
@@ -861,7 +856,7 @@ def main():
     p(f"  4년 2개월간 ROI: {roi:+.1f}% (BTC B&H: {btc_bnh_roi:+.1f}%)")
     p(f"  MDD: -{sim.max_drawdown:.1f}%")
     p(f"  승률: {win_rate:.1f}%")
-    p(f"  전략 특징: 소수의 대형 랠리에서 포지션을 유지하는 것이 핵심")
+    p("  전략 특징: 소수의 대형 랠리에서 포지션을 유지하는 것이 핵심")
 
     elapsed = time.time() - t0
     p(f"\n  소요시간: {elapsed:.0f}초")

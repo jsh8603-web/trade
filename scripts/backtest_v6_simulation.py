@@ -13,7 +13,6 @@ v6 개선사항 3가지:
 from __future__ import annotations
 
 import json
-import os
 import random
 import sys
 import time
@@ -28,9 +27,6 @@ sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
 from agents.base_agent import BaseStrategyAgent
-from agents.conservative import ConservativeAgent
-from agents.moderate import ModerateAgent
-from agents.aggressive import AggressiveAgent
 from scripts.indicators import IncrementalIndicators
 from scripts.sim_engine import BaseSimulator
 
@@ -266,7 +262,6 @@ def compute_indicators(candles, idx):
 
 
 def simulate_external_data(dt, indicators, fgi):
-    price = indicators["current_price"]
     change_24h = indicators["price_change_24h"]
     fgi_val = fgi["value"]
 
@@ -782,7 +777,7 @@ def main():
             sim_v6_chain._position_peak = float(fs.get("position_peak_price", 0))
             sim_v6_chain._consecutive_up_candles = int(fs.get("consecutive_up_candles", 0))
             sim_v6_chain._market_regime = fs.get("market_regime", "sideways")
-            p(f"  ** 연결모드: 2017-2021 최종 상태 이어받음 **")
+            p("  ** 연결모드: 2017-2021 최종 상태 이어받음 **")
             p(f"     KRW={fs['krw']:,}, BTC={fs['btc']:.8f}, 총={fs['total_eval']:,}")
         else:
             sim_v6_chain = None
@@ -962,13 +957,13 @@ def main():
                 v6_block_bad += 1
 
     if v6_sell_good + v6_sell_bad > 0:
-        p(f"\n  v6 추가 매도 (v5.1은 hold):")
+        p("\n  v6 추가 매도 (v5.1은 hold):")
         p(f"    24h 후 하락 (매도 적절): {v6_sell_good}건")
         p(f"    24h 후 상승 (매도 아쉬움): {v6_sell_bad}건")
         p(f"    매도 정확도: {v6_sell_good/(v6_sell_good+v6_sell_bad)*100:.1f}%")
 
     if v6_block_good + v6_block_bad > 0:
-        p(f"\n  v6 Bear 차단 (v5.1은 매수):")
+        p("\n  v6 Bear 차단 (v5.1은 매수):")
         p(f"    24h 후 하락 (차단 적절): {v6_block_good}건")
         p(f"    24h 후 상승 (차단 아쉬움): {v6_block_bad}건")
         p(f"    차단 정확도: {v6_block_good/(v6_block_good+v6_block_bad)*100:.1f}%")
@@ -977,11 +972,11 @@ def main():
     p(f"\n{'=' * 80}")
     p("  * 결론")
     p(f"{'=' * 80}")
-    p(f"")
+    p("")
     p(f"  v5.1 ROI: {s_v51['roi']:+.2f}% | 매수 {s_v51['buys']}회, 매도 {s_v51['sells']}회 | MDD -{s_v51['mdd']:.1f}%")
     p(f"  v6   ROI: {s_v6['roi']:+.2f}% | 매수 {s_v6['buys']}회, 매도 {s_v6['sells']}회 | MDD -{s_v6['mdd']:.1f}%")
     p(f"  B&H  ROI: {btc_bnh_roi:+.1f}%")
-    p(f"")
+    p("")
 
     p(f"  v6 수수료 합계: {sim_v6.total_fees:,.0f}원")
 
@@ -999,7 +994,7 @@ def main():
         chain_roi_2022 = (chain_eval / chain_initial - 1) * 100
         chain_roi_total = (chain_eval / INITIAL_KRW - 1) * 100
         p(f"\n{'=' * 80}")
-        p(f"  ** 연결 테스트: 2017-2026 (수수료 포함) **")
+        p("  ** 연결 테스트: 2017-2026 (수수료 포함) **")
         p(f"{'=' * 80}")
         p(f"  2017-2021 최종: {chain_initial:,.0f}원")
         p(f"  2022-2026 최종: {chain_eval:,.0f}원")
@@ -1009,11 +1004,11 @@ def main():
         p(f"  MDD:             {sim_v6_chain.max_drawdown:.1f}%")
         p(f"  거래: 매수 {sim_v6_chain.total_buys}회, 매도 {sim_v6_chain.total_sells}회")
         # B&H 2017→2026 비교
-        bh_2017_start = prev["v6"]["final_state"]["last_price"]
-        bh_chain = (final_price / bh_2017_start) * chain_initial
-        bh_chain_roi = (bh_chain / INITIAL_KRW - 1) * 100
+        # bh_2017_start = prev["v6"]["final_state"]["last_price"]
+        # bh_chain = (final_price / bh_2017_start) * chain_initial
+        # bh_chain_roi = (bh_chain / INITIAL_KRW - 1) * 100
         # 실제 BH: 2017 시작가 → 2026 최종가
-        p(f"  B&H 2017→2026: 시작가 기준 ROI 참고용")
+        p("  B&H 2017→2026: 시작가 기준 ROI 참고용")
         p(f"  최종 평가: v7.2={chain_eval:,.0f}원")
 
     elapsed = time.time() - t0

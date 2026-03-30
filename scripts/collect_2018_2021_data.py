@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import random
 import sys
@@ -370,11 +369,11 @@ def fetch_historical_fgi(year: int) -> dict[str, dict]:
 
     # FGI는 2018-02-01부터 제공 — 2017년, 2018년 1월은 데이터 없음
     if year == 2017:
-        print(f"  참고: FGI는 2018-02-01부터 제공됩니다. 2017년 Q4는 전부 기본값(50) 사용")
+        print("  참고: FGI는 2018-02-01부터 제공됩니다. 2017년 Q4는 전부 기본값(50) 사용")
     elif year == 2018:
         missing = sum(1 for d in fgi_filtered if d.startswith("2018-01"))
         if missing == 0:
-            print(f"  참고: FGI는 2018-02-01부터 제공됩니다. 1월은 기본값(50) 사용")
+            print("  참고: FGI는 2018-02-01부터 제공됩니다. 1월은 기본값(50) 사용")
 
     return fgi_filtered
 
@@ -758,7 +757,7 @@ def collect_year(year: int):
     print(f"  저장: {fgi_path} ({len(fgi_map)}일)")
 
     # ── 4) 시뮬레이션 포인트 생성 + 기술지표 + 외부 데이터 ──
-    print(f"[4/6] 시뮬레이션 포인트 생성 중 (기술지표 + 외부 데이터)...")
+    print("[4/6] 시뮬레이션 포인트 생성 중 (기술지표 + 외부 데이터)...")
 
     sim_points = []
     seen_times = set()
@@ -921,7 +920,7 @@ def collect_year(year: int):
         print(f"  Supabase: 저장 {supa_ok}개, 실패 {supa_fail}개")
 
     # ── 6) 요약 통계 ──
-    print(f"[6/6] 요약 통계 생성 중...")
+    print("[6/6] 요약 통계 생성 중...")
 
     if not all_data_points:
         print(f"  WARNING: {year}년 시뮬레이션 포인트가 0개입니다")

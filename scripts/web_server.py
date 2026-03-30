@@ -23,9 +23,6 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-import hashlib
-import secrets
-
 from dotenv import load_dotenv
 import requests
 
@@ -323,7 +320,7 @@ def _update_strategy(key, display_name):
     target = marker_map[key]
     content = re.sub(
         rf"(## [^\n]*{target}[^\n]*)",
-        rf"\1 ← 현재 활성",
+        r"\1 ← 현재 활성",
         content,
     )
     strat_file.write_text(content, encoding="utf-8")
@@ -363,7 +360,7 @@ def main():
     qr_url = f"http://{local_ip}:{PORT}/qr.html"
 
     print(f"\n{'='*50}")
-    print(f"  암호화폐 자동매매 대시보드")
+    print("  암호화폐 자동매매 대시보드")
     print(f"{'='*50}")
     print(f"  대시보드:     {dashboard_url}")
     print(f"  리모트 컨트롤: {remote_url}")
@@ -371,9 +368,9 @@ def main():
     if AUTH_ENABLED:
         print(f"  인증 토큰:    {AUTH_TOKEN}")
     else:
-        print(f"  인증: 비활성 (.env에 WEB_AUTH_TOKEN 설정으로 활성화)")
+        print("  인증: 비활성 (.env에 WEB_AUTH_TOKEN 설정으로 활성화)")
     print(f"{'='*50}")
-    print(f"  Ctrl+C 로 종료\n")
+    print("  Ctrl+C 로 종료\n")
 
     server = http.server.HTTPServer(("0.0.0.0", PORT), DashboardHandler)
     try:

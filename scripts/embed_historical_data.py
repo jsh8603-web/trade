@@ -176,7 +176,7 @@ def process_year(year: int):
     embed_fail = 0
     embed_reuse = 0
 
-    print(f"\n  [Phase 1] Gemini 임베딩 생성...")
+    print("\n  [Phase 1] Gemini 임베딩 생성...")
     for i, dp in enumerate(data_points):
         seq = dp["seq"]
 
@@ -220,7 +220,7 @@ def process_year(year: int):
     sb_skip = 0
 
     if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY and all_vectors:
-        print(f"\n  [Phase 2] Supabase 벡터 저장...")
+        print("\n  [Phase 2] Supabase 벡터 저장...")
         for i, dp in enumerate(data_points):
             seq = dp["seq"]
             if seq not in all_vectors:

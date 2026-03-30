@@ -202,7 +202,7 @@ class TestNoHardcodedSecrets:
         for p in PROJECT_DIR.rglob("*.py"):
             rel = str(p.relative_to(PROJECT_DIR))
             # Skip virtual environments and node_modules
-            if any(skip in rel for skip in ("venv/", ".venv/", "node_modules/", "__pycache__/")):
+            if any(skip in rel for skip in ("venv/", ".venv/", "venv\\", ".venv\\", "node_modules/", "node_modules\\", "__pycache__/", "__pycache__\\")):
                 continue
             py_files.append(p)
         return py_files

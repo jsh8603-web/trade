@@ -14,7 +14,6 @@ data/charts/ 에 타임스탬프 기반 파일명으로 저장한다.
 
 import asyncio
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path

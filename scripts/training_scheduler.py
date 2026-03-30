@@ -454,7 +454,7 @@ def show_status():
     # 최근 학습 히스토리
     history = load_history()
     if history:
-        print(f"\n  최근 학습 (최근 5건):")
+        print("\n  최근 학습 (최근 5건):")
         for h in history[-5:]:
             status = "✅" if h.get("improved") else "❌"
             ts = h.get("timestamp", "")[:16]

@@ -8,7 +8,6 @@ CoinMarketCap 기본 데이터 수집 (Basic 플랜 제한 적용)
 
 import os
 import json
-import sys
 import requests
 from dotenv import load_dotenv
 

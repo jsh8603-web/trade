@@ -251,8 +251,6 @@ def simulate_external_data(
     실제 가격/RSI/FGI 추이를 기반으로 뉴스감성, 고래동향, 매크로 등을
     현실적으로 시뮬레이션한다.
     """
-    price = indicators["current_price"]
-    rsi = indicators["rsi_14"]
     change_24h = indicators["price_change_24h"]
     fgi_val = fgi["value"]
 
@@ -507,7 +505,6 @@ class TradingSimulator:
     def calculate_danger_score(self, indicators: dict, external: dict, portfolio: dict) -> int:
         """위험도 점수 계산."""
         score = 0
-        fgi_val = external.get("_fgi_value", 50)
         change_24h = indicators["price_change_24h"]
         bs = external["sources"]["binance_sentiment"]
         kimchi_pct = bs["kimchi_premium"]["premium_pct"]
@@ -908,8 +905,7 @@ def save_to_supabase(results: list[dict], embeddings: list, embedding_texts: lis
 def update_outcomes(results: list[dict], decision_ids: list):
     """각 결정의 1h/4h/24h 후 가격으로 outcome 업데이트."""
     print("  → outcome 업데이트 중...")
-    prices = {r["timestamp"]: r["current_price"] for r in results}
-    timestamps = [r["timestamp"] for r in results]
+    # prices/timestamps dictionaries built but unused
 
     for i, (result, dec_id) in enumerate(zip(results, decision_ids)):
         if not dec_id:
@@ -1009,7 +1005,7 @@ def main():
     trades = [r for r in results if r["decision"] != "관망"]
 
     print(f"\n{'=' * 60}")
-    print(f"  시뮬레이션 완료")
+    print("  시뮬레이션 완료")
     print(f"  초기: {INITIAL_KRW:>12,}원")
     print(f"  최종: {final_portfolio['total_eval']:>12,.0f}원")
     print(f"  수익: {pnl:>+12,.0f}원 ({pnl_pct:+.2f}%)")

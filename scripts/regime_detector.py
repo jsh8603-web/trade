@@ -25,7 +25,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import timezone, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -150,7 +150,7 @@ def detect_regime(
 
     # 최고 점수 레짐 선택
     best_regime = max(scores, key=scores.get)
-    best_score = scores[best_regime]
+    # best_score = scores[best_regime]  # available but unused
 
     # 두 번째 레짐과의 차이로 confidence 계산
     sorted_scores = sorted(scores.values(), reverse=True)

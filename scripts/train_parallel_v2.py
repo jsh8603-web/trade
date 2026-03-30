@@ -94,7 +94,6 @@ def evaluate_model(model, candles, n_episodes=15):
 def train_variant(variant_id: int, candles: list[dict]) -> dict:
     """Phase 6 기반 변형을 훈련한다."""
     from stable_baselines3 import PPO
-    import numpy as np
 
     variants = {
         1: {
@@ -259,7 +258,7 @@ def main():
         best.save(str(PROJECT_DIR / "data" / "rl_models" / "ppo_btc_v4.zip"))
         log("")
         log(f"  ★ 최고 모델: Variant {best_vid} (수익률 {best_profit:+.2f}%)")
-        log(f"  ★ 저장: data/rl_models/v4/final_v4")
+        log("  ★ 저장: data/rl_models/v4/final_v4")
 
     # DB 기록
     try:

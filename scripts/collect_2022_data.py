@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import json
-import math
 import os
 import random
 import sys
@@ -864,7 +863,7 @@ def main():
 
     elapsed = time.time() - t0
     print(f"\n{'='*60}")
-    print(f"  2022년 데이터 수집 완료!")
+    print("  2022년 데이터 수집 완료!")
     print(f"  기간: {summary['period']}")
     print(f"  캔들: {summary['total_candles']}개")
     print(f"  시뮬 포인트: {summary['sim_points']}개")

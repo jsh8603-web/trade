@@ -12,7 +12,7 @@ cron 예시 (매시 15분):
   15 * * * * cd ~/workspace/blockchain && .venv/bin/python3 scripts/retrospective.py
 """
 
-import json, os, sys, time
+import os, sys, time
 from typing import Optional
 from datetime import datetime, timezone, timedelta
 from pathlib import Path

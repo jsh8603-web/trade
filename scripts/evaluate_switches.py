@@ -8,7 +8,6 @@ cron으로 1시간마다 실행하거나, run_agents.sh 끝에 호출한다.
 """
 
 import io
-import json
 import os
 import sys
 from datetime import datetime, timedelta, timezone

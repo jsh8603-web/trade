@@ -20,7 +20,6 @@ import os
 import json
 import time
 import argparse
-import copy
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
@@ -205,7 +204,6 @@ def phase1_anti_collapse(candles: list[dict], steps: int = 300_000):
 
 def phase2_crash_training(model, candles: list[dict], steps: int = 200_000):
     """합성 폭락 시나리오를 주입하여 위기 대응을 학습."""
-    from stable_baselines3 import PPO
     from rl_hybrid.rl.environment_v2 import BitcoinTradingEnvV2
 
     log("═══ Phase 2: 폭락/블랙스완 훈련 ═══")
@@ -254,7 +252,6 @@ def phase2_crash_training(model, candles: list[dict], steps: int = 200_000):
 
 def phase3_external_data(model, candles: list[dict], steps: int = 200_000):
     """현실적 FGI/뉴스/고래 시뮬레이션으로 재훈련."""
-    from stable_baselines3 import PPO
     from rl_hybrid.rl.environment_v2 import BitcoinTradingEnvV2
 
     log("═══ Phase 3: 현실적 외부 데이터 훈련 ═══")
@@ -366,7 +363,6 @@ def phase4_regime_specific(model, candles: list[dict], steps_per_regime: int = 1
 
 def phase5_dca_stoploss(model, candles: list[dict], steps: int = 150_000):
     """단계적 진입/퇴출 보상을 강화하여 DCA 타이밍 학습."""
-    from stable_baselines3 import PPO
     from rl_hybrid.rl.environment_v2 import BitcoinTradingEnvV2
 
     log("═══ Phase 5: DCA/손절 타이밍 훈련 ═══")
@@ -406,7 +402,6 @@ def phase5_dca_stoploss(model, candles: list[dict], steps: int = 150_000):
 
 def phase6_time_patterns(model, candles: list[dict], steps: int = 150_000):
     """주말/야간 거래량 감소 패턴 학습."""
-    from stable_baselines3 import PPO
     from rl_hybrid.rl.environment_v2 import BitcoinTradingEnvV2
 
     log("═══ Phase 6: 주말/시간 패턴 훈련 ═══")

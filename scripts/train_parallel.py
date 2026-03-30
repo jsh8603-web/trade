@@ -9,7 +9,6 @@ import sys
 import os
 import json
 import time
-import copy
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -115,7 +114,6 @@ def evaluate_model(model, candles, n_episodes=10, **env_kwargs):
 
 def train_phase(phase_num: int, candles_data: list[dict], steps: int) -> dict:
     """단일 Phase를 독립적으로 훈련한다. (별도 프로세스에서 실행)"""
-    import numpy as np
 
     phase_names = {
         1: "정책 기초 (높은 탐험)",
@@ -251,7 +249,6 @@ def main():
             continue
 
         m = r["metrics"]
-        marker = ""
         if m["mean_profit"] > best_profit:
             best_profit = m["mean_profit"]
             best_phase = phase_num

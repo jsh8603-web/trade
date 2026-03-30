@@ -13,7 +13,6 @@ subprocess 호출 시 터미널 창 방지:
 """
 
 import os
-import subprocess
 import sys
 
 # ── Windows subprocess 창 방지 kwargs ──────────────────────

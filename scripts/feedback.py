@@ -149,7 +149,7 @@ def cmd_bias(score_str: str):
 
     print(f"  성향 바이어스: {old_bias:.2f} → {new_bias:.2f}")
     print(f"  방향: {'공격적' if new_bias > 0 else '보수적' if new_bias < 0 else '중립'}")
-    print(f"  7일 후 자동 감쇠됩니다.")
+    print("  7일 후 자동 감쇠됩니다.")
 
 
 def cmd_say(message: str):
@@ -191,16 +191,16 @@ def cmd_say(message: str):
             print(f"  → 매매 간격 확대: {current or 4}h → {state['min_trade_interval_override']}h")
         elif action == "improve_profitability":
             state["confidence_threshold_override"] = 0.65
-            print(f"  → confidence 임계값 상향: 0.5 → 0.65 (확신 높은 거래만)")
+            print("  → confidence 임계값 상향: 0.5 → 0.65 (확신 높은 거래만)")
         elif action == "force_retrain":
             state["force_retrain_next_cycle"] = True
-            print(f"  → 다음 사이클에 강제 재학습 트리거")
+            print("  → 다음 사이클에 강제 재학습 트리거")
         elif action == "improve_db_logging":
             state["db_logging_verbose"] = True
-            print(f"  → DB 기록 강화 모드 활성화")
+            print("  → DB 기록 강화 모드 활성화")
         elif action == "force_strategy_review":
             state["force_strategy_review"] = True
-            print(f"  → 전략 리뷰 강제 트리거")
+            print("  → 전략 리뷰 강제 트리거")
         elif action == "force_hold":
             cycles = state.get("force_hold_cycles", 0)
             state["force_hold_cycles"] = cycles + 2
@@ -227,7 +227,7 @@ def cmd_say(message: str):
     _save_to_db(fb_type, message, actions[0]["action"] if actions else None)
 
     if not matched_tags:
-        print(f"  피드백 저장 완료 (다음 사이클에 반영)")
+        print("  피드백 저장 완료 (다음 사이클에 반영)")
     else:
         print(f"  자동 태그: {', '.join(matched_tags)}")
     print(f"  DB 기록: {'성공' if _save_to_db else '실패'}")
@@ -280,7 +280,7 @@ def cmd_status():
     force_retrain = state.get("force_retrain_next_cycle", False)
     db_verbose = state.get("db_logging_verbose", False)
 
-    print(f"\n  활성 오버라이드:")
+    print("\n  활성 오버라이드:")
     if interval_override:
         print(f"    매매 간격: {interval_override}h (기본: 4h)")
     if conf_override:
@@ -288,14 +288,14 @@ def cmd_status():
     if force_hold > 0:
         print(f"    강제 관망: {force_hold}사이클 남음")
     if force_retrain:
-        print(f"    강제 재학습: 다음 사이클에 트리거")
+        print("    강제 재학습: 다음 사이클에 트리거")
     if db_verbose:
-        print(f"    DB 기록 강화: 활성")
+        print("    DB 기록 강화: 활성")
     if overrides:
         for k, v in overrides.items():
             print(f"    {k}: {v}")
     if not any([interval_override, conf_override, force_hold, force_retrain, db_verbose, overrides]):
-        print(f"    (없음)")
+        print("    (없음)")
 
     # 피드백 큐
     queue = state.get("feedback_queue", [])
@@ -306,7 +306,7 @@ def cmd_status():
             tags = ", ".join(q.get("tags", [])) or "일반"
             print(f"    [{tags}] {q['message'][:60]}")
     else:
-        print(f"\n  미반영 피드백: 없음")
+        print("\n  미반영 피드백: 없음")
 
 
 def cmd_history():

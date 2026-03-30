@@ -24,7 +24,6 @@ from __future__ import annotations
 import json
 import os
 import sys
-import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -452,9 +451,9 @@ def get_regime_model_weights() -> dict:
 def _print_report(result: dict):
     """분석 결과를 사람이 읽을 수 있는 형식으로 출력."""
     cal = result.get("confidence_calibration", {})
-    print(f"\n=== Feedback Hub 분석 리포트 ===\n")
+    print("\n=== Feedback Hub 분석 리포트 ===\n")
 
-    print(f"📊 Confidence 보정:")
+    print("📊 Confidence 보정:")
     print(f"  보정값: {cal.get('confidence_bias', 0):+.4f}")
     print(f"  보정 오차: {cal.get('calibration_error', 0):.4f}")
     print(f"  샘플 수: {cal.get('samples', 0)}")
@@ -462,7 +461,7 @@ def _print_report(result: dict):
         actual = data.get("actual", "N/A")
         print(f"  [{bk}] 예측={data['predicted']:.1f}, 실제={actual}, n={data['total']}")
 
-    print(f"\n🤖 RL 모델 정확도:")
+    print("\n🤖 RL 모델 정확도:")
     for name, score in result.get("rl_model_scores", {}).items():
         status = "❌ 비활성" if score.get("should_disable") else "✅ 활성"
         print(f"  {name}: {score['accuracy']:.1%} ({score['samples']}건) {status}")
@@ -472,7 +471,7 @@ def _print_report(result: dict):
         print(f"  ⚠️ 비활성화 대상: {', '.join(disabled)}")
 
     rag = result.get("rag_quality", {})
-    print(f"\n🔍 RAG 품질:")
+    print("\n🔍 RAG 품질:")
     print(f"  RAG 사용: {rag.get('rag_accuracy', 0):.1%} ({rag.get('rag_samples', 0)}건)")
     print(f"  RAG 미사용: {rag.get('no_rag_accuracy', 0):.1%} ({rag.get('no_rag_samples', 0)}건)")
     print(f"  RAG 기여도: {rag.get('rag_benefit', 0):+.1%}")

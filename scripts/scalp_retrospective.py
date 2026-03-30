@@ -177,7 +177,7 @@ def process_timeframe(tf: dict, now: datetime, current_price: float) -> int:
 
 def update_best_worst_30m(now: datetime, current_price: float) -> int:
     """30분 내 최고/최저 가격 추적 (best_price_30m, worst_price_30m)"""
-    cutoff_30m = (now - timedelta(minutes=30)).isoformat()
+    # cutoff_30m not used directly (cutoff_start used instead)
     cutoff_start = (now - timedelta(minutes=35)).isoformat()
 
     # 30분 전후의 시그널 중 best/worst 미기록건

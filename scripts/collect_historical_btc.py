@@ -27,10 +27,9 @@ from __future__ import annotations
 
 import io
 import json
-import os
 import sys
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Windows cp949 방지
@@ -360,7 +359,7 @@ def collect_all(interval: str = "4h", fgi_only: bool = False):
     with open(events_path, "w", encoding="utf-8") as f:
         json.dump(MAJOR_EVENTS, f, ensure_ascii=False, indent=2)
 
-    print(f"\n=== 수집 완료 ===")
+    print("\n=== 수집 완료 ===")
     print(f"  캔들: {candle_path} ({len(candles):,}개)")
     print(f"  FGI:  {fgi_path} ({len(fgi)}일)")
     print(f"  이벤트: {events_path} ({len(MAJOR_EVENTS)}개)")
@@ -368,7 +367,7 @@ def collect_all(interval: str = "4h", fgi_only: bool = False):
     # 6. 통계
     if candles:
         prices = [c["close"] for c in candles]
-        print(f"\n=== BTC 7년 통계 (USDT) ===")
+        print("\n=== BTC 7년 통계 (USDT) ===")
         print(f"  기간: {candles[0]['timestamp'][:10]} ~ {candles[-1]['timestamp'][:10]}")
         print(f"  최저가: ${min(prices):,.0f}")
         print(f"  최고가: ${max(prices):,.0f}")

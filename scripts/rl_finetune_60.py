@@ -23,8 +23,6 @@ import logging
 import os
 import sys
 import time
-import copy
-import random
 from datetime import datetime
 from pathlib import Path
 
@@ -287,11 +285,10 @@ def main():
     parser.add_argument("--max-rounds", type=int, default=MAX_ROUNDS)
     args = parser.parse_args()
 
-    from stable_baselines3 import PPO
     from stable_baselines3.common.callbacks import EvalCallback
 
     log.info(f"{'='*60}")
-    log.info(f"  RL 파인튜닝 시작")
+    log.info("  RL 파인튜닝 시작")
     log.info(f"  목표: 승률 {args.target:.0%} x {args.consecutive}연속")
     log.info(f"  라운드당: {args.steps:,} 스텝")
     log.info(f"{'='*60}")
@@ -304,7 +301,7 @@ def main():
 
     # 최고 기록 추적
     best_win_rate = 0
-    best_model_path = None
+    # best_model_path tracking removed (unused after loop)
     consecutive_count = 0
     round_history = []
 
@@ -384,7 +381,7 @@ def main():
         if win_rate > best_win_rate:
             best_win_rate = win_rate
             model.save(str(MODEL_DIR / "ppo_finetune_best_ever"))
-            best_model_path = str(MODEL_DIR / "ppo_finetune_best_ever")
+            # best_model_path updated but not used after loop
 
         # 히스토리
         round_history.append({

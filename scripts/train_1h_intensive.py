@@ -418,7 +418,7 @@ def run_full_training(
 
     total_steps = sum(p["steps"] for p in phases)
     logger.info(f"\n{'=' * 60}")
-    logger.info(f"  RL 1시간 집중 훈련 시작")
+    logger.info("  RL 1시간 집중 훈련 시작")
     logger.info(f"  {len(phases)} Phases, 총 {total_steps:,} steps")
     logger.info(f"  시작: {datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S KST')}")
     logger.info(f"{'=' * 60}")
@@ -515,7 +515,7 @@ def run_full_training(
     _notify_result(summary)
 
     logger.info(f"\n{'=' * 60}")
-    logger.info(f"  1시간 집중 훈련 완료!")
+    logger.info("  1시간 집중 훈련 완료!")
     logger.info(f"  총 시간: {total_elapsed/60:.1f}분")
     logger.info(f"  최고 Sharpe: {best_sharpe:.4f} (Phase {best_phase})")
     logger.info(f"  결과: {result_path}")

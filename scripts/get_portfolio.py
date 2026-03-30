@@ -10,7 +10,6 @@ Upbit 포트폴리오 조회 스크립트
 출력: JSON (stdout)
 """
 
-import hashlib
 import json
 import os
 import sys

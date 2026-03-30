@@ -146,7 +146,7 @@ def main():
     else:
         sql = args.sql
 
-    print(f"실행 중...")
+    print("실행 중...")
     result = execute_sql(token, sql)
 
     if args.json:

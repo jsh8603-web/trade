@@ -130,7 +130,7 @@ async def get_client():
     except Exception as e:
         err_msg = str(e)
         if "KEY_BYTE" in err_msg:
-            print(f"[X] 로그인 레이트리밋 — 잠시 후 재시도 필요 (쿠키가 생기면 이후 자동 복원)", file=sys.stderr)
+            print("[X] 로그인 레이트리밋 — 잠시 후 재시도 필요 (쿠키가 생기면 이후 자동 복원)", file=sys.stderr)
         else:
             print(f"[X] 로그인 실패: {e}", file=sys.stderr)
         return None

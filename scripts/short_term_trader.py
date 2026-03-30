@@ -396,7 +396,7 @@ def db_insert(table: str, data: dict):
 def _generate_and_save_embedding(decision_id: str, data: dict, _log):
     """decisions 저장 후 Gemini 임베딩을 생성하여 Management API로 업데이트."""
     try:
-        from scripts.save_decision import build_embedding_text, generate_state_embedding
+        from scripts.save_decision import generate_state_embedding
         from scripts.save_decision import _update_embedding_via_sql
 
         emb_data = {
@@ -890,7 +890,7 @@ class ShortTermTrader:
             if (whale_a and whale_a.get("net_direction") == "sell"
                     and whale_a.get("total_alerts", 0) >= 2
                     and signal.strategy == "whale"):
-                return False, f"뉴스랑 X고래알림 매도압력 — whale 매수 차단"
+                return False, "뉴스랑 X고래알림 매도압력 — whale 매수 차단"
 
         # v5 필터 7: 모멘텀 확인 — 최근 60초 가격이 상승 중이어야 진입
         if len(self.price_history) >= 10:
@@ -2024,7 +2024,7 @@ class ShortTermTrader:
 
     async def _do_settlement(self):
         """6시간 정산 실행"""
-        now = datetime.now(KST)
+        # now = datetime.now(KST)  # available but epoch/elapsed_h used instead
         epoch = self._settlement_epoch
         elapsed_h = (time.time() - self._settlement_start) / 3600
 
@@ -2444,7 +2444,7 @@ class ShortTermTrader:
         log.info(f"  [v5] 트레일링: +{TRAILING_STOP_ACTIVATE_PCT}% 활성 / -{TRAILING_STOP_DISTANCE_PCT}% 거리")
         log.info(f"  [v5] 진입 보호: {GRACE_PERIOD_SEC}초 / 모멘텀: {MOMENTUM_MIN_PCT}%")
         log.info(f"  [v5] 고래 기준: {WHALE_THRESHOLD_KRW/10000:.0f}만원 / 비율: {WHALE_RATIO_THRESHOLD:.0%}")
-        log.info(f"  [v5] 뉴스 매수: 비활성 (모니터링 전용)")
+        log.info("  [v5] 뉴스 매수: 비활성 (모니터링 전용)")
         log.info(f"{'='*50}")
 
         sound_alert("초단타 봇 시작했어요.")

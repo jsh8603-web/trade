@@ -39,11 +39,9 @@ from __future__ import annotations
 
 import argparse
 import io
-import json
 import os
 import secrets
 import smtplib
-import string
 import sys
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -185,40 +183,40 @@ def cmd_invite(args):
     )
 
     if resp.status_code < 300:
-        print(f"초대코드 생성 완료")
+        print("초대코드 생성 완료")
         print(f"  코드: {code}")
         print(f"  티어: {args.tier}")
         print(f"  이름: {name}")
         print(f"  이메일: {email}")
         print(f"  만료: {expires.strftime('%Y-%m-%d %H:%M')} KST ({hours}시간)")
         print()
-        print(f"=== 이메일로 전달할 내용 ===")
+        print("=== 이메일로 전달할 내용 ===")
         print()
         print(f"  안녕하세요, {name}님.")
         print(f"  암호화폐 자동매매 분산 컴퓨팅 시스템에 {args.tier}로 초대합니다.")
         print()
-        print(f"  1. 프로젝트를 클론하세요:")
-        print(f"     git clone https://github.com/jaeho-jang-dr/claude-coin-trading-main.git")
-        print(f"     cd claude-coin-trading-main")
-        print(f"     pip install -r requirements.txt")
+        print("  1. 프로젝트를 클론하세요:")
+        print("     git clone https://github.com/jaeho-jang-dr/claude-coin-trading-main.git")
+        print("     cd claude-coin-trading-main")
+        print("     pip install -r requirements.txt")
         print()
         print(f"  2. .env.{args.tier} 파일을 .env로 복사하세요:")
         print(f"     cp .env.{args.tier} .env")
         print()
-        print(f"  3. .env 파일에 SUPABASE_URL과 SUPABASE_ANON_KEY를 입력하세요.")
-        print(f"     (이 값은 별도로 전달드립니다)")
+        print("  3. .env 파일에 SUPABASE_URL과 SUPABASE_ANON_KEY를 입력하세요.")
+        print("     (이 값은 별도로 전달드립니다)")
         print()
-        print(f"  4. 자가등록 명령을 실행하세요:")
+        print("  4. 자가등록 명령을 실행하세요:")
         print(f"     python -m scalp_ml.worker --register --invite-code {code}")
         print()
-        print(f"  5. 화면에 표시된 WORKER_TOKEN을 .env 파일에 입력하세요.")
-        print(f"     (이 토큰은 본인만 확인할 수 있습니다)")
+        print("  5. 화면에 표시된 WORKER_TOKEN을 .env 파일에 입력하세요.")
+        print("     (이 토큰은 본인만 확인할 수 있습니다)")
         print()
-        print(f"  6. 워커를 실행하세요:")
+        print("  6. 워커를 실행하세요:")
         print(f"     python -m scalp_ml.worker --worker-id \"your-pc-name\" --tier {args.tier}")
         print()
         print(f"  초대코드 만료: {expires.strftime('%Y-%m-%d %H:%M')} KST")
-        print(f"=== 끝 ===")
+        print("=== 끝 ===")
     else:
         print(f"초대 생성 실패: {resp.text}")
 
@@ -260,7 +258,7 @@ def cmd_direct_send(args):
         print(f"워커 등록 실패: {resp.text}")
         return
 
-    print(f"워커 등록 완료")
+    print("워커 등록 완료")
     print(f"  워커 ID: {worker_id}")
     print(f"  이름: {name}")
     print(f"  티어: {args.tier}")
@@ -437,8 +435,8 @@ def cmd_invalidate(args):
     )
     if resp.status_code < 300:
         print(f"토큰 무효화: {args.id}")
-        print(f"  워커는 새 초대코드로 재등록해야 합니다.")
-        print(f"  관리자는 새 토큰을 알 수 없습니다.")
+        print("  워커는 새 초대코드로 재등록해야 합니다.")
+        print("  관리자는 새 토큰을 알 수 없습니다.")
     else:
         print(f"실패: {resp.text}")
 
@@ -487,7 +485,7 @@ def cmd_msg_all(args):
         _save_message(chat_id=c['chat_id'], direction="outgoing",
                       message=f"[공지] {args.message}",
                       worker_id=c.get("worker_id"), worker_name=c["name"])
-    print(f"\n발송 완료")
+    print("\n발송 완료")
 
 
 def _lookup_contact_by_chat_id(chat_id: str) -> dict | None:
@@ -860,7 +858,7 @@ def cmd_chat(args):
         pass
 
     def receiver():
-        nonlocal offset, running
+        nonlocal offset
         while running:
             try:
                 r = requests.get(

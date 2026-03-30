@@ -1,5 +1,5 @@
 """바이낸스 계좌 조회"""
-import os, time, hmac, hashlib, requests
+import time, hmac, hashlib, requests
 from dotenv import dotenv_values
 
 env = dotenv_values(".env")
@@ -20,7 +20,7 @@ r = requests.get(
 
 if r.status_code == 200:
     data = r.json()
-    print(f"=== Binance Spot Account ===")
+    print("=== Binance Spot Account ===")
     print(f"거래 가능: {data.get('canTrade')}")
     print()
     balances = [b for b in data.get("balances", []) if float(b["free"]) > 0 or float(b["locked"]) > 0]
