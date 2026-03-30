@@ -300,7 +300,8 @@ class TestApiGetEdgeCases:
         mock_session = MagicMock()
         mock_session.get.return_value = mock_resp
 
-        with patch("collect_market_data._get_session", return_value=mock_session):
+        with patch("collect_market_data.time.sleep"), \
+             patch("collect_market_data._get_session", return_value=mock_session):
             result = api_get("/test", max_retries=1)
         assert result == {"ok": True}
         assert mock_session.get.call_count == 1
@@ -314,7 +315,8 @@ class TestApiGetEdgeCases:
         mock_session = MagicMock()
         mock_session.get.return_value = mock_resp
 
-        with patch("collect_market_data._get_session", return_value=mock_session):
+        with patch("collect_market_data.time.sleep"), \
+             patch("collect_market_data._get_session", return_value=mock_session):
             api_get("/ticker", {"markets": "KRW-BTC", "count": "10"})
         call_kwargs = mock_session.get.call_args[1]
         assert call_kwargs["params"]["markets"] == "KRW-BTC"
@@ -329,7 +331,8 @@ class TestApiGetEdgeCases:
         mock_session = MagicMock()
         mock_session.get.return_value = mock_resp
 
-        with patch("collect_market_data._get_session", return_value=mock_session):
+        with patch("collect_market_data.time.sleep"), \
+             patch("collect_market_data._get_session", return_value=mock_session):
             api_get("/test")
         called_url = mock_session.get.call_args[0][0]
         assert "?" not in called_url

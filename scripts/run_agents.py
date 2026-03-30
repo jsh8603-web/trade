@@ -81,8 +81,10 @@ def get_rl_advisory(market_data: dict, external_data: dict,
 
     # ── 1. 기존 SB3 모델 (PPO/SAC/TD3) ──
     try:
-        from rl_hybrid.rl.policy import SB3_AVAILABLE
-        if SB3_AVAILABLE and obs is not None:
+        # SB3 존재 여부를 가볍게 확인 (policy.py import 시 SB3 전체 로딩 방지)
+        import importlib.util
+        _sb3_available = importlib.util.find_spec("stable_baselines3") is not None
+        if _sb3_available and obs is not None:
             model_path = str(PROJECT_DIR / "data" / "rl_models" / "best" / "best_model")
             if (PROJECT_DIR / "data" / "rl_models" / "best" / "best_model.zip").exists():
                 # 알고리즘 감지: model_info.json이 있으면 해당 알고리즘 사용

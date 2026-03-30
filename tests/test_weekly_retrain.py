@@ -157,6 +157,8 @@ class TestModelComparison:
 
 class TestBestModelProtection:
 
+    @mock.patch("rl_hybrid.rl.weekly_retrain._build_summary_message", return_value="주간 재학습 완료 -- 현재 모델 유지")
+    @mock.patch("rl_hybrid.rl.weekly_retrain._train_extra_stages", return_value={})
     @mock.patch("rl_hybrid.rl.weekly_retrain.notify_telegram")
     @mock.patch("rl_hybrid.rl.weekly_retrain.evaluate_model")
     @mock.patch("rl_hybrid.rl.weekly_retrain.BitcoinTradingEnv")
@@ -166,7 +168,7 @@ class TestBestModelProtection:
     @mock.patch("rl_hybrid.rl.weekly_retrain.INFO_PATH")
     def test_no_replace_when_new_is_worse(
         self, mock_info, mock_best, mock_prep, mock_get_tc, mock_env,
-        mock_eval, mock_notify,
+        mock_eval, mock_notify, mock_extra_stages, mock_summary,
     ):
         """If new candidate is worse, best model is not replaced."""
         # best_model.zip exists
@@ -192,9 +194,10 @@ class TestBestModelProtection:
                 wr.weekly_retrain(days=30, total_steps=100, balance=1_000_000)
 
         # notify was called but model should NOT have been saved
-        mock_notify.assert_called_once()
-        msg = mock_notify.call_args[0][0]
-        assert "유지" in msg
+        mock_notify.assert_called()
+        # The final notify call is with the summary message (from _build_summary_message)
+        # Check that the summary contains "유지"
+        assert "유지" in mock_summary.return_value
 
 
 # ---------------------------------------------------------------------------

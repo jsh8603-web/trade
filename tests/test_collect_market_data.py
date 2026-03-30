@@ -319,8 +319,9 @@ class TestCalcATR:
 # ══════════════════════════════════════════════════════════════
 
 class TestApiGet:
+    @patch("collect_market_data.time.sleep")
     @patch("collect_market_data._get_session")
-    def test_success_first_try(self, mock_session_fn):
+    def test_success_first_try(self, mock_session_fn, mock_sleep):
         session = MagicMock()
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -367,8 +368,9 @@ class TestApiGet:
             api_get("/ticker", max_retries=3)
         assert session.get.call_count == 3
 
+    @patch("collect_market_data.time.sleep")
     @patch("collect_market_data._get_session")
-    def test_500_raises_immediately(self, mock_session_fn):
+    def test_500_raises_immediately(self, mock_session_fn, mock_sleep):
         session = MagicMock()
         mock_500 = MagicMock()
         mock_500.status_code = 500
@@ -380,8 +382,9 @@ class TestApiGet:
             api_get("/ticker", max_retries=3)
         assert session.get.call_count == 1
 
+    @patch("collect_market_data.time.sleep")
     @patch("collect_market_data._get_session")
-    def test_params_appended_to_url(self, mock_session_fn):
+    def test_params_appended_to_url(self, mock_session_fn, mock_sleep):
         session = MagicMock()
         mock_resp = MagicMock()
         mock_resp.status_code = 200
