@@ -106,9 +106,15 @@ def send_telegram(chat_id: str, text: str) -> bool:
         print("  ⚠ TELEGRAM_BOT_TOKEN 미설정 — 텔레그램 발송 건너뜀")
         return False
     try:
+        from utils.machine import get_machine_name
+        tag = f"[{get_machine_name()}]"
+    except Exception:
+        import platform
+        tag = f"[{platform.node().split('.')[0]}]"
+    try:
         resp = requests.post(
             f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage",
-            json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"},
+            json={"chat_id": chat_id, "text": f"{text}\n{tag}", "parse_mode": "HTML"},
             timeout=15,
         )
         if resp.ok:

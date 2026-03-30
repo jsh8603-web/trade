@@ -42,6 +42,17 @@ def escape_md(text: str) -> str:
     return re.sub(r"([_*\[\]()~`>#+\-=|{}.!])", r"\\\1", text)
 
 
+def _get_machine_tag() -> str:
+    """머신 이름 태그를 반환한다."""
+    try:
+        from utils.machine import get_machine_name
+        name = get_machine_name()
+    except Exception:
+        import platform
+        name = platform.node().split(".")[0] or "unknown"
+    return f"[{name}]"
+
+
 def send_message(msg_type: str, title: str, body: str, max_retries: int = 3):
     import time
     bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
@@ -49,9 +60,10 @@ def send_message(msg_type: str, title: str, body: str, max_retries: int = 3):
     if not bot_token or not user_id:
         raise RuntimeError("TELEGRAM_BOT_TOKEN 또는 TELEGRAM_USER_ID 미설정")
 
+    machine_tag = _get_machine_tag()
     ts = datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S KST")
     emoji = EMOJI.get(msg_type, "\U0001f4ac")
-    text = f"{emoji} *{escape_md(title)}*\n\n{escape_md(body)}\n\n_{escape_md(ts)}_"
+    text = f"{emoji} *{escape_md(title)}*\n\n{escape_md(body)}\n\n{escape_md(machine_tag)} _{escape_md(ts)}_"
 
     for attempt in range(max_retries):
         try:
@@ -95,6 +107,9 @@ def send_photo(image_path: str, caption: str, max_retries: int = 3):
     user_id = os.environ.get("TELEGRAM_USER_ID")
     if not bot_token or not user_id:
         raise RuntimeError("TELEGRAM_BOT_TOKEN 또는 TELEGRAM_USER_ID 미설정")
+
+    machine_tag = _get_machine_tag()
+    caption = f"{caption}\n{machine_tag}"
 
     for attempt in range(max_retries):
         with open(image_path, "rb") as f:

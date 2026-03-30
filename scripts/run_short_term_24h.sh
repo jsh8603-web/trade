@@ -30,6 +30,8 @@ else
     PYTHON="python3"
 fi
 
+MACHINE_TAG="[${MACHINE_NAME:-$(hostname -s)}]"
+
 LOG_DIR="logs/short_term"
 mkdir -p "$LOG_DIR" 2>/dev/null
 # 외장하드 심볼릭 logs 쓰기 불가 시 /tmp fallback
@@ -53,7 +55,7 @@ trap 'rm -f "$PIDFILE"' EXIT
 
 # 텔레그램 알림 함수
 notify() {
-  local msg="$1"
+  local msg="$1 ${MACHINE_TAG}"
   if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_USER_ID:-}" ]; then
     curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
       -d "chat_id=${TELEGRAM_USER_ID}" \

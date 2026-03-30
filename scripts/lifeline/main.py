@@ -104,7 +104,13 @@ def send_health_alert(critical_issues: list[dict]) -> bool:
 
         lines.append("")
 
-    lines.append(f"_{_escape_md(ts)}_")
+    try:
+        from utils.machine import get_machine_name
+        tag = get_machine_name()
+    except Exception:
+        import platform
+        tag = platform.node().split(".")[0]
+    lines.append(f"\\[{_escape_md(tag)}\\] _{_escape_md(ts)}_")
     text = "\n".join(lines)
 
     try:

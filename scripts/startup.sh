@@ -179,7 +179,9 @@ DASHBOARD_URL="http://${LOCAL_IP}:${DASHBOARD_PORT}"
 QR_URL="${DASHBOARD_URL}/qr"
 REMOTE_URL_FINAL=$(cat "$REMOTE_URL_FILE" 2>/dev/null || echo "https://claude.ai/code/pending")
 
-MSG="Crypto Bot Started
+MACHINE_TAG="[${MACHINE_NAME:-$(hostname -s)}]"
+
+MSG="Crypto Bot Started ${MACHINE_TAG}
 
 Claude Code Remote:
 ${REMOTE_URL_FINAL}

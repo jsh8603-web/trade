@@ -193,11 +193,17 @@ def run_cleanup(dry_run: bool = False):
         chat_id = os.getenv("TELEGRAM_USER_ID", "")
         if token and chat_id:
             try:
+                from utils.machine import get_machine_name
+                tag = f"[{get_machine_name()}]"
+            except Exception:
+                import platform
+                tag = f"[{platform.node().split('.')[0]}]"
+            try:
                 requests.post(
                     f"https://api.telegram.org/bot{token}/sendMessage",
                     json={
                         "chat_id": chat_id,
-                        "text": f"🗑️ DB 정리 완료: {total_deleted}건 삭제",
+                        "text": f"🗑️ DB 정리 완료: {total_deleted}건 삭제\n{tag}",
                     },
                     timeout=5,
                 )

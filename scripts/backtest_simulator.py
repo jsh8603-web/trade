@@ -1290,6 +1290,13 @@ def _send_telegram_summary(
     total_val = portfolio.krw + portfolio.btc * last_price
     pnl = total_val - 1_000_000
 
+    try:
+        from utils.machine import get_machine_name
+        tag = get_machine_name()
+    except Exception:
+        import platform
+        tag = platform.node().split(".")[0]
+
     text = (
         f"🔬 *백테스트 완료*\n\n"
         f"📅 기간: {args.start} \\~ {args.end}\n"
@@ -1297,7 +1304,8 @@ def _send_telegram_summary(
         f"🧠 임베딩: {stats['embeddings']}건\n"
         f"⏱️ 소요: {elapsed:.0f}s\n\n"
         f"💰 최종: {total_val:,.0f} KRW \\({pnl:+,.0f}\\)\n"
-        f"📈 수익률: {pnl/10000:+.1f}%"
+        f"📈 수익률: {pnl/10000:+.1f}%\n"
+        f"\\[{tag}\\]"
     )
 
     try:

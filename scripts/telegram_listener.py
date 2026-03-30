@@ -141,9 +141,15 @@ def save_message(chat_id, direction, message, **kwargs):
 
 def send_telegram(chat_id: str, text: str) -> bool:
     """텔레그램 메시지 발송"""
+    try:
+        from utils.machine import get_machine_name
+        tag = f"[{get_machine_name()}]"
+    except Exception:
+        import platform
+        tag = f"[{platform.node().split('.')[0]}]"
     r = requests.post(
         f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage",
-        json={"chat_id": chat_id, "text": text},
+        json={"chat_id": chat_id, "text": f"{text}\n{tag}"},
         timeout=15,
     )
     return r.ok

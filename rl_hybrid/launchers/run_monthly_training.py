@@ -108,7 +108,12 @@ def main():
         bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
         user_id = os.environ.get("TELEGRAM_USER_ID")
         if bot_token and user_id:
-            msg = f"[Monthly RL Training] {summary['success']}/{summary['total_modules']} 성공 ({elapsed}초)"
+            try:
+                from utils.machine import get_machine_name
+                tag = f"[{get_machine_name()}]"
+            except Exception:
+                tag = f"[{platform.node().split('.')[0]}]"
+            msg = f"[Monthly RL Training] {summary['success']}/{summary['total_modules']} 성공 ({elapsed}초)\n{tag}"
             requests.post(
                 f"https://api.telegram.org/bot{bot_token}/sendMessage",
                 json={"chat_id": user_id, "text": msg},

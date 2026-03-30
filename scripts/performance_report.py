@@ -81,9 +81,15 @@ def send_telegram_raw(text: str):
         print(text)
         return
     try:
+        from utils.machine import get_machine_name
+        tag = f"[{get_machine_name()}]"
+    except Exception:
+        import platform
+        tag = f"[{platform.node().split('.')[0]}]"
+    try:
         requests.post(
             f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"},
+            json={"chat_id": chat_id, "text": f"{text}\n{tag}", "parse_mode": "HTML"},
             timeout=10,
         )
     except Exception:

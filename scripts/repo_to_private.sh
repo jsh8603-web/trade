@@ -7,6 +7,7 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Repo set to PRIVATE" >> ~/workspace/blockch
 
 # 텔레그램 알림
 source ~/workspace/blockchain/.env
+MACHINE_TAG="[${MACHINE_NAME:-$(hostname -s)}]"
 curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
   -d chat_id="${TELEGRAM_USER_ID}" \
-  -d text="🔒 GitHub 리포 private으로 전환 완료" > /dev/null
+  -d text="🔒 GitHub 리포 private으로 전환 완료 ${MACHINE_TAG}" > /dev/null

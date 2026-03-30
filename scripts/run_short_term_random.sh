@@ -28,6 +28,9 @@ if [ -f .venv/bin/activate ]; then
   source .venv/bin/activate
 fi
 
+# 머신 이름
+MACHINE_TAG="[${MACHINE_NAME:-$(hostname -s)}]"
+
 # 실행 시간 (시간 단위, 기본 2시간)
 RUN_HOURS=${1:-2}
 RUN_SECONDS=$((RUN_HOURS * 3600))
@@ -56,7 +59,7 @@ echo "  실행 시간: ${RUN_HOURS}시간" | tee -a "$LOG_FILE"
 
 # 텔레그램 알림 (선택)
 if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_USER_ID:-}" ]; then
-  MSG="단타 봇 예약: ${START_TIME} 시작 예정 (${RUN_HOURS}시간, DRY_RUN=${DRY_RUN:-true})"
+  MSG="단타 봇 예약: ${START_TIME} 시작 예정 (${RUN_HOURS}시간, DRY_RUN=${DRY_RUN:-true}) ${MACHINE_TAG}"
   curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
     -d "chat_id=${TELEGRAM_USER_ID}" \
     -d "text=${MSG}" > /dev/null 2>&1 || true
@@ -69,7 +72,7 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] 단타 봇 시작 (${RUN_HOURS}시간)" | t
 
 # 텔레그램 알림
 if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_USER_ID:-}" ]; then
-  MSG="단타 봇 시작 (DRY_RUN=${DRY_RUN:-true}, ${RUN_HOURS}시간)"
+  MSG="단타 봇 시작 (DRY_RUN=${DRY_RUN:-true}, ${RUN_HOURS}시간) ${MACHINE_TAG}"
   curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
     -d "chat_id=${TELEGRAM_USER_ID}" \
     -d "text=${MSG}" > /dev/null 2>&1 || true
@@ -104,7 +107,7 @@ fi
 if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_USER_ID:-}" ]; then
   # 로그 마지막 20줄에서 세션 요약 추출
   SUMMARY=$(tail -20 "$LOG_FILE" | grep -A 10 "세션 요약" || echo "세션 요약 없음")
-  MSG="단타 봇 종료 (${RUN_HOURS}시간 완료)
+  MSG="단타 봇 종료 (${RUN_HOURS}시간 완료) ${MACHINE_TAG}
 ${SUMMARY}"
   curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
     -d "chat_id=${TELEGRAM_USER_ID}" \

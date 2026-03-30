@@ -105,9 +105,15 @@ def send_telegram(text: str):
         chat_id = os.getenv("TELEGRAM_USER_ID", "")
         if not token or not chat_id:
             return
+        try:
+            from utils.machine import get_machine_name
+            tag = f"[{get_machine_name()}]"
+        except Exception:
+            import platform
+            tag = f"[{platform.node().split('.')[0]}]"
         requests.post(
             f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": chat_id, "text": text[:4000]},
+            json={"chat_id": chat_id, "text": f"{text[:3990]}\n{tag}"},
             timeout=10,
         )
     except Exception:
