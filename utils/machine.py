@@ -28,7 +28,7 @@ def _get_role() -> str:
     if _role is None:
         with _cache_lock:
             if _role is None:
-                _role = os.environ.get("MACHINE_ROLE", "primary").lower().strip()
+                _role = os.environ.get("MACHINE_ROLE", "worker").lower().strip()
     return _role
 
 
@@ -73,7 +73,7 @@ def skip_trade_db(table: str) -> bool:
     # 훈련/학습 테이블 — 모든 머신에서 기록 허용
     TRAINING_TABLES = {
         "rl_training_log", "rl_training_cycles", "rl_training_results",
-        "rl_model_versions", "rl_backtest_results",
+        "rl_model_versions", "rl_backtest_results", "rl_predictions",
         "scalp_training_tasks", "scalp_model_versions", "scalp_market_snapshot",
         "rag_analysis_vectors",
         "app_changelog",

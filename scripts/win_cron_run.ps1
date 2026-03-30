@@ -67,8 +67,23 @@ Write-Log "=== 자동매매 cron 실행 시작 ==="
 Write-Log "Python 에이전트 파이프라인 시작..."
 
 try {
-    $AgentOutput = & $Python scripts\run_agents.py 2>&1
+    # Python stderr를 로그로 분리 (ErrorActionPreference=Stop + 2>&1 조합이
+    # Python 경고/로그를 PowerShell 종료 예외로 변환하는 버그 방지)
+    $StderrLog = Join-Path $LogDir "${Timestamp}_stderr.log"
+    $SavedEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $AgentOutput = & $Python scripts\run_agents.py 2>$StderrLog
     $AgentExit = $LASTEXITCODE
+    $ErrorActionPreference = $SavedEAP
+
+    # stderr 로그가 있으면 메인 로그에 병합
+    if (Test-Path $StderrLog) {
+        $StderrContent = Get-Content $StderrLog -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+        if ($StderrContent) {
+            Add-Content -Path $LogFile -Value $StderrContent -Encoding UTF8
+        }
+        Remove-Item $StderrLog -ErrorAction SilentlyContinue
+    }
 
     if ($AgentExit -eq 0) {
         $AgentOutput | Out-File -FilePath $ResponseFile -Encoding UTF8
@@ -77,8 +92,17 @@ try {
         # 회고 분석
         Write-Log "회고 분석 시작..."
         try {
-            & $Python scripts\retrospective.py 2>&1 | ForEach-Object { Write-Log $_ }
+            $RetroStderr = Join-Path $LogDir "${Timestamp}_retro_stderr.log"
+            $ErrorActionPreference = "Continue"
+            & $Python scripts\retrospective.py 2>$RetroStderr | ForEach-Object { Write-Log $_ }
+            $ErrorActionPreference = $SavedEAP
+            if (Test-Path $RetroStderr) {
+                $RetroErr = Get-Content $RetroStderr -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+                if ($RetroErr) { Add-Content -Path $LogFile -Value $RetroErr -Encoding UTF8 }
+                Remove-Item $RetroStderr -ErrorAction SilentlyContinue
+            }
         } catch {
+            $ErrorActionPreference = $SavedEAP
             Write-Log "WARNING: 회고 분석 실패 (치명적 아님): $_"
         }
     } else {
