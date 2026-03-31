@@ -7,12 +7,10 @@
   - PUB 채널 구독하여 최신 시세로 라이브 환경 보강
 """
 
-import json
 import logging
 import os
 import sys
 import time
-import threading
 from typing import Optional
 
 import numpy as np
@@ -21,9 +19,8 @@ import zmq
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from rl_hybrid.nodes.base_node import BaseNode
-from rl_hybrid.config import config
 from rl_hybrid.protocol import (
-    ZMQMessage, MsgType, Action, make_request, make_heartbeat,
+    ZMQMessage, Action, make_request, make_heartbeat,
 )
 from rl_hybrid.rl.data_loader import HistoricalDataLoader
 from rl_hybrid.rl.environment import BitcoinTradingEnv

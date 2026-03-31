@@ -384,7 +384,6 @@ def _shadow_validate(trader, candidate_name: str, sys_config=None) -> bool:
         total = 0
         for row in rows:
             outcome = row.get("outcome_4h_pct", 0)
-            actual_dir = "buy" if outcome > 0.5 else ("sell" if outcome < -0.5 else "hold")
 
             # 모델 예측은 할 수 없으므로 (obs 필요), 통계적으로 검증
             # 실제로는 eval 환경에서의 성과로 판단 (이미 위에서 했음)
@@ -456,7 +455,6 @@ def weekly_retrain(days: int = 90, total_steps: int = 200_000, balance: float = 
                            f"24h PnL={info.get('avg_pnl_24h', 'N/A')}")
 
             # 스텝 할당: 효과 좋은 알고리즘에 더 많은 스텝
-            remaining_steps = total_steps
             for algo in priority:
                 if algo in skip_algos:
                     step_allocation[algo] = 0

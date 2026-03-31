@@ -5,9 +5,7 @@ ZeroMQ로 메인 브레인에 전송 가능한 형태로 직렬화한다.
 """
 
 import logging
-import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 

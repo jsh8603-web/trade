@@ -42,8 +42,6 @@ logger = logging.getLogger("rl.hierarchical")
 try:
     from stable_baselines3 import PPO, SAC
     from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
-    from stable_baselines3.common.monitor import Monitor
-    from stable_baselines3.common.vec_env import DummyVecEnv
     SB3_AVAILABLE = True
 except ImportError:
     SB3_AVAILABLE = False
@@ -244,7 +242,6 @@ class MetaEnvironment(gym.Env):
 
         target_btc_ratio = (action + 1) / 2
         current_btc_value = self.btc_balance * price
-        current_btc_ratio = current_btc_value / total_value if total_value > 0 else 0
         target_btc_value = total_value * target_btc_ratio
         diff = target_btc_value - current_btc_value
 
@@ -553,7 +550,6 @@ class ExecutionEnvironment(gym.Env):
 
         target_btc_ratio = (action + 1) / 2
         current_btc_value = self.btc_balance * price
-        current_btc_ratio = current_btc_value / total_value if total_value > 0 else 0
         target_btc_value = total_value * target_btc_ratio
         diff = target_btc_value - current_btc_value
 

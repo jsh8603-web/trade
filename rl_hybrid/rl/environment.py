@@ -16,7 +16,6 @@ Reward:
 """
 
 import logging
-from typing import Optional
 
 import gymnasium as gym
 import numpy as np
@@ -206,7 +205,6 @@ class BitcoinTradingEnv(gym.Env):
         target_btc_ratio = (action + 1) / 2  # [-1,1] → [0,1]
 
         current_btc_value = self.btc_balance * price
-        current_btc_ratio = current_btc_value / total_value if total_value > 0 else 0
         target_btc_value = total_value * target_btc_ratio
 
         diff = target_btc_value - current_btc_value

@@ -11,7 +11,6 @@
 
 import copy
 import logging
-from typing import Optional
 
 import gymnasium as gym
 import numpy as np
@@ -119,7 +118,6 @@ def simulate_realistic_external(candle: dict, candles: list[dict],
     기존: 단순 노이즈
     개선: 가격 추세/변동성/RSI와 상관관계 있는 시뮬레이션
     """
-    price = candle["close"]
     rsi = candle.get("rsi_14", 50)
     change_rate = candle.get("change_rate", 0)
 

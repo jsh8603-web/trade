@@ -35,9 +35,7 @@ except ImportError:
     _LOCK_UN = 0
 import json
 import logging
-import os
 import shutil
-import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 

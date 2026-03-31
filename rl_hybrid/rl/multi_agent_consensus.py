@@ -18,7 +18,7 @@ import os
 import json
 import time
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 import gymnasium as gym
@@ -35,9 +35,6 @@ logger = logging.getLogger("rl.multi_agent")
 try:
     from stable_baselines3 import PPO, SAC
     from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
-    from stable_baselines3.common.monitor import Monitor
-    import torch
-    import torch.nn as nn
     SB3_AVAILABLE = True
 except ImportError:
     SB3_AVAILABLE = False

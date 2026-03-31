@@ -303,7 +303,6 @@ class OfflineDatasetBuilder:
         }
 
         # 포트폴리오 (결정 시점 근사)
-        confidence = float(decision.get("confidence", 0.5) or 0.5)
         dec_type = decision.get("decision", "관망")
         # 매수 결정이면 BTC 보유 중이라고 근사
         position_ratio = 0.5 if dec_type == "매도" else (0.0 if dec_type == "매수" else 0.3)

@@ -16,7 +16,7 @@ import logging
 import os
 import time
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
@@ -33,14 +33,13 @@ except ImportError:
 
 try:
     from stable_baselines3 import PPO
-    from stable_baselines3.common.callbacks import BaseCallback
     SB3_AVAILABLE = True
 except ImportError:
     SB3_AVAILABLE = False
 
 # PyTorch lazy import
 try:
-    import torch
+    import torch  # noqa: F401
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -410,7 +409,6 @@ if GYM_AVAILABLE:
             buy_threshold = params.get("buy_score_threshold", 70)
             target_profit = params.get("target_profit_pct", 15.0)
             stop_loss = params.get("stop_loss_pct", -5.0)
-            fgi_th = params.get("fgi_threshold", 30)
             rsi_th = params.get("rsi_threshold", 30)
             sell_rsi_th = params.get("sell_rsi_threshold", 70)
             trade_ratio = params.get("max_trade_ratio", 0.10)

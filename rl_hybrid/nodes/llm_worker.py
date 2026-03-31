@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from rl_hybrid.nodes.base_node import BaseNode
 from rl_hybrid.config import config
 from rl_hybrid.protocol import (
-    ZMQMessage, MsgType, Action, make_heartbeat,
+    ZMQMessage, Action, make_heartbeat,
 )
 from rl_hybrid.rag.rag_pipeline import RAGPipeline
 

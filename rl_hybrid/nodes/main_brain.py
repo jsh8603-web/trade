@@ -25,7 +25,7 @@ from rl_hybrid.nodes.base_node import BaseNode
 from rl_hybrid.config import config
 from rl_hybrid.protocol import (
     ZMQMessage, MsgType, Action,
-    make_request, make_broadcast, make_heartbeat,
+    make_request, make_broadcast,
 )
 
 logger = logging.getLogger("node.main_brain")
@@ -229,7 +229,6 @@ class MainBrainNode(BaseNode):
             return
 
         weights = self.trainer.get_weights_serializable()
-        now = time.time()
 
         for name, info in list(self.worker_health.items()):
             if name.startswith("rl_worker") and info["status"] == "alive":

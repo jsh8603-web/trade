@@ -7,11 +7,9 @@ Gymnasium 환경에 공급한다.
 import json
 import logging
 import os
-import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import requests

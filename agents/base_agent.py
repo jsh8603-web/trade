@@ -14,6 +14,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 import requests
 from dotenv import load_dotenv
@@ -118,6 +119,12 @@ class Decision:
     external_signal: dict   # Data Fusion 결과
     agent_name: str         # 결정을 내린 에이전트
     timestamp: str = field(default_factory=lambda: time.strftime("%Y-%m-%dT%H:%M:%S+09:00"))
+    # 감독 오버라이드 / AI 거부권 메타데이터 (런타임에서 동적 할당)
+    _orchestrator_override: Optional[bool] = field(default=None, repr=False)
+    _override_reason: Optional[str] = field(default=None, repr=False)
+    _original_action: Optional[str] = field(default=None, repr=False)
+    _was_ai_vetoed: Optional[bool] = field(default=None, repr=False)
+    _ai_veto_reason: Optional[str] = field(default=None, repr=False)
 
     def to_dict(self) -> dict:
         d = {
@@ -185,7 +192,7 @@ class BaseStrategyAgent(ABC):
     buy_blocked_regimes: tuple = ("bear", "crisis")
 
     # v7.2: 레짐별 포지션 비율 (상승장 더 공격, 하락장 방어 유지)
-    regime_trade_ratios: dict = None  # __init_subclass__에서 초기화
+    regime_trade_ratios: Optional[dict] = None  # __init_subclass__에서 초기화
 
     @classmethod
     def __init_subclass__(cls, **kwargs):
@@ -553,11 +560,11 @@ class BaseStrategyAgent(ABC):
         try:
             from utils.machine import skip_trade_db
             if skip_trade_db("buy_score_detail"):
-                return
+                return None
             supabase_url = os.getenv("SUPABASE_URL", "")
             supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
             if not supabase_url or not supabase_key:
-                return
+                return None
 
             bs = decision.buy_score or {}
             fgi_obj = bs.get("fgi", {}) if isinstance(bs.get("fgi"), dict) else {}

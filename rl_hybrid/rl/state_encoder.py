@@ -5,7 +5,6 @@
 """
 
 import numpy as np
-from typing import Optional
 
 # 관측 벡터 구성 (총 42차원)
 FEATURE_SPEC = {

@@ -31,7 +31,7 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 STATE_FILE = PROJECT_DIR / "data" / "agent_state.json"
 AUTO_EMERGENCY_FILE = PROJECT_DIR / "data" / "auto_emergency.json"
 
-AGENTS = {
+AGENTS: dict[str, type[ConservativeAgent] | type[ModerateAgent] | type[AggressiveAgent]] = {
     "conservative": ConservativeAgent,
     "moderate": ModerateAgent,
     "aggressive": AggressiveAgent,

@@ -4,7 +4,6 @@
 LLM Worker 노드에서 호출된다.
 """
 
-import json
 import logging
 import time
 from typing import Optional

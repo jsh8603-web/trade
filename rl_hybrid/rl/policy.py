@@ -16,8 +16,6 @@ logger = logging.getLogger("rl.policy")
 try:
     from stable_baselines3 import PPO, SAC, TD3
     from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
-    from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
-    from stable_baselines3.common.monitor import Monitor
     from stable_baselines3.common.noise import NormalActionNoise
     SB3_AVAILABLE = True
 except ImportError:

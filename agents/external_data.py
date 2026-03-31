@@ -33,7 +33,8 @@ import subprocess
 try:
     from scripts.hide_console import subprocess_kwargs
 except ImportError:
-    subprocess_kwargs = lambda: {}
+    def subprocess_kwargs(**extra: object) -> dict:  # type: ignore[misc]
+        return dict(extra)
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -224,7 +225,7 @@ def _compress_news(news_data: dict) -> dict:
 
 # ── Supabase 조회 ──────────────────────────────────
 
-def _load_supabase(endpoint: str, params: dict) -> list | dict:
+def _load_supabase(endpoint: str, params: dict) -> list[dict] | dict:
     """Supabase REST API를 조회한다."""
     url = os.getenv("SUPABASE_URL", "")
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
@@ -250,12 +251,13 @@ def _load_supabase(endpoint: str, params: dict) -> list | dict:
 
 def load_user_feedback() -> list[dict]:
     """미반영 사용자 피드백을 로드한다."""
-    return _load_supabase("feedback", {
+    result = _load_supabase("feedback", {
         "select": "type,content,created_at",
         "applied": "eq.false",
         "order": "created_at.desc",
         "limit": "5",
     })
+    return result if isinstance(result, list) else [result]
 
 
 def load_performance_review() -> dict:

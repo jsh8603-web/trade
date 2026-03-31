@@ -11,7 +11,6 @@ import json
 import logging
 import os
 import sys
-import time
 from typing import Optional
 
 import zmq
@@ -21,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from rl_hybrid.nodes.base_node import BaseNode
 from rl_hybrid.config import config
 from rl_hybrid.protocol import (
-    ZMQMessage, MsgType, Action, make_heartbeat,
+    ZMQMessage, Action, make_heartbeat,
 )
 
 logger = logging.getLogger("node.trading_worker")
@@ -119,7 +118,7 @@ class TradingWorkerNode(BaseNode):
         market = msg.payload.get("market", "KRW-BTC")
         amount = msg.payload.get("amount")
         volume = msg.payload.get("volume")
-        reason = msg.payload.get("reason", "")
+        _reason = msg.payload.get("reason", "")
 
         # 1. 안전장치 검증
         safety = self._check_safety(side, amount)

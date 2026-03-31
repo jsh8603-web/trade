@@ -163,7 +163,7 @@ class TestAggressiveNoAiFilter:
         md = _md(rsi=45, sma_deviation=-2.0, fgi=55, ai_score=-10)
         decision = agent.decide(md, _ext(strategy_bonus=5), _port())
         assert decision.decision == "buy"
-        assert not hasattr(decision, '_was_ai_vetoed')
+        assert not decision._was_ai_vetoed
 
 
 # ============================================================

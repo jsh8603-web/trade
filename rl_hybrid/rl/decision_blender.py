@@ -11,9 +11,7 @@
 """
 
 import logging
-import time
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
@@ -307,7 +305,6 @@ class DecisionBlender:
         """매매 파라미터 결정"""
         import os
         max_amount = int(os.getenv("MAX_TRADE_AMOUNT", "100000"))
-        max_ratio = float(os.getenv("MAX_POSITION_RATIO", "0.5"))
 
         if decision == "hold":
             return {"side": "none", "amount": 0}

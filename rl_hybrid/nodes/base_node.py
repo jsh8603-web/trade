@@ -18,7 +18,7 @@ import zmq
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from rl_hybrid.config import config, ZMQConfig
-from rl_hybrid.protocol import ZMQMessage, make_heartbeat
+from rl_hybrid.protocol import ZMQMessage
 
 
 class BaseNode(abc.ABC):

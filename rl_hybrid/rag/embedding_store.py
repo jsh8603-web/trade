@@ -7,7 +7,6 @@ DB 직접 연결(psycopg2) 대신 Supabase REST API를 사용하여
 pooler 연결 문제를 우회한다.
 """
 
-import json
 import logging
 from typing import Optional
 

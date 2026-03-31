@@ -22,11 +22,7 @@
     mixed = gen.mix_with_real(real_candles) # 실제 + 합성 데이터 혼합
 """
 
-import copy
-import math
-import random
 from datetime import datetime, timedelta
-from typing import Optional
 
 import numpy as np
 
@@ -175,7 +171,6 @@ class ScenarioGenerator:
             candles.append(self._make_candle(ts[i], price, new_price, volume=vol))
             price = new_price
 
-        peak = price
 
         # 급락 -30% (6봉)
         for j in range(6):
@@ -480,7 +475,6 @@ class ScenarioGenerator:
         recovery_target = self.base_price * 0.85
         remaining = len(ts) - 31
         for i in range(remaining):
-            progress = i / remaining
             target = price + (recovery_target - price) * 0.05
             noise = self.rng.uniform(-0.005, 0.007)
             new_price = target + target * noise
