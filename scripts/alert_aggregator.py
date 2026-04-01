@@ -240,10 +240,12 @@ def _collect_sentinel_alerts() -> list[dict]:
                 [sys.executable, str(SENTINEL_SCRIPT)],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=60,
                 cwd=str(PROJECT_DIR),
             )
-            output = result.stdout.strip()
+            output = (result.stdout or "").strip()
             if not output:
                 return alerts
 

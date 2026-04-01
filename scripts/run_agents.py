@@ -1252,7 +1252,7 @@ def main():
             log("Phase 6.7: 파라미터 자동 튜닝...")
             from rl_hybrid.rl.self_tuning_rl import run_parameter_tuning
             # 현재 에이전트 파라미터 및 시장 레짐 수집
-            _market_state = result.get("market_state", {})
+            _market_state = result.get("market_state") or {}
             _perf_metrics = {
                 "recent_decision": decision,
                 "danger_score": _market_state.get("danger_score", 50),

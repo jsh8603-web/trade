@@ -828,7 +828,7 @@ class ParameterTuner:
 
         latest["performance_after"] = current_metrics
         sharpe_after = current_metrics.get("sharpe", 0)
-        sharpe_before = latest.get("performance_before", {}).get("sharpe", 0)
+        sharpe_before = (latest.get("performance_before") or {}).get("sharpe", 0)
 
         if sharpe_after - sharpe_before < threshold_sharpe_drop:
             # 롤백 필요
