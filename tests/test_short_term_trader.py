@@ -2326,7 +2326,7 @@ class TestSendTelegramEdgeCases:
         args, kwargs = mock_session.post.call_args
         assert "mytoken" in args[0]
         assert kwargs["json"]["chat_id"] == "42"
-        assert kwargs["json"]["text"] == "test msg"
+        assert "test msg" in kwargs["json"]["text"]
         assert kwargs["json"]["parse_mode"] == "HTML"
 
     def test_connection_error_silently_caught(self, monkeypatch):

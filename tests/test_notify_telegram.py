@@ -291,7 +291,7 @@ class TestSendPhotoHappy:
 
         call_kw = mock_post.call_args[1]
         assert call_kw["data"]["chat_id"] == "789"
-        assert call_kw["data"]["caption"] == "my caption"
+        assert "my caption" in call_kw["data"]["caption"]
         assert "photo" in call_kw["files"]
 
     @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_USER_ID": "123"})

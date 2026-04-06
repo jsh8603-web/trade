@@ -6,6 +6,7 @@ All external dependencies (Supabase, subprocess, file I/O) are mocked.
 """
 
 import http.server
+import importlib
 import io
 import json
 import os
@@ -15,11 +16,22 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
-# Patch load_dotenv and sys.stdout/stderr reconfigure before import
+# ---------------------------------------------------------------------------
+# Module-level bootstrap: ensure hide_console stub exists and do initial import.
+# WEB_AUTH_TOKEN is cleared so AUTH_ENABLED=False regardless of .env contents.
+# ---------------------------------------------------------------------------
+import sys as _sys
+
+_sys.modules.setdefault("hide_console", MagicMock())
+
+# Remove WEB_AUTH_TOKEN from env before the initial import so AUTH_ENABLED=False.
+os.environ.pop("WEB_AUTH_TOKEN", None)
+
 with patch("dotenv.load_dotenv"):
-    with patch("sys.stdout") as mock_stdout, patch("sys.stderr") as mock_stderr:
-        mock_stdout.reconfigure = MagicMock()
-        mock_stderr.reconfigure = MagicMock()
+    with patch("sys.stdout") as _mock_stdout, patch("sys.stderr") as _mock_stderr:
+        _mock_stdout.reconfigure = MagicMock()
+        _mock_stderr.reconfigure = MagicMock()
+        import scripts.web_server as _web_server_module
         from scripts.web_server import (
             DashboardHandler,
             _get_active_strategy,
@@ -31,6 +43,44 @@ with patch("dotenv.load_dotenv"):
             supabase_get,
             update_env_value,
         )
+
+
+def _reload_web_server():
+    """Reload scripts.web_server with AUTH disabled (WEB_AUTH_TOKEN cleared)."""
+    os.environ.pop("WEB_AUTH_TOKEN", None)
+    with patch("dotenv.load_dotenv"):
+        with patch("sys.stdout") as ms, patch("sys.stderr") as me:
+            ms.reconfigure = MagicMock()
+            me.reconfigure = MagicMock()
+            importlib.reload(_web_server_module)
+
+    # Re-bind all module-level names used by tests to the freshly reloaded module.
+    global DashboardHandler, _get_active_strategy, _update_strategy
+    global api_decisions, api_status, get_local_ip, read_env, supabase_get
+    global update_env_value
+    DashboardHandler = _web_server_module.DashboardHandler
+    _get_active_strategy = _web_server_module._get_active_strategy
+    _update_strategy = _web_server_module._update_strategy
+    api_decisions = _web_server_module.api_decisions
+    api_status = _web_server_module.api_status
+    get_local_ip = _web_server_module.get_local_ip
+    read_env = _web_server_module.read_env
+    supabase_get = _web_server_module.supabase_get
+    update_env_value = _web_server_module.update_env_value
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _ensure_web_server_clean(request):  # noqa: PT004
+    """Session-scoped fixture: reload web_server once with AUTH disabled.
+
+    This guards against other test files (earlier in the suite) loading .env
+    via load_dotenv() and setting WEB_AUTH_TOKEN in os.environ before this
+    module is first imported — which would make AUTH_ENABLED=True and cause
+    every handler test to hit send_response(401) → AttributeError on
+    request_version (which is only set by parse_request, never called in
+    unit tests).
+    """
+    _reload_web_server()
 
 
 # ---------------------------------------------------------------------------

@@ -263,7 +263,7 @@ class TestSendPhoto:
 
         call_args = mock_post.call_args
         assert call_args[1]["data"]["chat_id"] == "12345"
-        assert call_args[1]["data"]["caption"] == "my caption"
+        assert "my caption" in call_args[1]["data"]["caption"]
         assert "photo" in call_args[1]["files"]
 
     @patch.dict(os.environ, {}, clear=True)

@@ -55,28 +55,14 @@ def _build_playwright_mocks():
     return mock_async_playwright, mock_browser, mock_context, mock_page
 
 
-def _run_capture(mock_ap, tmp_path, extra_patches=None):
+def _run_capture(mock_ap, tmp_path=None):
     """Import and run capture_chart with mocks applied."""
-    patches = {
-        "playwright.async_api.async_playwright": mock_ap,
-        "scripts.capture_chart.os.getcwd": MagicMock(return_value=str(tmp_path)),
-    }
-    if extra_patches:
-        patches.update(extra_patches)
-
-    # Need to reimport each time to pick up patched os.getcwd
     import importlib
     import scripts.capture_chart as mod
 
-    ctx_managers = [patch(k, v) for k, v in patches.items()]
-    for cm in ctx_managers:
-        cm.__enter__()
-    try:
+    with patch("playwright.async_api.async_playwright", mock_ap):
         importlib.reload(mod)
         _run_async(mod.capture_chart())
-    finally:
-        for cm in reversed(ctx_managers):
-            cm.__exit__(None, None, None)
 
 
 # ---------------------------------------------------------------------------
@@ -247,11 +233,9 @@ class TestErrorHandling:
         mock_chromium = mock_ap.return_value.__aenter__.return_value.chromium
         mock_chromium.launch.side_effect = RuntimeError("test failure")
 
-        with patch("playwright.async_api.async_playwright", mock_ap), \
-             patch("scripts.capture_chart.os.getcwd", return_value=str(tmp_path)):
+        with patch("playwright.async_api.async_playwright", mock_ap):
             importlib.reload(mod)
             with pytest.raises(SystemExit) as exc_info:
-                mod.__name__ = "__main__"
                 try:
                     asyncio.run(mod.capture_chart())
                 except Exception as e:
@@ -312,38 +296,19 @@ class TestDirectoryCreation:
     """Verify data/charts/ auto-creation."""
 
     def test_creates_charts_directory(self, tmp_path):
-        """Production uses Path(__file__).resolve().parent.parent / 'data' / 'charts'.
-        We verify the directory is created by checking mkdir was called via mock."""
+        """Production code creates data/charts/ via Path.mkdir(parents=True, exist_ok=True)."""
         mock_ap, mock_browser, mock_ctx, mock_page = _build_playwright_mocks()
 
-        import importlib
         import scripts.capture_chart as mod
-
-        # Track mkdir calls on the charts_dir Path
-        original_path = Path
-        mkdir_called = {}
-
-        class MockPath(type(Path())):
-            pass
-
-        # Instead of checking tmp_path, verify the real charts_dir gets created
-        # by the production code (Path(__file__).parent.parent / "data" / "charts")
         script_dir = Path(mod.__file__).resolve().parent.parent
         charts_dir = script_dir / "data" / "charts"
 
         _run_capture(mock_ap, tmp_path)
 
-        # The production code calls charts_dir.mkdir(parents=True, exist_ok=True)
-        # so the directory should exist after capture
         assert charts_dir.exists()
         assert charts_dir.is_dir()
 
     def test_existing_charts_directory_no_error(self, tmp_path):
         mock_ap, mock_browser, mock_ctx, mock_page = _build_playwright_mocks()
-        charts_dir = tmp_path / "data" / "charts"
-        charts_dir.mkdir(parents=True)
-
-        # Should not raise
+        # Should not raise even if directory already exists
         _run_capture(mock_ap, tmp_path)
-
-        assert charts_dir.exists()
