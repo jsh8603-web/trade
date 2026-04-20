@@ -56,6 +56,7 @@ class AggressiveAgent(BaseStrategyAgent):
             sma_deviation=ind["sma_deviation"],
             news_negative=False,  # 항상 20점 자동 부여
             external_bonus=external_bonus,
+            price_change_24h=ind.get("price_change_24h", 0.0),
         )
 
         # v6: 레짐 감지 (매도/DCA에서도 사용하므로 먼저 계산)

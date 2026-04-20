@@ -221,6 +221,7 @@ class BaseStrategyAgent(ABC):
         external_bonus: int,
         macd_golden_cross: bool = False,
         fast: bool = False,
+        price_change_24h: float = 0.0,
     ) -> dict:
         """매수 점수를 계산한다. fast=True: 백테스트용 (breakdown 생략)."""
         score = 0
@@ -259,10 +260,24 @@ class BaseStrategyAgent(ABC):
         # 6) 외부 지표 Data Fusion 보너스
         score += external_bonus
 
+        # 7) 하락 추세 감점 (v8.2: 2026-04-20)
+        # 24h 하락 중이면 감점하여 하락장 무분별 매수 방지
+        # -1% ~ -3%: -10점, -3% ~ -5%: -20점, -5% 이상: -30점
+        trend_penalty = 0
+        if price_change_24h < -1:
+            if price_change_24h < -5:
+                trend_penalty = -30
+            elif price_change_24h < -3:
+                trend_penalty = -20
+            else:
+                trend_penalty = -10
+            score += trend_penalty
+
         result = "buy" if score >= self.buy_score_threshold else "hold"
 
         if fast:
-            return {"total": score, "threshold": self.buy_score_threshold, "result": result}
+            return {"total": score, "threshold": self.buy_score_threshold, "result": result,
+                    "trend_penalty": trend_penalty}
 
         # 상세 breakdown (프로덕션/디버그용) — 다시 계산
         breakdown: dict = {}
@@ -295,6 +310,8 @@ class BaseStrategyAgent(ABC):
         if self.macd_bonus and macd_golden_cross:
             breakdown["macd"] = {"score": 10, "golden_cross": True}
         breakdown["external"] = {"score": external_bonus}
+        if trend_penalty < 0:
+            breakdown["trend_penalty"] = {"score": trend_penalty, "price_change_24h": round(price_change_24h, 2)}
         breakdown["total"] = score
         breakdown["threshold"] = self.buy_score_threshold
         breakdown["result"] = result
