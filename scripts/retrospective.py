@@ -82,24 +82,48 @@ def get_btc_price() -> Optional[int]:
     try:
         r = _get_session().get(f"{UPBIT_API}/ticker", params={"markets": "KRW-BTC"}, timeout=10)
         if r.ok:
-            return int(r.json()[0]["trade_price"])
-    except Exception:
+            data = r.json()
+            if isinstance(data, list) and data and isinstance(data[0], dict):
+                tp = data[0].get("trade_price")
+                if tp is not None:
+                    return int(float(tp))
+    except (ValueError, TypeError, Exception):
         pass
     return None
 
 
 def get_historical_price(target_time: datetime) -> int:
-    """특정 시점의 BTC 가격 (분봉으로 근사)"""
-    to_str = target_time.strftime("%Y-%m-%dT%H:%M:%S") + "+09:00"
-    params = {
-        "market": "KRW-BTC",
-        "to": to_str,
-        "count": 1,
-    }
-    r = _get_session().get(f"{UPBIT_API}/candles/minutes/60", params=params, timeout=10)
-    if r.ok and r.json():
-        return int(r.json()[0]["trade_price"])
+    """특정 시점의 BTC 가격 (분봉으로 근사). 실패/NULL 시 0 반환."""
+    try:
+        to_str = target_time.strftime("%Y-%m-%dT%H:%M:%S") + "+09:00"
+        params = {
+            "market": "KRW-BTC",
+            "to": to_str,
+            "count": 1,
+        }
+        r = _get_session().get(f"{UPBIT_API}/candles/minutes/60", params=params, timeout=10)
+        if r.ok:
+            data = r.json()
+            if isinstance(data, list) and data and isinstance(data[0], dict):
+                tp = data[0].get("trade_price")
+                if tp is not None:
+                    return int(float(tp))
+    except (ValueError, TypeError, Exception):
+        pass
     return 0
+
+
+def _parse_iso_safe(value) -> Optional[datetime]:
+    """ISO 타임스탬프 문자열을 안전하게 datetime으로 파싱한다."""
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except (ValueError, TypeError, AttributeError):
+            return None
 
 
 def _evaluate_correctness(decision_type: str, outcome_pct: float, window: str) -> bool:
@@ -182,10 +206,10 @@ def _update_window(window: str, hours: int):
             print(f"[retrospective] [skip] decision {str(row.get('id', '?'))[:8]} — current_price=NULL", file=sys.stderr)
             continue
 
-        try:
-            decision_time = datetime.fromisoformat(row["created_at"])
-        except ValueError:
-            decision_time = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+        decision_time = _parse_iso_safe(row.get("created_at"))
+        if decision_time is None:
+            print(f"[retrospective] [skip] decision {str(row.get('id', '?'))[:8]} — created_at 파싱 실패", file=sys.stderr)
+            continue
         target_time = decision_time + timedelta(hours=hours)
 
         if target_time > now:
@@ -278,7 +302,9 @@ def update_scalp_aftermath():
         if not entry_price:
             continue
 
-        entry_time = datetime.fromisoformat(row["entry_time"].replace("Z", "+00:00"))
+        entry_time = _parse_iso_safe(row.get("entry_time"))
+        if entry_time is None:
+            continue
         target_time = entry_time + timedelta(hours=1)
 
         if target_time > now:
@@ -335,7 +361,9 @@ def update_signal_attempts():
         if not btc_price:
             continue
 
-        recorded_at = datetime.fromisoformat(row["recorded_at"].replace("Z", "+00:00"))
+        recorded_at = _parse_iso_safe(row.get("recorded_at"))
+        if recorded_at is None:
+            continue
         target_time = recorded_at + timedelta(hours=1)
 
         if target_time > now:
@@ -401,7 +429,9 @@ def update_buy_score_aftermath():
             if not decision_price:
                 continue
 
-            recorded_at = datetime.fromisoformat(row["recorded_at"].replace("Z", "+00:00"))
+            recorded_at = _parse_iso_safe(row.get("recorded_at"))
+            if recorded_at is None:
+                continue
             target_time = recorded_at + timedelta(hours=1)
             if target_time > now:
                 continue
@@ -443,7 +473,9 @@ def update_buy_score_aftermath():
             if not decision_price:
                 continue
 
-            recorded_at = datetime.fromisoformat(row["recorded_at"].replace("Z", "+00:00"))
+            recorded_at = _parse_iso_safe(row.get("recorded_at"))
+            if recorded_at is None:
+                continue
             target_time = recorded_at + timedelta(hours=4)
             if target_time > now:
                 continue
@@ -485,6 +517,8 @@ def report():
         headers=hdrs,
         timeout=15,
     )
+    if not r.ok:
+        print(f"[retrospective] v_decision_accuracy 조회 실패: {r.status_code}", file=sys.stderr)
     if r.ok and r.json():
         print("=== 결정 정확도 ===")
         print(

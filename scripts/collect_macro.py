@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import io
 import json
+import math
 import sys
 import time
 
@@ -85,25 +86,45 @@ def fetch_yahoo(symbol: str, range_: str = "5d", interval: str = "1d") -> dict |
         return None
 
 
+def _safe_float(v, default: float = 0.0) -> float:
+    """inf/NaN/None을 default로 치환하는 안전 변환."""
+    try:
+        f = float(v)
+        if math.isnan(f) or math.isinf(f):
+            return default
+        return f
+    except (TypeError, ValueError):
+        return default
+
+
 def parse_quote(chart_data: dict) -> dict:
-    """Yahoo chart 데이터를 파싱한다."""
+    """Yahoo chart 데이터를 파싱한다. inf/NaN 값은 자동 필터링."""
     meta = chart_data.get("meta", {})
     indicators = chart_data.get("indicators", {}).get("quote", [{}])[0]
 
-    closes = [c for c in (indicators.get("close") or []) if c is not None]
+    # inf/NaN도 None과 동일하게 제외
+    closes = [
+        c for c in (indicators.get("close") or [])
+        if c is not None and not (isinstance(c, float) and (math.isnan(c) or math.isinf(c)))
+    ]
     if not closes:
         return {"error": "데이터 없음"}
 
-    current = meta.get("regularMarketPrice", closes[-1])
-    prev_close = meta.get("chartPreviousClose") or meta.get("previousClose") or (closes[-2] if len(closes) >= 2 else current)
+    current = _safe_float(meta.get("regularMarketPrice", closes[-1]), closes[-1])
+    prev_raw = meta.get("chartPreviousClose") or meta.get("previousClose") or (closes[-2] if len(closes) >= 2 else current)
+    prev_close = _safe_float(prev_raw, current)
 
-    change_pct = ((current - prev_close) / prev_close * 100) if prev_close else 0
+    change_pct = ((current - prev_close) / prev_close * 100) if prev_close else 0.0
 
     # 5일 추세
-    if len(closes) >= 5:
+    if len(closes) >= 5 and closes[0]:
         five_day_change = ((closes[-1] - closes[0]) / closes[0] * 100)
     else:
         five_day_change = change_pct
+
+    # round 결과가 inf/NaN이 되지 않도록 한 번 더 방어
+    change_pct = _safe_float(change_pct, 0.0)
+    five_day_change = _safe_float(five_day_change, 0.0)
 
     return {
         "price": round(current, 2),
@@ -207,8 +228,8 @@ def analyze_macro(quotes: dict) -> dict:
     def _trend(q: dict, inverse: bool = False) -> str:
         if not q or "change_pct" not in q:
             return "neutral"
-        c = q.get("change_pct", 0) or 0
-        f = q.get("five_day_change_pct", 0) or 0
+        c = _safe_float(q.get("change_pct", 0), 0.0)
+        f = _safe_float(q.get("five_day_change_pct", 0), 0.0)
         up = (c > 1) or (f > 3)
         down = (c < -1) or (f < -3)
         if inverse:

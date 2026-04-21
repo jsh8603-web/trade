@@ -546,12 +546,13 @@ def _record_trade_to_db(result: dict, source: str = "manual"):
         from utils.machine import get_machine_name
 
         # current_price 확보: 체결 응답 → Upbit ticker fallback
+        # NOTE: int(float(...)) 패턴으로 "80000.5" 형태 float 문자열도 안전 처리
         _current_price: Optional[int] = None
         try:
             resp0 = result.get("response", {})
             if isinstance(resp0, dict) and resp0.get("price"):
                 _current_price = int(float(resp0["price"]))
-        except Exception:
+        except (ValueError, TypeError):
             _current_price = None
         if _current_price is None:
             try:
@@ -563,27 +564,30 @@ def _record_trade_to_db(result: dict, source: str = "manual"):
                 if tr.ok:
                     tdata = tr.json()
                     if isinstance(tdata, list) and tdata:
-                        _current_price = int(float(tdata[0].get("trade_price", 0))) or None
-            except Exception:
+                        _tp = tdata[0].get("trade_price", 0)
+                        _current_price = int(float(_tp)) or None
+            except (ValueError, TypeError, Exception):
                 _current_price = None
 
-        # trade_amount 확보 (KRW 기준)
-        _trade_amount: Optional[float] = None
+        # trade_amount 확보 (KRW 기준, BIGINT 컬럼과 일치하도록 int 변환)
+        # Upbit API 실제 필드명: executed_funds (funds는 일부 경우에만 존재)
+        _trade_amount: Optional[int] = None
         try:
             _amt = result.get("amount")
             if side == "bid" and _amt is not None:
-                _trade_amount = float(_amt)
+                _trade_amount = int(float(_amt))
             elif side == "ask":
                 resp0 = result.get("response", {})
                 if isinstance(resp0, dict):
-                    funds = resp0.get("funds") or resp0.get("executed_funds")
+                    # executed_funds 우선, funds는 fallback
+                    funds = resp0.get("executed_funds") or resp0.get("funds")
                     if funds:
-                        _trade_amount = float(funds)
+                        _trade_amount = int(float(funds))
                     elif resp0.get("volume") and resp0.get("price"):
-                        _trade_amount = float(resp0["volume"]) * float(resp0["price"])
+                        _trade_amount = int(float(resp0["volume"]) * float(resp0["price"]))
                     elif _amt is not None and _current_price:
-                        _trade_amount = float(_amt) * float(_current_price)
-        except Exception:
+                        _trade_amount = int(float(_amt) * float(_current_price))
+        except (ValueError, TypeError):
             _trade_amount = None
 
         decision_row = {
@@ -611,12 +615,13 @@ def _record_trade_to_db(result: dict, source: str = "manual"):
             decision_row["execution_attempted"] = False
 
         # 체결 정보 추가 (execution_result JSON 필드에 저장)
-        resp = result.get("response", {})
+        resp = result.get("response") or {}
         if isinstance(resp, dict) and resp.get("uuid"):
             decision_row["execution_result"] = json.dumps({
-                "order_uuid": resp["uuid"],
+                "order_uuid": resp.get("uuid"),
                 "price": resp.get("price"),
                 "volume": resp.get("volume"),
+                "executed_funds": resp.get("executed_funds"),
                 "status": "success" if result.get("success") else "failed",
                 "error": result.get("error"),
             }, ensure_ascii=False)

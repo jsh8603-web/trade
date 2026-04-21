@@ -1126,17 +1126,21 @@ class Orchestrator:
             except Exception:
                 _machine = None
 
-            # 중복 방지: 같은 cycle_id + from→to 가 이미 있으면 스킵
+            # 중복 방지: 같은 cycle_id + from→to + machine_name 이 이미 있으면 스킵
+            # machine_name까지 포함해서 전역 유일성 확보 (멀티머신 환경 대응)
             try:
+                _dup_params = {
+                    "select": "id",
+                    "cycle_id": f"eq.{_cycle_id}",
+                    "from_agent": f"eq.{switch_info['from']}",
+                    "to_agent": f"eq.{switch_info['to']}",
+                    "limit": "1",
+                }
+                if _machine:
+                    _dup_params["machine_name"] = f"eq.{_machine}"
                 dup_check = requests.get(
                     f"{url}/rest/v1/agent_switches",
-                    params={
-                        "select": "id",
-                        "cycle_id": f"eq.{_cycle_id}",
-                        "from_agent": f"eq.{switch_info['from']}",
-                        "to_agent": f"eq.{switch_info['to']}",
-                        "limit": "1",
-                    },
+                    params=_dup_params,
                     headers={
                         "apikey": key,
                         "Authorization": f"Bearer {key}",
@@ -1160,6 +1164,7 @@ class Orchestrator:
                 "kimchi_premium": market_state.get("kimchi_pct"),
                 "fusion_signal": market_state.get("fusion_signal"),
                 "consecutive_losses": market_state.get("consecutive_losses", 0),
+                "source": switch_info.get("source", "orchestrator"),
             }
             if _machine:
                 row["machine_name"] = _machine
