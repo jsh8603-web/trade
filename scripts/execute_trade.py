@@ -414,6 +414,21 @@ def execute(side: str, market: str, amount: str):
             "timestamp": ts,
         }
 
+    # 3c) 매수 금액 하한 확인 (ET-06)
+    # Upbit 최소 주문 금액은 5,000원. Kelly 축소로 하한 미만이 되면 hold 간주하여 스킵.
+    min_amount = int(float(os.environ.get("MIN_TRADE_AMOUNT", "5000")))
+    if side == "bid" and float(amount) < min_amount:
+        return {
+            "success": False,
+            "dry_run": False,
+            "side": side,
+            "market": market,
+            "amount": amount,
+            "skipped": True,
+            "error": f"매수 금액 하한 미달로 스킵: {amount} < {min_amount} (Upbit 최소 주문 5,000원)",
+            "timestamp": ts,
+        }
+
     # 4) 주문 실행 (락파일로 단타 봇과 동시 실행 방지)
     try:
         acquire_lock()
