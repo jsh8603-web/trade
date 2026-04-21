@@ -1119,6 +1119,35 @@ class Orchestrator:
                 except Exception:
                     pass
 
+            # machine_name 태그
+            try:
+                from utils.machine import get_machine_name
+                _machine = get_machine_name()
+            except Exception:
+                _machine = None
+
+            # 중복 방지: 같은 cycle_id + from→to 가 이미 있으면 스킵
+            try:
+                dup_check = requests.get(
+                    f"{url}/rest/v1/agent_switches",
+                    params={
+                        "select": "id",
+                        "cycle_id": f"eq.{_cycle_id}",
+                        "from_agent": f"eq.{switch_info['from']}",
+                        "to_agent": f"eq.{switch_info['to']}",
+                        "limit": "1",
+                    },
+                    headers={
+                        "apikey": key,
+                        "Authorization": f"Bearer {key}",
+                    },
+                    timeout=5,
+                )
+                if dup_check.ok and dup_check.json():
+                    return  # 이미 기록됨
+            except Exception:
+                pass  # 중복 체크 실패해도 계속 진행
+
             row = {
                 "cycle_id": _cycle_id,
                 "from_agent": switch_info["from"],
@@ -1132,6 +1161,9 @@ class Orchestrator:
                 "fusion_signal": market_state.get("fusion_signal"),
                 "consecutive_losses": market_state.get("consecutive_losses", 0),
             }
+            if _machine:
+                row["machine_name"] = _machine
+
             requests.post(
                 f"{url}/rest/v1/agent_switches",
                 json=row,

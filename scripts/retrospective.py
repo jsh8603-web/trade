@@ -22,6 +22,14 @@ PROJECT_DIR = str(Path(__file__).resolve().parent.parent)
 if PROJECT_DIR not in sys.path:
     sys.path.insert(0, PROJECT_DIR)
 
+# Windows cp949 한글 깨짐 방지
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 from dotenv import load_dotenv
 import requests
 
@@ -514,10 +522,12 @@ def report():
     if r.ok and r.json():
         print(f"\n=== 놓친 기회 TOP {len(r.json())} ===")
         for row in r.json():
+            cp = row.get("current_price") or 0
+            oc24 = row.get("outcome_24h_pct") or 0
             print(
                 f"  {row.get('created_at', '')[:16]} | "
-                f"가격: {row.get('current_price', 0):,} | "
-                f"24h후: +{row.get('outcome_24h_pct', 0):.1f}% | "
+                f"가격: {cp:,} | "
+                f"24h후: +{oc24:.1f}% | "
                 f"FGI:{row.get('fear_greed_value', '?')} RSI:{row.get('rsi_value', '?')}"
             )
             print(f"    사유: {(row.get('reason') or '')[:80]}")
@@ -531,11 +541,14 @@ def report():
     if r.ok and r.json():
         print(f"\n=== 잘못된 매수 TOP {len(r.json())} ===")
         for row in r.json():
+            cp = row.get("current_price") or 0
+            oc = row.get("outcome_4h_pct") or 0
+            amt = row.get("trade_amount") or 0
             print(
                 f"  {row.get('created_at', '')[:16]} | "
-                f"가격: {row.get('current_price', 0):,} | "
-                f"4h후: {row.get('outcome_4h_pct', 0):+.1f}% | "
-                f"금액: {row.get('trade_amount', 0):,}"
+                f"가격: {cp:,} | "
+                f"4h후: {oc:+.1f}% | "
+                f"금액: {amt:,}"
             )
             print(f"    사유: {(row.get('reason') or '')[:80]}")
 

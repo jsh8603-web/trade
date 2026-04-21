@@ -940,12 +940,17 @@ def main():
             raw_conf = float(dec.get("confidence") or 0)
             confidence_val = max(0.0, min(1.0, raw_conf))
 
+            _cp_raw = market_data.get("current_price") or market_data.get("ticker", {}).get("trade_price")
+            _current_price = int(_cp_raw) if _cp_raw else None
+            if _current_price is None:
+                log(f"[경고] current_price 누락 — market_data keys={list(market_data.keys())[:10]}")
+
             decision_row = {
                 "market": "KRW-BTC",
                 "decision": DECISION_MAP.get(decision, decision),
                 "confidence": round(confidence_val, 2),
                 "reason": " | ".join(reason_parts),
-                "current_price": int(market_data.get("current_price") or market_data.get("ticker", {}).get("trade_price", 0) or 0) or None,
+                "current_price": _current_price,
                 "rsi_value": market_data.get("indicators", {}).get("rsi_14"),
                 "fear_greed_value": market_data.get("fear_greed", {}).get("value"),
                 "sma20_price": int(market_data.get("indicators", {}).get("sma_20")) if market_data.get("indicators", {}).get("sma_20") else None,

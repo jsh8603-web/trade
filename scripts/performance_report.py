@@ -9,14 +9,18 @@
   python scripts/performance_report.py --backtest    # 최근 30일 백테스트
 """
 
-import hide_console
+import sys
+from pathlib import Path
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
 import argparse
 import os
 import subprocess
-from scripts.hide_console import subprocess_kwargs
 import time
 from datetime import datetime, timezone, timedelta
-from pathlib import Path
+from scripts.hide_console import subprocess_kwargs  # noqa: F401 — side-effect: hides console
 
 import requests
 import numpy as np

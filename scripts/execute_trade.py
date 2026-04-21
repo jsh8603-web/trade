@@ -27,6 +27,7 @@ import time
 import uuid
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from typing import Optional
 from urllib.parse import urlencode
 
 from dotenv import load_dotenv
@@ -543,6 +544,48 @@ def _record_trade_to_db(result: dict, source: str = "manual"):
             _cycle_id = datetime.now(KST).strftime("%Y%m%d-%H%M") + f"-{source}"
 
         from utils.machine import get_machine_name
+
+        # current_price 확보: 체결 응답 → Upbit ticker fallback
+        _current_price: Optional[int] = None
+        try:
+            resp0 = result.get("response", {})
+            if isinstance(resp0, dict) and resp0.get("price"):
+                _current_price = int(float(resp0["price"]))
+        except Exception:
+            _current_price = None
+        if _current_price is None:
+            try:
+                tr = requests.get(
+                    f"{UPBIT_API}/ticker",
+                    params={"markets": result.get("market", "KRW-BTC")},
+                    timeout=5,
+                )
+                if tr.ok:
+                    tdata = tr.json()
+                    if isinstance(tdata, list) and tdata:
+                        _current_price = int(float(tdata[0].get("trade_price", 0))) or None
+            except Exception:
+                _current_price = None
+
+        # trade_amount 확보 (KRW 기준)
+        _trade_amount: Optional[float] = None
+        try:
+            _amt = result.get("amount")
+            if side == "bid" and _amt is not None:
+                _trade_amount = float(_amt)
+            elif side == "ask":
+                resp0 = result.get("response", {})
+                if isinstance(resp0, dict):
+                    funds = resp0.get("funds") or resp0.get("executed_funds")
+                    if funds:
+                        _trade_amount = float(funds)
+                    elif resp0.get("volume") and resp0.get("price"):
+                        _trade_amount = float(resp0["volume"]) * float(resp0["price"])
+                    elif _amt is not None and _current_price:
+                        _trade_amount = float(_amt) * float(_current_price)
+        except Exception:
+            _trade_amount = None
+
         decision_row = {
             "decision": action_kr,
             "reason": f"[{source}] {result.get('market', 'KRW-BTC')} {result.get('amount', '')}",
@@ -553,6 +596,10 @@ def _record_trade_to_db(result: dict, source: str = "manual"):
             "source": source,
             "machine_name": get_machine_name(),
         }
+        if _current_price is not None:
+            decision_row["current_price"] = _current_price
+        if _trade_amount is not None:
+            decision_row["trade_amount"] = _trade_amount
 
         # 실행 추적 필드 추가
         if result.get("_exec_started"):
