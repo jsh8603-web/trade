@@ -203,12 +203,29 @@ def analyze_macro(quotes: dict) -> dict:
         sentiment = "neutral"
         summary = "매크로 환경 중립"
 
+    # 개별 지표 추세 플래그 (market_context_log 저장용)
+    def _trend(q: dict, inverse: bool = False) -> str:
+        if not q or "change_pct" not in q:
+            return "neutral"
+        c = q.get("change_pct", 0) or 0
+        f = q.get("five_day_change_pct", 0) or 0
+        up = (c > 1) or (f > 3)
+        down = (c < -1) or (f < -3)
+        if inverse:
+            up, down = down, up
+        return "bullish" if up else "bearish" if down else "neutral"
+
     return {
         "macro_score": score,
         "max_score": 30,
         "sentiment": sentiment,
         "summary": summary,
         "signals": signals,
+        # market_context_log 컬럼 매핑용 (save_decision.py가 참조)
+        "sp500_trend": _trend(quotes.get("sp500", {})),
+        "dxy_trend": _trend(quotes.get("dxy", {}), inverse=True),  # 달러 강세 = 크립토 약세
+        "gold_trend": _trend(quotes.get("gold", {})),
+        "macro_sentiment": sentiment,
     }
 
 
