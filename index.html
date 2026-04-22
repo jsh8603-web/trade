@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>비트랑 (Bit-Rang) | 지능형 자가 복구 트레이딩 시스템</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Mermaid.js for Diagrams -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'neutral',
+            securityLevel: 'loose',
+            fontFamily: 'Pretendard'
+        });
+    </script>
+    <style>
+        :root {
+            --primary: #1A1A1A;
+            --accent: #2563EB;
+            --accent-light: #EFF6FF;
+            --bg: #FFFFFF;
+            --secondary-bg: #F8FAFC;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            --code-bg: #1E293B;
+            --code-text: #F8FAFC;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        /* Fixed Navigation Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--secondary-bg);
+            border-right: 1px solid var(--border);
+            padding: 40px 24px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar-logo {
+            width: 100%;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .sidebar-logo img {
+            width: 120px;
+            height: 120px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .nav-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        .nav-links a {
+            display: block;
+            padding: 12px 16px;
+            color: var(--text-main);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        /* Main Content Area */
+        main {
+            margin-left: 280px;
+            padding: 80px 10%;
+            max-width: 1400px;
+        }
+
+        /* Hero Section */
+        #hero {
+            margin-bottom: 80px;
+            text-align: center;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+        }
+
+        .intro-text {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Section Styling */
+        section {
+            padding-top: 60px;
+            margin-bottom: 80px;
+            border-top: 1px solid var(--border);
+        }
+
+        h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 32px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+        }
+
+        h2::before {
+            content: "";
+            width: 24px;
+            height: 4px;
+            background: var(--accent);
+            margin-right: 16px;
+            border-radius: 2px;
+        }
+
+        .content-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow);
+        }
+
+        /* Infographic Area */
+        .diagram-container {
+            background: #FDFDFD;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            margin: 32px 0;
+            overflow-x: auto;
+        }
+
+        /* Tables & Lists */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 24px 0;
+        }
+
+        th, td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        th {
+            background: var(--secondary-bg);
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 24px;
+            border-radius: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            position: relative;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .code-label {
+            position: absolute;
+            top: 0;
+            right: 20px;
+            background: var(--accent);
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        .setup-steps {
+            counter-reset: step;
+        }
+
+        .step-item {
+            display: flex;
+            margin-bottom: 32px;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin-right: 24px;
+        }
+
+        .step-content h3 {
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+        }
+
+        .keyword {
+            background: var(--accent-light);
+            color: var(--accent);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar { width: 100%; height: auto; position: relative; border-right: none; border-bottom: 1px solid var(--border); }
+            main { margin-left: 0; padding: 40px 5%; }
+            h1 { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="assets/logo.png" alt="Bit-Rang Logo">
+        </div>
+        
+        <nav>
+            <div class="nav-title">Quick Navigation</div>
+            <div class="nav-links">
+                <a href="#hero">Overview</a>
+                <a href="#setup">System Setup</a>
+                <a href="#logic">Core Operating Logic</a>
+                <a href="#evolution">RL & Evolution</a>
+                <a href="#lifeline">Lifeline (Self-Healing)</a>
+                <a href="#data">Data Sources</a>
+                <a href="#db">Database Schema</a>
+            </div>
+        </nav>
+    </aside>
+
+    <main>
+        <section id="hero" style="border-top: none;">
+            <h1>비트랑 (Bit-Rang)</h1>
+            <p class="intro-text">
+                비트랑은 <span class="keyword">파이썬의 규칙 기반 엔진</span>, <span class="keyword">LLM 비정형 데이터 분석</span>, 그리고 <span class="keyword">강화 학습(RL)</span>이 결합된 하이브리드 자동 매매 에코시스템입니다. 장애 발생 시 인공지능이 스스로를 치료하는 '자가 치유' 능력을 핵심으로 합니다.
+            </p>
+        </section>
+
+        <!-- SETUP SECTION -->
+        <section id="setup">
+            <h2>시스템 설정 가이드 (Setup)</h2>
+            <div class="content-card">
+                <div class="setup-steps">
+                    <div class="step-item">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>의존성 패키지 설치</h3>
+                            <p>터미널에서 아래 명령어를 실행하여 필수 라이브러리를 설치합니다.</p>
+                            <div class="code-block">
+                                <div class="code-label">Bash</div>
+                                pip install -r requirements.txt<br>
+                                playwright install
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>환경 변수 설정 (.env)</h3>
+                            <p>루트 폴더에 <code>.env</code> 파일을 생성하고 다음 필수 항목을 입력합니다.</p>
+                            <div class="code-block">
+                                <div class="code-label">.env</div>
+                                UPBIT_ACCESS_KEY=your_access_key<br>
+                                UPBIT_SECRET_KEY=your_secret_key<br>
+                                GEMINI_API_KEY=your_ai_key<br>
+                                SUPABASE_URL=your_db_url<br>
+                                SUPABASE_SERVICE_ROLE_KEY=your_service_key<br>
+                                DRY_RUN=true # 실전 매매시 false로 변경
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>분석 엔진 실행</h3>
+                            <p>준비가 완료되면 분석 및 매매 루프를 가동합니다.</p>
+                            <div class="code-block">
+                                <div class="code-label">Shell</div>
+                                bash run_analysis.sh
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LOGIC SECTION -->
+        <section id="logic">
+            <h2>운영 아키텍처 (Architecture)</h2>
+            <div class="content-card">
+                <p>비트랑은 단순한 매매 봇이 아닙니다. 규칙과 지능이 상호 작용하는 유기체입니다.</p>
+                <div class="diagram-container">
+                    <pre class="mermaid">
+                        graph TD
+                            A[External Data] --> B{Discovery Engine}
+                            B --> C[deterministic Rules]
+                            B --> D[LLM Intelligence]
+                            C & D --> E[Decision Blender]
+                            E --> F[Execution]
+                            F --> G[(Supabase DB)]
+                            G --> H[RL Trainer]
+                            H -->|Optimize Weights| E
+                            I[Lifeline Agent] -.->|Monitor & Heal| B
+                    </pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- EVOLUTION SECTION -->
+        <section id="evolution">
+            <h2>강화 학습 및 지능 진화 (RL)</h2>
+            <div class="content-card">
+                <p>비트랑은 시간이 지남에 따라 더 똑똑해집니다. 모든 매매 데이터(성공, 실패, 보류)는 학습의 재료가 됩니다.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>단계</th>
+                            <th>설명</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>데이터 기록</strong></td>
+                            <td>매매 시점의 모든 시장 정보(심리, 온체인, 지표)를 DB에 저장</td>
+                        </tr>
+                        <tr>
+                            <td><strong>보상 계산</strong></td>
+                            <td>PnL뿐만 아니라 리스크 대비 수익률(Sharpe Ratio)을 분석</td>
+                        </tr>
+                        <tr>
+                            <td><strong>정책 업데이트</strong></td>
+                            <td>RL 엔진이 <code>DecisionBlender</code>의 가중치를 최적으로 조정</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- LIFELINE SECTION -->
+        <section id="lifeline">
+            <h2>에이전트 헬스케어 (Lifeline)</h2>
+            <div class="content-card">
+                <p>비정상적인 시장 변동이나 시스템 오류를 감지하면 **Lifeline 에이전트**가 출동합니다.</p>
+                <ul>
+                    <li><strong>API 세션 복구:</strong> 연결 끊김 감지 시 세션을 자동으로 재생성합니다.</li>
+                    <li><strong>로직 자가 수정:</strong> 지속적 실패 발생 시 분석 대기 시간을 조정하거나 안전 모드로 전환합니다.</li>
+                    <li><strong>로그 기반 진단:</strong> 에러 로그를 LLM이 분석하여 개발자에게 패치를 제안합니다.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- DB SECTION -->
+        <section id="db">
+            <h2>데이터베이스 명세 (Database)</h2>
+            <div class="content-card">
+                <p>Supabase를 활용한 투명한 이력 관리 체계입니다.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>테이블명</th>
+                            <th>용도</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>decisions</code></td>
+                            <td>모든 매매 판단 근거와 AI 분석 내용 기록</td>
+                        </tr>
+                        <tr>
+                            <td><code>execution_logs</code></td>
+                            <td>실제 주문 체결 결과 및 거래소 응답 데이터</td>
+                        </tr>
+                        <tr>
+                            <td><code>system_health_logs</code></td>
+                            <td>자가 치유 활동 및 시스템 상태 이력</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <footer style="margin-left: 280px; padding: 40px; text-align: center; color: var(--text-muted); border-top: 1px solid var(--border);">
+        <p>&copy; 2026 비트랑 (Bit-Rang). All Rights Reserved.</p>
+    </footer>
+
+</body>
+</html>

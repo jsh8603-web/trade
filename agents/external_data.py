@@ -719,6 +719,56 @@ class ExternalDataAgent:
             elif b_dom and b_dom < 45:
                 score -= 5
 
+        # ── 뉴스랑 3소스 (v1.20.0 이후) — 인라인 폴백에서도 반영 ──
+        # RSS 뉴스 감성 (±10)
+        rss = results.get("rss_news", {}) or {}
+        rss_combined = (rss.get("sentiment", {}) or {}).get("combined_score", 0) or 0
+        if rss_combined >= 25:
+            score += 10
+        elif rss_combined >= 10:
+            score += 5
+        elif rss_combined <= -25:
+            score -= 10
+        elif rss_combined <= -10:
+            score -= 5
+
+        # X(트위터) 시그널 (±15 + 고래 ±5)
+        x_data = results.get("x_signals", {}) or {}
+        x_signal = x_data.get("signal", {}) if isinstance(x_data.get("signal"), dict) else {}
+        x_score = x_signal.get("score", 0) or 0
+        if x_score >= 30:
+            score += 15
+        elif x_score >= 15:
+            score += 10
+        elif x_score >= 5:
+            score += 5
+        elif x_score <= -30:
+            score -= 15
+        elif x_score <= -15:
+            score -= 10
+        elif x_score <= -5:
+            score -= 5
+        whale_sum = x_signal.get("whale_summary") or {}
+        if whale_sum.get("total_alerts", 0) >= 2:
+            w_dir = whale_sum.get("net_direction", "neutral")
+            if w_dir == "sell":
+                score -= 5
+            elif w_dir == "buy":
+                score += 5
+
+        # 소셜 감성 종합 (±10)
+        social = results.get("social_sentiment", {}) or {}
+        social_sig = social.get("signal", {}) if isinstance(social.get("signal"), dict) else {}
+        social_score = social_sig.get("total_score", 0) or 0
+        if social_score >= 20:
+            score += 10
+        elif social_score >= 10:
+            score += 5
+        elif social_score <= -20:
+            score -= 10
+        elif social_score <= -10:
+            score -= 5
+
         # strategy_bonus 매핑
         if score >= 40:
             bonus = 20

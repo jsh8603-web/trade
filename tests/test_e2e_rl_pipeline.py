@@ -329,3 +329,296 @@ def test_state_encoder_all_scenario_types():
         obs2, reward, _, _, _ = env.step(action)
         assert obs2.shape == (OBSERVATION_DIM,), f"{name}: wrong obs shape after step"
         assert np.all(np.isfinite(obs2)), f"{name}: non-finite after step"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  E4팀 추가: RL 훈련 → ModelRegistry → Ensemble Inference E2E
+#
+#  - Test 8:  Smoke training (mocked learn to 1 step) — 빠른 smoke
+#  - Test 9:  ModelRegistry roundtrip (register → load → predict)
+#  - Test 10: Ensemble inference (3 sources → DecisionBlender → 가중치 합 = 1)
+#  - Test 11: Auto rollback on performance drop (should_rollback + rollback)
+#  - Test 12: Register → predict via path returned from registry (E2E chain)
+# ═══════════════════════════════════════════════════════════════════════════
+
+from unittest import mock
+
+from rl_hybrid.rl.decision_blender import BlendedDecision, DecisionBlender
+from rl_hybrid.rl.model_registry import ModelRegistry
+
+
+def _dummy_metrics(sharpe: float = 1.0, ret: float = 5.0, mdd: float = 0.05) -> dict:
+    return {
+        "sharpe_ratio": sharpe,
+        "total_return_pct": ret,
+        "max_drawdown": mdd,
+        "eval_episodes": 10,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Test 8: Smoke training — PPO.learn을 mock하여 1스텝만 실행
+# ---------------------------------------------------------------------------
+
+def test_smoke_training_mocked_learn():
+    """PPO.learn을 patch하여 실제 스텝 없이 훈련 흐름만 검증."""
+    candles = make_synthetic_candles(60)
+    train_env, _ = prepare_env_pair(candles)
+
+    trader = PPOTrader(env=train_env)
+
+    # learn을 no-op로 대체 — 훈련 파이프라인 자체만 smoke
+    with mock.patch.object(trader.model, "learn", return_value=trader.model) as mk:
+        trader.train(total_timesteps=1, save_freq=1)
+        assert mk.called, "PPO.learn이 호출되어야 한다"
+        call_kwargs = mk.call_args.kwargs
+        assert call_kwargs.get("total_timesteps") == 1
+
+    # predict 여전히 작동해야 함 (초기화된 모델)
+    obs, _ = train_env.reset()
+    action = trader.predict(obs)
+    assert isinstance(action, float)
+    assert -1.0 <= action <= 1.0
+
+
+# ---------------------------------------------------------------------------
+# Test 9: ModelRegistry roundtrip — 등록 → 로드 → predict
+# ---------------------------------------------------------------------------
+
+def test_model_registry_roundtrip(tmp_path):
+    """더미 모델 파일을 레지스트리에 등록 → 경로 조회 → 메타데이터 확인."""
+    registry = ModelRegistry(base_dir=str(tmp_path / "reg"))
+
+    # 더미 모델 파일 생성
+    dummy = tmp_path / "dummy.zip"
+    dummy.write_bytes(b"FAKE_MODEL_BYTES_" + b"x" * 64)
+
+    vid = registry.register_model(
+        model_path=str(dummy),
+        metrics=_dummy_metrics(sharpe=1.23, ret=7.5, mdd=0.04),
+        training_config={"algorithm": "ppo", "total_timesteps": 1000, "data_days": 30},
+        notes="E4 smoke",
+    )
+    assert vid == "v001"
+
+    current = registry.get_current_version()
+    assert current is not None
+    assert current["version_id"] == "v001"
+    assert current["metrics"]["sharpe_ratio"] == 1.23
+
+    # 경로 조회 — 파일이 복사되어 있어야 한다
+    path = registry.get_model_path()
+    assert path is not None
+    assert os.path.exists(path), f"등록된 모델 파일 없음: {path}"
+
+    versions = registry.list_versions()
+    assert len(versions) == 1
+    assert versions[0]["is_current"] is True
+
+
+def test_model_registry_ppo_end_to_end(tmp_path):
+    """실제 PPO 저장 → ModelRegistry 등록 → 로드 → predict 체인."""
+    candles = make_synthetic_candles(60)
+    train_env, _ = prepare_env_pair(candles)
+
+    trader = PPOTrader(env=train_env)
+
+    # learn을 mock하여 빠르게 통과
+    with mock.patch.object(trader.model, "learn", return_value=trader.model):
+        trader.train(total_timesteps=1, save_freq=1)
+
+    # 모델을 임시 경로에 저장
+    saved_path = str(tmp_path / "ppo_tiny")
+    trader.save(saved_path)
+    saved_zip = saved_path + ".zip"
+    assert os.path.exists(saved_zip), "PPO 저장 파일이 생성되어야 한다"
+
+    # 레지스트리에 등록
+    registry = ModelRegistry(base_dir=str(tmp_path / "reg"))
+    vid = registry.register_model(
+        model_path=saved_zip,
+        metrics=_dummy_metrics(sharpe=0.5, ret=2.0, mdd=0.03),
+        training_config={"algorithm": "ppo", "total_timesteps": 1},
+    )
+    assert vid == "v001"
+
+    # 레지스트리에서 조회한 경로로 재로드
+    registered_path = registry.get_model_path()
+    # PPOTrader.load는 확장자 없는 경로를 기대
+    load_target = registered_path[:-4] if registered_path.endswith(".zip") else registered_path
+
+    reload_env, _ = prepare_env_pair(candles)
+    reloaded = PPOTrader(env=reload_env)
+    reloaded.load(load_target)
+    assert reloaded.model is not None
+
+    obs, _ = reload_env.reset()
+    action = reloaded.predict(obs)
+    assert isinstance(action, float)
+    assert -1.0 <= action <= 1.0
+
+
+# ---------------------------------------------------------------------------
+# Test 10: Ensemble inference — DecisionBlender가 Agent/RL/LLM 융합
+# ---------------------------------------------------------------------------
+
+def test_ensemble_inference_weights_sum_to_one():
+    """세 소스가 모두 가용할 때 동적 가중치 합 = 1."""
+    blender = DecisionBlender()
+
+    agent_result = {"decision": "buy", "confidence": 0.7,
+                    "buy_score": {"total": 75, "threshold": 70}}
+    rl_prediction = {"action": 0.6, "value": 0.3}
+    llm_analysis = {"recommended_action": "buy", "confidence": 0.8}
+
+    result = blender.blend(
+        agent_result=agent_result,
+        rl_prediction=rl_prediction,
+        llm_analysis=llm_analysis,
+    )
+
+    assert isinstance(result, BlendedDecision)
+    w = result.weights_used
+    assert set(w.keys()) == {"agent", "rl", "llm"}
+    total_w = w["agent"] + w["rl"] + w["llm"]
+    assert abs(total_w - 1.0) < 1e-6, f"가중치 합이 1이 아님: {total_w}"
+
+    # 기본 비율이 대략 40/35/25와 유사해야 한다 (성과 히스토리 없음)
+    assert w["agent"] == pytest.approx(0.40, abs=0.05)
+    assert w["rl"] == pytest.approx(0.35, abs=0.05)
+    assert w["llm"] == pytest.approx(0.25, abs=0.05)
+
+    # 세 소스가 모두 매수 방향 → blended도 매수
+    assert result.decision == "buy"
+    assert result.confidence > 0
+    assert result.action_value > 0
+
+
+def test_ensemble_inference_with_registry_model():
+    """레지스트리에 저장된 모델의 predict 출력을 DecisionBlender에 주입."""
+    # 등록된 여러 모델을 시뮬레이션 (더미 predict 결과)
+    fake_predictions = [
+        {"action": 0.5, "value": 0.2},
+        {"action": 0.8, "value": 0.4},
+        {"action": 0.3, "value": 0.1},
+    ]
+
+    # 앙상블 평균
+    ensemble_action = np.mean([p["action"] for p in fake_predictions])
+    rl_prediction = {"action": float(ensemble_action), "value": 0.25}
+
+    blender = DecisionBlender()
+    result = blender.blend(
+        agent_result={"decision": "buy", "confidence": 0.6},
+        rl_prediction=rl_prediction,
+        llm_analysis={"recommended_action": "cautious_buy", "confidence": 0.5},
+    )
+
+    assert result is not None
+    # 가중 평균 확인
+    w = result.weights_used
+    assert abs(sum(w.values()) - 1.0) < 1e-6
+    # rl_action은 주입된 평균 그대로여야 함
+    assert result.rl_action == pytest.approx(ensemble_action, abs=1e-6)
+
+
+def test_ensemble_inference_source_missing_redistributes_weight():
+    """소스 일부가 None이면 가용 소스에 가중치 재분배되고 합은 여전히 1."""
+    blender = DecisionBlender()
+
+    result = blender.blend(
+        agent_result={"decision": "buy", "confidence": 0.7},
+        rl_prediction=None,             # RL 없음
+        llm_analysis={"recommended_action": "buy", "confidence": 0.6},
+    )
+    w = result.weights_used
+    assert abs(sum(w.values()) - 1.0) < 1e-6
+    # RL 가중치는 재분배되어 0일 수도, 기본 0.35가 분산되었을 수도 있음.
+    # 핵심은: 합 = 1 그리고 사용 가능한 두 소스가 0보다 커야 함
+    assert w["agent"] > 0
+    assert w["llm"] > 0
+
+
+# ---------------------------------------------------------------------------
+# Test 11: Auto-rollback on performance drop
+# ---------------------------------------------------------------------------
+
+def test_auto_rollback_triggers_on_low_winrate(tmp_path):
+    """라이브 승률 < 30%, 10+ 거래 → should_rollback=True."""
+    registry = ModelRegistry(base_dir=str(tmp_path / "reg"))
+
+    # v1: 양호한 성능 (롤백 후보)
+    m1 = tmp_path / "m1.zip"
+    m1.write_bytes(b"model1")
+    registry.register_model(
+        model_path=str(m1),
+        metrics=_dummy_metrics(sharpe=1.8, ret=12.0),
+    )
+
+    # v2: 나쁜 라이브 성능
+    m2 = tmp_path / "m2.zip"
+    m2.write_bytes(b"model2")
+    registry.register_model(
+        model_path=str(m2),
+        metrics=_dummy_metrics(sharpe=0.9, ret=4.0),
+    )
+
+    # 라이브 성능 기록 — 승률 저조
+    registry.update_live_performance(
+        "v002",
+        {"trades": 15, "win_rate": 0.2, "avg_return": -1.5, "consecutive_losses": 2},
+    )
+
+    should, reason = registry.should_rollback("v002")
+    assert should is True, f"롤백 트리거되어야 함: {reason}"
+    assert "승률" in reason or "win_rate" in reason.lower()
+
+    # 실제 롤백 실행 — 샤프 최고인 v1으로 돌아가야 한다
+    rolled_to = registry.rollback()
+    assert rolled_to == "v001"
+    assert registry.registry["current_version"] == "v001"
+    assert registry.registry["rollback_count"] == 1
+
+
+def test_auto_rollback_insufficient_data(tmp_path):
+    """10거래 미만 → 롤백 트리거 안 됨."""
+    registry = ModelRegistry(base_dir=str(tmp_path / "reg"))
+    m = tmp_path / "m.zip"
+    m.write_bytes(b"x")
+    registry.register_model(str(m), _dummy_metrics())
+
+    registry.update_live_performance("v001", {"trades": 3, "win_rate": 0.1})
+    should, reason = registry.should_rollback("v001")
+    assert should is False
+    assert "데이터 부족" in reason or "3" in reason
+
+
+def test_auto_rollback_consecutive_losses(tmp_path):
+    """연속 손실 5회 이상 → 롤백 트리거."""
+    registry = ModelRegistry(base_dir=str(tmp_path / "reg"))
+    m1 = tmp_path / "m1.zip"
+    m1.write_bytes(b"a")
+    m2 = tmp_path / "m2.zip"
+    m2.write_bytes(b"b")
+    registry.register_model(str(m1), _dummy_metrics(sharpe=2.0))
+    registry.register_model(str(m2), _dummy_metrics(sharpe=1.0))
+
+    registry.update_live_performance(
+        "v002",
+        {"trades": 12, "win_rate": 0.6, "avg_return": 0.5, "consecutive_losses": 6},
+    )
+    should, reason = registry.should_rollback("v002")
+    assert should is True
+    assert "연속" in reason or "consecutive" in reason.lower()
+
+
+def test_rollback_impossible_single_version(tmp_path):
+    """버전이 1개뿐이면 롤백 불가."""
+    registry = ModelRegistry(base_dir=str(tmp_path / "reg"))
+    m = tmp_path / "m.zip"
+    m.write_bytes(b"x")
+    registry.register_model(str(m), _dummy_metrics())
+
+    result = registry.rollback()
+    assert result is None
+    assert registry.registry["rollback_count"] == 0

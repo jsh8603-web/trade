@@ -27,3 +27,7 @@ twikit>=2.0
 
 # === Kimchirang (김치프리미엄 차익거래) ===
 ccxt>=4.0
+
+# === 기타 유틸 ===
+pyyaml>=6.0
+yfinance>=0.2.0
