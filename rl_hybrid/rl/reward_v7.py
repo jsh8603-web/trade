@@ -14,6 +14,8 @@ v7 개선:
 import numpy as np
 from collections import deque
 
+from rl_hybrid.rl._reward_utils import safe_div
+
 UPBIT_FEE_RATE = 0.0005
 SLIPPAGE_RATE = 0.0003
 TRANSACTION_COST = UPBIT_FEE_RATE + SLIPPAGE_RATE
@@ -62,8 +64,7 @@ class RewardCalculatorV7:
         if price is not None:
             self.price_history.append(price)
 
-        # 1. 수익률
-        raw_return = (curr_portfolio_value - prev_portfolio_value) / prev_portfolio_value
+        raw_return = safe_div(curr_portfolio_value - prev_portfolio_value, prev_portfolio_value)
         self.returns_history.append(raw_return)
 
         # 2. Differential Sharpe 보상
@@ -74,7 +75,7 @@ class RewardCalculatorV7:
 
         # 4. 적응형 MDD 페널티
         self.peak_value = max(self.peak_value, curr_portfolio_value)
-        drawdown = (self.peak_value - curr_portfolio_value) / self.peak_value
+        drawdown = safe_div(self.peak_value - curr_portfolio_value, self.peak_value)
         volatility = np.std(list(self.returns_history)) if len(self.returns_history) > 3 else 0.01
         dd_threshold = max(0.03, min(0.10, volatility * 10))  # 변동성 기반 동적 임계값
         mdd_penalty = -drawdown * self.max_drawdown_penalty if drawdown > dd_threshold else 0
@@ -159,7 +160,7 @@ class RewardCalculatorV7:
         return float(alignment * trend_strength * 0.15)
 
     def get_episode_stats(self, final_value: float, initial_value: float) -> dict:
-        total_return = (final_value - initial_value) / initial_value
+        total_return = safe_div(final_value - initial_value, initial_value)
         returns = np.array(self.returns_history) if self.returns_history else np.array([0])
 
         return {
@@ -167,7 +168,7 @@ class RewardCalculatorV7:
             "total_trades": self.total_trades,
             "avg_return": float(returns.mean()) if len(returns) > 0 else 0,
             "std_return": float(returns.std()) if len(returns) > 1 else 0,
-            "max_drawdown": float((self.peak_value - final_value) / self.peak_value),
+            "max_drawdown": float(safe_div(self.peak_value - final_value, self.peak_value)),
             "sharpe_ratio": float(
                 (returns.mean() - self.risk_free_rate) / returns.std()
                 if len(returns) > 1 and returns.std() > 1e-8

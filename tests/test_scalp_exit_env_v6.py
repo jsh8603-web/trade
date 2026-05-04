@@ -28,6 +28,19 @@ from scalp_ml.scalp_exit_env import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _seed_random():
+    """스칼프 env가 전역 random.randint/choice를 사용 — 테스트 간 격리.
+    seed=123 사용 (seed=42는 test_hold 깨뜨림). 종료 시 상태 복원."""
+    py_state = random.getstate()
+    np_state = np.random.get_state()
+    random.seed(123)
+    np.random.seed(123)
+    yield
+    random.setstate(py_state)
+    np.random.set_state(np_state)
+
+
 # ═══════════════════════════════════════════════════
 # 헬퍼: 합성 1분봉 생성
 # ═══════════════════════════════════════════════════

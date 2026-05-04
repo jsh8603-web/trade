@@ -35,7 +35,28 @@ def get_current_price() -> int:
 
 
 def evaluate_pending_switches():
-    """미평가 전환을 찾아 성과를 기록한다."""
+    """미평가 전환을 찾아 성과를 기록한다.
+
+    agent_switches는 매매 관련 테이블이므로 primary 머신에서만 PATCH를 수행한다.
+    worker에서는 같은 전환 이벤트를 중복 업데이트할 수 있어 위험.
+    """
+    # primary 머신만 DB 쓰기를 수행 (worker는 조용히 종료)
+    try:
+        from pathlib import Path as _Path
+        _proj = _Path(__file__).resolve().parent.parent
+        if str(_proj) not in sys.path:
+            sys.path.insert(0, str(_proj))
+        from utils.machine import skip_trade_db
+        if skip_trade_db("agent_switches"):
+            print("[evaluate_switches] worker 머신 — 전환 평가 스킵")
+            return
+    except Exception:
+        # utils.machine import 실패 시에도 안전하게 진행 (기본은 worker)
+        role = os.getenv("MACHINE_ROLE", "worker").lower().strip()
+        if role != "primary":
+            print("[evaluate_switches] MACHINE_ROLE != primary — 전환 평가 스킵")
+            return
+
     url = os.getenv("SUPABASE_URL", "")
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     if not url or not key:

@@ -761,17 +761,26 @@ class BaseStrategyAgent(ABC):
 
     def _extract_indicators(self, market_data: dict) -> dict:
         """market_data JSON에서 주요 지표를 추출한다."""
-        indicators = market_data.get("indicators", {})
-        ticker = market_data.get("ticker", {})
+        indicators = market_data.get("indicators") or {}
+        ticker = market_data.get("ticker") or {}
+
+        change_rate = ticker.get("signed_change_rate")
+        if change_rate is None:
+            change_rate = market_data.get("change_rate_24h") or 0
+
+        # RSI 14: None이면 50으로 폴백 (0은 유효한 값이라 `or 50` 사용 불가)
+        rsi = indicators.get("rsi_14")
+        if rsi is None:
+            rsi = 50
 
         return {
-            "current_price": ticker.get("trade_price", 0),
-            "rsi": indicators.get("rsi_14", 50),
-            "sma20": indicators.get("sma_20", 0),
-            "sma_deviation": indicators.get("sma_20_deviation_pct", 0),
-            "macd": indicators.get("macd", {}),
-            "bollinger": indicators.get("bollinger", {}),
-            "price_change_24h": ticker.get("signed_change_rate", 0) * 100,
+            "current_price": ticker.get("trade_price") or market_data.get("current_price") or 0,
+            "rsi": rsi,
+            "sma20": indicators.get("sma_20") or 0,
+            "sma_deviation": indicators.get("sma_20_deviation_pct") or 0,
+            "macd": indicators.get("macd") or {},
+            "bollinger": indicators.get("bollinger") or {},
+            "price_change_24h": change_rate * 100,
         }
 
     def _is_weekend(self) -> bool:

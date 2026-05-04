@@ -108,6 +108,20 @@ def send_photo(image_path: str, caption: str, max_retries: int = 3):
     if not bot_token or not user_id:
         raise RuntimeError("TELEGRAM_BOT_TOKEN 또는 TELEGRAM_USER_ID 미설정")
 
+    # 파일 존재 및 크기 검증 (텔레그램 sendPhoto 상한 10MB)
+    img_path = Path(image_path)
+    if not img_path.exists():
+        raise FileNotFoundError(f"이미지 파일 없음: {image_path}")
+    if not img_path.is_file():
+        raise RuntimeError(f"이미지 경로가 파일이 아님: {image_path}")
+    size_bytes = img_path.stat().st_size
+    if size_bytes == 0:
+        raise RuntimeError(f"이미지 파일 비어 있음: {image_path}")
+    if size_bytes > 10 * 1024 * 1024:
+        raise RuntimeError(
+            f"이미지 파일 10MB 초과 ({size_bytes / (1024*1024):.1f}MB): {image_path}"
+        )
+
     machine_tag = _get_machine_tag()
     caption = f"{caption}\n{machine_tag}"
 

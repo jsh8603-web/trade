@@ -61,6 +61,14 @@ def is_primary() -> bool:
     return _get_role() == "primary"
 
 
+def reset_cache() -> None:
+    """캐시된 _role/_name을 비운다. 환경변수가 런타임에 바뀌는 테스트에서만 사용."""
+    global _role, _name
+    with _cache_lock:
+        _role = None
+        _name = None
+
+
 def skip_trade_db(table: str) -> bool:
     """매매 관련 테이블 기록을 스킵해야 하면 True 반환.
 

@@ -115,13 +115,6 @@ REWARD_VARIANTS = [RewardV1, RewardV2, RewardV3, RewardV4]
 
 # ── 환경 래퍼 (보상함수 교체) ──────────────────────
 
-try:
-    import gymnasium as gym
-    from gymnasium import spaces
-except ImportError:
-    import gym
-    from gym import spaces
-
 from scalp_ml.scalp_exit_env import ScalpExitEnv, FEE_PCT, MAX_HOLD, SL_DEFAULT
 
 

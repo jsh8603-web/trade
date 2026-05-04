@@ -383,21 +383,28 @@ class DistributedTrainer:
         logger.info(f"글로벌 모델 저장: {path}")
 
     def load_model(self, path: str = None):
-        """모델 로드"""
+        """모델 로드 (size mismatch 방어)"""
+        from rl_hybrid.rl._torch_compat import safe_torch_load
+
         path = path or os.path.join(MODEL_DIR, "distributed_ppo_global.pt")
-        if os.path.exists(path):
-            checkpoint = torch.load(path, weights_only=False)
-            try:
-                self.model.load_state_dict(checkpoint["model_state_dict"])
-            except RuntimeError as e:
-                if "size mismatch" in str(e):
-                    logger.warning(f"모델 차원 불일치 -- 새 모델로 시작: {e}")
-                    return
-                raise
+        if not os.path.exists(path):
+            return
+        checkpoint = safe_torch_load(path)
+        try:
+            self.model.load_state_dict(checkpoint["model_state_dict"])
+        except RuntimeError as e:
+            if "size mismatch" in str(e):
+                logger.warning(f"모델 차원 불일치 -- 새 모델로 시작: {e}")
+                return
+            raise
+        # 모델 로드 성공 시에만 optimizer 로드
+        try:
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-            self.update_count = checkpoint.get("update_count", 0)
-            self.total_steps_collected = checkpoint.get("total_steps", 0)
-            logger.info(f"글로벌 모델 로드: {path} (update #{self.update_count})")
+        except (ValueError, KeyError) as e:
+            logger.warning(f"옵티마이저 상태 로드 실패 (비치명적): {e}")
+        self.update_count = checkpoint.get("update_count", 0)
+        self.total_steps_collected = checkpoint.get("total_steps", 0)
+        logger.info(f"글로벌 모델 로드: {path} (update #{self.update_count})")
 
     def get_stats(self) -> dict:
         """훈련 통계 요약"""

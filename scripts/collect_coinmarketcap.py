@@ -27,18 +27,26 @@ def fetch_cmc_data():
     try:
         # 1. 글로벌 시총 및 비트코인 도미넌스
         global_url = 'https://pro-api.coinmarketcap.com/v1/global-metrics/quotes/latest'
-        g_resp = requests.get(global_url, headers=headers, timeout=5)
-        g_data = g_resp.json().get('data', {}) if g_resp.status_code == 200 else {}
-        
+        g_resp = requests.get(global_url, headers=headers, timeout=15)
+        g_data = {}
+        if g_resp.status_code == 200:
+            try:
+                g_data = g_resp.json().get('data', {}) or {}
+            except (ValueError, json.JSONDecodeError):
+                g_data = {}
+
         # 2. 비트코인 24시간 거래량 변동 및 시총
         btc_url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
-        b_resp = requests.get(btc_url, headers=headers, params={'symbol': 'BTC'}, timeout=5)
-        # Note: 'data' is a dict keyed by symbol. Also '2' could be passed to get multiple?
-        # CoinMarketCap returns it inside data[symbol] or an array depending on endpoint.
-        b_data = b_resp.json()
-        b_data = b_data.get('data', {}).get('BTC', {}) if isinstance(b_data.get('data'), dict) else {}
-        if not b_data:
-            b_data = b_resp.json().get('data', {}).get('1', {}) # Sometimes by ID
+        b_resp = requests.get(btc_url, headers=headers, params={'symbol': 'BTC'}, timeout=15)
+        b_data = {}
+        if b_resp.status_code == 200:
+            try:
+                b_json = b_resp.json()
+                raw_data = b_json.get('data', {}) if isinstance(b_json, dict) else {}
+                if isinstance(raw_data, dict):
+                    b_data = raw_data.get('BTC', {}) or raw_data.get('1', {}) or {}
+            except (ValueError, json.JSONDecodeError):
+                b_data = {}
         
         # 3. 종합
         result = {

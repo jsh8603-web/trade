@@ -30,6 +30,10 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 sys.path.insert(0, str(PROJECT_DIR))
 
+# MACHINE_ROLE primary 강제는 conftest.force_machine_primary 픽스처가 담당.
+# 모듈 임포트 시점에는 utils.machine 캐시가 비어 있으면 OK — TestEvaluateSwitchesNullPrice
+# 의 setup_env 픽스처에서 force_machine_primary를 사용한다.
+
 KST = timezone(timedelta(hours=9))
 
 
@@ -524,7 +528,7 @@ class TestEvaluateSwitchesNullPrice:
     """Test evaluate_switches.py with null price_at_switch (recently fixed bug)."""
 
     @pytest.fixture(autouse=True)
-    def setup_env(self, monkeypatch):
+    def setup_env(self, monkeypatch, force_machine_primary):
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test_key")
 

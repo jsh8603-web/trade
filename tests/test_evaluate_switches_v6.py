@@ -17,6 +17,12 @@ import pytest
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 
+# v1.32 MACHINE_ROLE 가드 — primary 강제는 conftest.force_machine_primary 픽스처에 위임
+@pytest.fixture(autouse=True)
+def _force_primary(force_machine_primary):
+    yield
+
+
 from scripts.evaluate_switches import (
     get_current_price,
     evaluate_pending_switches,

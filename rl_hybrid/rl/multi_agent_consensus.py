@@ -1201,12 +1201,14 @@ class WeightLearnerEnv(gym.Env):
         )
 
         self.current_step = 0
+        self.episode_start = 0  # 에피소드 시작 인덱스 (truncated 계산용)
         self.portfolio_value = 1.0
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         max_start = max(0, len(self.scalping_returns) - self.episode_length - 1)
-        self.current_step = self.np_random.integers(0, max(1, max_start))
+        self.current_step = int(self.np_random.integers(0, max(1, max_start)))
+        self.episode_start = self.current_step  # 에피소드 시작점 기록
         self.portfolio_value = 1.0
         return self._get_obs(), {}
 
@@ -1228,7 +1230,11 @@ class WeightLearnerEnv(gym.Env):
 
         self.current_step += 1
         terminated = False
-        truncated = (self.current_step - (self.current_step - self.episode_length)) >= self.episode_length
+        # truncated: 에피소드 시작점부터 episode_length 경과 시 또는 데이터 끝
+        truncated = (
+            (self.current_step - self.episode_start) >= self.episode_length
+            or self.current_step >= len(self.scalping_returns) - 1
+        )
 
         return self._get_obs(), reward, terminated, truncated, {}
 
@@ -1300,11 +1306,27 @@ class WeightLearner:
         logger.info("WeightLearner 훈련 완료")
 
     def predict_weights(self, obs: np.ndarray) -> tuple[float, float]:
-        """관측 → 최적 가중치 (w_scalp, w_swing)"""
-        action, _ = self.model.predict(obs, deterministic=True)
-        exp_a = np.exp(action - np.max(action))
-        weights = exp_a / exp_a.sum()
-        return float(weights[0]), float(weights[1])
+        """관측 → 최적 가중치 (w_scalp, w_swing)
+
+        모델이 없거나 예측 실패 시 안전한 기본 가중치(50:50) 반환.
+        """
+        if self.model is None:
+            logger.warning("WeightLearner 모델 없음 — 기본 가중치 50:50 반환")
+            return 0.5, 0.5
+        try:
+            action, _ = self.model.predict(obs, deterministic=True)
+            action = np.asarray(action, dtype=np.float64).flatten()
+            if action.size < 2:
+                return 0.5, 0.5
+            exp_a = np.exp(action[:2] - np.max(action[:2]))
+            s = exp_a.sum()
+            if s <= 0 or not np.isfinite(s):
+                return 0.5, 0.5
+            weights = exp_a / s
+            return float(weights[0]), float(weights[1])
+        except Exception as e:
+            logger.warning(f"WeightLearner 예측 실패: {e} — 기본 가중치 반환")
+            return 0.5, 0.5
 
     def save(self, path: str = None):
         path = path or self.model_path

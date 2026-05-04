@@ -224,6 +224,10 @@ class TestSendMessage:
 class TestSendPhoto:
     """send_photo tests."""
 
+    @pytest.fixture(autouse=True)
+    def _bypass_file_checks(self, stub_file_exists):
+        yield
+
     @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "test-token", "TELEGRAM_USER_ID": "12345"})
     @patch("notify_telegram.requests.post")
     @patch("builtins.open", mock_open(read_data=b"fake_png_data"))

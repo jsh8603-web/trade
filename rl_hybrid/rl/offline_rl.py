@@ -654,6 +654,15 @@ if TORCH_AVAILABLE:
             Returns:
                 최종 메트릭 딕셔너리
             """
+            # 데이터가 batch_size보다 적으면 빈 DataLoader가 되어 학습이 되지 않음
+            # → drop_last=False로 전환하거나 에러 반환
+            if len(transitions) < batch_size:
+                logger.error(
+                    f"CQL 훈련 중단: 전이 수({len(transitions)}) < batch_size({batch_size}). "
+                    f"데이터 부족으로 학습 불가."
+                )
+                return {}
+
             dataset = OfflineRLDataset(transitions)
             dataloader = DataLoader(
                 dataset, batch_size=batch_size, shuffle=True, drop_last=True
@@ -909,7 +918,8 @@ if TORCH_AVAILABLE:
 
         def load(self, path: str):
             """모델 로드"""
-            checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+            from rl_hybrid.rl._torch_compat import safe_torch_load
+            checkpoint = safe_torch_load(path, map_location=self.device)
 
             self.q_network.load_state_dict(checkpoint["q_network"])
             self.target_q_network.load_state_dict(checkpoint["target_q_network"])
@@ -1074,6 +1084,14 @@ if TORCH_AVAILABLE:
             Returns:
                 최종 메트릭
             """
+            # 데이터가 batch_size보다 적으면 빈 DataLoader가 되어 학습이 되지 않음
+            if len(transitions) < batch_size:
+                logger.error(
+                    f"BCQ 훈련 중단: 전이 수({len(transitions)}) < batch_size({batch_size}). "
+                    f"데이터 부족으로 학습 불가."
+                )
+                return {}
+
             dataset = OfflineRLDataset(transitions)
             dataloader = DataLoader(
                 dataset, batch_size=batch_size, shuffle=True, drop_last=True
@@ -1257,7 +1275,8 @@ if TORCH_AVAILABLE:
 
         def load(self, path: str):
             """모델 로드"""
-            checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+            from rl_hybrid.rl._torch_compat import safe_torch_load
+            checkpoint = safe_torch_load(path, map_location=self.device)
             self.vae.load_state_dict(checkpoint["vae"])
             self.q_network.load_state_dict(checkpoint["q_network"])
             self.target_q_network.load_state_dict(checkpoint["target_q_network"])

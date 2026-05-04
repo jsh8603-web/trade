@@ -19,6 +19,7 @@ Usage:
 
 import json
 import re
+import socket
 import sys
 import time
 from datetime import datetime, timezone, timedelta
@@ -31,6 +32,10 @@ except ImportError:
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
+
+# feedparser는 내부적으로 urllib을 사용하며 기본 timeout이 없다.
+# 전역 socket timeout을 설정하여 응답 없는 피드에서 영구 블록되는 것을 방지.
+socket.setdefaulttimeout(15)
 
 # ─── RSS 피드 정의 ───────────────────────────────────────────
 

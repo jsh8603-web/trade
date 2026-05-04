@@ -1171,7 +1171,7 @@ class TestSendPhotoAdditional:
     @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_USER_ID": "123"})
     @patch("notify_telegram.requests.post")
     @patch("builtins.open", mock_open(read_data=b"PNG"))
-    def test_timeout_setting(self, mock_post):
+    def test_timeout_setting(self, mock_post, stub_file_exists):
         """Send photo should use 30s timeout."""
         mock_resp = MagicMock()
         mock_resp.ok = True

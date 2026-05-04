@@ -881,7 +881,8 @@ if TORCH_AVAILABLE:
 
         def _load_model(self, path: str) -> "DecisionTransformer":
             """모델 + 설정 로드"""
-            checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+            from rl_hybrid.rl._torch_compat import safe_torch_load
+            checkpoint = safe_torch_load(path, map_location=self.device)
 
             config = checkpoint.get("config", {})
             model = DecisionTransformer(

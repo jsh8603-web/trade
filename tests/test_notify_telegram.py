@@ -264,7 +264,12 @@ class TestSendMessageErrors:
 # send_photo - happy path
 # ══════════════════════════════════════════════════════════════
 
+
 class TestSendPhotoHappy:
+    @pytest.fixture(autouse=True)
+    def _bypass_file_checks(self, stub_file_exists):
+        yield
+
     @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_USER_ID": "123"})
     @patch("notify_telegram.requests.post")
     @patch("builtins.open", mock_open(read_data=b"\x89PNG"))
@@ -328,7 +333,7 @@ class TestSendPhotoErrors:
     @patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_USER_ID": "123"})
     @patch("notify_telegram.requests.post")
     @patch("builtins.open", mock_open(read_data=b"\x89PNG"))
-    def test_api_failure(self, mock_post):
+    def test_api_failure(self, mock_post, stub_file_exists):
         mock_post.return_value = MagicMock(ok=False, text="Bad Request")
         with pytest.raises(RuntimeError, match="텔레그램 이미지 전송 실패"):
             send_photo("/tmp/chart.png", "caption")

@@ -30,6 +30,21 @@ MODEL_DIR = os.path.join(
 )
 
 
+def _apply_weights(policy, weights: dict) -> None:
+    """외부 numpy 가중치를 policy 파라미터에 적용한다.
+
+    PPO/SAC/TD3 trader가 분산 학습에서 동일 로직을 사용하므로 단일 함수로 통합.
+    원본 파라미터의 device/dtype을 그대로 보존해 CUDA 모델도 안전.
+    """
+    import torch
+    for name, param in policy.named_parameters():
+        if name in weights:
+            param.data = torch.tensor(
+                weights[name], dtype=param.dtype, device=param.device
+            )
+    logger.info(f"가중치 업데이트: {len(weights)}개 파라미터")
+
+
 class TradingMetricsCallback(BaseCallback if SB3_AVAILABLE else object):
     """훈련 중 트레이딩 메트릭 로깅 콜백"""
 
@@ -192,11 +207,7 @@ class PPOTrader:
 
     def set_weights(self, weights: dict):
         """외부 가중치 적용 (분산 학습용)"""
-        import torch
-        for name, param in self.model.policy.named_parameters():
-            if name in weights:
-                param.data = torch.tensor(weights[name], dtype=param.dtype)
-        logger.info(f"가중치 업데이트: {len(weights)}개 파라미터")
+        _apply_weights(self.model.policy, weights)
 
 
 class SACTrader:
@@ -323,11 +334,7 @@ class SACTrader:
 
     def set_weights(self, weights: dict):
         """외부 가중치 적용 (분산 학습용)"""
-        import torch
-        for name, param in self.model.policy.named_parameters():
-            if name in weights:
-                param.data = torch.tensor(weights[name], dtype=param.dtype)
-        logger.info(f"가중치 업데이트: {len(weights)}개 파라미터")
+        _apply_weights(self.model.policy, weights)
 
 
 class TD3Trader:
@@ -462,8 +469,4 @@ class TD3Trader:
 
     def set_weights(self, weights: dict):
         """외부 가중치 적용 (분산 학습용)"""
-        import torch
-        for name, param in self.model.policy.named_parameters():
-            if name in weights:
-                param.data = torch.tensor(weights[name], dtype=param.dtype)
-        logger.info(f"가중치 업데이트: {len(weights)}개 파라미터")
+        _apply_weights(self.model.policy, weights)

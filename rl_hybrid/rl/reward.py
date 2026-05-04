@@ -11,6 +11,8 @@ v8 개선:
 import numpy as np
 from collections import deque
 
+from rl_hybrid.rl._reward_utils import safe_div
+
 UPBIT_FEE_RATE = 0.0005
 SLIPPAGE_RATE = 0.0003
 TRANSACTION_COST = UPBIT_FEE_RATE + SLIPPAGE_RATE
@@ -56,8 +58,7 @@ class RewardCalculator:
         btc_ratio: float = 0.0,
         price_change: float = 0.0,
     ) -> dict:
-        # 1. 수익률
-        raw_return = (curr_portfolio_value - prev_portfolio_value) / prev_portfolio_value
+        raw_return = safe_div(curr_portfolio_value - prev_portfolio_value, prev_portfolio_value)
         self.returns_history.append(raw_return)
 
         # 2. PnL 직접 보상 (스케일 2배 강화)
@@ -79,7 +80,7 @@ class RewardCalculator:
 
         # 5. MDD 페널티 (3% 초과)
         self.peak_value = max(self.peak_value, curr_portfolio_value)
-        drawdown = (self.peak_value - curr_portfolio_value) / self.peak_value
+        drawdown = safe_div(self.peak_value - curr_portfolio_value, self.peak_value)
         self.max_drawdown = max(self.max_drawdown, drawdown)
         mdd_penalty = -drawdown * self.max_drawdown_penalty if drawdown > 0.03 else 0.0
 
@@ -90,7 +91,7 @@ class RewardCalculator:
 
         if action_change > 0.05:
             self.total_trades += 1
-            trade_return = (curr_portfolio_value - self.prev_trade_value) / self.prev_trade_value
+            trade_return = safe_div(curr_portfolio_value - self.prev_trade_value, self.prev_trade_value)
             if trade_return > 0.002:
                 trade_pnl_bonus = 0.5   # 수익 거래 강화 (v7: 0.3)
             elif trade_return < -0.002:
@@ -138,7 +139,7 @@ class RewardCalculator:
         return float(scaled)
 
     def get_episode_stats(self, final_value: float, initial_value: float) -> dict:
-        total_return = (final_value - initial_value) / initial_value
+        total_return = safe_div(final_value - initial_value, initial_value)
         returns = np.array(self.returns_history) if self.returns_history else np.array([0])
         return {
             "total_return_pct": float(total_return * 100),

@@ -306,8 +306,12 @@ class LLMStateEncoder:
         self.projection = ProjectionNetwork()
         projection_path = projection_path or PROJECTION_SAVE_PATH
         if os.path.exists(projection_path):
-            self._load_projection(projection_path)
-            logger.info(f"투사 가중치 로드: {projection_path}")
+            try:
+                self._load_projection(projection_path)
+                logger.info(f"투사 가중치 로드: {projection_path}")
+            except Exception as e:
+                # torch 버전 불일치/가중치 shape mismatch 등 — 랜덤 초기화로 fallback
+                logger.warning(f"투사 가중치 로드 실패 ({e}) -- 랜덤 초기화로 fallback")
         else:
             logger.warning("투사 가중치 없음 -- 랜덤 초기화 사용")
         self.projection.eval()
@@ -442,7 +446,8 @@ class LLMStateEncoder:
 
     def _load_projection(self, path: str):
         """투사 가중치 로드"""
-        state_dict = torch.load(path, map_location="cpu", weights_only=True)
+        from rl_hybrid.rl._torch_compat import safe_torch_load
+        state_dict = safe_torch_load(path, weights_only=True, map_location="cpu")
         self.projection.load_state_dict(state_dict)
 
     def clear_cache(self):

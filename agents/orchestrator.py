@@ -256,11 +256,11 @@ class Orchestrator:
         drop_context = self._build_drop_context(market_data, external_data, portfolio)
 
         # ── v6 컨텍스트 주입 ──
-        indicators = market_data.get("indicators", {})
-        v6_sma_dev = indicators.get("sma_20_deviation_pct", 0)
+        indicators = market_data.get("indicators") or {}
+        v6_sma_dev = indicators.get("sma_20_deviation_pct") or 0
         v6_fgi = market_state.get("fgi", 50)
         v6_change_24h = market_state.get("price_change_24h", 0)
-        v6_current_price = market_data.get("ticker", {}).get("trade_price", 0)
+        v6_current_price = (market_data.get("ticker") or {}).get("trade_price") or market_data.get("current_price") or 0
 
         drop_context["v6_regime"] = BaseStrategyAgent.detect_regime(
             sma_deviation=v6_sma_dev, fgi_value=v6_fgi,
@@ -443,7 +443,7 @@ class Orchestrator:
     ) -> dict:
         """시장의 모든 지표를 하나의 상태 객체로 정리한다."""
         fgi = self._get_fgi(external_data)
-        raw_rsi = market_data.get("indicators", {}).get("rsi_14")
+        raw_rsi = (market_data.get("indicators") or {}).get("rsi_14")
         if raw_rsi is not None:
             rsi = raw_rsi
             self.state["last_valid_rsi"] = rsi
@@ -457,7 +457,11 @@ class Orchestrator:
             else:
                 rsi = 50
                 print(f"[WARN] RSI 수집 실패 — 캐시 만료/없음, 기본값 {rsi} 사용")
-        price_change_24h = market_data.get("ticker", {}).get("signed_change_rate", 0) * 100
+        ticker = market_data.get("ticker") or {}
+        raw_change = ticker.get("signed_change_rate")
+        if raw_change is None:
+            raw_change = market_data.get("change_rate_24h") or 0
+        price_change_24h = raw_change * 100
         btc_ratio = portfolio.get("btc_ratio", 0)
         if btc_ratio == 0:
             btc_eval = 0
@@ -475,13 +479,13 @@ class Orchestrator:
         fusion_signal = fusion.get("signal", "neutral")
         fusion_score = external_data.get("external_signal", {}).get("total_score", 0)
 
-        bs = external_data.get("sources", {}).get("binance_sentiment", {})
-        kimchi_pct = bs.get("kimchi_premium", {}).get("premium_pct", 0)
-        ls_ratio = bs.get("top_trader_long_short", {}).get("current_ratio", 1.0)
-        funding_rate = bs.get("funding_rate", {}).get("current_rate", 0)
+        bs = external_data.get("sources", {}).get("binance_sentiment") or {}
+        kimchi_pct = (bs.get("kimchi_premium") or {}).get("premium_pct", 0) or 0
+        ls_ratio = (bs.get("top_trader_long_short") or {}).get("current_ratio", 1.0) or 1.0
+        funding_rate = (bs.get("funding_rate") or {}).get("current_rate", 0) or 0
 
         # 매크로 점수
-        macro = external_data.get("sources", {}).get("macro", {}).get("analysis", {})
+        macro = (external_data.get("sources", {}).get("macro") or {}).get("analysis") or {}
         macro_score = macro.get("macro_score", 0)
         macro_sentiment = macro.get("sentiment", "neutral")
         if macro_sentiment not in ("positive", "slightly_positive", "neutral", "slightly_negative", "negative"):
@@ -1282,8 +1286,8 @@ class Orchestrator:
         return count
 
     def _get_fgi(self, external_data: dict) -> int:
-        fg = external_data.get("sources", {}).get("fear_greed", {})
-        current = fg.get("current", {})
+        fg = (external_data.get("sources") or {}).get("fear_greed") or {}
+        current = fg.get("current") or {}
         raw = current.get("value")
         if raw is not None:
             val = int(raw)
@@ -1317,7 +1321,7 @@ class Orchestrator:
           5) 캐스케이딩 위험 종합 점수 (0~100)
         """
         # ── 1) 하락 속도: 4시간봉 기반 단기 가격 변동 ──
-        candles_4h = market_data.get("candles_4h", [])
+        candles_4h = market_data.get("candles_4h") or []
         # Upbit API는 역순(최신 먼저) 반환 → 오름차순 정렬
         if candles_4h and "candle_date_time_kst" in candles_4h[0]:
             candles_4h = sorted(candles_4h, key=lambda c: c["candle_date_time_kst"])
@@ -1339,9 +1343,9 @@ class Orchestrator:
             price_change_24h = raw_24h * 100
         else:
             # fallback: ticker 구조도 지원
-            price_change_24h = (
-                market_data.get("ticker", {}).get("signed_change_rate", 0) * 100
-            )
+            _t = market_data.get("ticker") or {}
+            _scr = _t.get("signed_change_rate")
+            price_change_24h = (_scr or 0) * 100
 
         # ── 2) 하락 추세 지속 여부: 연속 음봉 + 거래량 분석 ──
         consecutive_red = 0
@@ -1374,42 +1378,42 @@ class Orchestrator:
         dca_already_done = btc_dca.get("dca_count", 0) > 0
 
         # ── 4) 외부 약세 시그널 겹침 수 ──
-        ext_sources = external_data.get("sources", {})
+        ext_sources = external_data.get("sources") or {}
         external_bearish_count = 0
         external_bearish_details: list[str] = []
 
         # 고래 방향: 거래소 입금(매도 징후)
-        whale_data = ext_sources.get("whale_tracker", {})
-        whale_dir = whale_data.get("whale_score", {}).get("direction", "neutral")
+        whale_data = ext_sources.get("whale_tracker") or {}
+        whale_dir = (whale_data.get("whale_score") or {}).get("direction", "neutral")
         if whale_dir == "exchange_deposit":
             external_bearish_count += 1
             external_bearish_details.append("고래 거래소 입금(매도 징후)")
 
         # 바이낸스: 펀딩비/롱숏/김치프리미엄
-        binance = ext_sources.get("binance_sentiment", {})
-        funding_rate = binance.get("funding_rate", {}).get("current_rate", 0) or 0
+        binance = ext_sources.get("binance_sentiment") or {}
+        funding_rate = (binance.get("funding_rate") or {}).get("current_rate", 0) or 0
         if isinstance(funding_rate, (int, float)) and funding_rate > 0.001:
             external_bearish_count += 1
             external_bearish_details.append(f"극단 양수 펀딩({funding_rate*100:.3f}%)")
 
-        ls_ratio = binance.get("top_trader_long_short", {}).get("current_ratio", 1.0) or 1.0
+        ls_ratio = (binance.get("top_trader_long_short") or {}).get("current_ratio", 1.0) or 1.0
         if isinstance(ls_ratio, (int, float)) and ls_ratio > 1.5:
             external_bearish_count += 1
             external_bearish_details.append(f"롱 과밀({ls_ratio:.2f})")
 
-        kimchi_pct = binance.get("kimchi_premium", {}).get("premium_pct", 0) or 0
+        kimchi_pct = (binance.get("kimchi_premium") or {}).get("premium_pct", 0) or 0
         if isinstance(kimchi_pct, (int, float)) and kimchi_pct > 5.0:
             external_bearish_count += 1
             external_bearish_details.append(f"극단 김치P({kimchi_pct:.1f}%)")
 
         # 뉴스 감성
-        news_sent = ext_sources.get("news_sentiment", {})
+        news_sent = ext_sources.get("news_sentiment") or {}
         if news_sent.get("overall_sentiment") == "negative":
             external_bearish_count += 1
             external_bearish_details.append("뉴스 부정적")
 
         # 매크로 약세
-        macro = ext_sources.get("macro", {}).get("analysis", {})
+        macro = (ext_sources.get("macro") or {}).get("analysis") or {}
         macro_score = macro.get("macro_score", 0)
         if isinstance(macro_score, (int, float)) and macro_score < -15:
             external_bearish_count += 1
@@ -1721,7 +1725,7 @@ class Orchestrator:
 
         # 현재 시장 상태 간이 평가
         # (full market_state는 아직 계산 전이므로 간이 지표 사용)
-        candles = market_data.get("candles_4h", [])
+        candles = market_data.get("candles_4h") or []
         if candles:
             candles = sorted(candles, key=lambda c: c.get("candle_date_time_kst", ""))
         pc4h = 0.0

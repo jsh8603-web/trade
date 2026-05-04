@@ -9,14 +9,16 @@
 실행: .venv\\Scripts\\python.exe scripts\\web_server.py
 """
 
-import hide_console
+import hide_console  # noqa: F401 — side-effect import (콘솔 창 숨김)
 import http.server
 import json
 import os
 import re
 import socket
 import subprocess
-from scripts.hide_console import subprocess_kwargs
+# subprocess_kwargs는 hide_console 모듈에서 가져온다.
+# (scripts.hide_console 절대 경로는 sys.path에 project root가 없으면 실패하므로 피한다.)
+from hide_console import subprocess_kwargs  # noqa: E402
 import sys
 import threading
 from datetime import datetime

@@ -848,12 +848,14 @@ class TestOrchestratorCooldown:
     def test_cooldown_4h_expired(self):
         """당일 3회 전환 + 5시간 경과 → 쿨다운 해제."""
         kst = timezone(timedelta(hours=9))
-        old = (datetime.now(kst) - timedelta(hours=5)).isoformat()
-        today = time.strftime("%Y-%m-%d")
+        now_kst = datetime.now(kst)
+        old = (now_kst - timedelta(hours=5)).isoformat()
+        today = now_kst.strftime("%Y-%m-%d")
+        # history의 마지막 항목이 last_switch(5h ago)보다 과거여야 덮어쓰기 방지
         history = [
-            {"timestamp": f"{today}T01:00:00+09:00"},
-            {"timestamp": f"{today}T05:00:00+09:00"},
-            {"timestamp": f"{today}T09:00:00+09:00"},
+            {"timestamp": (now_kst - timedelta(hours=9)).isoformat()},
+            {"timestamp": (now_kst - timedelta(hours=7)).isoformat()},
+            {"timestamp": (now_kst - timedelta(hours=5, minutes=5)).isoformat()},
         ]
         orch = _make_orchestrator(last_switch=old, switch_history=history)
         assert orch._is_on_cooldown() is False

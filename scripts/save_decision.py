@@ -324,8 +324,9 @@ def supabase_post(table: str, row: dict) -> dict | None:
             timeout=10,
         )
         if r.status_code == 400 and "machine_name" in r.text:
+            # machine_name 컬럼이 없는 테이블 — 컬럼 제거 후 재시도 (세션 재사용)
             row.pop("machine_name", None)
-            r = requests.post(
+            r = _get_session().post(
                 f"{SUPABASE_URL}/rest/v1/{table}",
                 headers=supabase_headers(),
                 json=row,

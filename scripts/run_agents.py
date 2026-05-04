@@ -50,6 +50,39 @@ def _action_to_direction(action: float) -> str:
     return "hold"
 
 
+def _normalize_portfolio_btc(portfolio: dict) -> dict:
+    """get_portfolio.py의 holdings list 형식을 agents/orchestrator가 기대하는 dict로 정규화.
+
+    매도 평가가 운영에서 0건이던 근본 원인 — 데이터 구조 미스매치 해결.
+
+    get_portfolio 출력: holdings: [{"currency": "BTC", "balance": ..., "eval_amount": ..., "profit_loss_pct": ...}]
+    agents 기대:       portfolio["btc"]: {"balance": ..., "eval_amount": ..., "profit_pct": ...}
+
+    profit_pct/evaluation은 agents/orchestrator가 사용하는 별칭 키.
+    """
+    btc: dict = {}
+    # 1순위: holdings list에서 BTC 추출
+    for h in portfolio.get("holdings", []) or []:
+        if isinstance(h, dict) and h.get("currency") == "BTC":
+            btc = dict(h)
+            break
+    # 2순위: 기존 coins.BTC / btc 키 (백테스트/테스트 호환)
+    if not btc:
+        btc = portfolio.get("coins", {}).get("BTC") or portfolio.get("btc") or {}
+        if isinstance(btc, dict):
+            btc = dict(btc)
+        else:
+            btc = {}
+
+    # 별칭 키 채우기 (agents 코드 호환)
+    if "profit_pct" not in btc and "profit_loss_pct" in btc:
+        btc["profit_pct"] = btc["profit_loss_pct"]
+    if "evaluation" not in btc and "eval_amount" in btc:
+        btc["evaluation"] = btc["eval_amount"]
+
+    return btc
+
+
 def get_rl_advisory(market_data: dict, external_data: dict,
                     portfolio: dict, agent_state: dict,
                     regime_weights: dict | None = None,
@@ -640,12 +673,12 @@ def main():
                 except Exception as e:
                     log(f"Supabase 조회 실패: {e}")
                 
-        # 포트폴리오 메타 데이터 주입
-        btc_info = portfolio.get("coins", {}).get("BTC", portfolio.get("btc", {}))
+        # 포트폴리오 메타 데이터 주입 — holdings list를 정규화해 portfolio["btc"]로 노출
+        btc_info = _normalize_portfolio_btc(portfolio)
         total_eval = portfolio.get("total_eval", 0)
-        btc_eval = btc_info.get("evaluation", 0) if isinstance(btc_info, dict) else 0
+        btc_eval = btc_info.get("eval_amount", 0)
         portfolio["btc_ratio"] = btc_eval / total_eval if total_eval > 0 else 0
-        portfolio["btc"] = btc_info if isinstance(btc_info, dict) else {}
+        portfolio["btc"] = btc_info
         
         # 오케스트레이터 실행
         orchestrator = Orchestrator()
@@ -867,7 +900,8 @@ def main():
     current_price = market_data.get("current_price") or market_data.get("ticker", {}).get("trade_price", 0)
     fgi = market_data.get("fear_greed", {}).get("value", "N/A")
     krw_bal = float(portfolio.get("krw_balance", 0))
-    btc_bal = float(portfolio.get("coins", {}).get("BTC", {}).get("balance", 0))
+    # portfolio["btc"]는 _normalize_portfolio_btc로 holdings에서 정규화된 상태
+    btc_bal = float(portfolio.get("btc", {}).get("balance", 0))
     btc_ratio = round(portfolio.get("btc_ratio", 0) * 100, 1)
 
     # 피드백 상태 조회
