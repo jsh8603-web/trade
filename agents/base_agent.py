@@ -960,10 +960,23 @@ class BaseStrategyAgent(ABC):
         "crisis": 0,
     }
 
+    # v8.3: RL 6단계 레짐 → 에이전트 5단계 레짐 매핑
+    # RL 모델 학습 결과를 보존하면서 에이전트 포지션 사이징에 올바르게 연동
+    RL_TO_AGENT_REGIME = {
+        "bull_strong": "bull",
+        "bull_weak":   "early_bull",
+        "sideways":    "sideways",
+        "bear_weak":   "bear",
+        "bear_strong": "bear",
+        "volatile":    "sideways",
+    }
+
     def _calculate_trade_amount(self, total_krw: float, external_bonus: int = 0, regime: str = "sideways") -> int:
         """1회 매매 금액을 계산한다. v7.2: 레짐별 포지션 비율 + 레짐별 MAX_TRADE."""
+        # v8.3: RL 레짐을 에이전트 레짐으로 변환
+        agent_regime = self.RL_TO_AGENT_REGIME.get(regime, regime)
         ratios = self.regime_trade_ratios or {}
-        trade_ratio = ratios.get(regime, self.max_trade_ratio)
+        trade_ratio = ratios.get(agent_regime, self.max_trade_ratio)
         amount = int(total_krw * trade_ratio)
         if self._is_weekend():
             if external_bonus >= 10:
@@ -971,7 +984,7 @@ class BaseStrategyAgent(ABC):
             else:
                 amount = int(amount * (1 - self.weekend_reduction))
         # v8: 레짐별 MAX_TRADE (상승장 3M, 하락장 100K)
-        regime_max = self.REGIME_MAX_TRADE.get(regime, 300_000)
+        regime_max = self.REGIME_MAX_TRADE.get(agent_regime, 300_000)
         # .env MAX_TRADE_AMOUNT는 항상 안전 상한으로 작동 (절대 우회 불가)
         env_max = int(os.getenv("MAX_TRADE_AMOUNT", "100000"))
         max_amount = min(regime_max, env_max)
