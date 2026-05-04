@@ -26,6 +26,7 @@ from scripts.breakout_trader import (
     save_state,
     get_current_btc_price,
     execute_sell,
+    save_breakout_decision,
     notify,
     _log,
     KST,
@@ -84,6 +85,26 @@ def main() -> int:
             state["history"] = state.get("history", []) + [history_item]
             state["active_position"] = None
             state["last_signal"] = {"date": now_kst.date().isoformat(), "type": "SELL_STOP_LOSS"}
+            # DB 기록: 손절 매도
+            save_breakout_decision(
+                decision="sell",
+                reason=f"손절 발동 | 매수 {pos['buy_price']:,.0f} → 현재 {current:,.0f} ({pnl_pct:+.2f}%) | 기준 {c['stop_loss_pct']}%",
+                confidence=0.95,
+                current_price=current,
+                market_snapshot={
+                    "strategy": "breakout_larry_williams",
+                    "exit_reason": "stop_loss",
+                    "elapsed_h": round(elapsed_h, 1),
+                    "buy_price": pos["buy_price"],
+                    "exit_price": history_item["exit_price"],
+                    "pnl_pct": history_item["pnl_pct"],
+                    "pnl_krw": history_item["pnl_krw"],
+                    "stop_loss_pct": c["stop_loss_pct"],
+                    "dry_run": c["dry_run"],
+                },
+                trade_result=history_item,
+                dry_run=c["dry_run"],
+            )
 
     save_state(state)
     return 0

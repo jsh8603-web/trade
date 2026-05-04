@@ -198,6 +198,73 @@ def _fetch_order_detail(order_uuid: str) -> dict:
     }
 
 
+# ─── Supabase 결정 기록 ──────────────────────────────────
+
+def _supabase_headers() -> dict:
+    url = os.environ.get("SUPABASE_URL", "")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    return {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+
+
+def save_breakout_decision(
+    decision: str,
+    reason: str,
+    confidence: float,
+    current_price: float,
+    market_snapshot: dict,
+    trade_result: dict | None = None,
+    dry_run: bool = False,
+) -> None:
+    """Breakout 매매 결정을 Supabase decisions 테이블에 저장한다."""
+    url = os.environ.get("SUPABASE_URL")
+    if not url:
+        _log("[DB] SUPABASE_URL 미설정 — 저장 스킵")
+        return
+
+    DECISION_MAP = {"buy": "매수", "sell": "매도", "hold": "관망"}
+    try:
+        from utils.machine import get_machine_name
+        machine = get_machine_name()
+    except Exception:
+        machine = os.getenv("MACHINE_NAME", "unknown")
+
+    row = {
+        "market": "KRW-BTC",
+        "decision": DECISION_MAP.get(decision, decision),
+        "confidence": round(min(1.0, max(0.0, confidence)), 2),
+        "reason": reason,
+        "current_price": int(current_price),
+        "rsi_value": market_snapshot.get("rsi"),
+        "fear_greed_value": market_snapshot.get("fgi"),
+        "market_data_snapshot": json.dumps(market_snapshot, ensure_ascii=False),
+        "source": "breakout",
+        "machine_name": machine,
+    }
+
+    # 체결 결과 포함
+    if trade_result:
+        row["execution_result"] = json.dumps(trade_result, ensure_ascii=False)
+
+    try:
+        resp = requests.post(
+            f"{url}/rest/v1/decisions",
+            json=row,
+            headers=_supabase_headers(),
+            timeout=10,
+        )
+        if resp.status_code in (200, 201):
+            _log("[DB] breakout 결정 기록 완료")
+        else:
+            _log(f"[DB] 기록 실패 (HTTP {resp.status_code}): {resp.text[:200]}")
+    except Exception as e:
+        _log(f"[DB] 기록 예외: {e}")
+
+
 # ─── 텔레그램 알림 ──────────────────────────────────────
 
 def notify(text: str) -> None:
@@ -340,11 +407,31 @@ def main() -> int:
         elapsed_h = (datetime.now(KST) - entered).total_seconds() / 3600
         if elapsed_h >= c["time_exit_h"]:
             _log(f"24h 청산 시점 도래 ({elapsed_h:.1f}h 경과)")
+            current_price = get_current_btc_price()
             history_item = execute_sell(pos, c, reason=f"{c['time_exit_h']:.0f}h 정상 청산")
             if history_item:
                 state["history"] = state.get("history", []) + [history_item]
                 state["active_position"] = None
                 state["last_signal"] = {"date": datetime.now(KST).date().isoformat(), "type": "SELL_TIME"}
+                # DB 기록: 시간 청산
+                save_breakout_decision(
+                    decision="sell",
+                    reason=f"24h 정상 청산 | 매수 {pos['buy_price']:,.0f} → 매도 {history_item['exit_price']:,.0f} | 손익 {history_item['pnl_pct']:+.2f}%",
+                    confidence=0.9,
+                    current_price=current_price,
+                    market_snapshot={
+                        "strategy": "breakout_larry_williams",
+                        "exit_reason": "time_exit",
+                        "elapsed_h": round(elapsed_h, 1),
+                        "buy_price": pos["buy_price"],
+                        "exit_price": history_item["exit_price"],
+                        "pnl_pct": history_item["pnl_pct"],
+                        "pnl_krw": history_item["pnl_krw"],
+                        "dry_run": c["dry_run"],
+                    },
+                    trade_result=history_item,
+                    dry_run=c["dry_run"],
+                )
         else:
             _log(f"보유 중 {elapsed_h:.1f}h 경과 (24h 미도달) — monitor가 손절 감시 중")
             if c["notify_no_signal"]:
@@ -383,6 +470,23 @@ def main() -> int:
         f"Target={target:,.0f} (K={c['k']}) | 현재={current:,.0f}"
     )
 
+    # 시장 스냅샷 (DB 기록용)
+    market_snapshot = {
+        "strategy": "breakout_larry_williams",
+        "K": c["k"],
+        "yesterday_high": yesterday["high"],
+        "yesterday_low": yesterday["low"],
+        "yesterday_range": range_val,
+        "today_open": today_open,
+        "target_price": target,
+        "current_price": current,
+        "gap_pct": round((current - target) / target * 100, 3),
+        "buy_amount": c["buy_amount"],
+        "stop_loss_pct": c["stop_loss_pct"],
+        "time_exit_h": c["time_exit_h"],
+        "dry_run": c["dry_run"],
+    }
+
     if current >= target:
         _log(f"BUY 시그널 — 현재 {current:,.0f} >= Target {target:,.0f}")
         new_pos = execute_buy(target, current, c)
@@ -393,6 +497,16 @@ def main() -> int:
                 "type": "BUY",
                 "executed": True,
             }
+            # DB 기록: 매수 결정
+            save_breakout_decision(
+                decision="buy",
+                reason=f"변동성 돌파 매수 | Target {target:,.0f} ≤ 현재 {current:,.0f} | K={c['k']} Range={range_val:,.0f}",
+                confidence=min(1.0, (current - target) / range_val + 0.5),
+                current_price=current,
+                market_snapshot=market_snapshot,
+                trade_result={"buy_price": new_pos["buy_price"], "btc_volume": new_pos["btc_volume"], "krw_amount": new_pos["krw_amount"]},
+                dry_run=c["dry_run"],
+            )
     else:
         gap_pct = (target - current) / current * 100
         msg = (
@@ -410,6 +524,15 @@ def main() -> int:
             "target": target,
             "current": current,
         }
+        # DB 기록: 관망 결정
+        save_breakout_decision(
+            decision="hold",
+            reason=f"변동성 돌파 미달 | Target {target:,.0f} > 현재 {current:,.0f} ({gap_pct:+.2f}% 부족) | K={c['k']}",
+            confidence=0.5,
+            current_price=current,
+            market_snapshot=market_snapshot,
+            dry_run=c["dry_run"],
+        )
 
     save_state(state)
     return 0
