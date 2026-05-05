@@ -420,6 +420,13 @@ class Orchestrator:
             self.state["last_trade_time"] = time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
             self._state_dirty = True
 
+        # 단타봇 연동: 감독의 시장 판단을 state에 기록
+        self.state["danger_score"] = market_state.get("danger_score", 0)
+        self.state["opportunity_score"] = market_state.get("opportunity_score", 0)
+        self.state["regime"] = drop_context.get("v6_regime", "sideways")
+        self.state["market_state_ts"] = time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
+        self._state_dirty = True
+
         # 변경된 상태를 한번에 저장 (디스크 I/O 최소화)
         self._flush_state()
 

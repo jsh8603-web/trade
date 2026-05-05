@@ -201,6 +201,65 @@ EARLY_STOP_TIME_MIN = _auto_param("EARLY_STOP_TIME_MIN", 5, int)
 # 5. 중복 진입 방지: 같은 전략으로 동시 1포지션만 (v5: 2→1, 집중)
 MAX_SAME_STRATEGY_POSITIONS = 1
 
+# ── 오케스트레이터 연동: 감독의 시장 판단 읽기 ──────────────
+_AGENT_STATE_PATH = Path(__file__).resolve().parent.parent / "data" / "agent_state.json"
+_orch_cache: dict = {"data": None, "ts": 0.0}
+_ORCH_CACHE_TTL = 60  # 60초 캐시 — 파일 I/O로 타이밍 놓치지 않도록
+
+
+def _read_orchestrator_state() -> dict:
+    """agent_state.json에서 감독의 danger_score/opportunity_score/regime을 읽는다.
+    60초 캐시로 반복 I/O 방지."""
+    import time as _t
+    now = _t.time()
+    if _orch_cache["data"] is not None and (now - _orch_cache["ts"]) < _ORCH_CACHE_TTL:
+        return _orch_cache["data"]
+    try:
+        with open(_AGENT_STATE_PATH, "r", encoding="utf-8") as f:
+            state = json.loads(f.read())
+        result = {
+            "active_agent": state.get("active_agent", "moderate"),
+            "danger_score": state.get("danger_score", 0) or 0,
+            "opportunity_score": state.get("opportunity_score", 0) or 0,
+            "regime": state.get("regime", "sideways"),
+        }
+    except (FileNotFoundError, json.JSONDecodeError):
+        result = {"active_agent": "moderate", "danger_score": 0, "opportunity_score": 0, "regime": "sideways"}
+    _orch_cache["data"] = result
+    _orch_cache["ts"] = now
+    return result
+
+
+def _orchestrator_trade_multiplier() -> float:
+    """감독의 판단에 따른 단타 매수 금액 스케일링 배수.
+
+    - danger ≥ 70 (보수적 구간): 매수 차단 (0.0)
+    - danger 50~69: 50% 축소 (0.5)
+    - danger 30~49: 70% (0.7)
+    - danger < 30 + opportunity ≥ 60: 확대 (1.5)
+    - 기본: 1.0
+    - conservative 에이전트 활성: 매수 차단 (0.0)
+    """
+    orch = _read_orchestrator_state()
+    danger = orch["danger_score"]
+    opportunity = orch["opportunity_score"]
+    agent = orch["active_agent"]
+
+    # 보수적 에이전트가 활성이면 단타도 차단
+    if agent == "conservative":
+        return 0.0
+
+    if danger >= 70:
+        return 0.0
+    elif danger >= 50:
+        return 0.5
+    elif danger >= 30:
+        return 0.7
+    elif danger < 30 and opportunity >= 60:
+        return 1.5
+    return 1.0
+
+
 # ── Kelly Criterion 단타용 포지션 사이징 ──────────────────
 
 def _kelly_short_term(confidence: float) -> int:
@@ -208,6 +267,8 @@ def _kelly_short_term(confidence: float) -> int:
 
     strategy.md 테이블 준수 (Half-Kelly):
       ≥0.85 → 100%, 0.70~0.84 → 70%, 0.55~0.69 → 50%, <0.55 → 30%
+
+    감독 연동: 오케스트레이터의 danger/opportunity에 따라 추가 스케일링.
 
     Returns:
         스케일링된 최대 매매 금액
@@ -221,8 +282,10 @@ def _kelly_short_term(confidence: float) -> int:
     else:
         frac = 0.3
 
-    amount = int(SHORT_TERM_MAX_TRADE * frac)
-    return max(5000, amount)  # Upbit 최소 주문
+    # 감독 연동 배수 적용
+    orch_mult = _orchestrator_trade_multiplier()
+    amount = int(SHORT_TERM_MAX_TRADE * frac * orch_mult)
+    return max(5000, amount) if orch_mult > 0 else 0  # 차단 시 0 반환
 
 
 # ── 로깅 설정 ──────────────────────────────────────────
@@ -1645,8 +1708,18 @@ class ShortTermTrader:
         # 시그널 통과 -- generated 기록
         self.log_signal_attempt(signal.strategy, "generated", signal=signal)
 
-        # Kelly 사이징: confidence에 비례하여 최대 금액 조절
+        # Kelly 사이징: confidence에 비례하여 최대 금액 조절 (감독 연동)
         kelly_max = _kelly_short_term(signal.confidence)
+        if kelly_max == 0:
+            orch = _read_orchestrator_state()
+            log.info(
+                f"[감독 차단] 매수 차단 — danger={orch['danger_score']}, "
+                f"agent={orch['active_agent']}, regime={orch['regime']}"
+            )
+            self.log_signal_attempt(signal.strategy, "blocked", signal=signal,
+                                    block_filter="orchestrator_danger",
+                                    block_reason=f"감독 danger={orch['danger_score']}")
+            return
         amount = min(signal.suggested_amount, kelly_max)
         amount = min(amount, SHORT_TERM_BUDGET - self.used_budget)
 
