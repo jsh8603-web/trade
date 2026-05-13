@@ -181,7 +181,7 @@ class BaseStrategyAgent(ABC):
     # ── v7.2 매도 점수제 + 레짐별 포지션 사이징 ──
     sell_score_threshold_bull: int = 85       # v7: 상승장 매도 억제
     sell_score_threshold_early_bull: int = 70  # v8.1: 상승 초입 — bull보다 낮게 (빠른 탈출)
-    sell_score_threshold_sideways: int = 50   # v7.2: 55→50 (횡보 더 빠른 매도)
+    sell_score_threshold_sideways: int = 45   # v9: 50→45 (소액 매수 현실에 맞게 완화)
     sell_score_threshold_bear: int = 40       # v7.2: 45→40 (하락 즉시 매도)
 
     trailing_stop_bull: float = -15.0         # v7: 상승장 흔들림 허용
@@ -842,11 +842,12 @@ class BaseStrategyAgent(ABC):
         """8개 시그널 합산 매도 점수 (최대 ~120점). fast=True: breakdown 생략."""
         score = 0
 
-        # 1) 수익률 (max 25)
-        if pnl_pct >= 10: score += 25
-        elif pnl_pct >= 5: score += 20
-        elif pnl_pct >= 3: score += 15
-        elif pnl_pct >= 1: score += 8
+        # 1) 수익률 (max 25) — v9: 소액 매수 현실에 맞게 구간 세분화
+        if pnl_pct >= 7: score += 25
+        elif pnl_pct >= 4: score += 20
+        elif pnl_pct >= 2: score += 15
+        elif pnl_pct >= 1: score += 10
+        elif pnl_pct >= 0.5: score += 5
         elif pnl_pct <= -7: score += 25
         elif pnl_pct <= -5: score += 20
         elif pnl_pct <= -3: score += 12
@@ -889,49 +890,7 @@ class BaseStrategyAgent(ABC):
         if fast:
             return {"total": total}
 
-        # 상세 breakdown (프로덕션용)
-        breakdown = {}
-        # 각 항목 재계산 (점수는 이미 확정)
-        if pnl_pct >= 10: pts = 25
-        elif pnl_pct >= 5: pts = 20
-        elif pnl_pct >= 3: pts = 15
-        elif pnl_pct >= 1: pts = 8
-        elif pnl_pct <= -7: pts = 25
-        elif pnl_pct <= -5: pts = 20
-        elif pnl_pct <= -3: pts = 12
-        else: pts = 0
-        breakdown["profit"] = {"score": pts, "pnl_pct": round(pnl_pct, 2)}
-        if rsi >= 75: pts = 20
-        elif rsi >= 70: pts = 15
-        elif rsi >= 65: pts = 8
-        else: pts = 0
-        breakdown["rsi"] = {"score": pts, "value": round(rsi, 1)}
-        if fgi_val >= 80: pts = 20
-        elif fgi_val >= 70: pts = 15
-        elif fgi_val >= 60: pts = 8
-        else: pts = 0
-        breakdown["fgi"] = {"score": pts, "value": fgi_val}
-        if sma_dev < -2.0: pts = 15
-        elif sma_dev < -1.0: pts = 10
-        elif sma_dev < 0: pts = 5
-        else: pts = 0
-        breakdown["trend"] = {"score": pts, "sma_dev": round(sma_dev, 2)}
-        if change_24h <= -5: pts = 15
-        elif change_24h <= -3: pts = 10
-        elif change_24h <= -1: pts = 5
-        else: pts = 0
-        breakdown["momentum"] = {"score": pts, "change_24h": round(change_24h, 2)}
-        if danger >= 60: pts = 10
-        elif danger >= 40: pts = 5
-        else: pts = 0
-        breakdown["danger"] = {"score": pts, "danger": danger}
-        breakdown["external"] = {"score": min(ext_pts, 10)}
-        if kimchi_pct >= 5: pts = 5
-        elif kimchi_pct >= 3: pts = 3
-        else: pts = 0
-        breakdown["kimchi"] = {"score": pts, "pct": round(kimchi_pct, 2)}
-
-        return {"total": total, "breakdown": breakdown}
+        return {"total": total}
 
     def _get_sell_threshold(self, regime: str) -> int:
         if regime == "bull":

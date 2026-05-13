@@ -268,7 +268,7 @@ if [ "$DECISION" = "buy" ]; then
     DCA_TAG=""
     [ "$TRADE_IS_DCA" = "True" ] && DCA_TAG=" [DCA]"
     echo "[$(date)] 매수 실행: $TRADE_MARKET $TRADE_AMOUNT KRW${DCA_TAG}" >&2
-    "$PYTHON" scripts/execute_trade.py bid "$TRADE_MARKET" "$TRADE_AMOUNT" 2>&1 | tee -a "$LOG_DIR/trade_${TIMESTAMP}.log"
+    "$PYTHON" scripts/execute_trade.py bid "$TRADE_MARKET" "$TRADE_AMOUNT" "swing_${AGENT_NAME}" 2>&1 | tee -a "$LOG_DIR/trade_${TIMESTAMP}.log"
   fi
 
 elif [ "$DECISION" = "sell" ]; then
@@ -286,7 +286,7 @@ print(bal if bal else 0)
   fi
   if "$PYTHON" -c "assert float('$SELL_VOLUME') > 0" 2>/dev/null; then
     echo "[$(date)] 매도 실행: $TRADE_MARKET $SELL_VOLUME BTC" >&2
-    "$PYTHON" scripts/execute_trade.py ask "$TRADE_MARKET" "$SELL_VOLUME" 2>&1 | tee -a "$LOG_DIR/trade_${TIMESTAMP}.log"
+    "$PYTHON" scripts/execute_trade.py ask "$TRADE_MARKET" "$SELL_VOLUME" "swing_${AGENT_NAME}" 2>&1 | tee -a "$LOG_DIR/trade_${TIMESTAMP}.log"
   fi
 
 else

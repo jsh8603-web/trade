@@ -672,7 +672,7 @@ def _record_trade_to_db(result: dict, source: str = "manual"):
 if __name__ == "__main__":
     if len(sys.argv) < 4:
         print(
-            "사용법: python3 execute_trade.py [bid|ask] [market] [amount]",
+            "사용법: python3 execute_trade.py [bid|ask] [market] [amount] [source]",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -680,8 +680,9 @@ if __name__ == "__main__":
     result = execute(sys.argv[1], sys.argv[2], sys.argv[3])
     print(json.dumps(result, indent=2, ensure_ascii=False))
 
-    # 수동 실행 시에도 DB에 기록
-    _record_trade_to_db(result, source="manual")
+    # source: 4번째 인자로 호출자 식별 (없으면 pm명령 = 사용자 수동)
+    _source = sys.argv[4] if len(sys.argv) >= 5 else "pm명령"
+    _record_trade_to_db(result, source=_source)
 
     if not result["success"]:
         sys.exit(1)
