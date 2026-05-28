@@ -12,6 +12,7 @@ import logging
 import os
 import sys
 import time
+from pathlib import Path
 from typing import Optional
 
 import zmq
@@ -26,6 +27,55 @@ from rl_hybrid.protocol import (
 from rl_hybrid.rag.rag_pipeline import RAGPipeline
 
 logger = logging.getLogger("node.llm_worker")
+
+_SCHEMA_PATH = Path(__file__).resolve().parent.parent.parent / "prompts" / "schemas" / "decision_result.json"
+_DECISION_SCHEMA: Optional[dict] = None
+
+
+def _load_decision_schema() -> dict:
+    global _DECISION_SCHEMA
+    if _DECISION_SCHEMA is None:
+        try:
+            _DECISION_SCHEMA = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
+        except Exception as e:
+            logger.error(f"decision_result.json 로드 실패: {e}")
+            _DECISION_SCHEMA = {}
+    return _DECISION_SCHEMA
+
+
+def _validate_decision(analysis: dict) -> tuple[bool, str]:
+    """jsonschema 로 decision_result.json 스키마 강제 검증.
+
+    반환: (valid: bool, error_message: str)
+    """
+    schema = _load_decision_schema()
+    if not schema:
+        return True, ""  # 스키마 로드 실패 시 pass-through (방어적)
+    try:
+        import jsonschema
+        jsonschema.validate(instance=analysis, schema=schema)
+        return True, ""
+    except jsonschema.ValidationError as e:
+        return False, e.message
+    except jsonschema.SchemaError as e:
+        logger.error(f"스키마 자체 오류: {e}")
+        return True, ""  # 스키마 오류 시 pass-through
+
+
+def _log_near_miss_veto(cycle_id: str, reason: str, raw: object):
+    """B1 검증 실패 이벤트를 near_miss_veto.jsonl 에 기록."""
+    from datetime import datetime, timezone, timedelta
+    log_dir = _SCHEMA_PATH.parent.parent.parent / "logs" / "executions"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    entry = {
+        "event": "near_miss_veto",
+        "cycle_id": cycle_id,
+        "reason": reason,
+        "raw_snippet": str(raw)[:300],
+        "timestamp": datetime.now(timezone(timedelta(hours=9))).isoformat(),
+    }
+    with (log_dir / "near_miss_veto.jsonl").open("a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 class LLMWorkerNode(BaseNode):
@@ -149,6 +199,19 @@ class LLMWorkerNode(BaseNode):
             )
 
             if analysis:
+                # B1: 스키마 하드게이트 — risk 경계로 넘기기 전 강제 검증
+                valid, err_msg = _validate_decision(analysis)
+                if not valid:
+                    _log_near_miss_veto(cycle_id, err_msg, analysis)
+                    logger.warning(f"B1 스키마 검증 실패 → 관망 강제: {err_msg}")
+                    hold_result = {
+                        "decision": "관망",
+                        "confidence": 0.0,
+                        "reason": f"B1 스키마 검증 실패로 관망 강제: {err_msg[:100]}",
+                        "b1_veto": True,
+                        "b1_error": err_msg,
+                    }
+                    return msg.reply(hold_result)
                 return msg.reply(analysis)
             else:
                 return msg.reply({}, error="Gemini 분석 실패")
