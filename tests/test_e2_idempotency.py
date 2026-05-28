@@ -230,3 +230,36 @@ class TestReconcileRecentOrder:
             result = _reconcile_recent_order("inv_missing", "KRW-BTC")
 
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Test SO-6b: reconcile 2차 실패 시 reconcile_status='unknown'+success=False
+# ---------------------------------------------------------------------------
+
+class TestE2ReconcileUnknown:
+    def test_reconcile_none_returns_unknown_status(self):
+        """거래소에도 없으면 reconcile_status='unknown' + success=False."""
+        with patch("scripts.execute_trade.requests.post") as mock_post, \
+             patch("scripts.execute_trade._reconcile_recent_order") as mock_reconcile:
+
+            mock_post.side_effect = req_lib.exceptions.Timeout("timeout")
+            mock_reconcile.return_value = None
+
+            result = execute("bid", "KRW-BTC", "50000")
+
+        assert result["success"] is False
+        assert result.get("reconcile_status") == "unknown"
+
+    def test_reconcile_unknown_no_retry_possible(self):
+        """reconcile_status='unknown' 결과는 identifier 포함 (상위 재시도 식별 가능)."""
+        with patch("scripts.execute_trade.requests.post") as mock_post, \
+             patch("scripts.execute_trade._reconcile_recent_order") as mock_reconcile:
+
+            mock_post.side_effect = req_lib.exceptions.ConnectionError("drop")
+            mock_reconcile.return_value = None
+
+            result = execute("ask", "KRW-BTC", "0.001")
+
+        assert result["success"] is False
+        assert result.get("reconcile_status") == "unknown"
+        assert "identifier" in result

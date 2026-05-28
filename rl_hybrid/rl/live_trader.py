@@ -28,6 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from rl_hybrid.config import config
 from rl_hybrid.rl.state_encoder import StateEncoder
 from rl_hybrid.rl.decision_blender import DecisionBlender
+from scripts.execute_trade import make_auth_header as _make_auth_header
 
 logger = logging.getLogger("rl.live_trader")
 
@@ -294,25 +295,13 @@ class LiveTrader:
         """
         try:
             import requests as _req
-            import hashlib as _hash
-            import jwt as _jwt
-            import uuid as _uuid
             from urllib.parse import urlencode as _urlencode
 
-            access_key = os.environ.get("UPBIT_ACCESS_KEY", "")
-            secret_key = os.environ.get("UPBIT_SECRET_KEY", "")
-            if not access_key or not secret_key:
+            if not os.environ.get("UPBIT_ACCESS_KEY") or not os.environ.get("UPBIT_SECRET_KEY"):
                 return 0.0
 
             qs = _urlencode({"market": market, "state": "wait"})
-            payload = {
-                "access_key": access_key,
-                "nonce": str(_uuid.uuid4()),
-                "query_hash": _hash.sha512(qs.encode()).hexdigest(),
-                "query_hash_alg": "SHA512",
-            }
-            token = _jwt.encode(payload, secret_key, algorithm="HS256")
-            headers = {"Authorization": f"Bearer {token}"}
+            headers = _make_auth_header(qs)
             r = _req.get(
                 "https://api.upbit.com/v1/orders",
                 params={"market": market, "state": "wait"},
@@ -331,13 +320,22 @@ class LiveTrader:
             logger.debug(f"open_orders locked 조회 실패: {e}")
             return 0.0
 
-    def _get_db_portfolio_snapshot(self) -> Optional[dict]:
-        """Supabase portfolio_snapshots 에서 최신 스냅샷 반환."""
+    # Sentinel for DB query errors (distinct from empty snapshot)
+    _DB_QUERY_ERROR = object()
+
+    def _get_db_portfolio_snapshot(self):
+        """Supabase portfolio_snapshots 에서 최신 스냅샷 반환.
+
+        반환값:
+          - dict : 스냅샷 존재
+          - None : 스냅샷 없음 (빈 테이블 / 첫 실행)
+          - _DB_QUERY_ERROR : DB 연결 에러 / 키 없음 / 예외 → halt 필요
+        """
+        url = os.environ.get("SUPABASE_URL", "")
+        key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+        if not url or not key:
+            return self._DB_QUERY_ERROR
         try:
-            url = os.environ.get("SUPABASE_URL", "")
-            key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-            if not url or not key:
-                return None
             import requests as _req
             r = _req.get(
                 f"{url}/rest/v1/portfolio_snapshots",
@@ -348,9 +346,10 @@ class LiveTrader:
             if r.ok:
                 rows = r.json()
                 return rows[0] if rows else None
+            return self._DB_QUERY_ERROR
         except Exception as e:
-            logger.debug(f"DB 스냅샷 조회 실패: {e}")
-        return None
+            logger.warning(f"DB 스냅샷 조회 에러: {e}")
+            return self._DB_QUERY_ERROR
 
     def _check_portfolio_drift(
         self,
@@ -367,8 +366,13 @@ class LiveTrader:
             drift_threshold = float(os.environ.get("R2_DRIFT_THRESHOLD", "0.05"))
 
         db_snap = self._get_db_portfolio_snapshot()
+        if db_snap is self._DB_QUERY_ERROR:
+            # DB 조회 에러 → halt + 텔레그램 알림
+            self._log_execution({"event": "r2_db_error", "reason": "DB 스냅샷 조회 에러"})
+            self._notify_telegram_sync("⚠️ R2 drift 검사 중단: DB 스냅샷 조회 에러 (연결 실패/키 누락)")
+            return {"halt": True, "reason": "db_query_error", "skipped": False}
         if db_snap is None:
-            # DB 없으면 검사 생략 (첫 실행 등)
+            # 첫 실행 / 빈 테이블 → 검사 생략
             return {"halt": False, "reason": "no_db_snapshot", "skipped": True}
 
         # 거래소 BTC 잔고 + locked 합산
@@ -446,6 +450,18 @@ class LiveTrader:
         entry.setdefault("timestamp", _dt.now(_tz((_td(hours=9)))).isoformat())
         with (log_dir / "live_trader_events.jsonl").open("a", encoding="utf-8") as f:
             f.write(_json.dumps(entry, ensure_ascii=False) + "\n")
+
+    def _notify_telegram_sync(self, message: str):
+        """동기 텔레그램 알림 (subprocess, 에러 무시)."""
+        try:
+            subprocess.run(
+                [sys.executable, "scripts/notify_telegram.py", "--message", message],
+                capture_output=True, timeout=10,
+                cwd=self.project_root,
+                **subprocess_kwargs(),
+            )
+        except Exception:
+            pass
 
     def _execute_trade(self, blended) -> Optional[dict]:
         """매매 실행"""

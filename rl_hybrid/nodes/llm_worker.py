@@ -32,25 +32,30 @@ _SCHEMA_PATH = Path(__file__).resolve().parent.parent.parent / "prompts" / "sche
 _DECISION_SCHEMA: Optional[dict] = None
 
 
-def _load_decision_schema() -> dict:
-    global _DECISION_SCHEMA
-    if _DECISION_SCHEMA is None:
+_SCHEMA_LOAD_ERROR: Optional[str] = None
+
+
+def _load_decision_schema() -> tuple[Optional[dict], Optional[str]]:
+    """스키마 로드. 반환: (schema_dict, error_msg) — 실패 시 (None, 사유)."""
+    global _DECISION_SCHEMA, _SCHEMA_LOAD_ERROR
+    if _DECISION_SCHEMA is None and _SCHEMA_LOAD_ERROR is None:
         try:
             _DECISION_SCHEMA = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
         except Exception as e:
-            logger.error(f"decision_result.json 로드 실패: {e}")
-            _DECISION_SCHEMA = {}
-    return _DECISION_SCHEMA
+            _SCHEMA_LOAD_ERROR = f"decision_result.json 로드 실패: {e}"
+            logger.error(_SCHEMA_LOAD_ERROR)
+    return _DECISION_SCHEMA, _SCHEMA_LOAD_ERROR
 
 
 def _validate_decision(analysis: dict) -> tuple[bool, str]:
     """jsonschema 로 decision_result.json 스키마 강제 검증.
 
     반환: (valid: bool, error_message: str)
+    스키마 로드 실패 / SchemaError → fail-closed: (False, 사유)
     """
-    schema = _load_decision_schema()
-    if not schema:
-        return True, ""  # 스키마 로드 실패 시 pass-through (방어적)
+    schema, load_err = _load_decision_schema()
+    if load_err or schema is None:
+        return False, load_err or "스키마 로드 실패 (unknown)"
     try:
         import jsonschema
         jsonschema.validate(instance=analysis, schema=schema)
@@ -59,7 +64,7 @@ def _validate_decision(analysis: dict) -> tuple[bool, str]:
         return False, e.message
     except jsonschema.SchemaError as e:
         logger.error(f"스키마 자체 오류: {e}")
-        return True, ""  # 스키마 오류 시 pass-through
+        return False, f"SchemaError: {e}"
 
 
 def _log_near_miss_veto(cycle_id: str, reason: str, raw: object):

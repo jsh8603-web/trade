@@ -205,3 +205,47 @@ class TestR2ClampToBalance:
              patch.object(trader, "_get_open_orders_locked", return_value=0.0):
             clamped = trader._clamp_to_balance(0.01, "KRW-BTC")
         assert clamped == pytest.approx(0.01)
+
+
+# ---------------------------------------------------------------------------
+# Test SO-6c: DB 조회 에러 → halt (skip 아님)
+# ---------------------------------------------------------------------------
+
+class TestR2DbQueryError:
+    def test_db_error_triggers_halt(self, tmp_path):
+        """DB 조회 에러 시 halt=True (빈 테이블 skip과 구분)."""
+        trader = _make_trader(tmp_path)
+
+        def _notify_noop(msg):
+            pass
+        trader._notify_telegram_sync = _notify_noop
+
+        with patch.object(trader, "_get_db_portfolio_snapshot",
+                          return_value=LiveTrader._DB_QUERY_ERROR):
+            result = trader._check_portfolio_drift(LIVE_PORTFOLIO_BTC)
+
+        assert result["halt"] is True
+        assert result.get("reason") == "db_query_error"
+        assert result.get("skipped") is False
+
+    def test_empty_table_skips(self, tmp_path):
+        """빈 테이블(None 반환) → halt=False + skipped=True."""
+        trader = _make_trader(tmp_path)
+        with patch.object(trader, "_get_db_portfolio_snapshot", return_value=None):
+            result = trader._check_portfolio_drift(LIVE_PORTFOLIO_BTC)
+
+        assert result["halt"] is False
+        assert result.get("skipped") is True
+
+    def test_get_db_snapshot_error_returns_sentinel(self, tmp_path, monkeypatch):
+        """_get_db_portfolio_snapshot: 요청 예외 시 _DB_QUERY_ERROR sentinel 반환."""
+        trader = _make_trader(tmp_path)
+        monkeypatch.setenv("SUPABASE_URL", "https://fake.supabase.co")
+        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "fake_key")
+
+        import requests as _req
+        with patch("rl_hybrid.rl.live_trader._req.get" if False else "requests.get",
+                   side_effect=ConnectionError("DB 연결 실패")):
+            result = trader._get_db_portfolio_snapshot()
+
+        assert result is LiveTrader._DB_QUERY_ERROR

@@ -52,6 +52,7 @@ def _load_b1_helpers():
         "timedelta": _td,
         "_SCHEMA_PATH": schema_path,
         "_DECISION_SCHEMA": None,
+        "_SCHEMA_LOAD_ERROR": None,
     }
 
     func_src = []
@@ -244,3 +245,39 @@ class TestB1SourceImplementation:
             _B1["_DECISION_SCHEMA"] = None  # force reload
             valid, err = _validate_decision(VALID_ANALYSIS)
         mock_v.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Test 5: SO-6 fail-closed — 스키마 로드 실패 / SchemaError 시 (False, 사유)
+# ---------------------------------------------------------------------------
+
+class TestB1FailClosed:
+    def test_schema_load_failure_returns_false(self, monkeypatch):
+        """스키마 파일 로드 실패 시 fail-closed: (False, 사유) 반환."""
+        monkeypatch.setitem(_B1, "_DECISION_SCHEMA", None)
+        monkeypatch.setitem(_B1, "_SCHEMA_LOAD_ERROR", "로드 실패 mock")
+        valid, err = _validate_decision(VALID_ANALYSIS)
+        assert valid is False
+        assert "로드 실패" in err
+
+    def test_schema_load_failure_no_passthrough(self, monkeypatch):
+        """fail-closed 시 어떤 입력도 True 반환하지 않는다."""
+        monkeypatch.setitem(_B1, "_DECISION_SCHEMA", None)
+        monkeypatch.setitem(_B1, "_SCHEMA_LOAD_ERROR", "파일 없음")
+        for analysis in [VALID_ANALYSIS, INVALID_MISSING_DECISION, {}]:
+            valid, _ = _validate_decision(analysis)
+            assert valid is False
+
+    def test_schema_error_returns_false(self, monkeypatch):
+        """jsonschema.SchemaError 발생 시 fail-closed: (False, 사유) 반환."""
+        import jsonschema
+        monkeypatch.setitem(_B1, "_DECISION_SCHEMA", {"type": "object"})
+        monkeypatch.setitem(_B1, "_SCHEMA_LOAD_ERROR", None)
+
+        def raise_schema_error(instance, schema):
+            raise jsonschema.SchemaError("스키마 자체 오류")
+
+        with patch("jsonschema.validate", side_effect=raise_schema_error):
+            valid, err = _validate_decision(VALID_ANALYSIS)
+        assert valid is False
+        assert "SchemaError" in err

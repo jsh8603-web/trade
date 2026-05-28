@@ -63,10 +63,13 @@ class GeminiClient:
     def _save_daily_counter(self):
         try:
             self._daily_counter_file.parent.mkdir(parents=True, exist_ok=True)
-            self._daily_counter_file.write_text(
+            tmp = self._daily_counter_file.with_suffix(".tmp")
+            tmp.write_text(
                 json.dumps({"date": self._c2_today, "count": self._c2_count}, ensure_ascii=False),
                 encoding="utf-8",
             )
+            import os as _os
+            _os.replace(str(tmp), str(self._daily_counter_file))
         except Exception as e:
             logger.debug(f"C2 카운터 저장 실패: {e}")
 
@@ -180,7 +183,7 @@ class GeminiClient:
                 result = json.loads(text)
                 # B3: 결정성 추적 — model_id/prompt_hash/temperature 기록
                 result["_model_id"] = self.cfg.analysis_model
-                result["_prompt_hash"] = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:16]
+                result["_prompt_hash"] = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:32]
                 result["_temperature"] = self.cfg.temperature
                 # C2: 성공 호출 카운트
                 self._increment_daily_counter()

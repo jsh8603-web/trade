@@ -545,9 +545,10 @@ def execute(side: str, market: str, amount: str):
                     "_exec_completed": exec_completed.isoformat(),
                     "_latency_ms": int((exec_completed - exec_started).total_seconds() * 1000),
                 }
-            # 거래소에도 없음 → 주문 미발생으로 판단, 실패 반환
+            # 거래소에도 없음 → 주문 상태 불명확 (상위 재시도 차단)
             return {
                 "success": False,
+                "reconcile_status": "unknown",
                 "dry_run": False,
                 "side": side,
                 "market": market,
