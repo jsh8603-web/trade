@@ -34,6 +34,11 @@ PyPortfolioOpt>=1.5
 riskfolio-lib>=6.0
 scikit-learn>=1.3.0
 
+# === Phase 3 주식 트랙 (가치 2단·PIT 펀더멘털) ===
+pykrx>=1.2.8
+finance-datareader>=0.9.202
+dart-fss>=0.4.16
+
 # === 기타 유틸 ===
 pyyaml>=6.0
 yfinance>=0.2.0
