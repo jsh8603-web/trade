@@ -1,0 +1,92 @@
+{
+  "regime": "bull",
+  "market_data": {
+    "timestamp": "2025-01-10T09:00:00+09:00",
+    "market": "KRW-BTC",
+    "current_price": 95000000,
+    "ticker": {
+      "signed_change_rate": 0.035,
+      "acc_trade_price_24h": 1500000000000
+    },
+    "indicators": {
+      "rsi_14": 62.5,
+      "sma_20": 88000000,
+      "macd": {
+        "macd": 1200000,
+        "signal": 900000,
+        "histogram": 300000
+      },
+      "bollinger": {
+        "upper": 100000000,
+        "middle": 90000000,
+        "lower": 80000000
+      }
+    },
+    "fear_greed": {
+      "value": 72,
+      "value_classification": "Greed"
+    },
+    "news": {
+      "overall_sentiment": "positive",
+      "sentiment_score": 0.6
+    }
+  },
+  "external_data": {
+    "sources": {
+      "fear_greed": {
+        "current": {
+          "value": 72,
+          "value_classification": "Greed"
+        }
+      },
+      "news": {
+        "title": "Bitcoin hits new high"
+      },
+      "news_sentiment": {
+        "overall_sentiment": "positive",
+        "sentiment_score": 0.6
+      },
+      "nvt": {
+        "nvt_signal": 85.0
+      },
+      "binance_sentiment": {
+        "funding_rate": {
+          "current_rate": 0.0001
+        },
+        "top_trader_long_short": {
+          "current_ratio": 1.05
+        },
+        "kimchi_premium": {
+          "premium_pct": 1.2
+        }
+      },
+      "whale_tracker": {
+        "direction": "accumulation"
+      }
+    },
+    "total_score": 35,
+    "fusion": {
+      "signal": "buy"
+    },
+    "collection_time_sec": 2.1,
+    "errors": []
+  },
+  "portfolio": {
+    "krw_balance": 800000,
+    "total_eval": 1800000,
+    "btc_balance": 0.01,
+    "btc": {
+      "eval_amount": 950000,
+      "avg_buy_price": 85000000
+    },
+    "btc_ratio": 0.53
+  },
+  "past_decisions": [
+    {
+      "decision": "buy",
+      "confidence": 0.75,
+      "reason": "RSI 상승 + FGI 탐욕",
+      "created_at": "2025-01-09T09:00:00+09:00"
+    }
+  ]
+}

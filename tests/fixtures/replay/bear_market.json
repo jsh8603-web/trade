@@ -1,0 +1,92 @@
+{
+  "regime": "bear",
+  "market_data": {
+    "timestamp": "2025-02-15T09:00:00+09:00",
+    "market": "KRW-BTC",
+    "current_price": 72000000,
+    "ticker": {
+      "signed_change_rate": -0.04,
+      "acc_trade_price_24h": 900000000000
+    },
+    "indicators": {
+      "rsi_14": 32.0,
+      "sma_20": 80000000,
+      "macd": {
+        "macd": -800000,
+        "signal": -500000,
+        "histogram": -300000
+      },
+      "bollinger": {
+        "upper": 82000000,
+        "middle": 75000000,
+        "lower": 68000000
+      }
+    },
+    "fear_greed": {
+      "value": 28,
+      "value_classification": "Fear"
+    },
+    "news": {
+      "overall_sentiment": "negative",
+      "sentiment_score": -0.5
+    }
+  },
+  "external_data": {
+    "sources": {
+      "fear_greed": {
+        "current": {
+          "value": 28,
+          "value_classification": "Fear"
+        }
+      },
+      "news": {
+        "title": "Bitcoin drops on macro fears"
+      },
+      "news_sentiment": {
+        "overall_sentiment": "negative",
+        "sentiment_score": -0.5
+      },
+      "nvt": {
+        "nvt_signal": 120.0
+      },
+      "binance_sentiment": {
+        "funding_rate": {
+          "current_rate": -0.0002
+        },
+        "top_trader_long_short": {
+          "current_ratio": 0.88
+        },
+        "kimchi_premium": {
+          "premium_pct": -0.5
+        }
+      },
+      "whale_tracker": {
+        "direction": "distribution"
+      }
+    },
+    "total_score": -20,
+    "fusion": {
+      "signal": "sell"
+    },
+    "collection_time_sec": 1.8,
+    "errors": []
+  },
+  "portfolio": {
+    "krw_balance": 500000,
+    "total_eval": 1220000,
+    "btc_balance": 0.01,
+    "btc": {
+      "eval_amount": 720000,
+      "avg_buy_price": 88000000
+    },
+    "btc_ratio": 0.59
+  },
+  "past_decisions": [
+    {
+      "decision": "hold",
+      "confidence": 0.6,
+      "reason": "하락 추세 관망",
+      "created_at": "2025-02-14T09:00:00+09:00"
+    }
+  ]
+}

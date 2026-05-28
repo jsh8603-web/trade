@@ -1,0 +1,82 @@
+{
+  "regime": "sideways",
+  "market_data": {
+    "timestamp": "2025-03-05T09:00:00+09:00",
+    "market": "KRW-BTC",
+    "current_price": 83000000,
+    "ticker": {
+      "signed_change_rate": 0.005,
+      "acc_trade_price_24h": 600000000000
+    },
+    "indicators": {
+      "rsi_14": 50.5,
+      "sma_20": 83500000,
+      "macd": {
+        "macd": 50000,
+        "signal": 80000,
+        "histogram": -30000
+      },
+      "bollinger": {
+        "upper": 87000000,
+        "middle": 83000000,
+        "lower": 79000000
+      }
+    },
+    "fear_greed": {
+      "value": 48,
+      "value_classification": "Neutral"
+    },
+    "news": {
+      "overall_sentiment": "neutral",
+      "sentiment_score": 0.05
+    }
+  },
+  "external_data": {
+    "sources": {
+      "fear_greed": {
+        "current": {
+          "value": 48,
+          "value_classification": "Neutral"
+        }
+      },
+      "news": {
+        "title": "Bitcoin consolidates near $83M KRW"
+      },
+      "news_sentiment": {
+        "overall_sentiment": "neutral",
+        "sentiment_score": 0.05
+      },
+      "nvt": {
+        "nvt_signal": 100.0
+      },
+      "binance_sentiment": {
+        "funding_rate": {
+          "current_rate": 5e-05
+        },
+        "top_trader_long_short": {
+          "current_ratio": 1.0
+        },
+        "kimchi_premium": {
+          "premium_pct": 0.3
+        }
+      },
+      "whale_tracker": {
+        "direction": "neutral"
+      }
+    },
+    "total_score": 2,
+    "fusion": {
+      "signal": "hold"
+    },
+    "collection_time_sec": 2.0,
+    "errors": []
+  },
+  "portfolio": {
+    "krw_balance": 1000000,
+    "total_eval": 1000000,
+    "btc_balance": 0.0,
+    "btc": {},
+    "btc_ratio": 0.0
+  },
+  "past_decisions": []
+}
