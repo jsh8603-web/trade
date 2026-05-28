@@ -146,6 +146,11 @@ class LLMProvider(ABC):
     def tier(self) -> str:
         """'quick' | 'deep' | 'fallback'"""
 
+    @property
+    @abstractmethod
+    def model_id(self) -> str:
+        """B3 결정성: 모델 식별자 (예: 'qwen3-coder-fast', 'claude-opus-4-7')."""
+
     @abstractmethod
     def generate(self, prompt: str, **kwargs: Any) -> str:
         """프롬프트를 받아 텍스트 응답 반환."""
@@ -170,6 +175,10 @@ class OllamaQwenProvider(LLMProvider):
     @property
     def tier(self) -> str:
         return "quick"
+
+    @property
+    def model_id(self) -> str:
+        return self._model
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
         import urllib.request  # noqa: PLC0415
@@ -217,6 +226,10 @@ class ClaudeProvider(LLMProvider):
     @property
     def tier(self) -> str:
         return "deep"
+
+    @property
+    def model_id(self) -> str:
+        return self._model
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
         import urllib.request  # noqa: PLC0415
@@ -267,6 +280,10 @@ class GeminiProvider(LLMProvider):
     @property
     def tier(self) -> str:
         return "fallback"
+
+    @property
+    def model_id(self) -> str:
+        return self._model
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
         client = self._get_client()

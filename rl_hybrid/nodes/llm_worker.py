@@ -222,16 +222,50 @@ class LLMWorkerNode(BaseNode):
             high_risk = bool(context.get("high_risk", False))
 
             prompt = self._build_analysis_prompt(market_data, external_data, cycle_id)
-            raw_text, tier = self._llm_router.route(
+            # B3: route_with_meta 전환 — model_id·prompt_hash·temperature 결정레코드 수신
+            llm_result = self._llm_router.route_with_meta(
                 prompt,
                 price_change_24h=price_change_24h,
                 regime_switch=regime_switch,
                 high_risk=high_risk,
                 max_tokens=1024,
             )
-            self.logger.info(f"LLMRouter tier={tier}, cycle={cycle_id}")
+            self.logger.info(
+                f"LLMRouter tier={llm_result.intended_tier or llm_result.tier}, "
+                f"degraded={llm_result.degraded}, cycle={cycle_id}"
+            )
 
-            analysis = self._parse_llm_response(raw_text, cycle_id, tier)
+            # C2 degrade → 관망 강제 (b1_veto 패턴 유사, H14 보수)
+            if llm_result.degraded:
+                _log_near_miss_veto(
+                    cycle_id,
+                    f"C2 degrade({llm_result.degrade_reason}) → 관망 강제",
+                    {"degrade_reason": llm_result.degrade_reason},
+                )
+                logger.warning(
+                    f"C2 degrade({llm_result.degrade_reason}) → 관망 강제: cycle={cycle_id}"
+                )
+                hold_result = {
+                    "decision": "관망",
+                    "confidence": 0.0,
+                    "reason": f"C2 degrade({llm_result.degrade_reason}): {llm_result.text[:80]}",
+                    "b1_veto": True,
+                    "b1_error": f"c2_degrade:{llm_result.degrade_reason}",
+                    "model_id": llm_result.model_id,
+                    "prompt_hash": llm_result.prompt_hash,
+                    "temperature": llm_result.temperature,
+                    "llm_tier": llm_result.intended_tier or llm_result.tier,
+                }
+                return msg.reply(hold_result)
+
+            raw_text = llm_result.text
+            tier = llm_result.intended_tier or llm_result.tier
+            analysis = self._parse_llm_response(
+                raw_text, cycle_id, tier,
+                model_id=llm_result.model_id,
+                prompt_hash=llm_result.prompt_hash,
+                temperature=llm_result.temperature,
+            )
 
             # B1: 스키마 하드게이트 — risk 경계로 넘기기 전 강제 검증
             valid, err_msg = _validate_decision(analysis)
@@ -272,9 +306,18 @@ class LLMWorkerNode(BaseNode):
             "reason, market_regime 을 반환하라."
         )
 
-    def _parse_llm_response(self, raw: str, cycle_id: str, tier: str) -> dict:
+    def _parse_llm_response(
+        self,
+        raw: str,
+        cycle_id: str,
+        tier: str,
+        model_id: str = "",
+        prompt_hash: str = "",
+        temperature: float = 0.0,
+    ) -> dict:
         """LLM 텍스트 응답 → 분석 dict 파싱.
 
+        B3: model_id·prompt_hash·temperature 결정레코드 setdefault 전파.
         JSON 블록 추출 실패 시 관망 heuristic fallback.
         """
         import re
@@ -285,6 +328,10 @@ class LLMWorkerNode(BaseNode):
                 result = json.loads(m.group())
                 result.setdefault("cycle_id", cycle_id)
                 result.setdefault("llm_tier", tier)
+                # B3 결정성 필드 전파 (setdefault: 기존 값 우선)
+                result.setdefault("model_id", model_id)
+                result.setdefault("prompt_hash", prompt_hash)
+                result.setdefault("temperature", temperature)
                 return result
             except json.JSONDecodeError:
                 pass
@@ -298,6 +345,9 @@ class LLMWorkerNode(BaseNode):
             "market_regime": "unknown",
             "cycle_id": cycle_id,
             "llm_tier": tier,
+            "model_id": model_id,
+            "prompt_hash": prompt_hash,
+            "temperature": temperature,
         }
 
     def _handle_rag_query(self, msg: ZMQMessage) -> Optional[ZMQMessage]:
