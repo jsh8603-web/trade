@@ -98,9 +98,11 @@ def calculate_sortino_ratio(
         return 0.0
     excess = returns - risk_free_rate / periods_per_year
     downside = excess[excess < 0]
-    if len(downside) == 0 or downside.std() == 0:
+    # 하방편차 = 목표(0) 기준 하방 수익률의 RMS (표본 std 아님 — 음수들의 평균을 빼면 안 됨)
+    downside_dev = float(np.sqrt((downside ** 2).mean())) if len(downside) > 0 else 0.0
+    if downside_dev == 0:
         return float("inf") if excess.mean() > 0 else 0.0
-    return float(np.sqrt(periods_per_year) * excess.mean() / downside.std())
+    return float(np.sqrt(periods_per_year) * excess.mean() / downside_dev)
 
 
 def calculate_calmar_ratio(

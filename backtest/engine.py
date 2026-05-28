@@ -104,7 +104,7 @@ def calculate_slippage(
     market_volume = 해당 바의 거래대금(또는 시총). trade_value = 주문 금액.
     임팩트 = impact_factor * (trade_value / market_volume).
     """
-    if market_volume <= 0:
+    if market_volume <= 0 or market_volume != market_volume:  # NaN-safe (NaN != NaN)
         return config.slippage_max
     impact = config.slippage_impact_factor * (trade_value / market_volume)
     return float(max(config.slippage_min, min(config.slippage_max, impact)))
@@ -270,8 +270,9 @@ class BacktestEngine:
                 trade_value = position * price
                 slip = calculate_slippage(trade_value, vol, self._cost)
                 exec_price = price * (1 - slip)
-                commission = trade_value * self._cost.commission_rate
-                tax = self._calc_tax(exec_price * position, region)
+                exec_value = exec_price * position
+                commission = exec_value * self._cost.commission_rate
+                tax = self._calc_tax(exec_value, region)
                 pnl = (exec_price - avg_price) * position - commission - tax
 
                 # H17: 하한가잠김 체크 (Phase4 kis_client 연계)
@@ -280,6 +281,7 @@ class BacktestEngine:
                     equity_points.append(capital + position * price)
                     continue
 
+                filled_qty = position
                 capital += position * exec_price - commission - tax
                 position = 0.0
 
@@ -287,7 +289,7 @@ class BacktestEngine:
                     asset=asset_name,
                     side="SELL",
                     price=exec_price,
-                    qty=position,
+                    qty=filled_qty,
                     commission=commission,
                     tax=tax,
                     slippage=slip * trade_value,

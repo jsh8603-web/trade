@@ -205,19 +205,23 @@ class WalkForwardEngine:
         return result
 
     def _simple_split(self, n: int) -> list:
-        """skfolio 없을 때 간소 K-fold 대체 (purge 미지원)."""
+        """skfolio 없을 때 fallback 분할. CombinatorialPurgedCV 근사 — train 은 test
+        양측을 쓰되(조합 경로) test fold 경계에 purge+embargo gap 을 적용해 누수 차단.
+        (정통 CombinatorialPurgedCV 통합 = N-P5-SKFOLIO 이연; 그 전까지 누수 방지 gap 보장.)"""
         k = self._n_folds
+        gap = self._purged_size + self._embargo_size  # 경계 누수 차단 gap
         fold_size = n // k
         splits = []
         for i in range(k):
             test_start = i * fold_size
-            test_end = test_start + fold_size
-            test_idx = np.arange(test_start, min(test_end, n))
+            test_end = min(test_start + fold_size, n)
+            test_idx = np.arange(test_start, test_end)
+            # purge: test 시작 전 gap·test 종료 후 embargo gap 을 train 에서 제외
             train_idx = np.concatenate([
-                np.arange(0, test_start),
-                np.arange(min(test_end, n), n)
+                np.arange(0, max(0, test_start - gap)),
+                np.arange(min(test_end + gap, n), n)
             ])
-            if len(train_idx) == 0:
+            if len(train_idx) == 0 or len(test_idx) == 0:
                 continue
             splits.append((train_idx, test_idx))
         return splits
