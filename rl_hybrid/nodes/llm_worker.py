@@ -250,7 +250,7 @@ class LLMWorkerNode(BaseNode):
 
         except Exception as e:
             self.logger.error(f"분석 처리 에러: {e}", exc_info=True)
-            return msg.reply({}, error=str(e))
+            return msg.reply({}, error="LLM 분석 처리 중 오류 (상세는 서버 로그 참조)")
 
     def _build_analysis_prompt(
         self,

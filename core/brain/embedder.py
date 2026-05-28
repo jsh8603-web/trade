@@ -82,10 +82,10 @@ class DaServiceEmbedder(Embedder):
         with urllib.request.urlopen(req, timeout=30) as resp:
             result = json.loads(resp.read().decode("utf-8"))
         vectors: list[list[float]] = result["vectors"]
-        assert len(vectors) == len(texts), "벡터 수 불일치"
-        assert all(len(v) == EMBED_DIM_BGE for v in vectors), (
-            f"벡터 차원 오류: expected {EMBED_DIM_BGE}"
-        )
+        if len(vectors) != len(texts):
+            raise ValueError(f"벡터 수 불일치: expected {len(texts)}, got {len(vectors)}")
+        if not all(len(v) == EMBED_DIM_BGE for v in vectors):
+            raise ValueError(f"벡터 차원 오류: expected {EMBED_DIM_BGE}")
         return vectors
 
 
