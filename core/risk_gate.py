@@ -364,3 +364,85 @@ class KillSwitch:
         self._state = KillSwitchState.ACTIVE
         self._alert_flag = False
         self._pending_liquidation = False
+
+
+# ── SO-4: §6 Precedence 격자 ─────────────────────────────────────────
+
+class PrecedenceLevel(int, Enum):
+    """충돌 해소 우선순위 (낮을수록 먼저)."""
+    KILL_SWITCH   = 1   # ① kill switch/halt
+    SAFETY_STOP   = 2   # ② per-position stop, 일일 손실한도
+    PORTFOLIO_CAP = 3   # ③ 상관캡, max weight
+    TAX_HOLDING   = 4   # ④ min_holding (세금/수수료)
+    REBALANCE     = 5   # ⑤ regime flip, turnover
+
+
+# 규칙명 → 격자 레벨 매핑
+_RULE_PRECEDENCE: dict[str, PrecedenceLevel] = {
+    "halt_propagation": PrecedenceLevel.KILL_SWITCH,
+    "kill_switch_mdd":  PrecedenceLevel.KILL_SWITCH,
+    "daily_loss_halt":  PrecedenceLevel.SAFETY_STOP,
+    "per_pos_hard_stop": PrecedenceLevel.SAFETY_STOP,
+    "per_pos_soft_stop": PrecedenceLevel.SAFETY_STOP,
+    "corr_cap":          PrecedenceLevel.PORTFOLIO_CAP,
+    "corr_multiplier":   PrecedenceLevel.PORTFOLIO_CAP,
+    "max_weight_single": PrecedenceLevel.PORTFOLIO_CAP,
+    "max_weight_sector": PrecedenceLevel.PORTFOLIO_CAP,
+    "max_turnover":      PrecedenceLevel.PORTFOLIO_CAP,
+    "min_holding":       PrecedenceLevel.TAX_HOLDING,
+    "regime_flip":       PrecedenceLevel.REBALANCE,
+    "turnover_limit":    PrecedenceLevel.REBALANCE,
+}
+
+
+def resolve_precedence(
+    verdicts: list[RiskVerdict],
+    cycle_id: str = "",
+    raw_payload: Any = None,
+) -> RiskVerdict:
+    """다중 RiskVerdict 충돌 → 격자 순서로 단일 verdict 해소.
+
+    §6 precedence: ① kill switch ② 안전 스톱 ③ 포트폴리오 캡 ④ 세금 ⑤ 리밸런스.
+    같은 레벨 내 = 가장 제한적인 verdict 우선(rejected > reduced > approved).
+    충돌 항목 전체 near_miss_veto 기록.
+    """
+    if not verdicts:
+        return RiskVerdict(VerdictType.APPROVED, "no rules — approved")
+
+    # 거절 규칙 중 최고 우선순위 찾기
+    rejected = [v for v in verdicts if v.verdict == VerdictType.REJECTED]
+    if rejected:
+        # 가장 높은 우선순위(낮은 레벨 숫자) 선택
+        best = min(
+            rejected,
+            key=lambda v: min(
+                (_RULE_PRECEDENCE.get(r, PrecedenceLevel.REBALANCE) for r in v.triggered_rules),
+                default=PrecedenceLevel.REBALANCE,
+            ),
+        )
+        # 충돌 항목 전체 기록
+        all_rules = [r for v in verdicts for r in v.triggered_rules]
+        if len(all_rules) > len(best.triggered_rules):
+            _log_near_miss_veto(
+                cycle_id,
+                f"precedence 충돌 해소: {best.triggered_rules} 우선 / 전체={all_rules}",
+                raw_payload,
+                "precedence_conflict",
+            )
+        return best
+
+    # 축소 규칙 중 최소 adjusted_size
+    reduced = [v for v in verdicts if v.verdict == VerdictType.REDUCED]
+    if reduced:
+        sizes = [v.adjusted_size for v in reduced if v.adjusted_size is not None]
+        min_size = min(sizes) if sizes else None
+        all_rules = [r for v in reduced for r in v.triggered_rules]
+        return RiskVerdict(
+            VerdictType.REDUCED,
+            f"precedence 격자 축소: {all_rules}",
+            adjusted_size=min_size,
+            triggered_rules=all_rules,
+        )
+
+    # 전부 approved
+    return RiskVerdict(VerdictType.APPROVED, "precedence: all approved")
