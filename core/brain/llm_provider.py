@@ -45,7 +45,8 @@ CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-4-7")
 GEMINI_MODEL = os.environ.get("GEMINI_ANALYSIS_MODEL", "gemini-2.5-flash")
 
 # C2 서킷브레이커 설정 (gemini_client.py config 패턴 동일)
-LLM_DAILY_CAP      = int(os.environ.get("LLM_DAILY_CAP", "24"))
+# LLM_DAILY_CAP: 기본 9999(비활성) — 실 운용 시 .env 에서 24 등으로 낮춰 설정
+LLM_DAILY_CAP      = int(os.environ.get("LLM_DAILY_CAP", "9999"))
 LLM_LATENCY_BUDGET = float(os.environ.get("LLM_LATENCY_BUDGET", "30.0"))
 LLM_TEMPERATURE    = float(os.environ.get("LLM_TEMPERATURE", "0.0"))
 
@@ -81,12 +82,13 @@ def _load_oauth_token() -> str:
 class RouteResult:
     """route_with_meta() 반환값 — B3 결정성 + C2 degrade 정보."""
     text: str
-    tier: str
+    tier: str              # 실제 응답 tier (degrade 시 "degraded")
     model_id: str = ""
     prompt_hash: str = ""
     temperature: float = LLM_TEMPERATURE
     degraded: bool = False
     degrade_reason: str = ""   # cap | latency | error | quality
+    intended_tier: str = ""    # 라우팅 결정 tier(quick/deep) — route() 2-tuple 계약용
 
 
 # ── C2 카운터 유틸 (gemini_client.py:48-91 패턴 이식) ───────────────
@@ -325,6 +327,8 @@ class LLMRouter:
     ) -> tuple[str, str]:
         """(응답 텍스트, 사용된 tier) 반환 — 2-tuple 계약 보존(기존 호출자 무수정).
 
+        tier = 라우팅 결정 tier(quick/deep). degrade 여부와 무관하게
+        _is_triggered 결과에 따른 원래 tier 를 반환(기존 테스트 무수정 조건).
         내부적으로 route_with_meta() 에 위임한다.
         """
         result = self.route_with_meta(
@@ -334,7 +338,9 @@ class LLMRouter:
             high_risk=high_risk,
             **kwargs,
         )
-        return result.text, result.tier
+        # degrade 시에도 의도한 provider tier(quick/deep) 반환 — 기존 계약 보존
+        intended_tier = result.intended_tier if result.intended_tier else result.tier
+        return result.text, intended_tier
 
     def route_with_meta(
         self,
@@ -356,16 +362,16 @@ class LLMRouter:
         if now_today != self._c2_today:
             self._c2_today, self._c2_count = _load_c2_counter(self._counter_file)
 
+        # 라우팅 결정 (캡 체크 전에 먼저 — intended_tier 확보용)
+        triggered = self._is_triggered(price_change_24h, regime_switch, high_risk)
+        provider = self._deep if triggered else self._quick
+        tier = provider.tier  # intended_tier (quick/deep)
+
         # C2 ①: 캡 초과 → degrade (resource)
         if self._c2_count >= self._daily_cap:
             reason = f"일일 호출 캡 초과({self._c2_count}/{self._daily_cap})"
             logger.warning("C2 cap degrade: %s", reason)
-            return self._degrade_result(prompt, "cap", kwargs)
-
-        # 라우팅 결정
-        triggered = self._is_triggered(price_change_24h, regime_switch, high_risk)
-        provider = self._deep if triggered else self._quick
-        tier = provider.tier
+            return self._degrade_result(prompt, "cap", kwargs, intended_tier=tier)
         temperature = float(kwargs.get("temperature", LLM_TEMPERATURE))
 
         # B3: prompt_hash
@@ -386,7 +392,7 @@ class LLMRouter:
             else:
                 degrade_type = "quality"
             logger.warning("C2 provider exception → degrade(%s): %s", degrade_type, reason)
-            return self._degrade_result(prompt, degrade_type, kwargs, prompt_hash=prompt_hash, model_id=getattr(provider, "model_id", tier), temperature=temperature)
+            return self._degrade_result(prompt, degrade_type, kwargs, prompt_hash=prompt_hash, model_id=getattr(provider, "model_id", tier), temperature=temperature, intended_tier=tier)
 
         _latency = time.time() - _call_start
 
@@ -394,7 +400,7 @@ class LLMRouter:
         if _latency > self._latency_budget:
             logger.warning("C2 latency degrade: %.1fs > %.1fs", _latency, self._latency_budget)
             self._c2_today, self._c2_count = _increment_c2_counter(self._counter_file, self._c2_today, self._c2_count)
-            return self._degrade_result(prompt, "latency", kwargs, prompt_hash=prompt_hash, model_id=getattr(provider, "model_id", tier), temperature=temperature)
+            return self._degrade_result(prompt, "latency", kwargs, prompt_hash=prompt_hash, model_id=getattr(provider, "model_id", tier), temperature=temperature, intended_tier=tier)
 
         # 정상 → 카운터 +1
         self._c2_today, self._c2_count = _increment_c2_counter(self._counter_file, self._c2_today, self._c2_count)
@@ -407,6 +413,7 @@ class LLMRouter:
             temperature=temperature,
             degraded=False,
             degrade_reason="",
+            intended_tier=tier,
         )
 
     def _degrade_result(
@@ -417,6 +424,7 @@ class LLMRouter:
         prompt_hash: str = "",
         model_id: str = "degraded",
         temperature: float = LLM_TEMPERATURE,
+        intended_tier: str = "",
     ) -> RouteResult:
         """H14: 매수 degrade = abstain(hold) 보수 — hold 의미 JSON 반환."""
         if not prompt_hash:
@@ -437,6 +445,7 @@ class LLMRouter:
             temperature=temperature,
             degraded=True,
             degrade_reason=reason,
+            intended_tier=intended_tier,
         )
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
