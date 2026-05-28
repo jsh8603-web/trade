@@ -4,6 +4,7 @@ Gemini 2.5 Pro로 시장 상황을 분석하고,
 gemini-embedding-001로 분석 결과를 3072차원 벡터로 변환한다.
 """
 
+import hashlib
 import json
 import logging
 import time
@@ -75,7 +76,7 @@ class GeminiClient:
                 response = self.analysis_model.generate_content(
                     prompt,
                     generation_config=genai.types.GenerationConfig(
-                        temperature=0.3,
+                        temperature=self.cfg.temperature,
                         max_output_tokens=4096,
                         response_mime_type="application/json",
                     ),
@@ -89,10 +90,15 @@ class GeminiClient:
                     text = text.split("```")[1].split("```")[0].strip()
 
                 result = json.loads(text)
+                # B3: 결정성 추적 — model_id/prompt_hash/temperature 기록
+                result["_model_id"] = self.cfg.analysis_model
+                result["_prompt_hash"] = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:16]
+                result["_temperature"] = self.cfg.temperature
                 logger.info(
                     f"Gemini 분석 완료: regime={result.get('market_regime')}, "
                     f"action={result.get('recommended_action')}, "
-                    f"confidence={result.get('confidence')}"
+                    f"confidence={result.get('confidence')}, "
+                    f"model={self.cfg.analysis_model}, temp={self.cfg.temperature}"
                 )
                 return result
 

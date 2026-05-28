@@ -35,6 +35,8 @@ class GeminiConfig:
     embedding_dim: int = int(os.getenv("RAG_EMBEDDING_DIM", "3072"))
     max_retries: int = 3
     rpm_limit: int = 10  # requests per minute
+    # B3: 결정성 — temperature=0 으로 동일 입력 → 동일 출력 보장
+    temperature: float = float(os.getenv("GEMINI_TEMPERATURE", "0"))
 
 
 @dataclass
