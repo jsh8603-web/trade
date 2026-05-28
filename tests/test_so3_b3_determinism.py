@@ -223,3 +223,45 @@ def test_route_result_temperature(tmp_path):
 
     result = router.route_with_meta("prompt", temperature=0.0)
     assert isinstance(result.temperature, float)
+
+
+# ── deep-tier(ClaudeProvider) temperature 전달 결정성 ────────────────
+
+def test_deep_tier_temperature_passed_in_kwargs(tmp_path):
+    """deep 경로(triggered=True) — provider.generate 가 temperature=LLM_TEMPERATURE kwargs 수신."""
+    d = MagicMock(spec=LLMProvider)
+    d.tier = "deep"
+    d.model_id = "claude-opus-4-7"
+    d.generate.return_value = "deep_response"
+
+    router = LLMRouter(
+        quick=MagicMock(spec=LLMProvider),
+        deep=d,
+        daily_cap=9999,
+        counter_file=tmp_path / "c.json",
+    )
+    # 급락(-6%) → deep 트리거
+    router.route_with_meta("analysis prompt", price_change_24h=-6.0, temperature=0.0)
+
+    call_kwargs = d.generate.call_args.kwargs
+    assert "temperature" in call_kwargs, "deep provider.generate 에 temperature kwargs 미전달"
+    assert call_kwargs["temperature"] == 0.0
+
+
+def test_deep_tier_route_result_temperature_matches(tmp_path):
+    """deep 경로 RouteResult.temperature == 전달된 temperature (기록-실제 일치)."""
+    d = MagicMock(spec=LLMProvider)
+    d.tier = "deep"
+    d.model_id = "claude-opus-4-7"
+    d.generate.return_value = "ok"
+
+    router = LLMRouter(
+        quick=MagicMock(spec=LLMProvider),
+        deep=d,
+        daily_cap=9999,
+        counter_file=tmp_path / "c.json",
+    )
+    result = router.route_with_meta("prompt", price_change_24h=-6.0, temperature=0.0)
+    assert result.temperature == 0.0
+    assert result.intended_tier == "deep"
+    assert result.model_id == "claude-opus-4-7"
