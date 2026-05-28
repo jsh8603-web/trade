@@ -266,12 +266,14 @@ class TestOrderExecution:
         assert result["success"] is False
         assert result["response"]["raw_response"] == "<html>Server Error</html>"
 
-    # 16. Network timeout
+    # 16. Network timeout — E2 경로: reconcile도 None 반환 → 실패
+    @patch("scripts.execute_trade._reconcile_recent_order", return_value=None)
     @patch("scripts.execute_trade.requests.post")
-    def test_network_timeout(self, mock_post, monkeypatch):
+    def test_network_timeout(self, mock_post, mock_reconcile, monkeypatch):
         _set_env(monkeypatch)
         mock_post.side_effect = requests.exceptions.Timeout("Connection timed out")
 
         result = execute("bid", "KRW-BTC", "50000")
         assert result["success"] is False
-        assert "주문 요청 실패" in result["error"]
+        # E2: 응답 유실 후 재조회 실패 메시지
+        assert "응답 유실" in result["error"]

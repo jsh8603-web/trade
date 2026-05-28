@@ -128,7 +128,7 @@ def check_open_orders_and_cancel(market: str, side: str):
         r = requests.get(f"{UPBIT_API}/orders", params={"market": market, "state": "wait"}, headers=headers, timeout=10)
         if not r.ok:
             return
-        
+
         open_orders = r.json()
         for order in open_orders:
             # 같은 방향이거나 양방향 안전 확보를 위해 기존 주문 정리
@@ -140,6 +140,56 @@ def check_open_orders_and_cancel(market: str, side: str):
                 time.sleep(0.2)
     except Exception as e:
         print(f"[warning] 미체결 주문 정리 중 오류: {e}", file=sys.stderr)
+
+
+def _log_idempotent_block(identifier: str, existing_uuid: Optional[str], reason: str):
+    """멱등 차단 이벤트를 execution_logs 파일에 기록."""
+    log_dir = PROJECT_DIR / "logs" / "executions"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    entry = {
+        "event": "idempotent_block",
+        "identifier": identifier,
+        "existing_uuid": existing_uuid,
+        "reason": reason,
+        "timestamp": datetime.now(KST).isoformat(),
+    }
+    log_file = log_dir / "idempotent_blocks.jsonl"
+    with log_file.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+def _reconcile_recent_order(identifier: str, market: str) -> Optional[dict]:
+    """응답 유실 후 동일 identifier 주문을 미체결+체결 양쪽에서 재조회.
+
+    반환: 주문 dict (found) 또는 None (not found).
+    Upbit 는 identifier 로 직접 조회 가능 (GET /order?identifier=...).
+    추가로 state=wait 목록에서도 재확인한다.
+    """
+    try:
+        # 1차: identifier 직접 조회 (체결 포함)
+        qs = urlencode({"identifier": identifier})
+        headers = make_auth_header(qs)
+        r = requests.get(f"{UPBIT_API}/order", params={"identifier": identifier}, headers=headers, timeout=10)
+        if r.ok:
+            data = r.json()
+            if isinstance(data, dict) and data.get("uuid"):
+                return data
+    except Exception as e:
+        print(f"[warning] identifier 직접 조회 실패: {e}", file=sys.stderr)
+
+    try:
+        # 2차: 미체결(wait) 목록에서 identifier 매칭
+        qs2 = urlencode({"market": market, "state": "wait"})
+        headers2 = make_auth_header(qs2)
+        r2 = requests.get(f"{UPBIT_API}/orders", params={"market": market, "state": "wait"}, headers=headers2, timeout=10)
+        if r2.ok:
+            for order in r2.json():
+                if order.get("identifier") == identifier:
+                    return order
+    except Exception as e:
+        print(f"[warning] 미체결 목록 identifier 재조회 실패: {e}", file=sys.stderr)
+
+    return None
 
 
 
@@ -444,11 +494,13 @@ def execute(side: str, market: str, amount: str):
         }
 
     exec_started = datetime.now(KST)
+    # E2: 클라이언트 주문 identifier (이 execute 호출마다 1회 생성, 멱등 키)
+    identifier = f"inv_{uuid.uuid4().hex[:16]}"
     try:
         # 5) 수정주문 / 미체결 주문 처리 (수정주문 lock 관리)
         check_open_orders_and_cancel(market, side)
 
-        body = {"market": market, "side": side}
+        body = {"market": market, "side": side, "identifier": identifier}
         if side == "bid":
             body["ord_type"] = "price"  # 시장가 매수
             body["price"] = amount
@@ -459,14 +511,54 @@ def execute(side: str, market: str, amount: str):
         qs = urlencode(body)
         headers = make_auth_header(qs)
 
-        r = requests.post(f"{UPBIT_API}/orders", json=body, headers=headers, timeout=10)
-        exec_completed = datetime.now(KST)
-        latency_ms = int((exec_completed - exec_started).total_seconds() * 1000)
-
         try:
-            response = r.json()
-        except (ValueError, requests.exceptions.JSONDecodeError):
-            response = {"raw_response": r.text[:500]}
+            r = requests.post(f"{UPBIT_API}/orders", json=body, headers=headers, timeout=10)
+            exec_completed = datetime.now(KST)
+            latency_ms = int((exec_completed - exec_started).total_seconds() * 1000)
+
+            try:
+                response = r.json()
+            except (ValueError, requests.exceptions.JSONDecodeError):
+                response = {"raw_response": r.text[:500]}
+
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as net_err:
+            # E2: 응답 유실 — identifier 로 재조회하여 중복 발주 차단
+            exec_completed = datetime.now(KST)
+            print(f"[E2] 응답 유실({net_err.__class__.__name__}), identifier={identifier} 재조회", file=sys.stderr)
+            existing = _reconcile_recent_order(identifier, market)
+            if existing:
+                # 동일 주문이 거래소에 이미 존재 → 중복 발주 차단
+                print(f"[E2] 멱등 차단: 기존 주문 재사용 uuid={existing.get('uuid')}", file=sys.stderr)
+                _log_idempotent_block(identifier, existing.get("uuid"), str(net_err))
+                return {
+                    "success": True,
+                    "dry_run": False,
+                    "side": side,
+                    "market": market,
+                    "amount": amount,
+                    "response": existing,
+                    "error": None,
+                    "idempotent_reuse": True,
+                    "identifier": identifier,
+                    "timestamp": ts,
+                    "_exec_started": exec_started.isoformat(),
+                    "_exec_completed": exec_completed.isoformat(),
+                    "_latency_ms": int((exec_completed - exec_started).total_seconds() * 1000),
+                }
+            # 거래소에도 없음 → 주문 미발생으로 판단, 실패 반환
+            return {
+                "success": False,
+                "dry_run": False,
+                "side": side,
+                "market": market,
+                "amount": amount,
+                "error": f"주문 응답 유실 후 재조회 실패: {net_err}",
+                "identifier": identifier,
+                "timestamp": ts,
+                "_exec_started": exec_started.isoformat(),
+                "_exec_completed": exec_completed.isoformat(),
+                "_latency_ms": None,
+            }
 
         # 성공 시 일일 매매 횟수 증가 + 마지막 매매 시각 기록
         if r.ok:
@@ -491,6 +583,7 @@ def execute(side: str, market: str, amount: str):
             "amount": amount,
             "response": response,
             "error": error_msg,
+            "identifier": identifier,
             "timestamp": ts,
             "_exec_started": exec_started.isoformat(),
             "_exec_completed": exec_completed.isoformat(),
@@ -505,6 +598,7 @@ def execute(side: str, market: str, amount: str):
             "market": market,
             "amount": amount,
             "error": f"주문 요청 실패: {e}",
+            "identifier": identifier,
             "timestamp": ts,
             "_exec_started": exec_started.isoformat() if 'exec_started' in locals() else None,
             "_exec_completed": exec_completed.isoformat(),
