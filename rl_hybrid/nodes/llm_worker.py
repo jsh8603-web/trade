@@ -27,6 +27,7 @@ from rl_hybrid.protocol import (
     ZMQMessage, Action, make_heartbeat,
 )
 from rl_hybrid.rag.rag_pipeline import RAGPipeline
+from core.brain.llm_provider import LLMRouter
 
 KST = timezone(timedelta(hours=9))
 
@@ -92,14 +93,19 @@ def _log_near_miss_veto(cycle_id: str, reason: str, raw: object):
 
 
 class LLMWorkerNode(BaseNode):
-    """LLM/RAG 워커 — DEALER + SUB"""
+    """LLM/RAG 워커 — DEALER + SUB
 
-    def __init__(self):
+    SO-6: gemini_client 직접호출 → LLMRouter 경유.
+    평상시=Qwen(quick), 트리거=Claude(deep). ZMQ 계약 유지. B1 하드게이트 보존.
+    """
+
+    def __init__(self, llm_router: Optional[LLMRouter] = None):
         super().__init__("llm_worker")
         self.dealer: Optional[zmq.Socket] = None
         self.sub: Optional[zmq.Socket] = None
         self.pipeline: Optional[RAGPipeline] = None
         self.latest_market_data: dict = {}
+        self._llm_router: LLMRouter = llm_router or LLMRouter()
 
     def _setup_sockets(self):
         # DEALER → Main Brain ROUTER
@@ -191,10 +197,11 @@ class LLMWorkerNode(BaseNode):
             pass
 
     def _handle_analyze(self, msg: ZMQMessage) -> Optional[ZMQMessage]:
-        """시장 분석 요청 처리"""
-        if not self.pipeline:
-            return msg.reply({}, error="RAG 파이프라인 미초기화")
+        """시장 분석 요청 처리 — LLMRouter 경유 (gemini_client 직접호출 제거).
 
+        라우팅: 평상시=Qwen(quick), 트리거(급락/레짐전환/고위험)=Claude(deep).
+        ZMQ 계약(reply payload 형식) 유지. B1 스키마 하드게이트 보존.
+        """
         try:
             market_data = msg.payload.get("market_data", {})
             external_data = msg.payload.get("external_data", {})
@@ -205,33 +212,93 @@ class LLMWorkerNode(BaseNode):
             if not external_data:
                 external_data = self._collect_external_data()
 
-            analysis = self.pipeline.analyze_and_store(
-                cycle_id=cycle_id,
-                market_data=market_data,
-                external_data=external_data,
-            )
+            # LLMRouter 라우팅 트리거 신호 추출
+            price_change_24h = float(
+                market_data.get("change_rate_24h")
+                or (market_data.get("current_price") or {}).get("signed_change_rate", 0.0)
+                or 0.0
+            ) * 100  # signed_change_rate 는 소수(예: -0.05 = -5%)
+            regime_switch = bool(context.get("regime_switch", False))
+            high_risk = bool(context.get("high_risk", False))
 
-            if analysis:
-                # B1: 스키마 하드게이트 — risk 경계로 넘기기 전 강제 검증
-                valid, err_msg = _validate_decision(analysis)
-                if not valid:
-                    _log_near_miss_veto(cycle_id, err_msg, analysis)
-                    logger.warning(f"B1 스키마 검증 실패 → 관망 강제: {err_msg}")
-                    hold_result = {
-                        "decision": "관망",
-                        "confidence": 0.0,
-                        "reason": f"B1 스키마 검증 실패로 관망 강제: {err_msg[:100]}",
-                        "b1_veto": True,
-                        "b1_error": err_msg,
-                    }
-                    return msg.reply(hold_result)
-                return msg.reply(analysis)
-            else:
-                return msg.reply({}, error="Gemini 분석 실패")
+            prompt = self._build_analysis_prompt(market_data, external_data, cycle_id)
+            raw_text, tier = self._llm_router.route(
+                prompt,
+                price_change_24h=price_change_24h,
+                regime_switch=regime_switch,
+                high_risk=high_risk,
+                max_tokens=1024,
+            )
+            self.logger.info(f"LLMRouter tier={tier}, cycle={cycle_id}")
+
+            analysis = self._parse_llm_response(raw_text, cycle_id, tier)
+
+            # B1: 스키마 하드게이트 — risk 경계로 넘기기 전 강제 검증
+            valid, err_msg = _validate_decision(analysis)
+            if not valid:
+                _log_near_miss_veto(cycle_id, err_msg, analysis)
+                logger.warning(f"B1 스키마 검증 실패 → 관망 강제: {err_msg}")
+                hold_result = {
+                    "decision": "관망",
+                    "confidence": 0.0,
+                    "reason": f"B1 스키마 검증 실패로 관망 강제: {err_msg[:100]}",
+                    "b1_veto": True,
+                    "b1_error": err_msg,
+                }
+                return msg.reply(hold_result)
+            return msg.reply(analysis)
 
         except Exception as e:
             self.logger.error(f"분석 처리 에러: {e}", exc_info=True)
             return msg.reply({}, error=str(e))
+
+    def _build_analysis_prompt(
+        self,
+        market_data: dict,
+        external_data: dict,
+        cycle_id: str,
+    ) -> str:
+        """LLMRouter 용 분석 프롬프트 생성."""
+        cp = market_data.get("current_price", {})
+        btc_price = cp.get("trade_price", "N/A") if isinstance(cp, dict) else cp
+        rsi = market_data.get("indicators", {}).get("rsi_14", "N/A")
+        fgi = external_data.get("fgi", {})
+        fgi_val = fgi.get("value", "N/A") if isinstance(fgi, dict) else "N/A"
+        change = cp.get("signed_change_rate", 0.0) if isinstance(cp, dict) else 0.0
+        return (
+            f"[cycle={cycle_id}] BTC 시장 분석 요청.\n"
+            f"BTC 가격: {btc_price}원, RSI: {rsi}, FGI: {fgi_val}, 24h변동: {change:.2%}\n"
+            "JSON 형식으로 decision(매수/매도/관망), confidence(0.0~1.0), "
+            "reason, market_regime 을 반환하라."
+        )
+
+    def _parse_llm_response(self, raw: str, cycle_id: str, tier: str) -> dict:
+        """LLM 텍스트 응답 → 분석 dict 파싱.
+
+        JSON 블록 추출 실패 시 관망 heuristic fallback.
+        """
+        import re
+        # JSON 블록 추출 시도
+        m = re.search(r"\{.*\}", raw, re.DOTALL)
+        if m:
+            try:
+                result = json.loads(m.group())
+                result.setdefault("cycle_id", cycle_id)
+                result.setdefault("llm_tier", tier)
+                return result
+            except json.JSONDecodeError:
+                pass
+
+        # heuristic fallback: 관망
+        logger.warning(f"LLM 응답 JSON 파싱 실패 → heuristic 관망: {raw[:100]}")
+        return {
+            "decision": "관망",
+            "confidence": 0.0,
+            "reason": f"LLM 응답 파싱 실패(heuristic fallback): {raw[:80]}",
+            "market_regime": "unknown",
+            "cycle_id": cycle_id,
+            "llm_tier": tier,
+        }
 
     def _handle_rag_query(self, msg: ZMQMessage) -> Optional[ZMQMessage]:
         """RAG 유사 검색 요청 처리"""
