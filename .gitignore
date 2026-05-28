@@ -53,3 +53,16 @@ __pycache__/
 
 # === 기타 ===
 *.sqlite
+
+# === Inv 통합 작업 (레퍼런스 클론·런타임·인프라 — 커밋 제외) ===
+_refs/
+skfolio/
+.secretary/
+.harness2/
+.harness/
+.wf-active
+*.bak-pre-*
+# 저작권 리포트 전문·임베딩·벡터DB 스토어 (§5.8-C git push 위생)
+data/reports/
+data/embeddings_store/
+data/macro_store/

@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
@@ -53,6 +54,7 @@ CORR_CAP_THRESHOLD  = float(os.environ.get("RISK_CORR_CAP", "0.7"))   # 초과 �
 CORR_HIGH_THRESHOLD = float(os.environ.get("RISK_CORR_HIGH", "0.8"))  # 이상 시 0.7x
 
 _LOG_DIR = Path(os.environ.get("PROJECT_ROOT", str(Path(__file__).resolve().parents[1]))) / "logs" / "executions"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # ── Verdict ──────────────────────────────────────────────────────────
@@ -86,7 +88,6 @@ def _log_near_miss_veto(
 ) -> None:
     """거절/축소 이벤트를 near_miss_veto.jsonl 에 기록 (llm_worker 형식 일관)."""
     try:
-        _LOG_DIR.mkdir(parents=True, exist_ok=True)
         entry = {
             "event": "near_miss_veto",
             "cycle_id": cycle_id,
@@ -180,8 +181,27 @@ class RiskGate:
 
         SACRED: 이 함수는 LLM 호출 없음. 결정론 순수 함수에 가깝게 유지.
         """
+        # 입력 정규화 + 검증 (fail-closed: 비정상 입력 = 차단)
+        action = (action or "").strip().lower()
+        if action not in ("buy", "sell", "hold"):
+            reason = f"알 수 없는 action: {action!r} — 차단"
+            _log_near_miss_veto(cycle_id, reason, raw_payload, "invalid_action")
+            return RiskVerdict(VerdictType.REJECTED, reason, triggered_rules=["invalid_action"])
+
         if action == "hold":
             return RiskVerdict(VerdictType.APPROVED, "hold — skip risk check")
+
+        if not math.isfinite(nav) or nav <= 0:
+            reason = f"비정상 NAV: {nav!r} — 차단"
+            _log_near_miss_veto(cycle_id, reason, raw_payload, "invalid_nav")
+            return RiskVerdict(VerdictType.REJECTED, reason, triggered_rules=["invalid_nav"])
+        if not all(math.isfinite(x) for x in (
+            proposed_size, position_pnl_pct, daily_loss_pct,
+            current_weight, sector_weight, avg_correlation, ytd_realized_pnl_pct,
+        )):
+            reason = "비정상 수치 입력 (NaN/inf) — 차단"
+            _log_near_miss_veto(cycle_id, reason, raw_payload, "invalid_numeric")
+            return RiskVerdict(VerdictType.REJECTED, reason, triggered_rules=["invalid_numeric"])
 
         triggered: list[str] = []
 
@@ -388,7 +408,7 @@ _RULE_PRECEDENCE: dict[str, PrecedenceLevel] = {
     "corr_multiplier":   PrecedenceLevel.PORTFOLIO_CAP,
     "max_weight_single": PrecedenceLevel.PORTFOLIO_CAP,
     "max_weight_sector": PrecedenceLevel.PORTFOLIO_CAP,
-    "max_turnover":      PrecedenceLevel.PORTFOLIO_CAP,
+    "max_turnover":      PrecedenceLevel.REBALANCE,
     "min_holding":       PrecedenceLevel.TAX_HOLDING,
     "regime_flip":       PrecedenceLevel.REBALANCE,
     "turnover_limit":    PrecedenceLevel.REBALANCE,

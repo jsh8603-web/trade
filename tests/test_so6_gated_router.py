@@ -126,8 +126,7 @@ def test_5_fault_injections_all_near_miss_veto(tmp_path, monkeypatch):
 
     assert "daily_loss_halt"  in rules, f"① 일일손실 미기록: {rules}"
     assert "corr_cap"         in rules, f"② corr 초과 미기록: {rules}"
-    assert "max_weight_single" in rules or "corr_multiplier" in rules or any("weight" in r for r in rules), \
-        f"③ max weight 미기록: {rules}"
+    assert "max_weight_single" in rules, f"③ max weight 미기록: {rules}"
     assert "kill_switch_mdd"  in rules, f"④ MDD halt 미기록: {rules}"
     assert "bypass_attempt"   in rules, f"⑤ LLM 우회 미기록: {rules}"
 

@@ -89,15 +89,17 @@ def _should_use_hrp(cov_matrix: pd.DataFrame, returns: pd.DataFrame | None = Non
 def ledoit_wolf_weights(
     returns: pd.DataFrame,
     vol_target: float = 0.15,
-) -> dict[str, float]:
+    cov: pd.DataFrame | None = None,
+) -> tuple[dict[str, float], pd.DataFrame]:
     """PyPortfolioOpt CovarianceShrinkage.ledoit_wolf() → 변동성 타깃 비중.
 
     비중 합 ≈ 1.0, non-negative (역변동성 방식, vol_target 기준 스케일링).
+    cov 가 주어지면 재계산 생략(size_portfolio 의 LW 공분산 재사용).
+    반환: (weights, cov).
     """
-    from pypfopt.risk_models import CovarianceShrinkage  # noqa: PLC0415
-
-    cs = CovarianceShrinkage(returns)
-    cov = cs.ledoit_wolf()
+    if cov is None:
+        from pypfopt.risk_models import CovarianceShrinkage  # noqa: PLC0415
+        cov = CovarianceShrinkage(returns).ledoit_wolf()
 
     # 역변동성 비중
     vols = np.sqrt(np.diag(cov.values))
@@ -110,11 +112,6 @@ def ledoit_wolf_weights(
         raw_w = {col: float(iv / total_inv) for col, iv in zip(returns.columns, inv_vols)}
 
     return _normalize_weights(raw_w), cov
-
-
-def _ledoit_wolf_weights_only(returns: pd.DataFrame, vol_target: float = 0.15):
-    w, _ = ledoit_wolf_weights(returns, vol_target)
-    return w
 
 
 # ── HRP tail-codependence 사이징 ─────────────────────────────────────
@@ -174,7 +171,7 @@ def size_portfolio(
             w = hrp_weights(returns, w_max=hrp_w_max)
             return w, "hrp"
         else:
-            w, _ = ledoit_wolf_weights(returns, vol_target)
+            w, _ = ledoit_wolf_weights(returns, vol_target, cov=cov)
             return w, "ledoit_wolf"
 
     except Exception as e:

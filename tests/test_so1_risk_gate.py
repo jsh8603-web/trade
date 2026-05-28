@@ -294,3 +294,52 @@ def test_risk_gate_no_llm_imports():
     assert "gemini" not in src.lower()
     assert "openai" not in src
     assert "llm_provider" not in src
+
+
+# ── 입력 검증 (fail-closed) ──────────────────────────────────────────
+
+def test_action_case_normalized(tmp_path, monkeypatch):
+    """대문자 action 도 정규화되어 매수 규칙이 적용된다 (대문자 우회 방지)."""
+    import core.risk_gate as rg
+    monkeypatch.setattr(rg, "_LOG_DIR", tmp_path)
+    v = RiskGate().check(action="BUY", proposed_size=1000,
+                         position_pnl_pct=-0.06, nav=100000)
+    assert v.verdict == VerdictType.REJECTED
+    assert "per_pos_soft_stop" in v.triggered_rules
+
+
+def test_invalid_action_rejected(tmp_path, monkeypatch):
+    """buy/sell/hold 외 action → fail-closed."""
+    import core.risk_gate as rg
+    monkeypatch.setattr(rg, "_LOG_DIR", tmp_path)
+    v = RiskGate().check(action="foobar", proposed_size=1000, nav=100000)
+    assert v.verdict == VerdictType.REJECTED
+    assert "invalid_action" in v.triggered_rules
+
+
+def test_zero_nav_rejected(tmp_path, monkeypatch):
+    """NAV=0 → ZeroDivision 우회 차단 (fail-closed)."""
+    import core.risk_gate as rg
+    monkeypatch.setattr(rg, "_LOG_DIR", tmp_path)
+    v = RiskGate().check(action="buy", proposed_size=1000, nav=0.0)
+    assert v.verdict == VerdictType.REJECTED
+    assert "invalid_nav" in v.triggered_rules
+
+
+def test_nan_nav_rejected(tmp_path, monkeypatch):
+    """NAV=NaN → max weight 우회 차단 (fail-closed)."""
+    import core.risk_gate as rg
+    monkeypatch.setattr(rg, "_LOG_DIR", tmp_path)
+    v = RiskGate().check(action="buy", proposed_size=1000, nav=float("nan"))
+    assert v.verdict == VerdictType.REJECTED
+    assert "invalid_nav" in v.triggered_rules
+
+
+def test_nan_numeric_rejected(tmp_path, monkeypatch):
+    """NaN 수치 입력 → stop 우회 차단 (fail-closed)."""
+    import core.risk_gate as rg
+    monkeypatch.setattr(rg, "_LOG_DIR", tmp_path)
+    v = RiskGate().check(action="buy", proposed_size=1000, nav=100000,
+                         position_pnl_pct=float("nan"))
+    assert v.verdict == VerdictType.REJECTED
+    assert "invalid_numeric" in v.triggered_rules
