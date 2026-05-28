@@ -237,9 +237,11 @@ class ClaudeProvider(LLMProvider):
 
         token = self._get_token()
         # OAuth token → Authorization: Bearer (anthropic SDK 는 x-api-key 로 덮어써서 직접 HTTP 사용)
+        # B3 결정성: temperature payload 실주입 — 미주입 시 Anthropic 기본 1.0(비결정) → RouteResult 기록과 불일치
         payload = {
             "model": self._model,
             "max_tokens": kwargs.get("max_tokens", 1024),
+            "temperature": float(kwargs.get("temperature", LLM_TEMPERATURE)),
             "messages": [{"role": "user", "content": prompt}],
         }
         data = json.dumps(payload).encode("utf-8")
@@ -391,6 +393,9 @@ class LLMRouter:
             logger.warning("C2 cap degrade: %s", reason)
             return self._degrade_result(prompt, "cap", kwargs, intended_tier=tier)
         temperature = float(kwargs.get("temperature", LLM_TEMPERATURE))
+        # B3 결정성: temperature 를 kwargs 에 명시 보장 → provider.generate 에 실제 전달
+        # (Claude payload 실주입 + Ollama options temperature 일관 적용)
+        kwargs = {**kwargs, "temperature": temperature}
 
         # B3: prompt_hash
         prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()
