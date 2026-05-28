@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-PROJECT_ROOT = Path("D:/projects/Inv")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 # ---------------------------------------------------------------------------
@@ -50,6 +50,7 @@ def _load_b1_helpers():
         "datetime": _dt,
         "timezone": _tz,
         "timedelta": _td,
+        "KST": _tz(_td(hours=9)),
         "_SCHEMA_PATH": schema_path,
         "_DECISION_SCHEMA": None,
         "_SCHEMA_LOAD_ERROR": None,

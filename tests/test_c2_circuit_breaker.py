@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-PROJECT_ROOT = Path("D:/projects/Inv")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 # ---------------------------------------------------------------------------
@@ -49,6 +49,7 @@ def _load_c2_helpers(tmp_path: Path):
         "datetime": _dt,
         "timezone": _tz,
         "timedelta": _td,
+        "KST": _tz(_td(hours=9)),
     }
 
     # C2 메서드 추출 대상

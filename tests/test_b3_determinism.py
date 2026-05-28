@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-PROJECT_ROOT = Path("D:/projects/Inv")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 # ---------------------------------------------------------------------------

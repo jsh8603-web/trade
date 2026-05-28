@@ -13,6 +13,7 @@
   7. 매매 실행 + DB 기록 + 알림
 """
 
+import hashlib
 import json
 import logging
 import os
@@ -20,7 +21,12 @@ import subprocess
 from scripts.hide_console import subprocess_kwargs
 import sys
 import time
+import uuid
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from typing import Optional
+from urllib.parse import urlencode
+import requests
 
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -29,6 +35,8 @@ from rl_hybrid.config import config
 from rl_hybrid.rl.state_encoder import StateEncoder
 from rl_hybrid.rl.decision_blender import DecisionBlender
 from scripts.execute_trade import make_auth_header as _make_auth_header
+
+KST = timezone(timedelta(hours=9))
 
 logger = logging.getLogger("rl.live_trader")
 
@@ -294,15 +302,12 @@ class LiveTrader:
         ask(매도) 주문의 locked volume 만 합산하여 보유 BTC에 더한다.
         """
         try:
-            import requests as _req
-            from urllib.parse import urlencode as _urlencode
-
             if not os.environ.get("UPBIT_ACCESS_KEY") or not os.environ.get("UPBIT_SECRET_KEY"):
                 return 0.0
 
-            qs = _urlencode({"market": market, "state": "wait"})
+            qs = urlencode({"market": market, "state": "wait"})
             headers = _make_auth_header(qs)
-            r = _req.get(
+            r = requests.get(
                 "https://api.upbit.com/v1/orders",
                 params={"market": market, "state": "wait"},
                 headers=headers,
@@ -336,8 +341,7 @@ class LiveTrader:
         if not url or not key:
             return self._DB_QUERY_ERROR
         try:
-            import requests as _req
-            r = _req.get(
+            r = requests.get(
                 f"{url}/rest/v1/portfolio_snapshots",
                 params={"order": "created_at.desc", "limit": "1"},
                 headers={"apikey": key, "Authorization": f"Bearer {key}"},
@@ -442,14 +446,11 @@ class LiveTrader:
 
     def _log_execution(self, entry: dict):
         """execution_logs 파일에 이벤트 기록."""
-        import json as _json
-        from pathlib import Path as _Path
-        from datetime import datetime as _dt, timezone as _tz, timedelta as _td
-        log_dir = _Path(self.project_root) / "logs" / "executions"
+        log_dir = Path(self.project_root) / "logs" / "executions"
         log_dir.mkdir(parents=True, exist_ok=True)
-        entry.setdefault("timestamp", _dt.now(_tz((_td(hours=9)))).isoformat())
+        entry.setdefault("timestamp", datetime.now(KST).isoformat())
         with (log_dir / "live_trader_events.jsonl").open("a", encoding="utf-8") as f:
-            f.write(_json.dumps(entry, ensure_ascii=False) + "\n")
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
     def _notify_telegram_sync(self, message: str):
         """동기 텔레그램 알림 (subprocess, 에러 무시)."""

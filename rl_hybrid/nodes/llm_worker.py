@@ -12,6 +12,7 @@ import logging
 import os
 import sys
 import time
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -25,6 +26,8 @@ from rl_hybrid.protocol import (
     ZMQMessage, Action, make_heartbeat,
 )
 from rl_hybrid.rag.rag_pipeline import RAGPipeline
+
+KST = timezone(timedelta(hours=9))
 
 logger = logging.getLogger("node.llm_worker")
 
@@ -69,7 +72,6 @@ def _validate_decision(analysis: dict) -> tuple[bool, str]:
 
 def _log_near_miss_veto(cycle_id: str, reason: str, raw: object):
     """B1 검증 실패 이벤트를 near_miss_veto.jsonl 에 기록."""
-    from datetime import datetime, timezone, timedelta
     log_dir = _SCHEMA_PATH.parent.parent.parent / "logs" / "executions"
     log_dir.mkdir(parents=True, exist_ok=True)
     entry = {
@@ -77,7 +79,7 @@ def _log_near_miss_veto(cycle_id: str, reason: str, raw: object):
         "cycle_id": cycle_id,
         "reason": reason,
         "raw_snippet": str(raw)[:300],
-        "timestamp": datetime.now(timezone(timedelta(hours=9))).isoformat(),
+        "timestamp": datetime.now(KST).isoformat(),
     }
     with (log_dir / "near_miss_veto.jsonl").open("a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")

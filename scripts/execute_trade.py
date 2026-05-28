@@ -602,7 +602,7 @@ def execute(side: str, market: str, amount: str):
             "identifier": identifier,
             "timestamp": ts,
             "_exec_started": exec_started.isoformat() if 'exec_started' in locals() else None,
-            "_exec_completed": exec_completed.isoformat(),
+            "_exec_completed": exec_completed.isoformat() if 'exec_completed' in locals() else None,
             "_latency_ms": None,
         }
     except ValueError as e:

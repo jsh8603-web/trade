@@ -18,6 +18,8 @@ import google.generativeai as genai
 from rl_hybrid.config import config
 from rl_hybrid.rag.prompts import MARKET_ANALYSIS_PROMPT, EMBEDDING_TEXT_TEMPLATE
 
+KST = timezone(timedelta(hours=9))
+
 logger = logging.getLogger("rag.gemini")
 
 
@@ -44,7 +46,7 @@ class GeminiClient:
         self._load_daily_counter()
 
     def _kst_today(self) -> str:
-        return datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d")
+        return datetime.now(KST).strftime("%Y-%m-%d")
 
     def _load_daily_counter(self):
         today = self._kst_today()
