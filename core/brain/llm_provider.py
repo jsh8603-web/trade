@@ -9,7 +9,8 @@ LLMRouter: 평상시=quick(Qwen), 트리거 조건=deep(Claude).
   트리거: 급락(price_change_24h <= -5%), 레짐전환(regime_switch=True), 고위험 신호.
 
 C2 서킷브레이커 (Phase 2.5):
-  - 일일 호출 캡(LLM_DAILY_CAP, 기본 24) — KST 날짜 기준, data/llm_daily_counter.json 영속
+  - 일일 호출 캡(LLM_DAILY_CAP, 기본 9999=비활성) — 실운용 시 .env 에 LLM_DAILY_CAP=24 설정 필수.
+    KST 날짜 기준, data/llm_daily_counter.json 영속
   - 지연 예산(LLM_LATENCY_BUDGET, 기본 30s) — 초과 시 degrade
   - provider 예외 catch → degrade(reason 태깅)
   - degrade 사유: cap/latency/error(resource) vs quality(품질붕괴)
