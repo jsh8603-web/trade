@@ -8,17 +8,30 @@
 LLMRouter: 평상시=quick(Qwen), 트리거 조건=deep(Claude).
   트리거: 급락(price_change_24h <= -5%), 레짐전환(regime_switch=True), 고위험 신호.
 
+C2 서킷브레이커 (Phase 2.5):
+  - 일일 호출 캡(LLM_DAILY_CAP, 기본 24) — KST 날짜 기준, data/llm_daily_counter.json 영속
+  - 지연 예산(LLM_LATENCY_BUDGET, 기본 30s) — 초과 시 degrade
+  - provider 예외 catch → degrade(reason 태깅)
+  - degrade 사유: cap/latency/error(resource) vs quality(품질붕괴)
+  - 풀 reserve/retry/3버킷 = Phase 6
+
+B3 결정성 (Phase 2.5):
+  - model_id·prompt_hash·temperature RouteResult 채움
+  - route_with_meta() 신설, route() = 위임 (2-tuple 계약 보존)
+
 SACRED: DRY_RUN 기본값·coin 라이브 경로 미변경. API key(sk-ant-api) 사용 금지.
-reuse: TradingAgents llm 호출 패턴 참조.
+reuse: TradingAgents llm 호출 패턴 · gemini_client.py:40-176 C2 원본 패턴.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
 import time
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +44,17 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3-coder-fast")
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-4-7")
 GEMINI_MODEL = os.environ.get("GEMINI_ANALYSIS_MODEL", "gemini-2.5-flash")
 
+# C2 서킷브레이커 설정 (gemini_client.py config 패턴 동일)
+LLM_DAILY_CAP      = int(os.environ.get("LLM_DAILY_CAP", "24"))
+LLM_LATENCY_BUDGET = float(os.environ.get("LLM_LATENCY_BUDGET", "30.0"))
+LLM_TEMPERATURE    = float(os.environ.get("LLM_TEMPERATURE", "0.0"))
+
 _CREDENTIALS_PATH = Path(os.path.expanduser("~/.claude/.credentials.json"))
+
+# C2 카운터 파일 (gemini_client.py:41-43 패턴, 별도 파일로 분리)
+_LLM_COUNTER_FILE = Path(
+    os.environ.get("PROJECT_ROOT", str(Path(__file__).resolve().parents[2]))
+) / "data" / "llm_daily_counter.json"
 
 
 def _load_oauth_token() -> str:
@@ -50,6 +73,65 @@ def _load_oauth_token() -> str:
         return token
     except FileNotFoundError:
         raise FileNotFoundError(f"credentials 파일 없음: {_CREDENTIALS_PATH}")
+
+
+# ── RouteResult (B3 결정성 + C2 메타) ───────────────────────────────
+
+@dataclass
+class RouteResult:
+    """route_with_meta() 반환값 — B3 결정성 + C2 degrade 정보."""
+    text: str
+    tier: str
+    model_id: str = ""
+    prompt_hash: str = ""
+    temperature: float = LLM_TEMPERATURE
+    degraded: bool = False
+    degrade_reason: str = ""   # cap | latency | error | quality
+
+
+# ── C2 카운터 유틸 (gemini_client.py:48-91 패턴 이식) ───────────────
+
+def _kst_today() -> str:
+    from datetime import datetime, timezone, timedelta  # noqa: PLC0415
+    KST = timezone(timedelta(hours=9))
+    return datetime.now(KST).strftime("%Y-%m-%d")
+
+
+def _load_c2_counter(counter_file: Path) -> tuple[str, int]:
+    """(today_str, count) 반환."""
+    today = _kst_today()
+    try:
+        if counter_file.exists():
+            data = json.loads(counter_file.read_text(encoding="utf-8"))
+            if data.get("date") == today:
+                return today, int(data.get("count", 0))
+    except Exception:
+        pass
+    return today, 0
+
+
+def _save_c2_counter(counter_file: Path, today: str, count: int) -> None:
+    try:
+        counter_file.parent.mkdir(parents=True, exist_ok=True)
+        tmp = counter_file.with_suffix(".tmp")
+        tmp.write_text(
+            json.dumps({"date": today, "count": count}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        import os as _os  # noqa: PLC0415
+        _os.replace(str(tmp), str(counter_file))
+    except Exception as e:
+        logger.debug("C2 카운터 저장 실패: %s", e)
+
+
+def _increment_c2_counter(counter_file: Path, today: str, count: int) -> tuple[str, int]:
+    """날짜 체크 후 카운터 +1 저장, (new_today, new_count) 반환."""
+    now_today = _kst_today()
+    if now_today != today:
+        today, count = now_today, 0
+    count += 1
+    _save_c2_counter(counter_file, today, count)
+    return today, count
 
 
 # ── ABC ──────────────────────────────────────────────────────────────
@@ -206,9 +288,17 @@ class LLMRouter:
         self,
         quick: LLMProvider | None = None,
         deep: LLMProvider | None = None,
+        daily_cap: int = LLM_DAILY_CAP,
+        latency_budget: float = LLM_LATENCY_BUDGET,
+        counter_file: Path | None = None,
     ) -> None:
         self._quick: LLMProvider = quick or OllamaQwenProvider()
         self._deep: LLMProvider = deep or ClaudeProvider()
+        self._daily_cap = daily_cap
+        self._latency_budget = latency_budget
+        self._counter_file: Path = counter_file or _LLM_COUNTER_FILE
+        # C2 카운터 초기화 (gemini_client.py:44-46 패턴)
+        self._c2_today, self._c2_count = _load_c2_counter(self._counter_file)
 
     def _is_triggered(
         self,
@@ -233,15 +323,129 @@ class LLMRouter:
         high_risk: bool = False,
         **kwargs: Any,
     ) -> tuple[str, str]:
-        """(응답 텍스트, 사용된 tier) 반환."""
+        """(응답 텍스트, 사용된 tier) 반환 — 2-tuple 계약 보존(기존 호출자 무수정).
+
+        내부적으로 route_with_meta() 에 위임한다.
+        """
+        result = self.route_with_meta(
+            prompt,
+            price_change_24h=price_change_24h,
+            regime_switch=regime_switch,
+            high_risk=high_risk,
+            **kwargs,
+        )
+        return result.text, result.tier
+
+    def route_with_meta(
+        self,
+        prompt: str,
+        *,
+        price_change_24h: float = 0.0,
+        regime_switch: bool = False,
+        high_risk: bool = False,
+        **kwargs: Any,
+    ) -> RouteResult:
+        """C2 + B3 풀 RouteResult 반환.
+
+        C2: 캡 초과 → degrade(reason=cap) / 지연 초과 → degrade(reason=latency) /
+            예외 → degrade(reason=error|quality).
+        B3: prompt_hash·model_id·temperature 채움.
+        """
+        # C2: 날짜 갱신 체크
+        now_today = _kst_today()
+        if now_today != self._c2_today:
+            self._c2_today, self._c2_count = _load_c2_counter(self._counter_file)
+
+        # C2 ①: 캡 초과 → degrade (resource)
+        if self._c2_count >= self._daily_cap:
+            reason = f"일일 호출 캡 초과({self._c2_count}/{self._daily_cap})"
+            logger.warning("C2 cap degrade: %s", reason)
+            return self._degrade_result(prompt, "cap", kwargs)
+
+        # 라우팅 결정
         triggered = self._is_triggered(price_change_24h, regime_switch, high_risk)
         provider = self._deep if triggered else self._quick
         tier = provider.tier
+        temperature = float(kwargs.get("temperature", LLM_TEMPERATURE))
+
+        # B3: prompt_hash
+        prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()
+
         logger.debug("LLMRouter: tier=%s triggered=%s", tier, triggered)
-        response = provider.generate(prompt, **kwargs)
-        return response, tier
+
+        # C2 ②: 지연 예산 측정 + 예외 catch
+        _call_start = time.time()
+        try:
+            response = provider.generate(prompt, **kwargs)
+        except Exception as exc:
+            reason = str(exc)[:120]
+            # 모순1 최소훅: 429/timeout → resource, 나머지 → quality
+            degrade_type = "error"
+            if "429" in reason or "timeout" in reason.lower() or "connection" in reason.lower():
+                degrade_type = "error"  # resource계열, 추후 Phase6 retry
+            else:
+                degrade_type = "quality"
+            logger.warning("C2 provider exception → degrade(%s): %s", degrade_type, reason)
+            return self._degrade_result(prompt, degrade_type, kwargs, prompt_hash=prompt_hash, model_id=getattr(provider, "model_id", tier), temperature=temperature)
+
+        _latency = time.time() - _call_start
+
+        # C2 ③: 지연 초과 → degrade (resource)
+        if _latency > self._latency_budget:
+            logger.warning("C2 latency degrade: %.1fs > %.1fs", _latency, self._latency_budget)
+            self._c2_today, self._c2_count = _increment_c2_counter(self._counter_file, self._c2_today, self._c2_count)
+            return self._degrade_result(prompt, "latency", kwargs, prompt_hash=prompt_hash, model_id=getattr(provider, "model_id", tier), temperature=temperature)
+
+        # 정상 → 카운터 +1
+        self._c2_today, self._c2_count = _increment_c2_counter(self._counter_file, self._c2_today, self._c2_count)
+
+        return RouteResult(
+            text=response,
+            tier=tier,
+            model_id=getattr(provider, "model_id", tier),
+            prompt_hash=prompt_hash,
+            temperature=temperature,
+            degraded=False,
+            degrade_reason="",
+        )
+
+    def _degrade_result(
+        self,
+        prompt: str,
+        reason: str,
+        kwargs: dict[str, Any],
+        prompt_hash: str = "",
+        model_id: str = "degraded",
+        temperature: float = LLM_TEMPERATURE,
+    ) -> RouteResult:
+        """H14: 매수 degrade = abstain(hold) 보수 — hold 의미 JSON 반환."""
+        if not prompt_hash:
+            prompt_hash = hashlib.sha256(prompt.encode()).hexdigest()
+        hold_text = json.dumps({
+            "decision": "관망",
+            "confidence": 0.0,
+            "reason": f"C2 서킷브레이커 발동: {reason}",
+            "market_regime": "unknown",
+            "_c2_degraded": True,
+            "_c2_reason": reason,
+        }, ensure_ascii=False)
+        return RouteResult(
+            text=hold_text,
+            tier="degraded",
+            model_id=model_id,
+            prompt_hash=prompt_hash,
+            temperature=temperature,
+            degraded=True,
+            degrade_reason=reason,
+        )
 
     def generate(self, prompt: str, **kwargs: Any) -> str:
         """tier 무관 단순 응답 반환 (기본=quick)."""
-        response, _ = self.route(prompt, **kwargs)
-        return response
+        return self.route_with_meta(prompt, **kwargs).text
+
+    def get_daily_call_count(self) -> int:
+        """C2 일일 호출 카운트 반환 (모니터링용)."""
+        now_today = _kst_today()
+        if now_today != self._c2_today:
+            self._c2_today, self._c2_count = _load_c2_counter(self._counter_file)
+        return self._c2_count
