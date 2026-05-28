@@ -37,6 +37,9 @@ class GeminiConfig:
     rpm_limit: int = 10  # requests per minute
     # B3: 결정성 — temperature=0 으로 동일 입력 → 동일 출력 보장
     temperature: float = float(os.getenv("GEMINI_TEMPERATURE", "0"))
+    # C2: 서킷브레이커 — 일일 LLM 호출 캡 + 지연 예산
+    daily_call_cap: int = int(os.getenv("GEMINI_DAILY_CAP", "24"))
+    latency_budget_seconds: float = float(os.getenv("GEMINI_LATENCY_BUDGET", "30"))
 
 
 @dataclass

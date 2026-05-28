@@ -7,7 +7,10 @@ gemini-embedding-001로 분석 결과를 3072차원 벡터로 변환한다.
 import hashlib
 import json
 import logging
+import os
 import time
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from typing import Optional
 
 import google.generativeai as genai
@@ -31,6 +34,73 @@ class GeminiClient:
 
         # Rate limiting
         self._request_times: list[float] = []
+
+        # C2: 일일 LLM 호출 카운터 (KST 날짜 기준, 프로세스 재시작 시 파일 기반 복구)
+        self._daily_counter_file = Path(
+            os.environ.get("PROJECT_ROOT", str(Path(__file__).resolve().parent.parent.parent))
+        ) / "data" / "gemini_daily_counter.json"
+        self._c2_today: str = ""
+        self._c2_count: int = 0
+        self._load_daily_counter()
+
+    def _kst_today(self) -> str:
+        return datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d")
+
+    def _load_daily_counter(self):
+        today = self._kst_today()
+        try:
+            if self._daily_counter_file.exists():
+                data = json.loads(self._daily_counter_file.read_text(encoding="utf-8"))
+                if data.get("date") == today:
+                    self._c2_today = today
+                    self._c2_count = int(data.get("count", 0))
+                    return
+        except Exception:
+            pass
+        self._c2_today = today
+        self._c2_count = 0
+
+    def _save_daily_counter(self):
+        try:
+            self._daily_counter_file.parent.mkdir(parents=True, exist_ok=True)
+            self._daily_counter_file.write_text(
+                json.dumps({"date": self._c2_today, "count": self._c2_count}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+        except Exception as e:
+            logger.debug(f"C2 카운터 저장 실패: {e}")
+
+    def _increment_daily_counter(self):
+        today = self._kst_today()
+        if self._c2_today != today:
+            self._c2_today = today
+            self._c2_count = 0
+        self._c2_count += 1
+        self._save_daily_counter()
+
+    def get_daily_call_count(self) -> int:
+        """텔레그램 일일 요약용 LLM 호출 카운트 반환."""
+        today = self._kst_today()
+        if self._c2_today != today:
+            self._load_daily_counter()
+        return self._c2_count
+
+    def _heuristic_fallback(self, market_data: dict, reason: str) -> dict:
+        """C2 degrade — LLM 대신 단순 휴리스틱으로 관망 반환.
+
+        H14: 매수 degrade 시 abstain(보수) 원칙에 따라 관망.
+        """
+        logger.warning(f"C2 서킷브레이커 발동 → 휴리스틱 폴백: {reason}")
+        return {
+            "market_regime": "unknown",
+            "confidence": 0.0,
+            "key_signals": [],
+            "risk_assessment": "circuit_breaker",
+            "recommended_action": "hold",
+            "reasoning": f"C2 서킷브레이커 발동: {reason}",
+            "_c2_degraded": True,
+            "_c2_reason": reason,
+        }
 
     def _rate_limit(self):
         """RPM 제한 준수"""
@@ -63,6 +133,15 @@ class GeminiClient:
                 "opportunity_score_adjustment": int,
             }
         """
+        # C2: 일일 호출 캡 초과 시 휴리스틱 폴백
+        today = self._kst_today()
+        if self._c2_today != today:
+            self._load_daily_counter()
+        if self._c2_count >= self.cfg.daily_call_cap:
+            return self._heuristic_fallback(
+                market_data, f"일일 호출 캡 초과({self._c2_count}/{self.cfg.daily_call_cap})"
+            )
+
         self._rate_limit()
 
         prompt = MARKET_ANALYSIS_PROMPT.format(
@@ -73,6 +152,8 @@ class GeminiClient:
 
         for attempt in range(self.cfg.max_retries):
             try:
+                # C2: 지연 예산 초과 시 휴리스틱 직행
+                _call_start = time.time()
                 response = self.analysis_model.generate_content(
                     prompt,
                     generation_config=genai.types.GenerationConfig(
@@ -81,6 +162,13 @@ class GeminiClient:
                         response_mime_type="application/json",
                     ),
                 )
+                _latency = time.time() - _call_start
+                if _latency > self.cfg.latency_budget_seconds:
+                    logger.warning(f"C2: 지연 예산 초과 ({_latency:.1f}s > {self.cfg.latency_budget_seconds}s)")
+                    self._increment_daily_counter()
+                    return self._heuristic_fallback(
+                        market_data, f"지연 예산 초과({_latency:.1f}s)"
+                    )
 
                 text = response.text.strip()
                 # JSON 블록 추출 (```json ... ``` 감싸기 대응)
@@ -94,6 +182,8 @@ class GeminiClient:
                 result["_model_id"] = self.cfg.analysis_model
                 result["_prompt_hash"] = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:16]
                 result["_temperature"] = self.cfg.temperature
+                # C2: 성공 호출 카운트
+                self._increment_daily_counter()
                 logger.info(
                     f"Gemini 분석 완료: regime={result.get('market_regime')}, "
                     f"action={result.get('recommended_action')}, "
