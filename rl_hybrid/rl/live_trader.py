@@ -126,6 +126,15 @@ class LiveTrader:
                 result["errors"].append("데이터 수집 실패")
                 return result
 
+            # R2: 잔고 reconciliation — drift 감지 시 halt
+            drift_result = self._check_portfolio_drift(portfolio)
+            result["drift_check"] = drift_result
+            if drift_result.get("halt"):
+                result["errors"].append(f"R2 drift halt: {drift_result.get('reason')}")
+                self._log_execution({"event": "r2_drift_halt", **drift_result})
+                logger.warning(f"R2 drift halt — 매매 중단: {drift_result.get('reason')}")
+                return result
+
             # Phase 2: 에이전트 파이프라인 (기존 Orchestrator)
             agent_result = self._run_agent_pipeline(market_data, portfolio)
             result["agent_result"] = agent_result
@@ -273,6 +282,171 @@ class LiveTrader:
             logger.debug(f"LLM 분석 스킵: {e}")
             return None
 
+    # ------------------------------------------------------------------
+    # R2 Reconciliation helpers
+    # ------------------------------------------------------------------
+
+    def _get_open_orders_locked(self, market: str = "KRW-BTC") -> float:
+        """미체결(wait) 주문의 locked BTC 잔량 합산 (거래소 측 가짜 drift 방지).
+
+        bid 주문의 locked KRW는 잔고 측에서 이미 차감되어 있으므로 무시.
+        ask(매도) 주문의 locked volume 만 합산하여 보유 BTC에 더한다.
+        """
+        try:
+            import requests as _req
+            import hashlib as _hash
+            import jwt as _jwt
+            import uuid as _uuid
+            from urllib.parse import urlencode as _urlencode
+
+            access_key = os.environ.get("UPBIT_ACCESS_KEY", "")
+            secret_key = os.environ.get("UPBIT_SECRET_KEY", "")
+            if not access_key or not secret_key:
+                return 0.0
+
+            qs = _urlencode({"market": market, "state": "wait"})
+            payload = {
+                "access_key": access_key,
+                "nonce": str(_uuid.uuid4()),
+                "query_hash": _hash.sha512(qs.encode()).hexdigest(),
+                "query_hash_alg": "SHA512",
+            }
+            token = _jwt.encode(payload, secret_key, algorithm="HS256")
+            headers = {"Authorization": f"Bearer {token}"}
+            r = _req.get(
+                "https://api.upbit.com/v1/orders",
+                params={"market": market, "state": "wait"},
+                headers=headers,
+                timeout=10,
+            )
+            if not r.ok:
+                return 0.0
+            locked = sum(
+                float(o.get("remaining_volume") or 0)
+                for o in r.json()
+                if o.get("side") == "ask"
+            )
+            return locked
+        except Exception as e:
+            logger.debug(f"open_orders locked 조회 실패: {e}")
+            return 0.0
+
+    def _get_db_portfolio_snapshot(self) -> Optional[dict]:
+        """Supabase portfolio_snapshots 에서 최신 스냅샷 반환."""
+        try:
+            url = os.environ.get("SUPABASE_URL", "")
+            key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+            if not url or not key:
+                return None
+            import requests as _req
+            r = _req.get(
+                f"{url}/rest/v1/portfolio_snapshots",
+                params={"order": "created_at.desc", "limit": "1"},
+                headers={"apikey": key, "Authorization": f"Bearer {key}"},
+                timeout=10,
+            )
+            if r.ok:
+                rows = r.json()
+                return rows[0] if rows else None
+        except Exception as e:
+            logger.debug(f"DB 스냅샷 조회 실패: {e}")
+        return None
+
+    def _check_portfolio_drift(
+        self,
+        live_portfolio: dict,
+        drift_threshold: float = None,
+    ) -> dict:
+        """거래소 잔고(live)와 DB 스냅샷을 비교하여 drift 감지.
+
+        - open-orders locked 잔량을 거래소 측에 합산(가짜 drift 방지).
+        - fee-net day-1 허용: 임계 미만 drift 는 pass.
+        - 자동 write-off/보정 금지 — halt + log 만.
+        """
+        if drift_threshold is None:
+            drift_threshold = float(os.environ.get("R2_DRIFT_THRESHOLD", "0.05"))
+
+        db_snap = self._get_db_portfolio_snapshot()
+        if db_snap is None:
+            # DB 없으면 검사 생략 (첫 실행 등)
+            return {"halt": False, "reason": "no_db_snapshot", "skipped": True}
+
+        # 거래소 BTC 잔고 + locked 합산
+        live_btc = 0.0
+        for h in live_portfolio.get("holdings", []):
+            if h.get("currency") == "BTC":
+                live_btc = float(h.get("balance", 0))
+                break
+        locked_btc = self._get_open_orders_locked("KRW-BTC")
+        exchange_btc = live_btc + locked_btc
+
+        db_btc = float(db_snap.get("btc_balance") or db_snap.get("coin_balance") or 0)
+
+        # KRW drift
+        live_krw = float(live_portfolio.get("krw_balance", 0))
+        db_krw = float(db_snap.get("krw_balance") or 0)
+
+        btc_drift = abs(exchange_btc - db_btc) / max(db_btc, 1e-8) if db_btc else 0.0
+        krw_drift = abs(live_krw - db_krw) / max(db_krw, 1) if db_krw else 0.0
+
+        drift_info = {
+            "halt": False,
+            "exchange_btc": exchange_btc,
+            "db_btc": db_btc,
+            "btc_drift_pct": round(btc_drift * 100, 4),
+            "live_krw": live_krw,
+            "db_krw": db_krw,
+            "krw_drift_pct": round(krw_drift * 100, 4),
+            "locked_btc": locked_btc,
+            "threshold_pct": round(drift_threshold * 100, 2),
+        }
+
+        if btc_drift > drift_threshold or krw_drift > drift_threshold:
+            drift_info["halt"] = True
+            drift_info["reason"] = (
+                f"BTC drift {drift_info['btc_drift_pct']:.2f}% "
+                f"KRW drift {drift_info['krw_drift_pct']:.2f}% "
+                f"> threshold {drift_threshold*100:.1f}%"
+            )
+
+        return drift_info
+
+    def _clamp_to_balance(self, volume: float, market: str = "KRW-BTC") -> float:
+        """실제 보유 잔량을 초과하는 매도 수량을 실잔량으로 클램프.
+
+        미체결 ask locked 를 제외한 가용 잔량 기준.
+        """
+        try:
+            portfolio = self._run_script("scripts/get_portfolio.py")
+            if not portfolio:
+                return volume
+            avail_btc = 0.0
+            for h in portfolio.get("holdings", []):
+                if h.get("currency") == "BTC":
+                    avail_btc = float(h.get("balance", 0))
+                    break
+            locked = self._get_open_orders_locked(market)
+            usable = max(avail_btc - locked, 0.0)
+            if volume > usable:
+                logger.warning(
+                    f"_clamp_to_balance: {volume:.8f} > usable {usable:.8f}, clamp to {usable:.8f}"
+                )
+                return usable
+        except Exception as e:
+            logger.debug(f"_clamp_to_balance 실패: {e}")
+        return volume
+
+    def _log_execution(self, entry: dict):
+        """execution_logs 파일에 이벤트 기록."""
+        import json as _json
+        from pathlib import Path as _Path
+        from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+        log_dir = _Path(self.project_root) / "logs" / "executions"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        entry.setdefault("timestamp", _dt.now(_tz((_td(hours=9)))).isoformat())
+        with (log_dir / "live_trader_events.jsonl").open("a", encoding="utf-8") as f:
+            f.write(_json.dumps(entry, ensure_ascii=False) + "\n")
+
     def _execute_trade(self, blended) -> Optional[dict]:
         """매매 실행"""
         params = blended.trade_params
@@ -290,8 +464,16 @@ class LiveTrader:
 
             if side == "bid" and params.get("amount"):
                 cmd.extend(["--amount", str(params["amount"])])
-            elif side == "ask" and params.get("sell_ratio"):
-                cmd.extend(["--ratio", str(params["sell_ratio"])])
+            elif side == "ask":
+                if params.get("volume"):
+                    # R2: 실잔량 초과 매도 방지
+                    clamped = self._clamp_to_balance(
+                        float(params["volume"]),
+                        params.get("market", "KRW-BTC"),
+                    )
+                    cmd.extend(["--volume", str(clamped)])
+                elif params.get("sell_ratio"):
+                    cmd.extend(["--ratio", str(params["sell_ratio"])])
 
             proc = subprocess.run(
                 cmd, capture_output=True, text=True, timeout=30,
