@@ -446,3 +446,61 @@ def resolve_precedence(
 
     # 전부 approved
     return RiskVerdict(VerdictType.APPROVED, "precedence: all approved")
+
+
+# ── SO-6: 우회불가 백스톱 + 프로세스 격리 ────────────────────────────
+
+class GatedOrderRouter:
+    """nautilus engine.pyx:492 _deny_order_list 패턴 — 우회불가 최종 관문.
+
+    모든 거래가 risk_gate.check() 를 반드시 경유하도록 강제.
+    LLM/실행 프로세스는 이 wrapper 를 통해서만 주문 접근 가능.
+
+    SACRED:
+      - LLM 이 직접 execute 호출하는 경로 차단 (결정론 격리)
+      - B1 하드게이트(Phase -1 SO-3)와 경계 분리 유지
+    """
+
+    def __init__(
+        self,
+        gate: RiskGate | None = None,
+        kill_switch: KillSwitch | None = None,
+    ) -> None:
+        self._gate = gate or RiskGate()
+        self._ks = kill_switch or KillSwitch()
+        self._bypassed_attempts: int = 0
+
+    def submit(
+        self,
+        order: dict[str, Any],
+        *,
+        cycle_id: str = "",
+        via_gate: bool = False,  # 반드시 True 로 호출해야 함
+        **gate_kwargs: Any,
+    ) -> RiskVerdict:
+        """주문 제출 — risk_gate.check() 경유 강제.
+
+        via_gate=False (우회 시도) → 즉시 REJECTED + near_miss_veto.
+        via_gate=True → RiskGate.check() 실행 후 verdict 반환.
+        """
+        if not via_gate:
+            self._bypassed_attempts += 1
+            reason = f"우회 시도 차단: risk_gate 미경유 주문 (총 {self._bypassed_attempts}회)"
+            _log_near_miss_veto(cycle_id, reason, order, "bypass_attempt")
+            logger.warning("GatedOrderRouter: %s", reason)
+            return RiskVerdict(
+                VerdictType.REJECTED,
+                reason,
+                triggered_rules=["bypass_attempt"],
+            )
+
+        is_halted = self._ks.is_halted
+        return self._gate.check(
+            cycle_id=cycle_id,
+            is_halted=is_halted,
+            **gate_kwargs,
+        )
+
+    @property
+    def bypassed_attempts(self) -> int:
+        return self._bypassed_attempts
