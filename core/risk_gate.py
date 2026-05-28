@@ -1,4 +1,4 @@
-"""core/risk_gate.py — 공통 리스크 게이트 (Phase 2 SO-1~2 hard rule + 상관캡).
+"""core/risk_gate.py — 공통 리스크 게이트 (Phase 2 SO-1~3 hard rule + 상관캡 + kill switch).
 
 우회불가 백스톱 — 전 트랙(coin·stock) 거래의 최종 안전 게이트.
 consensus/LLM 과 무관하게 항상-on. 결정론(LLM import 0).
@@ -267,3 +267,100 @@ class RiskGate:
             )
 
         return RiskVerdict(VerdictType.APPROVED, "all rules passed", adjusted_size=proposed_size)
+
+
+# ── SO-3: KillSwitch (MDD, H27) ──────────────────────────────────────
+
+class KillSwitchState(str, Enum):
+    ACTIVE          = "active"           # 정상 운용
+    HALTED          = "halted"           # MDD 초과 → 신규 진입 차단, 청산 보류
+    CONFIRM_PENDING = "confirm_pending"  # 청산 컨펌 대기 중
+    # 해제: MDD 회복 → ACTIVE 복귀
+
+
+MDD_THRESHOLD = float(os.environ.get("RISK_MDD_THRESHOLD", "-0.15"))  # -15%
+
+
+class KillSwitch:
+    """MDD 기반 kill switch — H27 보완.
+
+    SACRED:
+      - 자동 전량청산 금지 (⛔ auto liquidation)
+      - 청산은 confirm() 호출 후에만 진행
+      - 수동 EMERGENCY_STOP(orchestrator.py:179) 과 독립
+    """
+
+    def __init__(self, mdd_threshold: float = MDD_THRESHOLD) -> None:
+        self.mdd_threshold = mdd_threshold
+        self._state: KillSwitchState = KillSwitchState.ACTIVE
+        self._alert_flag: bool = False      # 알림 플래그 (외부 모니터링용)
+        self._pending_liquidation: bool = False
+
+    @property
+    def state(self) -> KillSwitchState:
+        return self._state
+
+    @property
+    def alert_flag(self) -> bool:
+        return self._alert_flag
+
+    @property
+    def is_halted(self) -> bool:
+        return self._state in (KillSwitchState.HALTED, KillSwitchState.CONFIRM_PENDING)
+
+    def update_mdd(self, current_mdd: float, cycle_id: str = "") -> KillSwitchState:
+        """MDD 갱신 → 상태 전이.
+
+        current_mdd: 음수 (예: -0.16 = -16% MDD).
+        MDD 초과 → HALTED + alert, 회복 → ACTIVE.
+        """
+        if current_mdd <= self.mdd_threshold:
+            if self._state == KillSwitchState.ACTIVE:
+                self._state = KillSwitchState.HALTED
+                self._alert_flag = True
+                _log_near_miss_veto(
+                    cycle_id,
+                    f"kill switch 발동: MDD={current_mdd:.2%} <= {self.mdd_threshold:.2%}",
+                    {"mdd": current_mdd},
+                    "kill_switch_mdd",
+                )
+                logger.warning(
+                    "KillSwitch HALTED: MDD=%.2f%% threshold=%.2f%%",
+                    current_mdd * 100, self.mdd_threshold * 100,
+                )
+        else:
+            # MDD 회복 → ACTIVE (청산 컨펌 대기 중이어도 회복 시 해제)
+            if self._state != KillSwitchState.ACTIVE:
+                self._state = KillSwitchState.ACTIVE
+                self._alert_flag = False
+                self._pending_liquidation = False
+                logger.info("KillSwitch RECOVERED: MDD=%.2f%%", current_mdd * 100)
+        return self._state
+
+    def request_liquidation(self) -> bool:
+        """청산 요청 — HALTED 상태일 때만 CONFIRM_PENDING 으로 전이.
+
+        Returns True if transition succeeded.
+        ⛔ 자동 청산 금지 — confirm() 후에만 실제 청산.
+        """
+        if self._state == KillSwitchState.HALTED:
+            self._state = KillSwitchState.CONFIRM_PENDING
+            self._pending_liquidation = True
+            return True
+        return False
+
+    def confirm(self) -> bool:
+        """청산 컨펌 — CONFIRM_PENDING → liquidation 실행 허가.
+
+        Returns True 시 호출자가 청산 로직을 수행해야 함.
+        """
+        if self._state == KillSwitchState.CONFIRM_PENDING:
+            self._pending_liquidation = False
+            return True
+        return False
+
+    def reset(self) -> None:
+        """강제 리셋 (테스트/수동 복구용)."""
+        self._state = KillSwitchState.ACTIVE
+        self._alert_flag = False
+        self._pending_liquidation = False
