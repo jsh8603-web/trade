@@ -16,6 +16,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 
+import jsonschema
 import zmq
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -36,14 +37,19 @@ _DECISION_SCHEMA: Optional[dict] = None
 
 
 _SCHEMA_LOAD_ERROR: Optional[str] = None
+_DECISION_VALIDATOR: Optional[jsonschema.Draft7Validator] = None
 
 
 def _load_decision_schema() -> tuple[Optional[dict], Optional[str]]:
-    """스키마 로드. 반환: (schema_dict, error_msg) — 실패 시 (None, 사유)."""
-    global _DECISION_SCHEMA, _SCHEMA_LOAD_ERROR
+    """스키마 로드 + Validator 1회 생성. 반환: (schema_dict, error_msg)."""
+    global _DECISION_SCHEMA, _SCHEMA_LOAD_ERROR, _DECISION_VALIDATOR
     if _DECISION_SCHEMA is None and _SCHEMA_LOAD_ERROR is None:
         try:
             _DECISION_SCHEMA = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
+            _DECISION_VALIDATOR = jsonschema.Draft7Validator(_DECISION_SCHEMA)
+        except jsonschema.SchemaError as e:
+            _SCHEMA_LOAD_ERROR = f"SchemaError: {e}"
+            logger.error(_SCHEMA_LOAD_ERROR)
         except Exception as e:
             _SCHEMA_LOAD_ERROR = f"decision_result.json 로드 실패: {e}"
             logger.error(_SCHEMA_LOAD_ERROR)
@@ -55,13 +61,13 @@ def _validate_decision(analysis: dict) -> tuple[bool, str]:
 
     반환: (valid: bool, error_message: str)
     스키마 로드 실패 / SchemaError → fail-closed: (False, 사유)
+    캐싱된 Draft7Validator 재사용으로 반복 파싱 제거.
     """
     schema, load_err = _load_decision_schema()
-    if load_err or schema is None:
+    if load_err or schema is None or _DECISION_VALIDATOR is None:
         return False, load_err or "스키마 로드 실패 (unknown)"
     try:
-        import jsonschema
-        jsonschema.validate(instance=analysis, schema=schema)
+        _DECISION_VALIDATOR.validate(analysis)
         return True, ""
     except jsonschema.ValidationError as e:
         return False, e.message

@@ -54,6 +54,7 @@ def _load_b1_helpers():
         "_SCHEMA_PATH": schema_path,
         "_DECISION_SCHEMA": None,
         "_SCHEMA_LOAD_ERROR": None,
+        "_DECISION_VALIDATOR": None,
     }
 
     func_src = []
@@ -240,12 +241,18 @@ class TestB1SourceImplementation:
         assert callable(_log_near_miss_veto)
 
     def test_jsonschema_called_in_validate(self):
-        """_validate_decision 이 jsonschema.validate 를 호출한다."""
-        with patch("jsonschema.validate") as mock_v:
-            mock_v.return_value = None
-            _B1["_DECISION_SCHEMA"] = None  # force reload
-            valid, err = _validate_decision(VALID_ANALYSIS)
-        mock_v.assert_called_once()
+        """_validate_decision 이 캐싱된 validator 를 호출한다."""
+        import jsonschema
+        real_validator = jsonschema.Draft7Validator(
+            json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+        )
+        _B1["_DECISION_SCHEMA"] = None
+        _B1["_SCHEMA_LOAD_ERROR"] = None
+        _B1["_DECISION_VALIDATOR"] = None
+        # 유효한 분석 → True 반환 확인
+        valid, err = _validate_decision(VALID_ANALYSIS)
+        assert valid is True
+        assert _B1["_DECISION_VALIDATOR"] is not None
 
 
 # ---------------------------------------------------------------------------
@@ -270,15 +277,44 @@ class TestB1FailClosed:
             assert valid is False
 
     def test_schema_error_returns_false(self, monkeypatch):
-        """jsonschema.SchemaError 발생 시 fail-closed: (False, 사유) 반환."""
+        """Draft7Validator 생성 시 SchemaError → fail-closed: (False, 사유) 반환."""
         import jsonschema
-        monkeypatch.setitem(_B1, "_DECISION_SCHEMA", {"type": "object"})
+        monkeypatch.setitem(_B1, "_DECISION_SCHEMA", None)
         monkeypatch.setitem(_B1, "_SCHEMA_LOAD_ERROR", None)
+        monkeypatch.setitem(_B1, "_DECISION_VALIDATOR", None)
 
-        def raise_schema_error(instance, schema):
+        def raise_schema_error(schema):
             raise jsonschema.SchemaError("스키마 자체 오류")
 
-        with patch("jsonschema.validate", side_effect=raise_schema_error):
+        with patch.object(jsonschema, "Draft7Validator", side_effect=raise_schema_error):
             valid, err = _validate_decision(VALID_ANALYSIS)
         assert valid is False
         assert "SchemaError" in err
+
+
+# ---------------------------------------------------------------------------
+# Test SO-8c: Draft7Validator 모듈레벨 1회 캐싱
+# ---------------------------------------------------------------------------
+
+class TestB1ValidatorCaching:
+    def test_validator_created_once(self, monkeypatch):
+        """_load_decision_schema 를 N회 호출해도 Validator 는 1회만 생성된다."""
+        import jsonschema
+        monkeypatch.setitem(_B1, "_DECISION_SCHEMA", None)
+        monkeypatch.setitem(_B1, "_SCHEMA_LOAD_ERROR", None)
+        monkeypatch.setitem(_B1, "_DECISION_VALIDATOR", None)
+
+        call_count = []
+
+        real_validator = jsonschema.Draft7Validator
+
+        def counting_validator(schema):
+            call_count.append(1)
+            return real_validator(schema)
+
+        with patch.object(jsonschema, "Draft7Validator", side_effect=counting_validator):
+            _B1["_load_decision_schema"]()
+            _B1["_load_decision_schema"]()
+            _B1["_load_decision_schema"]()
+
+        assert len(call_count) == 1, f"Validator 는 1회만 생성돼야 한다 (실제: {len(call_count)}회)"

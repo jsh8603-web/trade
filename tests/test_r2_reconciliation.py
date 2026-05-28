@@ -249,3 +249,50 @@ class TestR2DbQueryError:
             result = trader._get_db_portfolio_snapshot()
 
         assert result is LiveTrader._DB_QUERY_ERROR
+
+
+# ---------------------------------------------------------------------------
+# Test SO-8: _get_open_orders_locked 1회 + _clamp 재조회 안 함
+# ---------------------------------------------------------------------------
+
+class TestSO8PerformanceOptimizations:
+    def test_locked_injected_skips_requery(self, tmp_path):
+        """_check_portfolio_drift 에 locked_btc 주입 시 _get_open_orders_locked 미호출."""
+        trader = _make_trader(tmp_path)
+        with patch.object(trader, "_get_db_portfolio_snapshot", return_value=DB_SNAP_MATCH), \
+             patch.object(trader, "_get_open_orders_locked") as mock_locked:
+            trader._check_portfolio_drift(LIVE_PORTFOLIO_BTC, locked_btc=0.0)
+        mock_locked.assert_not_called()
+
+    def test_locked_none_triggers_requery(self, tmp_path):
+        """locked_btc=None(기본값) 이면 _get_open_orders_locked 호출된다."""
+        trader = _make_trader(tmp_path)
+        with patch.object(trader, "_get_db_portfolio_snapshot", return_value=DB_SNAP_MATCH), \
+             patch.object(trader, "_get_open_orders_locked", return_value=0.0) as mock_locked:
+            trader._check_portfolio_drift(LIVE_PORTFOLIO_BTC)
+        mock_locked.assert_called_once()
+
+    def test_clamp_portfolio_injection_skips_script(self, tmp_path):
+        """_clamp_to_balance 에 portfolio 주입 시 _run_script(get_portfolio) 미호출."""
+        trader = _make_trader(tmp_path)
+        portfolio = {
+            "krw_balance": 0,
+            "holdings": [{"currency": "BTC", "balance": 0.05}],
+        }
+        with patch.object(trader, "_run_script") as mock_run, \
+             patch.object(trader, "_get_open_orders_locked", return_value=0.0):
+            result = trader._clamp_to_balance(0.01, portfolio=portfolio, locked=0.0)
+        mock_run.assert_not_called()
+        assert result == pytest.approx(0.01)
+
+    def test_clamp_locked_injection_skips_open_orders(self, tmp_path):
+        """_clamp_to_balance 에 locked 주입 시 _get_open_orders_locked 미호출."""
+        trader = _make_trader(tmp_path)
+        portfolio = {
+            "krw_balance": 0,
+            "holdings": [{"currency": "BTC", "balance": 0.05}],
+        }
+        with patch.object(trader, "_run_script", return_value=portfolio), \
+             patch.object(trader, "_get_open_orders_locked") as mock_locked:
+            trader._clamp_to_balance(0.01, portfolio=portfolio, locked=0.0)
+        mock_locked.assert_not_called()

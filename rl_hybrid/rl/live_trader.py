@@ -135,8 +135,9 @@ class LiveTrader:
                 result["errors"].append("데이터 수집 실패")
                 return result
 
-            # R2: 잔고 reconciliation — drift 감지 시 halt
-            drift_result = self._check_portfolio_drift(portfolio)
+            # R2: 잔고 reconciliation — locked 1회 조회 후 drift 검사 + clamp 재사용
+            locked_btc = self._get_open_orders_locked("KRW-BTC")
+            drift_result = self._check_portfolio_drift(portfolio, locked_btc=locked_btc)
             result["drift_check"] = drift_result
             if drift_result.get("halt"):
                 result["errors"].append(f"R2 drift halt: {drift_result.get('reason')}")
@@ -178,9 +179,11 @@ class LiveTrader:
                 f"  {blended.reason}"
             )
 
-            # Phase 6: 매매 실행
+            # Phase 6: 매매 실행 (portfolio/locked_btc 주입 — 재조회 생략)
             if blended.decision != "hold":
-                trade_result = self._execute_trade(blended)
+                trade_result = self._execute_trade(
+                    blended, portfolio=portfolio, locked_btc=locked_btc
+                )
                 result["trade_result"] = trade_result
 
             # Phase 7: DB 기록 + 알림
@@ -359,10 +362,12 @@ class LiveTrader:
         self,
         live_portfolio: dict,
         drift_threshold: float = None,
+        locked_btc: Optional[float] = None,
     ) -> dict:
         """거래소 잔고(live)와 DB 스냅샷을 비교하여 drift 감지.
 
         - open-orders locked 잔량을 거래소 측에 합산(가짜 drift 방지).
+        - locked_btc 를 주입하면 _get_open_orders_locked 재호출 생략.
         - fee-net day-1 허용: 임계 미만 drift 는 pass.
         - 자동 write-off/보정 금지 — halt + log 만.
         """
@@ -379,13 +384,14 @@ class LiveTrader:
             # 첫 실행 / 빈 테이블 → 검사 생략
             return {"halt": False, "reason": "no_db_snapshot", "skipped": True}
 
-        # 거래소 BTC 잔고 + locked 합산
+        # 거래소 BTC 잔고 + locked 합산 (주입값 우선)
         live_btc = 0.0
         for h in live_portfolio.get("holdings", []):
             if h.get("currency") == "BTC":
                 live_btc = float(h.get("balance", 0))
                 break
-        locked_btc = self._get_open_orders_locked("KRW-BTC")
+        if locked_btc is None:
+            locked_btc = self._get_open_orders_locked("KRW-BTC")
         exchange_btc = live_btc + locked_btc
 
         db_btc = float(db_snap.get("btc_balance") or db_snap.get("coin_balance") or 0)
@@ -419,13 +425,20 @@ class LiveTrader:
 
         return drift_info
 
-    def _clamp_to_balance(self, volume: float, market: str = "KRW-BTC") -> float:
+    def _clamp_to_balance(
+        self,
+        volume: float,
+        market: str = "KRW-BTC",
+        portfolio: Optional[dict] = None,
+        locked: Optional[float] = None,
+    ) -> float:
         """실제 보유 잔량을 초과하는 매도 수량을 실잔량으로 클램프.
 
-        미체결 ask locked 를 제외한 가용 잔량 기준.
+        portfolio/locked 를 주입하면 재조회 생략 (run_cycle 보유 값 재사용).
         """
         try:
-            portfolio = self._run_script("scripts/get_portfolio.py")
+            if portfolio is None:
+                portfolio = self._run_script("scripts/get_portfolio.py")
             if not portfolio:
                 return volume
             avail_btc = 0.0
@@ -433,7 +446,8 @@ class LiveTrader:
                 if h.get("currency") == "BTC":
                     avail_btc = float(h.get("balance", 0))
                     break
-            locked = self._get_open_orders_locked(market)
+            if locked is None:
+                locked = self._get_open_orders_locked(market)
             usable = max(avail_btc - locked, 0.0)
             if volume > usable:
                 logger.warning(
@@ -464,8 +478,13 @@ class LiveTrader:
         except Exception:
             pass
 
-    def _execute_trade(self, blended) -> Optional[dict]:
-        """매매 실행"""
+    def _execute_trade(
+        self,
+        blended,
+        portfolio: Optional[dict] = None,
+        locked_btc: Optional[float] = None,
+    ) -> Optional[dict]:
+        """매매 실행 (portfolio/locked_btc 주입 시 재조회 생략)."""
         params = blended.trade_params
         side = params.get("side")
 
@@ -483,10 +502,12 @@ class LiveTrader:
                 cmd.extend(["--amount", str(params["amount"])])
             elif side == "ask":
                 if params.get("volume"):
-                    # R2: 실잔량 초과 매도 방지
+                    # R2: 실잔량 초과 매도 방지 (주입값 재사용)
                     clamped = self._clamp_to_balance(
                         float(params["volume"]),
                         params.get("market", "KRW-BTC"),
+                        portfolio=portfolio,
+                        locked=locked_btc,
                     )
                     cmd.extend(["--volume", str(clamped)])
                 elif params.get("sell_ratio"):
