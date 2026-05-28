@@ -92,16 +92,18 @@ class KisRateLimiter:
 
     def __init__(self, requests_per_second: float = 10.0):
         self._min_interval = 1.0 / requests_per_second
-        self._last_call = 0.0
+        self._next_available = 0.0
         self._lock = threading.Lock()
 
     def acquire(self) -> None:
+        # slot 예약만 lock 내부, sleep 은 lock 밖 — 동시 호출(주문 sleep 중 cancel/modify) 우선순위 역전 방지
         with self._lock:
             now = time.monotonic()
-            wait = self._min_interval - (now - self._last_call)
-            if wait > 0:
-                time.sleep(wait)
-            self._last_call = time.monotonic()
+            scheduled = max(now, self._next_available)
+            self._next_available = scheduled + self._min_interval
+        wait = scheduled - now
+        if wait > 0:
+            time.sleep(wait)
 
 
 # ---------------------------------------------------------------------------

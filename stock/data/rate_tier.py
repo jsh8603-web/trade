@@ -147,6 +147,15 @@ class TokenBucket:
                 wait = (1.0 - self._tokens) / self._refill_rate
                 return False, wait
 
+    def peek(self) -> bool:
+        """토큰 소비 없이 가용 여부만 확인 (조회 전용 — is_any_exhausted 용)."""
+        with self._lock:
+            self._refill()
+            if (self._cfg.requests_per_day is not None
+                    and self._day_tokens is not None and self._day_tokens < 1.0):
+                return False
+            return self._tokens >= 1.0
+
 
 # ---------------------------------------------------------------------------
 # DataSourceLimiter — 소스별 단일 진입점
@@ -186,7 +195,8 @@ class DataSourceLimiter:
                 jitter = random.uniform(0.0, self._cfg.jitter_max_sec)
                 if jitter > 0:
                     time.sleep(jitter)
-                self._fail_count = 0
+                with self._lock:
+                    self._fail_count = 0
                 return True
 
             # 지수 백오프 + jitter
@@ -207,7 +217,7 @@ class DataSourceLimiter:
             attempt += 1
 
         logger.warning("rate_tier %s timeout 초과 (%.1fs)", self._source, timeout)
-        self._fail_count += 1
+        self.on_error()
         return False
 
     def on_error(self) -> None:
@@ -274,7 +284,6 @@ class RateTierRegistry:
         """어떤 소스든 일 한도 소진 여부."""
         with self._reg_lock:
             for limiter in self._limiters.values():
-                ok, _ = limiter._bucket.acquire()
-                if not ok:
+                if not limiter._bucket.peek():
                     return True
         return False

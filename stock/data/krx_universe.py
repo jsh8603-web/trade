@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -53,6 +54,7 @@ def _pykrx_stock():
 _admin_cache: Optional[object] = None      # pd.DataFrame
 _admin_cache_ts: float = 0.0
 _ADMIN_TTL = 3600.0  # 1h
+_cache_lock = threading.Lock()  # _admin_cache/_delist_cache 동시 read-check-write race 방지
 
 
 def _fetch_administrative() -> "pd.DataFrame":
@@ -61,15 +63,15 @@ def _fetch_administrative() -> "pd.DataFrame":
     비PIT(현 시점 스냅샷)이므로 일별 스냅샷 적재로 PIT 재구성한다.
     """
     global _admin_cache, _admin_cache_ts
-    now = time.monotonic()
-    if _admin_cache is not None and (now - _admin_cache_ts) < _ADMIN_TTL:
-        return _admin_cache  # type: ignore[return-value]
-
-    from FinanceDataReader.krx.listing import KrxAdministrative
-    df = KrxAdministrative("").read()
-    _admin_cache = df
-    _admin_cache_ts = now
-    return df
+    with _cache_lock:
+        now = time.monotonic()
+        if _admin_cache is not None and (now - _admin_cache_ts) < _ADMIN_TTL:
+            return _admin_cache  # type: ignore[return-value]
+        from FinanceDataReader.krx.listing import KrxAdministrative
+        df = KrxAdministrative("").read()
+        _admin_cache = df
+        _admin_cache_ts = time.monotonic()
+        return df
 
 
 _delist_cache: Optional[object] = None
@@ -80,15 +82,15 @@ _DELIST_TTL = 3600.0
 def _fetch_delistings(start: datetime, end: datetime) -> "pd.DataFrame":
     """FDR KrxDelisting — 상폐 종목 목록 (DelistingDate 컬럼 PIT)."""
     global _delist_cache, _delist_cache_ts
-    now = time.monotonic()
-    if _delist_cache is not None and (now - _delist_cache_ts) < _DELIST_TTL:
-        return _delist_cache  # type: ignore[return-value]
-
-    import FinanceDataReader as fdr
-    df = fdr.StockListing("KRX-DELISTING")
-    _delist_cache = df
-    _delist_cache_ts = now
-    return df
+    with _cache_lock:
+        now = time.monotonic()
+        if _delist_cache is not None and (now - _delist_cache_ts) < _DELIST_TTL:
+            return _delist_cache  # type: ignore[return-value]
+        import FinanceDataReader as fdr
+        df = fdr.StockListing("KRX-DELISTING")
+        _delist_cache = df
+        _delist_cache_ts = time.monotonic()
+        return df
 
 
 # ---------------------------------------------------------------------------
@@ -116,6 +118,7 @@ def _load_snapshot(
     if not path.exists():
         return None
     best: Optional[dict] = None
+    best_as_of = ""
     target = as_of_date.isoformat()
     try:
         with open(path, encoding="utf-8") as fh:
@@ -126,8 +129,13 @@ def _load_snapshot(
                 rec = json.loads(line)
                 if rec.get("ticker") != ticker:
                     continue
-                if rec.get("as_of", "") <= target:
+                rec_as_of = rec.get("as_of")
+                # as_of 누락(빈 문자열=사전순 최소→오선택) / 미래 레코드 제외, 최신(<=target) 채택
+                if not rec_as_of or rec_as_of > target:
+                    continue
+                if rec_as_of >= best_as_of:
                     best = rec
+                    best_as_of = rec_as_of
     except Exception as exc:
         logger.warning("스냅샷 로드 실패: %s", exc)
     return best
