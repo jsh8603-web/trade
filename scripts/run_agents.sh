@@ -23,13 +23,20 @@ if [ -f .env ]; then
   set -a; source .env; set +a
 fi
 
-# Python 실행파일 결정 (venv 직접 사용, activate 불필요)
-if [ -f ".venv/Scripts/python.exe" ]; then
+# Python 실행파일 결정 (env override > venv > python3 > python)
+if [ -n "${PYTHON:-}" ]; then
+    :  # 외부 PYTHON 지정 우선 (Windows: python3 미존재 환경 대응)
+elif [ -f ".venv/Scripts/python.exe" ]; then
     PYTHON=".venv/Scripts/python.exe"
 elif [ -f ".venv/bin/python" ]; then
     PYTHON=".venv/bin/python"
-else
+elif command -v python3 >/dev/null 2>&1; then
     PYTHON="python3"
+elif command -v python >/dev/null 2>&1; then
+    PYTHON="python"
+else
+    echo "Python 실행파일 없음 (PYTHON env / .venv / python3 / python 모두 미발견)" >&2
+    exit 1
 fi
 
 # Windows cp949 → UTF-8 강제 (Python subprocess 출력 인코딩)
@@ -262,6 +269,17 @@ except Exception:
     print(\"BUY_SCORE='N/A'\")
     print(\"CONFIDENCE='0'\")
 ")"
+
+# ── Phase I core/ 게이트 (WP1/2/3/4) — INV_CORE_GATE 옵트인(기본 off=레거시 byte-identical) ──
+# 실 경로(run_agents.sh→execute_trade)에 신규 core/ 안전 백스톱(RiskGate)+학습로깅+거시레짐 연결.
+# REJECTED 시 DECISION=hold 로 주문 차단. 예외=OK(graceful, 레거시 유지). execute_trade 미변경.
+if [ "${INV_CORE_GATE:-false}" = "true" ] && { [ "$DECISION" = "buy" ] || [ "$DECISION" = "sell" ]; }; then
+  GATE_RESULT="$("$PYTHON" scripts/core_gate_check.py "$DECISION" "$TRADE_AMOUNT" "$TRADE_VOLUME" "$TRADE_MARKET" "$CONFIDENCE" || echo OK)"
+  if [ "$GATE_RESULT" = "REJECTED" ]; then
+    echo "[$(date)] [core-gate] RiskGate 거부 → 주문 차단(hold)" >&2
+    DECISION="hold"
+  fi
+fi
 
 if [ "$DECISION" = "buy" ]; then
   if "$PYTHON" -c "assert float('$TRADE_AMOUNT') > 0" 2>/dev/null; then
