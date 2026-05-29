@@ -202,6 +202,7 @@ class BacktestEngine:
         price_series: pd.Series,
         volume_series: Optional[pd.Series] = None,
         region: str = "KR",
+        memory=None,
     ) -> BacktestResult:
         """단일 자산 백테스트 1구간 완주.
 
@@ -210,6 +211,9 @@ class BacktestEngine:
             price_series: 가격 시계열 (UTC index)
             volume_series: 거래대금 시계열 (슬리피지 계산용, None이면 최대 슬리피지)
             region: "KR" | "US"
+            memory: MemoryLayer 류(store_decision/update_with_outcome). 주입 시 학습 sink
+              가동 — BUY=store_decision, SELL=update_with_outcome(realized pnl%). None=무학습
+              (하위호환). WP6②: 리플레이가 결과로 prior 수정(전수조사 A5 F1 blocker 해소).
         """
         if volume_series is None:
             volume_series = pd.Series(
@@ -223,6 +227,7 @@ class BacktestEngine:
         trades: List[Trade] = []
 
         asset_name = price_series.name or "UNKNOWN"
+        entry_id = None  # WP6② 학습 sink: BUY store_decision id → SELL update_with_outcome
 
         for ts, price in price_series.items():
             vol = float(volume_series.get(ts, 0.0))
@@ -256,6 +261,19 @@ class BacktestEngine:
                     avg_price = exec_price
                     capital -= (qty * exec_price + commission)
 
+                    if memory is not None:
+                        try:
+                            entry_id = memory.store_decision(
+                                decision="buy",
+                                reason=str(getattr(decision, "reason", "") or "backtest buy"),
+                                confidence=float(getattr(decision, "confidence", 0.0) or 0.0),
+                                created_at=ts.timestamp() if isinstance(ts, datetime) else None,
+                                asset=asset_name,
+                                entry_price=exec_price,
+                            )
+                        except Exception:
+                            entry_id = None
+
                     trades.append(Trade(
                         asset=asset_name,
                         side="BUY",
@@ -286,6 +304,14 @@ class BacktestEngine:
                 filled_qty = position
                 capital += position * exec_price - commission - tax
                 position = 0.0
+
+                if memory is not None and entry_id is not None:
+                    try:
+                        pnl_pct = ((exec_price - avg_price) / avg_price * 100.0) if avg_price else 0.0
+                        memory.update_with_outcome(entry_id, pnl_pct)
+                    except Exception:
+                        pass
+                    entry_id = None
 
                 trades.append(Trade(
                     asset=asset_name,
