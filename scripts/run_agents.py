@@ -865,7 +865,46 @@ def main():
     
     trade_params = output["decision"].get("trade_params", {})
     market = trade_params.get("market", "KRW-BTC")
-    
+
+    # ── Phase I core/ 게이트 wiring (WP1/WP2/WP3) ──────────────────────────────
+    # INV_CORE_GATE 옵트인(기본 off=레거시 byte-identical 보존=SACRED·무회귀).
+    # on: 신규 core/ 안전 백스톱(RiskGate)+학습 로깅(MemoryLayer)을 라이브 경로에 연결.
+    # try/except 로 라이브 절대 미크래시(예외=레거시 경로 유지). DRY_RUN/execute_trade 미변경.
+    if os.environ.get("INV_CORE_GATE", "false").lower() == "true" and decision in ("buy", "sell"):
+        try:
+            from core.risk_gate import RiskGate, VerdictType
+            from core.brain.memory_layer import MemoryLayer
+
+            _btc = portfolio.get("btc", {}) if isinstance(portfolio, dict) else {}
+            _pnl = float(_btc.get("profit_rate", 0.0) or 0.0) / 100.0
+            _proposed = float(
+                (trade_params.get("amount", 0) if decision == "buy"
+                 else trade_params.get("volume", 0)) or 0
+            )
+            _verdict = RiskGate().check(
+                cycle_id=str(timestamp),
+                action=decision,
+                proposed_size=_proposed,
+                position_pnl_pct=_pnl,
+            )
+            try:  # WP3: 결정 로깅(S9) — 학습 메모리
+                MemoryLayer().store_decision(
+                    decision=decision,
+                    reason=str(reason),
+                    confidence=float(output["decision"].get("confidence", 0.0) or 0.0),
+                    asset=market,
+                )
+            except Exception as _me:
+                log(f"[core-gate] memory 로깅 예외(무시): {_me}")
+            if _verdict.verdict == VerdictType.REJECTED:  # WP2: 우회불가 백스톱
+                log(f"[core-gate] RiskGate 거부 → 주문 차단(hold): {_verdict.reason}")
+                decision = "hold"
+            elif _verdict.verdict == VerdictType.REDUCED and _verdict.adjusted_size:
+                log(f"[core-gate] RiskGate 사이즈 축소 권고: {_verdict.adjusted_size} ({_verdict.reason})")
+        except Exception as _ge:
+            log(f"[core-gate] 예외 → 레거시 경로 유지: {_ge}")
+    # ──────────────────────────────────────────────────────────────────────────
+
     import subprocess
     from scripts.hide_console import subprocess_kwargs
     trade_log = str(log_dir / f"trade_{timestamp}.log")
