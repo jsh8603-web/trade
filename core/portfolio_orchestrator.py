@@ -166,13 +166,9 @@ class PortfolioOrchestrator:
             weights = {k: v / total for k, v in weights.items()}
             result["weights"] = weights
 
-        # risk_gate 통과 후 확정 (Phase2 계약 재사용)
-        if self._risk_gate is not None:
-            try:
-                pass  # risk_gate.check 는 개별 트레이드 진입 시 — 배분 확정 후 호출자 책임
-            except Exception:
-                pass
-
+        # 배분 산출 자체는 게이팅 안 함 — risk_gate.check() 는 개별 트레이드 진입 시
+        # 실 order path 조립 단계에서 호출자가 적용. 우회불가 enforce =
+        # N-P6-FULL-INTEGRATION / N-P4-GATE (go-live, GatedOrderRouter 경유 강제).
         result["macro_abstain"] = macro_abstain
         return result
 
