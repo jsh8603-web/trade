@@ -908,6 +908,17 @@ def main():
                 _st = getattr(_mv, "status", None)
                 log(f"[core-gate] 거시 레짐 chain 가동: status={getattr(_st, 'value', _st)} "
                     f"fred={'real' if _fred_key else 'stub'} regimes={getattr(_mv, 'regimes', {})}")
+                # WP-R15: 거시상황 → 동적 가중학습 belief b(t) 공급(opt-in INV_R15_WEIGHTS, off 기본).
+                # 라이브가 R15 belief 모듈을 실제 호출(connectivity 갭 해소). 동적공분산 학습=
+                # regime 히스토리 substrate(실 FRED vintage) go-live 게이트. 결정 변경 없음(공급·로깅).
+                if os.environ.get("INV_R15_WEIGHTS", "false").lower() == "true":
+                    try:
+                        from core.brain.regime_belief_adapter import belief_from_macro_view
+                        _belief = belief_from_macro_view(_mv)
+                        log(f"[r15] 거시상황 belief b(t)={_belief} (동적 가중 입력; "
+                            f"동적공분산=regime히스토리 substrate go-live 게이트)")
+                    except Exception as _r15e:
+                        log(f"[r15] belief 공급 예외(무시): {_r15e}")
             except Exception as _re:
                 log(f"[core-gate] 레짐 분류 예외(무시): {_re}")
             if _verdict.verdict == VerdictType.REJECTED:  # WP2: 우회불가 백스톱

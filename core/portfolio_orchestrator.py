@@ -170,6 +170,24 @@ class PortfolioOrchestrator:
         # 실 order path 조립 단계에서 호출자가 적용. 우회불가 enforce =
         # N-P6-FULL-INTEGRATION / N-P4-GATE (go-live, GatedOrderRouter 경유 강제).
         result["macro_abstain"] = macro_abstain
+
+        # ★R15 동적 가중학습 belief 공급 (opt-in INV_R15_WEIGHTS, 기본 off = byte-identical 무회귀).
+        # 거시상황(macro_view) → belief b(t) 산출해 result 에 기록(감사·하류 입력 연결점).
+        # ⚠️ 동적 조건부 공분산 overlay(regime-conditional glasso → effective_precision → BL cov)는
+        #    시점별 regime 히스토리 substrate(실 FRED vintage) 필요 → go-live 데이터 게이트.
+        #    현재는 belief 공급·기록까지(라이브가 R15 모듈을 실제 호출 = connectivity 갭 해소).
+        #    이유 주석(판단근거 보존): R15 본질=평가지표 가중(scoring)이라 슬리브 배분 직접교체 아님.
+        #    belief 는 regime_to_weights confidence/동적공분산 입력으로 substrate 충족 시 connect.
+        import os
+        if os.environ.get("INV_R15_WEIGHTS", "false").lower() == "true" and macro_view is not None:
+            try:
+                from core.brain.regime_belief_adapter import belief_from_macro_view
+                result["r15_belief"] = belief_from_macro_view(macro_view)
+                result.setdefault("caution", []).append(
+                    "r15_belief_supplied(동적공분산=regime히스토리 substrate go-live 게이트)")
+            except Exception as exc:
+                logger.warning("R15 belief 공급 예외 → 정적 배분 유지: %s", exc)
+
         return result
 
     def _fallback_hrp(self, returns_history=None) -> Dict[str, Any]:
