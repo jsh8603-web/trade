@@ -35,6 +35,11 @@ class H27BoundedFallback:
 
     전량청산(full liquidation) 금지. 2차 임계 초과 시 추가 축소만.
     Phase2 KillSwitch 본체 미변경 — 타임아웃 wire만.
+
+    무인(unattended) 자동발동:
+      - attended: record_confirm() 후 confirm 미수신 시 타임아웃 시작.
+      - unattended: confirm 없음 → record_halt_entry(ts) 로 halt 진입 시점부터 타임아웃 카운트.
+        anchor = _last_confirm_ts if not None else _halt_anchor_ts
     """
 
     def __init__(
@@ -49,38 +54,58 @@ class H27BoundedFallback:
         self._reduction_step = reduction_step
         self._secondary_reduction = secondary_reduction
         self._last_confirm_ts: Optional[float] = None
+        self._halt_anchor_ts: Optional[float] = None  # SO-6: 무인 halt 진입 시점
 
     def record_confirm(self) -> None:
-        """KillSwitch confirm 수신 시 타임스탬프 기록."""
+        """KillSwitch confirm 수신 시 타임스탬프 기록 (attended 경로)."""
         self._last_confirm_ts = time.monotonic()
+        self._halt_anchor_ts = None  # confirm 이후 halt anchor 리셋
+
+    def record_halt_entry(self, ts: Optional[float] = None) -> None:
+        """SO-6: KillSwitch HALT 진입 시점 기록 (무인 타임아웃 anchor).
+
+        무인 모드에서는 confirm() 이 없으므로, halt 진입 시점부터 타임아웃 카운트.
+        attended 경로 (record_confirm 기록 있음) 는 이 anchor 를 사용하지 않음.
+        """
+        if self._halt_anchor_ts is None:  # 첫 halt 진입만 기록 (재진입 초기화 방지)
+            self._halt_anchor_ts = ts if ts is not None else time.monotonic()
+            logger.info("H27: halt anchor 기록 ts=%.1f (무인 타임아웃 기산점)", self._halt_anchor_ts)
 
     def check_timeout(self, current_ts: Optional[float] = None) -> BoundedFallbackResult:
         """타임아웃 체크 → bounded 축소 결정.
 
+        anchor 우선순위:
+          1) _last_confirm_ts (attended: confirm 이후 경과)
+          2) _halt_anchor_ts (unattended: halt 진입 이후 경과)
+          3) None → 대기 (아무 anchor 없음)
+
         Returns:
             BoundedFallbackResult(triggered, reduction_ratio, reason)
         """
-        if self._last_confirm_ts is None:
-            return BoundedFallbackResult(False, 0.0, "컨펌 기록 없음 — 대기")
+        # anchor 결정: confirm 우선, 없으면 halt anchor (무인 자동발동)
+        anchor = self._last_confirm_ts if self._last_confirm_ts is not None else self._halt_anchor_ts
+        if anchor is None:
+            return BoundedFallbackResult(False, 0.0, "컨펌/halt anchor 없음 — 대기")
 
         now = current_ts or time.monotonic()
-        elapsed = now - self._last_confirm_ts
+        elapsed = now - anchor
+        anchor_kind = "confirm" if self._last_confirm_ts is not None else "halt_entry"
 
         if elapsed >= self._secondary_sec:
             return BoundedFallbackResult(
                 triggered=True,
                 reduction_ratio=self._secondary_reduction,
-                reason=f"H27: 2차 임계 {self._secondary_sec/3600:.0f}h 초과 → {self._secondary_reduction*100:.0f}% 축소",
+                reason=f"H27: 2차 임계 {self._secondary_sec/3600:.0f}h 초과 → {self._secondary_reduction*100:.0f}% 축소 (anchor={anchor_kind})",
                 is_full_liquidation=False,
             )
         elif elapsed >= self._timeout_sec:
             return BoundedFallbackResult(
                 triggered=True,
                 reduction_ratio=self._reduction_step,
-                reason=f"H27: {self._timeout_sec/3600:.0f}h 미수신 → {self._reduction_step*100:.0f}% 축소",
+                reason=f"H27: {self._timeout_sec/3600:.0f}h 미수신 → {self._reduction_step*100:.0f}% 축소 (anchor={anchor_kind})",
                 is_full_liquidation=False,
             )
-        return BoundedFallbackResult(False, 0.0, "컨펌 정상", is_full_liquidation=False)
+        return BoundedFallbackResult(False, 0.0, f"컨펌 정상 (anchor={anchor_kind})", is_full_liquidation=False)
 
 
 # ---------------------------------------------------------------------------

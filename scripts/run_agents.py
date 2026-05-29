@@ -926,6 +926,40 @@ def main():
                 decision = "hold"
             elif _verdict.verdict == VerdictType.REDUCED and _verdict.adjusted_size:
                 log(f"[core-gate] RiskGate 사이즈 축소 권고: {_verdict.adjusted_size} ({_verdict.reason})")
+
+            # ── SO-6 wire: KillSwitch MDD 평가 → UnattendedStateMachine (INV_UNATTENDED_FSM 옵트인) ──
+            # 기본 off — INV_UNATTENDED_FSM=true 시 무인 de-risk FSM 연결.
+            # 라이브 미크래시 원칙 유지: 예외 시 log만, 주문 경로 영향 0.
+            if os.environ.get("INV_UNATTENDED_FSM", "false").lower() == "true":
+                try:
+                    import time as _time
+                    from core.risk_gate import KillSwitch
+                    from core.unattended_fsm import UnattendedStateMachine
+                    from core.derisk_executor import DeriskExecutor, FakeExchange
+
+                    _ks = KillSwitch()
+                    _ks.update_mdd(_pnl, cycle_id=str(timestamp))
+
+                    if _ks.auto_derisk_due():
+                        # MDD 초과 + unattended → FSM 에 신호 공급
+                        # FakeExchange stub (실거래소 어댑터 go-live 이연)
+                        _executor = DeriskExecutor(FakeExchange())
+                        _fsm = UnattendedStateMachine(executor=_executor)
+                        _signals = {
+                            "mdd": _pnl,
+                            "vol": 0.0,
+                            "gap": False,
+                            "heartbeat_loss": False,
+                            "recon_break": False,
+                        }
+                        _new_state = _fsm.step(_signals, now=_time.time())
+                        log(f"[so6-wire] KillSwitch auto_derisk_due=True → FSM {_new_state.value}")
+                    else:
+                        log(f"[so6-wire] KillSwitch mdd={_pnl:.3f} auto_derisk_due=False")
+                except Exception as _w6e:
+                    log(f"[so6-wire] 예외(무시, 라이브 경로 보존): {_w6e}")
+            # ─────────────────────────────────────────────────────────────────────
+
         except Exception as _ge:
             log(f"[core-gate] 예외 → 레거시 경로 유지: {_ge}")
     # ──────────────────────────────────────────────────────────────────────────
