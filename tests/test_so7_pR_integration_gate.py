@@ -158,15 +158,49 @@ def test_coin_engine_compare_slippage_returns_dict():
     assert "is_more_realistic" in result
 
 
+def _make_cost_stub():
+    """비용모델 drag 검증용 — 가격 기준 결정론적 buy/sell 스텁.
+
+    compare_with_legacy 는 같은 track 을 coin/zero 두 엔진에 넘기므로
+    call-counter 가 아닌 가격(state) 기준 결정론으로 양 run 이 동일 거래를 내야 공정 비교.
+    엔진은 decision.action 을 읽음(engine.py) — price < 5천만 → buy, ≥ → sell.
+    """
+    from unittest.mock import MagicMock
+    track = MagicMock()
+    state = MagicMock()
+    state.raw_market_data = {}
+    track.collect_market_state.return_value = state
+
+    def _decide(s):
+        d = MagicMock()
+        d.action = "buy" if s.raw_market_data.get("price", 0.0) < 50_000_000 else "sell"
+        return d
+
+    track.generate_candidate.side_effect = _decide
+    return track
+
+
 def test_coin_engine_more_realistic_than_zero():
-    """교체 엔진이 슬리피지 0 대비 더 현실적(is_more_realistic=True)."""
+    """교체 엔진이 슬리피지0 대비 실제로 더 보수적 — 거래 강제 후 drag>0 정량 검증.
+
+    리뷰 CONCERN(거래0 fixture→drag=0 vacuous 통과) 해소: 단조 가격(48M→52M) +
+    가격기준 스텁으로 라운드트립(전반 buy·후반 sell) 보장 → Upbit fee+슬리피지가
+    실제로 수익률을 갉는지(drag>0) 정량 검증.
+    """
     from backtest.coin_engine import CoinBacktestEngine, CoinBacktestConfig
+    prices = pd.Series(
+        np.linspace(48_000_000, 52_000_000, 30),
+        index=pd.date_range("2023-01-01", periods=30, freq="D", tz=timezone.utc),
+        name="BTC/KRW",
+    )
     config = CoinBacktestConfig(initial_capital=10_000_000)
     engine = CoinBacktestEngine(config)
-    prices = _make_prices(30, seed=3)
-    result = engine.compare_with_legacy(_make_track(), prices)
-    # 거래 없으면 drag=0 (is_more_realistic=True 포함)
-    assert result["is_more_realistic"] is True or result["slippage_drag_pct"] >= 0
+    result = engine.compare_with_legacy(_make_cost_stub(), prices)
+    # 거래가 실제 발생해야 비용모델이 검증됨(n_trades=0 vacuous 방지)
+    assert result["coin_return_pct"] != result["zero_return_pct"], "거래 미발생 — 비용모델 검증 불가"
+    # Upbit 수수료+슬리피지 → coin 수익률 < zero 수익률 → drag 엄격 양수
+    assert result["slippage_drag_pct"] > 0.0
+    assert result["is_more_realistic"] is True
 
 
 # ---------------------------------------------------------------------------
