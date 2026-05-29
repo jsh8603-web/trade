@@ -50,13 +50,14 @@ class CoinTrackWithMacro(CoinTrack):
         self._macro_orch = macro_orchestrator
         self._macro_enabled = macro_enabled
 
-    def collect_market_state(self) -> MarketState:
+    def collect_market_state(self, as_of=None) -> MarketState:
         """기존 CoinTrack.collect_market_state + macro 레이어 주입.
 
         macro_view 는 raw_external_data["macro_view"] 에 주입.
         coin 결정엔진은 이 정보를 참조할 수 있으나 무시도 가능(기존 로직 우선).
+        as_of 는 super() 로 전달(백테스트 PIT 진입점, 하위호환 default None).
         """
-        state = super().collect_market_state()
+        state = super().collect_market_state(as_of=as_of)
 
         if self._macro_enabled and self._macro_orch is not None:
             try:

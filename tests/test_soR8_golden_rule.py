@@ -63,7 +63,8 @@ def test_invariant1_coin_shadow_no_execute_trade_import():
 # (2) 결정엔진/레짐 유지 — super() 위임
 def test_invariant2_decision_engine_delegation():
     src = _src("core/coin_track_macro.py")
-    assert "super().collect_market_state()" in src
+    # 위임 보존 검사(인자 무관 — WP6 as_of 진입점 추가 후에도 super 위임 유지)
+    assert "super().collect_market_state(" in src
     assert "super().generate_candidate(state)" in src
 
 

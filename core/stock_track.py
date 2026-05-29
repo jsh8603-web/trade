@@ -84,11 +84,13 @@ class StockTrack(AssetTrack):
 
     # ── AssetTrack 추상메서드 구현 ─────────────────────────────────────
 
-    def collect_market_state(self) -> MarketState:
+    def collect_market_state(self, as_of=None) -> MarketState:
         """주가 MarketQuote + PIT Fundamentals 수집 → MarketState raw 보존.
 
         실 데이터는 Phase 4 KIS/DART wire 후. 현재는 override 주입 또는 빈 dict.
         MarketState.raw_market_data 에 quote·fundamentals·ticker 를 보존한다.
+        as_of=<datetime>: 백테스트 PIT 진입점 — quote override 가 없을 때 raw_market_data["as_of"]
+          기록(provider 소비는 후속 WP6). 하위호환 default None.
         """
         raw_market = self._market_data_override or {}
         raw_external = self._external_data_override or {}
@@ -111,6 +113,8 @@ class StockTrack(AssetTrack):
             }
         if self.ticker and "ticker" not in raw_market:
             raw_market["ticker"] = self.ticker
+        if as_of is not None and "as_of" not in raw_market:
+            raw_market["as_of"] = as_of.isoformat()
 
         if self._fundamentals_override:
             raw_external = {

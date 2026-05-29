@@ -58,9 +58,11 @@ class CoinTrack(AssetTrack):
     # collect_market_state
     # ------------------------------------------------------------------
 
-    def collect_market_state(self) -> MarketState:
+    def collect_market_state(self, as_of=None) -> MarketState:
         """시장 데이터 수집 → MarketState(raw 4종) 반환.
 
+        as_of=None: 현재 시점(라이브 기본, 하위호환). as_of=<datetime>: 백테스트 PIT
+          재구성 진입점 — raw_market_data["as_of"] 에 기록(PIT provider 소비는 후속 WP6).
         override 주입 시 그 값을 사용(mock 테스트용).
         실 환경에서는 subprocess로 scripts/ 호출 + ExternalDataAgent.collect_all().
         _evaluate_market_state()는 generate_candidate() 내부(run() 위임)이므로 여기서 호출 금지.
@@ -69,6 +71,9 @@ class CoinTrack(AssetTrack):
         portfolio = self._collect_portfolio()
         external_data = self._collect_external_data()
         past_decisions = self._load_past_decisions()
+
+        if as_of is not None and "as_of" not in market_data:
+            market_data = {**market_data, "as_of": as_of.isoformat()}
 
         return MarketState(
             raw_market_data=market_data,

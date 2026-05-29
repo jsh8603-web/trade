@@ -227,8 +227,10 @@ class BacktestEngine:
         for ts, price in price_series.items():
             vol = float(volume_series.get(ts, 0.0))
 
-            # AssetTrack 계약 경유
-            state = asset_track.collect_market_state()
+            # AssetTrack 계약 경유 — as_of=ts 로 PIT 진입점 전달(백테스트 리플레이)
+            state = asset_track.collect_market_state(
+                as_of=ts if isinstance(ts, datetime) else None
+            )
             state.raw_market_data["price"] = price
             state.raw_market_data["asset"] = asset_name
             state.raw_market_data["timestamp"] = str(ts)

@@ -58,9 +58,13 @@ class AssetTrack(ABC):
     """
 
     @abstractmethod
-    def collect_market_state(self) -> "MarketState":
+    def collect_market_state(self, as_of: "datetime | None" = None) -> "MarketState":
         """시장 상태를 수집해 MarketState 로 반환.
 
+        as_of=None: 현재 시점 수집(라이브 기본 동작, 하위호환 보존).
+        as_of=<datetime>: 그 시점 PIT(point-in-time) 재구성용 진입점 — 백테스트
+          리플레이가 과거 시점 환경(가격뿐 아니라 macro/FGI/sentiment)을 lookahead
+          없이 재구성하도록 구현체가 PIT provider 로 분기. (WP6: provider 소비는 후속)
         실제 외부 호출(API·DB·스크립트)은 구현체가 담당.
         _evaluate_market_state()는 generate_candidate() 내부(run() 위임) 귀속이므로
         여기서 중복 호출 금지.
