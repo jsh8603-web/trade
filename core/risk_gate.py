@@ -302,16 +302,28 @@ MDD_THRESHOLD = float(os.environ.get("RISK_MDD_THRESHOLD", "-0.15"))  # -15%
 
 
 class KillSwitch:
-    """MDD 기반 kill switch — H27 보완.
+    """MDD 기반 kill switch — H27 보완 + 무인(unattended) 자동 de-risk.
 
     SACRED:
-      - 자동 전량청산 금지 (⛔ auto liquidation)
-      - 청산은 confirm() 호출 후에만 진행
-      - 수동 EMERGENCY_STOP(orchestrator.py:179) 과 독립
+      - 자동 전량 시장가 청산 금지 (⛔ full market liquidation) — 유지.
+        thin-book 덤핑(-50%) footgun 방지. 비상 축소는 derisk_executor(U2)가
+        IOC 단계청산 + 슬리피지 상한 frozen bag 으로 집행 (전량청산 아님).
+      - attended 모드: 청산은 confirm() 호출 후에만 (사람 게이트).
+      - unattended 모드: 사람 confirm 부재 → auto_derisk_due()=True 즉시.
+        derisk_executor(U2)가 de-risk-to-floor 자동 집행 → 무인 영구동결 해소.
+      - 수동 EMERGENCY_STOP(orchestrator.py:179) 과 독립.
     """
 
-    def __init__(self, mdd_threshold: float = MDD_THRESHOLD) -> None:
+    def __init__(
+        self,
+        mdd_threshold: float = MDD_THRESHOLD,
+        unattended: bool | None = None,
+    ) -> None:
         self.mdd_threshold = mdd_threshold
+        # 무인 운영 기본 True. RISK_UNATTENDED=false 시 attended(사람 confirm) 모드.
+        if unattended is None:
+            unattended = os.environ.get("RISK_UNATTENDED", "true").lower() != "false"
+        self.unattended = unattended
         self._state: KillSwitchState = KillSwitchState.ACTIVE
         self._alert_flag: bool = False      # 알림 플래그 (외부 모니터링용)
         self._pending_liquidation: bool = False
@@ -370,14 +382,25 @@ class KillSwitch:
         return False
 
     def confirm(self) -> bool:
-        """청산 컨펌 — CONFIRM_PENDING → liquidation 실행 허가.
+        """청산 컨펌 — CONFIRM_PENDING → liquidation 실행 허가 (attended 전용).
 
         Returns True 시 호출자가 청산 로직을 수행해야 함.
+        ⚠️ unattended 모드에서는 사람 confirm 부재 → auto_derisk_due() 경로 사용.
         """
         if self._state == KillSwitchState.CONFIRM_PENDING:
             self._pending_liquidation = False
             return True
         return False
+
+    def auto_derisk_due(self) -> bool:
+        """무인 자동 de-risk 발동 여부 (사람 confirm 부재 시 영구동결 해소).
+
+        unattended 모드 + HALTED/CONFIRM_PENDING → True (즉시, 사람 대기 없음).
+        derisk_executor(U2)가 이 신호를 소비해 de-risk-to-floor(IOC 단계청산
+        + frozen bag 상한)를 자동 집행한다. 전량 시장가 청산이 아니라 SACRED 와 양립.
+        attended 모드(unattended=False)는 False → confirm()/H27 타임아웃 경로 유지.
+        """
+        return self.unattended and self.is_halted
 
     def reset(self) -> None:
         """강제 리셋 (테스트/수동 복구용)."""
