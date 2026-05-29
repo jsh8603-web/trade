@@ -72,6 +72,8 @@ class StockTrack(AssetTrack):
         _weight_card_override: Any = None,
         _indicator_z_override: dict | None = None,
         _regime_pi_override: dict | None = None,
+        _registry_override: Any = None,
+        _regime_label_override: str | None = None,
     ) -> None:
         self.ticker = ticker
         self.mode = mode
@@ -91,6 +93,9 @@ class StockTrack(AssetTrack):
         self._weight_card = _weight_card_override
         self._indicator_z = _indicator_z_override
         self._regime_pi = _regime_pi_override
+        # ③ registry 조회: override 없으면 train_weights 가 영속한 학습 카드를 거시국면별로 조회.
+        self._registry = _registry_override
+        self._regime_label = _regime_label_override
 
     # ── AssetTrack 추상메서드 구현 ─────────────────────────────────────
 
@@ -200,6 +205,22 @@ class StockTrack(AssetTrack):
         # 조건부 가중으로 합성돼 sizing 에 도달. 미주입 시 기존 경로 그대로(무회귀).
         return self._apply_r15_sizing(decision_dict, state, trigger, ticker)
 
+    def _resolve_weight_card(self, state: MarketState):
+        """③ override 없으면 registry 에서 거시국면별 학습 카드 조회(train_weights 영속분).
+
+        regime_label = override 또는 state.raw_market_data["regime_label"]. id=weight.equity.{regime}.
+        registry/regime 부재·미존재 → None(R15 미적용, 기존 경로). 학습=배치 / 적용=라이브 조회 분리.
+        """
+        if self._registry is None:
+            return None
+        regime = self._regime_label or state.raw_market_data.get("regime_label")
+        if not regime:
+            return None
+        try:
+            return self._registry.get(f"weight.equity.{regime}")
+        except Exception:
+            return None
+
     def _extract_indicator_z(self, state: MarketState, series_ids):
         """state 에서 series_ids 순서로 지표 z 벡터 추출. override 우선, 누락 series=0 기여.
 
@@ -231,7 +252,7 @@ class StockTrack(AssetTrack):
         ★이유(판단근거 보존): R15=L1 결정론(평가지표 가중, 거시·산업 조건부) / value_trigger=
           agent veto/감쇠. 순서 불변식으로 LLM/agent 가 학습가중 sizing 을 흔들지 못함.
         """
-        wc = self._weight_card
+        wc = self._weight_card or self._resolve_weight_card(state)
         if wc is None or decision_dict.get("decision") != "buy":
             return decision_dict
         z = self._extract_indicator_z(state, wc.series_ids)
