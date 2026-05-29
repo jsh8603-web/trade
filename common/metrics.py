@@ -128,3 +128,25 @@ def equity_from_returns(
 ) -> pd.Series:
     """수익률 시계열 → 자산가치 시계열 (복리 누적)."""
     return initial_capital * (1 + returns).cumprod()
+
+
+# ---------------------------------------------------------------------------
+# N-P5-COIN-METRICS 소진 — coin 지표 공통 (backtest_v6_simulation.py:187 동치)
+# ---------------------------------------------------------------------------
+
+def calculate_rsi(closes: list, period: int = 14) -> float:
+    """RSI 계산 (backtest_v6_simulation.py:187 calc_rsi 동치 공통화).
+
+    coin sim_engine·backtest_v6의 3중 중복 지표를 common/metrics SSOT로 일원화.
+    수식: 동일 입력 → 동일 출력 보장 (SACRED: 기존 로직 재작성 금지, 동치만).
+    """
+    if len(closes) < period + 1:
+        return 50.0
+    deltas = [closes[i] - closes[i - 1] for i in range(1, len(closes))]
+    recent = deltas[-period:]
+    gains = [d for d in recent if d > 0]
+    losses = [-d for d in recent if d < 0]
+    avg_gain = sum(gains) / period if gains else 0
+    avg_loss = sum(losses) / period if losses else 0.001
+    rs = avg_gain / avg_loss
+    return round(100 - (100 / (1 + rs)), 2)
