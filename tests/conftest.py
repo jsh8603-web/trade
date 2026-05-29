@@ -31,6 +31,7 @@ collect_ignore = [
     "test_trainer_submit.py",
     "test_weekly_retrain.py",
     "test_train.py",
+    "test_breakout.py",  # scripts.breakout_trader 모듈 부재(제거된 기능 orphan 테스트)
 ]
 
 
