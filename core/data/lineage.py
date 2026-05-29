@@ -152,6 +152,43 @@ class LineageStore:
         return st
 
 
+# ---------------------------------------------------------------------------
+# ★ 가중카드 비중 provenance (R15 §4 btn-Inv) — 기존 emit/replay 재사용 헬퍼
+# ---------------------------------------------------------------------------
+# 가중카드(WeightAssumptionCard) 의 비중 도출도 IA-3 replay 대상이다: 어떤 지표 시계열
+# (raw/vintage) + 어떤 regime 모델(derived) + 어떤 glasso fn_version 으로 나왔는지. 별도
+# 저장구조 없이 기존 LineageStore.emit 으로 기록 — output_id 규약 + ProvenanceRef kind
+# 만 통일한다. replay(weight_card_output_id, as_of) 로 그 시점 비중 도출 체인 재현.
+
+WEIGHT_CARD_OUTPUT_PREFIX = "weightcard"
+
+
+def weight_card_output_id(card_id: str, version: int) -> str:
+    """가중카드 lineage output_id 규약 = 'weightcard:{card_id}:v{version}'."""
+    return f"{WEIGHT_CARD_OUTPUT_PREFIX}:{card_id}:v{version}"
+
+
+def emit_weight_card_lineage(
+    store: LineageStore, *, card_id: str, version: int,
+    indicator_refs: list, glasso_fn_version: str, config_hash: str,
+    knowledge_time: AsOfLike, regime_model_ref: Optional[ProvenanceRef] = None,
+    sys_time: Optional[AsOfLike] = None,
+) -> LineageEvent:
+    """가중카드 비중 도출 provenance 기록(기존 emit 래핑).
+
+    inputs = 지표 시계열 refs(raw/vintage, kind='raw') + (옵션)regime 모델(kind='derived').
+    knowledge_time = 학습 데이터 PIT 경계(= weight_card_store.knowledge_time 와 정합).
+    """
+    inputs = list(indicator_refs)
+    if regime_model_ref is not None:
+        inputs.append(regime_model_ref)
+    return store.emit(
+        weight_card_output_id(card_id, version), inputs,
+        derivation_fn_version=glasso_fn_version, config_hash=config_hash,
+        knowable_from=knowledge_time, sys_time=sys_time,
+    )
+
+
 if __name__ == "__main__":
     import tempfile
 
@@ -214,4 +251,24 @@ if __name__ == "__main__":
         assert "순환" in str(e)
     print("5) 순환 참조 탐지 OK")
 
-    print("lineage (provenance + as_of replay) self-test PASS")
+    # 6) ★가중카드 비중 provenance (R15): 지표 시계열 + regime 모델 → 비중카드 도출 체인
+    wst = LineageStore()
+    cid = "risk_off|defensive|2024H1"
+    emit_weight_card_lineage(
+        wst, card_id=cid, version=1,
+        indicator_refs=[ProvenanceRef("CPI", "raw", vintage="v20240331"),
+                        ProvenanceRef("RATE", "raw", vintage="v20240331"),
+                        ProvenanceRef("PMI", "raw", vintage="v20240331")],
+        regime_model_ref=ProvenanceRef("regime_classifier", "derived"),
+        glasso_fn_version="glasso@1.0", config_hash="cfg_w1",
+        knowledge_time="2024-03-31")
+    oid = weight_card_output_id(cid, 1)
+    rep = wst.replay(oid, "2024-05-01")
+    assert rep is not None and rep["fn_version"] == "glasso@1.0", rep
+    kinds = sorted(i["kind"] for i in rep["inputs"])
+    assert kinds == ["derived", "raw", "raw", "raw"], kinds
+    # ★PIT: 학습경계(03-31) 前 as_of 엔 비중카드 도출 미가시
+    assert wst.replay(oid, "2024-03-01") is None, "도출(03-31) 前 미가시"
+    print(f"6) 가중카드 provenance: {oid} → 지표 3 raw + regime derived 재현, PIT(03-31 前 None) OK")
+
+    print("lineage (provenance + as_of replay + 가중카드 provenance) self-test PASS")

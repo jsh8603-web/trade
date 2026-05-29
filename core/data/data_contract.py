@@ -17,9 +17,10 @@ false-incident). 각 도메인 series 의 발표 주기 기준으로 stale 판�
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
-from typing import Iterable, Optional, Union
+from typing import Callable, Iterable, Optional, Union
 
 import pandas as pd
 
@@ -214,6 +215,76 @@ def scan_for_silent_rewrite(
     return incidents
 
 
+# ---------------------------------------------------------------------------
+# ★ WeightCard 스키마 게이트 (R15 §4 btn-Inv — 가중카드 데이터 무결성)
+# ---------------------------------------------------------------------------
+# 가중카드(WeightAssumptionCard)의 *데이터 무결성*만 검증한다 — 비중 도출의 *타당성*
+# (Ω·IC 결합·shrinkage 등)은 btn-Codlearn validator 소관. 여기는: scope 키 존재 ·
+# weight finite/비영/cap · PIT 단조(knowledge_time≤decision_time) · embargo 재확인 ·
+# (옵션)hash 무결성. card 는 duck-typed(WeightCardRecord 호환) — weight_card_store 역의존
+# 회피 위해 hash 재계산은 recompute_hash 콜백 주입(기본 None=skip).
+
+WEIGHT_CARD_SCHEMA_VERSION = "wc_v1"
+
+
+def check_weight_card(
+    card, *, max_weight_abs: float = 1.0,
+    recompute_hash: Optional[Callable[[object], str]] = None,
+) -> ContractResult:
+    """가중카드 데이터 무결성 게이트 → ContractResult(domain='weight_card').
+
+    incident != 0 = 측정/영속 무결성 사고(가정 틀림 아님 — IA-2 원칙 동일). card 속성:
+    regime/archetype/period/weights(((k,v),...))/knowledge_time/decision_time/embargo_days
+    /card_hash. recompute_hash(card)→str 주입 시 영속 hash 변조 탐지.
+    """
+    inc: list[dict] = []
+    kt = getattr(card, "knowledge_time", None)
+    dt0 = getattr(card, "decision_time", None)
+
+    for k in ("regime", "archetype", "period"):
+        if not getattr(card, k, ""):
+            inc.append({"check": "scope_key_missing", "column": k, "n_failed": 1,
+                        "sample": f"scope 키 '{k}' 비어있음"})
+
+    weights = list(getattr(card, "weights", []) or [])
+    vals = [float(v) for _, v in weights] if weights else []
+    if not vals:
+        inc.append({"check": "weights_empty", "column": "weights", "n_failed": 1,
+                    "sample": "weight 0개"})
+    else:
+        if any(not math.isfinite(v) for v in vals):
+            inc.append({"check": "weight_nan_inf", "column": "weights",
+                        "n_failed": sum(1 for v in vals if not math.isfinite(v)),
+                        "sample": "weight 에 NaN/inf"})
+        if all(v == 0 for v in vals):
+            inc.append({"check": "weights_all_zero", "column": "weights",
+                        "n_failed": len(vals), "sample": "전 weight=0(degenerate)"})
+        over = [v for v in vals if math.isfinite(v) and abs(v) > max_weight_abs]
+        if over:
+            inc.append({"check": "weight_cap", "column": "weights", "n_failed": len(over),
+                        "sample": f"|w| 최대 {max(abs(v) for v in over):.4f} > cap {max_weight_abs}"})
+
+    if kt is not None and dt0 is not None and dt0 < kt:
+        inc.append({"check": "weight_pit_monotonic", "column": "decision_time", "n_failed": 1,
+                    "sample": f"decision_time({dt0}) < knowledge_time({kt}) = 미래학습"})
+
+    emb = getattr(card, "embargo_days", None)
+    if kt is not None and dt0 is not None and emb is not None and (dt0 - kt).days < emb:
+        inc.append({"check": "weight_embargo", "column": "decision_time", "n_failed": 1,
+                    "sample": f"embargo gap {(dt0 - kt).days}일 < {emb}일"})
+
+    if recompute_hash is not None:
+        h = recompute_hash(card)
+        if h != getattr(card, "card_hash", None):
+            inc.append({"check": "weight_hash_mismatch", "column": "card_hash", "n_failed": 1,
+                        "sample": "card_hash 재계산 불일치(영속 변조 의심)"})
+
+    as_of = dt0 if isinstance(dt0, (date, datetime)) else datetime(1970, 1, 1)
+    return ContractResult(passed=(len(inc) == 0), domain="weight_card",
+                          as_of=as_of, incidents=inc,
+                          schema_version=WEIGHT_CARD_SCHEMA_VERSION)
+
+
 if __name__ == "__main__":
     base = {
         "effective_from": pd.to_datetime(["2024-01-01", "2024-04-01"]),
@@ -284,4 +355,35 @@ if __name__ == "__main__":
     assert len(incs) == 1 and incs[0]["column"] == "PMI", incs
     print(f"8) scan 일괄: silent rewrite 1건(PMI)만 탐지({len(incs)}건) OK")
 
-    print("data_contract (Pandera 게이트 + ingestion checksum) self-test PASS")
+    # 9) ★WeightCard 스키마 게이트 (R15) — duck-typed card
+    from types import SimpleNamespace
+    good = SimpleNamespace(regime="risk_off", archetype="defensive", period="2024H1",
+                           weights=(("CPI", 0.4), ("RATE", 0.35), ("PMI", 0.25)),
+                           knowledge_time=date(2024, 3, 31), decision_time=date(2024, 5, 1),
+                           embargo_days=30, card_hash="h1")
+    r = check_weight_card(good, max_weight_abs=1.0)
+    assert r.passed and r.domain == "weight_card" and r.schema_version == "wc_v1", r.incidents
+    print(f"9) WeightCard clean: passed={r.passed} schema={r.schema_version}")
+
+    # 10) scope 키 누락 + weight cap 초과 + PIT 역전 동시
+    bad = SimpleNamespace(regime="", archetype="x", period="p",
+                          weights=(("A", 1.5), ("B", 0.2)),
+                          knowledge_time=date(2024, 5, 1), decision_time=date(2024, 3, 1),
+                          embargo_days=30, card_hash="h")
+    r = check_weight_card(bad, max_weight_abs=1.0)
+    checks = {i["check"] for i in r.incidents}
+    assert not r.passed and {"scope_key_missing", "weight_cap", "weight_pit_monotonic",
+                             "weight_embargo"} <= checks, checks
+    print(f"10) WeightCard 위반 다중: {sorted(checks)} 탐지 OK")
+
+    # 11) NaN weight + 전영 + hash 변조
+    nan_card = SimpleNamespace(regime="r", archetype="a", period="p",
+                               weights=(("A", float("nan")),),
+                               knowledge_time=date(2024, 1, 1), decision_time=date(2024, 2, 1),
+                               embargo_days=10, card_hash="stored")
+    r = check_weight_card(nan_card, recompute_hash=lambda c: "recomputed_differs")
+    checks = {i["check"] for i in r.incidents}
+    assert "weight_nan_inf" in checks and "weight_hash_mismatch" in checks, checks
+    print(f"11) WeightCard NaN+hash 변조: {sorted(checks)} 탐지 OK")
+
+    print("data_contract (Pandera 게이트 + ingestion checksum + WeightCard) self-test PASS")
