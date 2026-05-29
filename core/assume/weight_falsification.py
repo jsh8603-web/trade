@@ -27,7 +27,7 @@ import numpy as np
 
 from core.assume.card_contract import AssumptionCardLike
 from core.structure.assumption_validation_engine import ValidationVerdict
-from core.structure.eprocess_backbone import MixtureSPRTEProcess
+from core.structure.eprocess_backbone import e_cusum
 
 # SECONDARY drift 기본 임계 (자문 §1.5 ‖ΔΩ‖·logdet)
 DEFAULT_TAU_FRO: float = 0.50       # 상대 Frobenius drift (Ω 50% 변형)
@@ -71,18 +71,19 @@ def score_ic_breakdown_eprocess(
     alpha: float = 0.05,
     tau2: float = 1.0,
 ) -> tuple[bool, float, int]:
-    """합성 score Rank-IC 시계열의 **붕괴**(baseline 아래 단측 shift)를 anytime-valid e-process 로.
+    """합성 score Rank-IC 시계열의 **붕괴**(baseline 아래 단측 하락)를 anytime-valid E-CUSUM 으로.
 
-    x_t = −(ic_t − baseline)/sd: IC 가 baseline 아래로 내려갈수록 x↑ → e-value↑ → reject.
-    상승(IC 개선)은 reject 안 시킴(단측 = 붕괴만 kill). Ville 부등식: P(거짓 kill)≤alpha,
-    optional-stopping·임의의존 robust. (reject, e_value, n).
+    z_t = (baseline − ic_t)/sd: IC 가 baseline 아래로 내려갈수록 z↑ → detector↑ → reject.
+    ★단측 E-CUSUM(log_R = max(0, ·) reset): IC **개선**(ic>baseline)은 0 으로 floor = kill 안 함
+    (붕괴만 kill). mixture 양측이 IC 개선도 reject·overflow 하던 문제 해소. changepoint=max_r≥1/alpha.
+    Ville: P(거짓 kill)≤alpha, optional-stopping robust. (reject, max_detector, n).
     """
     sd = float(sd) if sd and sd > 1e-9 else 1.0
-    ep = MixtureSPRTEProcess(alpha=alpha, tau2=tau2)
-    last = None
-    for ic in ic_series:
-        last = ep.update(-(float(ic) - baseline_ic) / sd)
-    return (bool(last.reject) if last is not None else False, float(ep.e_value), int(ep.n))
+    s = np.asarray(list(ic_series), dtype=float)
+    if s.size == 0:
+        return (False, 1.0, 0)
+    max_r = e_cusum(s, float(baseline_ic), sd, tau2=tau2, alpha=alpha)
+    return (bool(max_r >= 1.0 / alpha), float(max_r), int(s.size))
 
 
 def omega_drift(omega_old: np.ndarray, omega_new: np.ndarray) -> tuple[float, float]:

@@ -248,3 +248,54 @@ def test_calibration_produces_frozen_belief():
     card = _weight_card("macro", "macro", [0.4, 0.3, 0.3, 0, 0, 0],
                        [float(probs[0]), float(probs[1])], calib_hash=cr.pin_hash)
     assert card.calibration_hash == cr.pin_hash
+
+
+# ===========================================================================
+# 7) ★production 오케스트레이터 (weight_cycle) — 미배선 4 seam 해소 회귀 게이트
+# ===========================================================================
+
+def _learner_and_returns(seed):
+    import numpy as _np
+    from core.assume.weight_cycle import GlassoWeightLearner
+    X, reg = _two_regime_panel(seed=seed)
+    rng = _np.random.default_rng(seed + 100)
+    ret = X[:, 0] * 0.5 + X[:, 2] * 0.3 + rng.normal(0, 0.5, len(X))   # 지표0,2 예측
+    return GlassoWeightLearner(lam_floor=0.05).fit(X, reg), X, ret
+
+
+@pytest.mark.parametrize("domain,scope", DOMAINS)
+def test_production_cycle_one_turn(domain, scope):
+    """run_weight_cycle: 학습→기준화→주입→score IC→DUAL→lifecycle 한 바퀴(라이브 미접촉)."""
+    from core.assume.weight_cycle import run_weight_cycle
+    learner, X, ret = _learner_and_returns(seed=hash(domain) % 500 + 11)
+    reg_r = AssumptionRegistry(); dag = AssumptionDAG(reg_r)
+    uc = UpdateController(reg_r, validator=None, dag=dag)
+    res = run_weight_cycle(
+        learner, belief={0: 0.7, 1: 0.3}, returns=ret, z_now=X[100], forward_returns=ret,
+        registry=reg_r, uc=uc, domain=domain, scope=scope,
+        series_ids=_series_ids(domain), regime_id="recession", as_of="2026-05-01")
+    # 안정·우수 IC → kill 아님. 카드 등록 + S_L1 산출 + ic 시계열 생성 확인
+    assert res.falsification.primary_kill is False
+    assert res.decision.action in (UpdateAction.KEEP, UpdateAction.TRANSITION)
+    assert reg_r.get(res.card.id) is not None and len(res.ic_series) > 0
+
+
+def test_cycle_secondary_refit_routes_to_transition():
+    """★SECONDARY Ω drift(score 견딤) → route_lifecycle 가 derive_weights 재적합 → TRANSITION."""
+    import numpy as _np
+    from core.assume.weight_cycle import build_weight_card, route_lifecycle
+    learner, X, ret = _learner_and_returns(seed=22)
+    reg_r = AssumptionRegistry(); dag = AssumptionDAG(reg_r)
+    uc = UpdateController(reg_r, validator=None, dag=dag)
+    card = build_weight_card(learner, {0: 0.5, 1: 0.5}, ret, domain="macro", scope="macro",
+                             series_ids=_series_ids("macro"), regime_id="neutral",
+                             valid_from="2026-05-01")
+    reg_r.register(card)
+    rng = _np.random.default_rng(22)
+    stable_ic = list(0.05 + rng.normal(0, 0.01, 30))
+    res = evaluate_weight_card(card, stable_ic, baseline_ic=0.05, sd=0.02,
+                              omega_old=_np.eye(P), omega_new=_np.diag([5.0] * P))
+    assert res.secondary_refit and not res.primary_kill
+    dec = route_lifecycle(reg_r, uc, card, res, learner=learner, belief={0: 0.5, 1: 0.5},
+                          returns=ret, as_of="2026-06-01", epoch=1)
+    assert dec.action == UpdateAction.TRANSITION and dec.new_card.version == "v2"
