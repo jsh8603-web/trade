@@ -19,6 +19,12 @@ for _p in (PROJECT_DIR, PROJECT_DIR / "scripts"):
         sys.path.insert(0, _s)
 
 
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "slow: 느린 테스트(subprocess 회귀 등) — 빠른 실행 시 '-m \"not slow\"' 로 제외"
+    )
+
+
 @pytest.fixture
 def stub_file_exists():
     """notify_telegram.send_photo 의 파일 검증(Path.exists/is_file/stat)을 바이패스.
