@@ -1,0 +1,25 @@
+## §0. R1 결과 요약 (누적 맥락)
+
+이전 라운드(R1)에서 같은 3점을 물었고, 결과:
+- **Q1 glasso penalty**: 두 모델 만장일치 = EBIC grid search(γ=0.5, grid 범위는 √(log p/n) 이론스케일로 설정, graphical_lasso loop 직접). → **확정, 재론 불필요.**
+- **Q2 calibration**: 두 모델 만장일치 = Temperature scaling(1-param, NLL bounded Brent, frozen). isotonic은 OOS label 대량 + reliability diagram 부호반전 miscalibration일 때만. 현재 소표본 미충족. → **확정, 재론 불필요.**
+- **Q3 belief-mix 수치안정성**: **의견 분기. 이번 라운드는 Q3만.**
+
+## §1. Q3 두 의견 (수렴 시도 대상)
+
+배경 수식: Σ_eff = Σ_r b_r·Σ_r + Σ_r b_r(μ_r−μ̄)(μ_r−μ̄)ᵀ → 1회 역행렬 → Ω_eff. within항=PD 볼록결합, between항=PSD. 정확산술이면 항상 PD. "PD 붕괴"는 (1) one-hot belief 근방 per-regime 조건수 상속 + (2) roundoff 비대칭, 두 수치 원인.
+
+- **의견 A (gemini)**: Σ_eff에 **Scaled Diagonal Loading** — `Σ_eff + ε·(Tr(Σ_eff)/p)·I` (절대 εI 아닌 trace 비례 = scale-invariant). 대각 균일 추가라 eigenvector 방향·between-dispersion 구조 보존. ε≈1e-6.
+- **의견 B (claude)**: Σ_eff에 **손대지 말 것**(blanket loading 금지 — λ_min을 키워 cond ratio를 압축 → between-dispersion이 inflate한 spread를 가린다). 대신: (i) 대칭화 (M+Mᵀ)/2 (roundoff 비PD 제거), (ii) **per-regime eigenvalue 상대 floor를 post-EB Σ_r(소스)에 적용** (조건수 상속을 소스에서 차단), (iii) Cholesky 역행렬(cho_factor/cho_solve, 비PD면 fail-loud tripwire + flag), (iv) **★측정/fix 분리** — transition de-risk feature(between-dispersion 신호)를 cond(Σ_eff)에서 역산하지 말고 between_term에서 직접(top eigenvalue 또는 trace, fix보다 상류) 읽음 → PD-fix가 무엇이든 feature는 무관해짐.
+
+## §2. 제약 (R1 동일)
+
+regime별 소표본 n=30~100, p=5~15. PIT/replay 결정론. nonparanormal rank-transform + EB shrinkage(Σ̂=λΣ_prior+(1−λ)Σ_glasso, λ-floor)가 per-regime Σ_r 추정에 이미 적용됨. sklearn 1.8/scipy 1.17/numpy 2.4.
+
+## §4. Q3 수렴 질문 2개
+
+**Q3-1.** 의견 B의 "측정/fix 분리"(de-risk feature를 between_term에서 직접 읽어 PD-fix와 독립화)를 채택하면 PD-fix가 feature를 안 건드리므로 fix 선택이 자유로워진다. **이 분리를 전제로 할 때**, PD-fix를 (a) per-regime eigenvalue floor(소스, 조건수 상속 차단) vs (b) Σ_eff scaled diagonal loading(싱크, scale-invariant) 중 어디에 두는 게 결정론·PIT·중복회피 측면 최선인가? 소스 floor + 싱크 대칭화면 충분하고 싱크 loading은 불필요한가, 아니면 둘 다 필요한가?
+
+**Q3-2.** nonparanormal + EB shrinkage(λ_prior floor)가 이미 per-regime Σ_r을 PD/well-conditioned로 만든다. 그 위에 **추가** per-regime eigenvalue floor가 실질적으로 더 필요한가, 아니면 EB shrinkage로 충분하고 Σ_eff 단계는 대칭화 + Cholesky fail-loud만으로 족한가? one-hot belief 근방의 조건수 상속이 EB shrinkage만으로 닫히는가?
+
+⛔ Q1/Q2 및 설계 자체는 재론 불필요. Q3-1/Q3-2 답만 간결히. 두 의견(A/B)을 보고 어느 쪽이 옳은지 또는 통합안을 제시.

@@ -1,0 +1,28 @@
+## §0. 이전 의견 맥락 (확정·고정 — 재논의 대상 아님)
+
+"가정 라이프사이클 v2" 투자 시스템. 전체구조 3R + 가중학습(R15) 3R 외부 의견이 이미 saturation 완료. **아래 설계는 확정이며 바꾸는 제안은 불필요**:
+- regime-conditional **Graphical Lasso** (HMM/DCC 기각 — regime 외생 정의) + **nonparanormal rank-transform**(fat-tail) 전처리, hard-per-regime 추정
+- **EB shrinkage**: Σ̂ = λ·Σ_prior + (1−λ)·Σ_glasso, λ = n0/(n0+n_eff) + floor (prior 완전제거 차단)
+- **cov-space belief-mix**: Σ_eff = Σ_r b_r·Σ_r + Σ_r b_r(μ_r−μ̄)(μ_r−μ̄)ᵀ → **1회 역행렬** → Ω_eff (이중 mix 금지)
+- classifier confidence **calibration**(frozen) + IC falsification **검정력**(MDE + effective-n, block-bootstrap)
+
+## §1. 문제 정의
+
+위 확정 설계의 통계 본체를 Python(`core/structure/conditional_correlation.py`)으로 구현 중. 설계 방향은 고정이고, **빈칸으로 남은 세부 구현 디테일 3개만** 결정하면 된다.
+
+## §2. 제약
+
+- regime별 **소표본**: n=30~100 obs/regime, 지표 차원 p=5~15
+- PIT/replay **결정론** 필수 (frozen + hash-pin, 같은 입력 → 같은 출력)
+- 가용: sklearn 1.8 (`GraphicalLasso`/`GraphicalLassoCV`/`graphical_lasso`/`ledoit_wolf`) + scipy 1.17 + numpy 2.4 + skfolio
+- **부재**: skggm / inverse_covariance (QUIC). mlfinlab **금지**. 신규 외부 패키지 추가 회피.
+
+## §3+§4. 세부 구현 질문 3점 (설계 불변, 구현 방식만)
+
+**Q1. glasso penalty(λ_glasso) 선택** — 소표본 n=30~100, p=5~15에서 sparse precision Ω 추정. sklearn `GraphicalLassoCV`(k-fold)는 소표본에서 fold당 데이터가 더 줄어 CV가 불안정할 우려. 후보: (a) GraphicalLassoCV, (b) EBIC 기반 grid(skggm 부재 → λ-grid를 직접 돌며 EBIC 계산), (c) fixed λ = c·√(log p / n) 이론 스케일, (d) Ledoit-Wolf shrinkage 후 partial-correlation thresholding. **이 구체 차원에서 robust + 결정론(replay) 정합인 선택은? CV의 fold seed 고정으로 결정론 확보 가능한가, 아니면 EBIC/이론스케일이 더 안전한가?**
+
+**Q2. calibration: temperature(1-param) vs isotonic(monotone nonparam)** — regime classifier softmax confidence → belief b(t). OOS regime-label로 offline fit, ECE로 검증, frozen. **소표본 OOS label에서 temperature가 isotonic보다 over-fit 위험이 낮고 안전한가? isotonic이 정당화되는 조건(데이터량·단조성 위배)은? belief로 쓸 때 어느 쪽이 boundary 과신을 더 잘 눌러주나?**
+
+**Q3. belief-mix 수치안정성** — Σ_eff → 1회 역행렬 → Ω_eff. belief가 거의 one-hot(저엔트로피)이거나 uniform(고엔트로피)일 때 condition number 폭주/PD 붕괴 가능. 후보: eigenvalue floor / diagonal loading(εI jitter) / shrinkage-to-diagonal. **결정론·PIT 정합 + between-dispersion 항(= transition 자동 de-risk feature)의 신호를 죽이지 않으면서 PD를 보장하는 처리는? εjitter가 between-dispersion inflate를 가리지 않게 하려면?**
+
+⛔ 위 3점 외 설계 자체(glasso 채택 여부, belief-mix 공식, 카드화 구조)는 재논의 불필요. **세부 구현 답만** 간결히.

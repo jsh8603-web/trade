@@ -26,6 +26,8 @@ from typing import Literal, Optional
 import numpy as np
 
 from core.structure.detectors import Cusum, Bocpd, psi, prequential_loss
+# R15 §1.8 — IC falsification 검정력 게이트 (조건부상관 모듈에서 산출, 여기서 AND-gate 에 wire)
+from core.structure.conditional_correlation import ic_power_gate, ICPowerVerdict  # noqa: F401
 
 AssumptionKind = Literal["structural", "parametric"]
 
@@ -187,14 +189,18 @@ def hysteresis_and_gate(
     k_window_required: int = 2,
     same_regime: bool,                 # 신호가 동일 regime 내 (claude A-2 / consensus R7)
     is_base_layer: bool = False,       # ★ base-layer 가정(regime 모델 등) = 자동변경 금지
+    falsifiable: bool = True,          # R15 §1.8 검정력 게이트 (False=unfalsified 보호관찰, 승격 차단)
 ) -> AndGateResult:
-    """ChangeRequest 승격 = 5조건 AND. base-layer 가정은 자동승격 불가(사람 비준, C-meta)."""
+    """ChangeRequest 승격 = AND 게이트. base-layer 가정은 자동승격 불가(사람 비준, C-meta).
+    R15 §1.8: falsifiable=False(검정력 미달)면 형식상 유의해도 승격 차단 — power 없는 기각은
+    노이즈 추격. ic_power_gate(...).falsifiable 을 주입한다."""
     cond = {
         "fdr_significant": bool(fdr_significant),
         "effect_material": bool(effect_size >= effect_threshold),
         "dwell_ok": bool(dwell_ok),
         "k_window_persist": bool(k_window_persist >= k_window_required),
         "same_regime": bool(same_regime),
+        "falsifiable": bool(falsifiable),
     }
     all_pass = all(cond.values())
     if is_base_layer:
@@ -256,8 +262,17 @@ if __name__ == "__main__":
                              k_window_persist=2, same_regime=True)   # 효과 미달
     g3 = hysteresis_and_gate(fdr_significant=True, effect_size=0.7, dwell_ok=True,
                              k_window_persist=2, same_regime=True, is_base_layer=True)
-    print(f"3) AND-gate: 전부통과={g1.promote} / 효과미달={g2.promote}({[k for k,v in g2.conditions.items() if not v]}) / base-layer={g3.promote}")
-    assert g1.promote and not g2.promote and not g3.promote
+    g4 = hysteresis_and_gate(fdr_significant=True, effect_size=0.7, dwell_ok=True,
+                             k_window_persist=2, same_regime=True, falsifiable=False)  # R15 검정력 미달
+    print(f"3) AND-gate: 전부통과={g1.promote} / 효과미달={g2.promote}({[k for k,v in g2.conditions.items() if not v]}) / base-layer={g3.promote} / 검정력미달={g4.promote}")
+    assert g1.promote and not g2.promote and not g3.promote and not g4.promote
+
+    # 3-bis) IC 검정력 게이트 (R15 §1.8): 짧은 자기상관 IC → 비falsifiable → 승격 차단
+    rng2 = np.random.default_rng(7)
+    pv_short = ic_power_gate(rng2.normal(0.1, 1, 12), ref_effect=0.3)
+    pv_long = ic_power_gate(rng2.normal(0.5, 1, 200), ref_effect=0.5)
+    print(f"3-bis) IC power gate: short falsifiable={pv_short.falsifiable} / long falsifiable={pv_long.falsifiable}")
+    assert not pv_short.falsifiable and pv_long.falsifiable
 
     # 4) 신뢰도→band→사이징
     lo, hi = confidence_to_band(15.0, confidence=0.5, base_halfwidth=1.0)

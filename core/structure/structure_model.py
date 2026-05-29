@@ -74,6 +74,9 @@ class StructureModelConfig:
     robust: bool = True              # RLM HuberT (False=OLS)
     regime_sigma: bool = True        # regime별 σ 분리
     use_def_version_fe: bool = True  # R8① multiple_def_version fixed-effect
+    # R15 §1.10 — 지표×regime 교호항 (scoring 맥락 조건부상관 경량 proxy). 기본 off=무회귀.
+    use_interaction: bool = False    # driver×regime 교호항 컬럼 추가
+    ridge_alpha: float = 0.0         # 교호항 L2 수축 (가법 baseline 보존, 교호=학습 델타). >0 시 OLS ridge
 
 
 @dataclass
@@ -123,6 +126,14 @@ class StructureModel:
         if self.cfg.use_def_version_fe:
             ver_d = pd.get_dummies(df[ps.COL_MULT_DEF_VER].astype(str), prefix="defver")
             X = pd.concat([X, ver_d], axis=1)
+        # R15 §1.10 — driver×regime 교호항 (조건부상관 경량 proxy: regime 따라 driver 기울기 변동)
+        if self.cfg.use_interaction:
+            inter = {}
+            for d in drivers:
+                for rc in reg_d.columns:
+                    inter[f"{d}__x__{rc}"] = df[d].astype(float).values * reg_d[rc].astype(float).values
+            if inter:
+                X = pd.concat([X, pd.DataFrame(inter, index=X.index)], axis=1)
         X = sm.add_constant(X, has_constant="add")
         X = X.astype(float)
         if fit_cols is not None:
@@ -154,11 +165,14 @@ class StructureModel:
         # --- robust fixed-effect 적합 (Huber) ---
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            if self.cfg.robust:
+            if self.cfg.use_interaction and self.cfg.ridge_alpha > 0:
+                # 교호항 폭증 → ridge(L2) 수축. RLM 은 ridge 미지원이라 OLS fit_regularized 경로.
+                res = sm.OLS(y, X.values).fit_regularized(alpha=self.cfg.ridge_alpha, L1_wt=0.0)
+            elif self.cfg.robust:
                 res = sm.RLM(y, X.values, M=HuberT()).fit()
             else:
                 res = sm.OLS(y, X.values).fit()
-        beta = pd.Series(res.params, index=design_cols)
+        beta = pd.Series(np.asarray(res.params), index=design_cols)
 
         fitted_fe = X.values @ beta.values
         resid_fe = y - fitted_fe
