@@ -69,6 +69,9 @@ class StockTrack(AssetTrack):
         _valuation_override: ValuationResult | None = None,
         _fundamentals_override: list[Fundamentals] | None = None,
         _quote_override: MarketQuote | None = None,
+        _weight_card_override: Any = None,
+        _indicator_z_override: dict | None = None,
+        _regime_pi_override: dict | None = None,
     ) -> None:
         self.ticker = ticker
         self.mode = mode
@@ -81,6 +84,13 @@ class StockTrack(AssetTrack):
         self._valuation_override = _valuation_override
         self._fundamentals_override = _fundamentals_override or []
         self._quote_override = _quote_override
+        # ★R15 가중학습: 평가지표 동적 가중 카드 + 지표 신호. 주입 시 generate_candidate 의
+        # buy sizing 에 다중지표 합성 S_L1 을 반영(자문 §1.4 L1 결정론, pre-agent). 미주입=무회귀.
+        # weight_card = WeightAssumptionCard(registry 학습 카드 또는 prior). indicator_z =
+        # series_ids 순서 지표 z. regime_pi = soft archetype membership(거시상황/산업 조건부).
+        self._weight_card = _weight_card_override
+        self._indicator_z = _indicator_z_override
+        self._regime_pi = _regime_pi_override
 
     # ── AssetTrack 추상메서드 구현 ─────────────────────────────────────
 
@@ -182,7 +192,71 @@ class StockTrack(AssetTrack):
         )
 
         # verdict → Decision 호환 변환
-        return _trigger_to_decision(trigger, ticker)
+        decision_dict = _trigger_to_decision(trigger, ticker)
+
+        # ★R15: 다중지표 동적 가중 → L1 합성 S_L1 을 buy sizing 에 반영(평가지표 가중 연결).
+        # 이전엔 평가가 valuation_gap 단일 지표만 → R15 가중이 계산만 되고 평가 미반영(끊김).
+        # 여기서 weight_card 주입 시 EV/EBITDA·book_to_bill·inventory 등이 거시국면·산업 archetype
+        # 조건부 가중으로 합성돼 sizing 에 도달. 미주입 시 기존 경로 그대로(무회귀).
+        return self._apply_r15_sizing(decision_dict, state, trigger, ticker)
+
+    def _extract_indicator_z(self, state: MarketState, series_ids):
+        """state 에서 series_ids 순서로 지표 z 벡터 추출. override 우선, 누락 series=0 기여.
+
+        indicator_z override 가 있으면 그것(dict 라벨 lookup). 없으면 raw_external/raw_market 의
+        수치 feature 를 키 매칭. 추출 불가(소스 전무) → None(R15 미적용, 기존 경로 유지).
+        """
+        import numpy as np
+        if self._indicator_z is not None:
+            src = self._indicator_z
+        else:
+            src = {}
+            for d in (state.raw_external_data, state.raw_market_data):
+                if isinstance(d, dict):
+                    src.update({k: v for k, v in d.items() if isinstance(v, (int, float))})
+        if not src:
+            return None
+        return np.array([float(src.get(s, 0.0)) for s in series_ids], dtype=float)
+
+    def _apply_r15_sizing(self, decision_dict: dict, state: MarketState,
+                          trigger: Any, ticker: str) -> dict:
+        """R15 다중지표 동적 가중 → L1 합성 S_L1 으로 buy sizing 조절(자문 §1.4).
+
+        weight_card 미주입 → 그대로 반환(무회귀). buy 결정에만 적용:
+          S_L1 = clamp_floor(Σ wᵢ(거시국면·archetype)·zᵢ) = 지표 가중 합성 cheapness(상대 sizing 축).
+          - deadzone(|S_L1|≤floor): 지표 가중 합성상 엣지 없음 → abstain(hold, sizing 0).
+          - else: l1_size = R15 base sizing(지표가중 합성 강도). value_trigger(DCF+heavy value-trap)
+            결과 confidence 를 **down-only attenuator** 로 곱함 → final = l1_size·a (a∈[0,1]).
+            천장 불변식 final ≤ l1_size 강제(value_trigger 가 R15 sizing 을 증폭 못 함, pre-agent 우위).
+        ★이유(판단근거 보존): R15=L1 결정론(평가지표 가중, 거시·산업 조건부) / value_trigger=
+          agent veto/감쇠. 순서 불변식으로 LLM/agent 가 학습가중 sizing 을 흔들지 못함.
+        """
+        wc = self._weight_card
+        if wc is None or decision_dict.get("decision") != "buy":
+            return decision_dict
+        z = self._extract_indicator_z(state, wc.series_ids)
+        if z is None:
+            return decision_dict
+        from core.assume.weight_card import synthesize_l1, assert_ceiling_invariant
+
+        s_l1 = synthesize_l1(z, wc.composed_weights(self._regime_pi), floor=wc.floor)
+        if s_l1 == 0.0:                                       # deadzone = 지표가중 합성 엣지 없음
+            return _make_decision_dict(
+                decision="hold", confidence=0.0,
+                reason=(f"R15 L1 지표가중 합성 deadzone(|S_L1|≤{wc.floor}) → abstain "
+                        f"({decision_dict.get('reason', '')})"),
+                ticker=ticker, trigger_result=trigger)
+
+        l1_size = min(abs(float(s_l1)), 1.0)                  # R15 base sizing(지표가중 합성 강도)
+        atten = min(max(float(decision_dict.get("confidence", 0.0)), 0.0), 1.0)  # value_trigger=down-only
+        final = l1_size * atten
+        assert_ceiling_invariant(final, l1_size)              # 천장: value_trigger 증폭 불가
+        decision_dict["confidence"] = final
+        decision_dict["r15_s_l1"] = float(s_l1)
+        decision_dict["reason"] = (
+            f"{decision_dict.get('reason', '')} | R15 L1 S_L1={s_l1:+.3f}(지표가중 합성) "
+            f"l1_size={l1_size:.3f}×value_atten{atten:.2f}={final:.3f}")
+        return decision_dict
 
     def recommended_next_check(self, state: MarketState) -> datetime:
         """다음 점검 권장 시각 반환 (verdict 기반 동적 간격)."""
