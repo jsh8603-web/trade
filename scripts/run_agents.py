@@ -896,12 +896,18 @@ def main():
                 )
             except Exception as _me:
                 log(f"[core-gate] memory 로깅 예외(무시): {_me}")
-            try:  # WP4: 거시 레짐 분류 chain 가동(stub FRED=NullFredAdapter, 실데이터=go-live)
+            try:  # WP4: 거시 레짐 분류 chain — FRED_API_KEY 있으면 실데이터, 없으면 NullFredAdapter stub
                 from core.brain.regime_classifier import RegimeClassifier
-                _mv = RegimeClassifier().classify()
+                _fred_key = os.environ.get("FRED_API_KEY", "")
+                if _fred_key:
+                    from core.brain.fred_adapter import RealFredAdapter
+                    _clf = RegimeClassifier(usd_adapter=RealFredAdapter(api_key=_fred_key))
+                else:
+                    _clf = RegimeClassifier()
+                _mv = _clf.classify()
                 _st = getattr(_mv, "status", None)
                 log(f"[core-gate] 거시 레짐 chain 가동: status={getattr(_st, 'value', _st)} "
-                    f"regimes={getattr(_mv, 'regimes', {})}")
+                    f"fred={'real' if _fred_key else 'stub'} regimes={getattr(_mv, 'regimes', {})}")
             except Exception as _re:
                 log(f"[core-gate] 레짐 분류 예외(무시): {_re}")
             if _verdict.verdict == VerdictType.REJECTED:  # WP2: 우회불가 백스톱
