@@ -19,10 +19,39 @@ for _p in (PROJECT_DIR, PROJECT_DIR / "scripts"):
         sys.path.insert(0, _s)
 
 
+# 미설치 optional dep(gymnasium/gym/torch = RL 훈련, 활성 투자 파이프라인 미사용) 테스트 제외.
+# (SACRED: "RL gymnasium collection 8 errors=pre-existing 격리" 명문화 — 노이즈 차단)
+collect_ignore = [
+    "test_e2e_rl_pipeline.py",
+    "test_environment.py",
+    "test_policy.py",
+    "test_rl.py",
+    "test_rl_v6.py",
+    "test_scalp_exit_env_v6.py",
+    "test_trainer_submit.py",
+    "test_weekly_retrain.py",
+    "test_train.py",
+]
+
+
 def pytest_configure(config):
     config.addinivalue_line(
         "markers", "slow: 느린 테스트(subprocess 회귀 등) — 빠른 실행 시 '-m \"not slow\"' 로 제외"
     )
+
+
+@pytest.fixture(autouse=True)
+def _isolate_environ():
+    """매 테스트 os.environ 스냅샷→복원. 테스트 간 env 누수(직접 os.environ 변경) 차단.
+
+    .env(load_dotenv) 로 들어온 실 credential 이 한 테스트에서 변경/삭제돼도 다음 테스트로
+    누수되지 않게 격리 — kis_client 등이 단독은 PASS 인데 suite 에서 FAIL 하던 오염 해소.
+    """
+    import os
+    _snapshot = dict(os.environ)
+    yield
+    os.environ.clear()
+    os.environ.update(_snapshot)
 
 
 @pytest.fixture
