@@ -1,0 +1,18 @@
+# archetype: spread_driven (은행·증권 — financials)
+# gemini R4: P/B·ROE·금리/대손. 가치 = 스프레드(NIM)·신용사이클 함수.
+archetype: spread_driven
+primary_metric: price_to_book
+companion_signals:
+  - return_on_equity
+  - net_interest_margin
+  - rate_curve_slope
+value_trap_guards:
+  - credit_cycle_late       # 대손 충당 급증 직전 저P/B = 트랩
+  - npl_ratio_rising        # 부실여신 증가
+  - rate_inversion          # 역전 = NIM 압축
+percentile_overfit_risk: false
+cheapness_sign: low_multiple
+spread_inputs:
+  - net_interest_margin
+  - credit_spread
+  - rate_curve

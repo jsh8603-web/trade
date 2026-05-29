@@ -1,0 +1,18 @@
+# archetype: event_driven (바이오·인터넷)
+# claude R4: 멀티플 percentile 무의미 (적자/매출 전 단계). 가치 = 이벤트 binary outcome.
+archetype: event_driven
+primary_metric: ev_sales        # P/S — 이익 부재 시 매출 기준
+companion_signals:
+  - pipeline_value      # 임상 파이프라인 rNPV
+  - active_users        # MAU/DAU (인터넷)
+  - cash_runway_quarters
+value_trap_guards:
+  - binary_event_pending   # 임상 실패·승인 거절 = 가치 절벽
+  - cash_burn_exhaustion   # runway 소진 → 희석 증자
+  - tam_saturation
+percentile_overfit_risk: true   # 멀티플 분위 자체가 부적합 → 잔차도 신중
+cheapness_sign: low_multiple
+event_catalysts:
+  - phase3_readout
+  - fda_pdufa
+  - product_launch

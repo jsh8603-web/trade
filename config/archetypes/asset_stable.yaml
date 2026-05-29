@@ -1,0 +1,15 @@
+# archetype: asset_stable (유틸·통신)
+# gemini R4: DDM·배당·금리 (Stable/Yield). 가치 = 배당 할인 + 금리 민감.
+archetype: asset_stable
+primary_metric: dividend_discount_value
+companion_signals:
+  - dividend_yield
+  - payout_sustainability
+  - regulated_roe
+value_trap_guards:
+  - rate_shock              # 금리 급등 = bond-proxy 디레이팅
+  - regulatory_cut          # 규제 요금 인하 = 배당 삭감
+  - dividend_coverage_thin  # 배당성향 과다 → 삭감 리스크
+percentile_overfit_risk: false
+cheapness_sign: low_multiple
+rate_sensitivity: 1.3

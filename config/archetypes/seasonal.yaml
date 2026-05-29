@@ -1,0 +1,17 @@
+# archetype: seasonal (계절성 — 난방유·천연가스·곡물)
+# R1: 가치 판단 = 계절 잔차 z-score. raw 연간 분위는 계절성을 평균화해 무력 → overfit risk.
+archetype: seasonal
+primary_metric: seasonal_zscore   # 계절조정 잔차 z (음수 = 계절 대비 저평가)
+companion_signals:
+  - heating_degree_days           # 수요 동인 (에너지)
+  - harvest_calendar              # 공급 동인 (곡물)
+  - storage_report                # 주간 재고 (계절 수급 확증)
+value_trap_guards:
+  - regime_break                  # 이상기온·공급충격으로 계절성 무력화
+  - structural_demand_shift       # 구조적 수요 이동 (계절 패턴 영구 변경)
+percentile_overfit_risk: true     # ★ raw 연간 분위가 계절 신호를 평균화 → 잔차로 교정
+cheapness_sign: low_multiple
+season_inputs:
+  - seasonal_zscore
+  - heating_degree_days
+  - harvest_calendar

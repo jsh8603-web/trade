@@ -1,0 +1,19 @@
+# archetype: commodity_carry (원자재 carry — 롤수익률·convenience yield)
+# R1/R4: 백워데이션(carry+)=보유 매력 = equity low_multiple 와 동형. 함정은 carry 음전환.
+archetype: commodity_carry
+primary_metric: roll_yield        # 양(+)일수록 보유 매력 (백워데이션)
+companion_signals:
+  - term_structure_slope          # 곡선 기울기 (백워데이션 깊이)
+  - convenience_yield             # 현물 프리미엄 (수급 타이트)
+  - inventory_days                # 재고일수 (낮을수록 carry 지지)
+value_trap_guards:
+  - contango_flip                 # carry 음전환 = 보유비용 잠식 (트랩)
+  - inventory_glut                # 재고 급증 = 백워데이션 붕괴 선행
+  - roll_cost_drag                # 콘탱고 누적 롤손실
+percentile_overfit_risk: false    # carry 부호/수준은 분위보다 절대값 의미
+cheapness_sign: low_multiple
+carry_inputs:
+  - roll_yield
+  - term_structure_slope
+  - convenience_yield
+  - storage_cost

@@ -1,0 +1,18 @@
+# archetype: cyclical (반도체·화학·철강)
+# claude R4: 현 percentile 설계가 가장 과적합된 대상. peak-EPS 가 raw 멀티플을 낮게 보이게 함.
+archetype: cyclical
+primary_metric: ev_ebitda
+companion_signals:
+  - book_to_bill        # 수요 모멘텀 (꺾이면 정점 신호)
+  - gross_margin        # 사이클 수익성
+  - capex_to_rev        # 투자 사이클 위상
+value_trap_guards:
+  - peak_eps            # 정점 EPS → 분모 팽창 → 멀티플 착시 저평가
+  - capex_rollover      # capex 정점 후 ROIC 하락
+  - inventory_buildup   # 채널 재고 누적 = 수요 둔화 선행
+percentile_overfit_risk: true   # ★ raw 분위가 cyclical 에서 신호 역전 (잔차로 교정)
+cheapness_sign: low_multiple
+cycle_drivers:
+  - book_to_bill
+  - capex_to_rev
+  - inventory_qoq

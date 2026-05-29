@@ -1,0 +1,17 @@
+# archetype: inventory (재고 평균회귀 — 산업금속·에너지)
+# R1: 정규화 재고(days-of-supply) 평균회귀. COT 예측력 약함(Sanders-Irwin) → companion 강등.
+archetype: inventory
+primary_metric: days_of_supply    # 재고일수 (높을수록 저평가 가설 = 평균회귀)
+companion_signals:
+  - inventory_zscore              # 정규화 재고 z
+  - production_qoq                # 생산 모멘텀
+  - cot_positioning               # COT (예측력 약 → 보조 확증만)
+value_trap_guards:
+  - oversupply_regime             # 재고 극단인데 평균회귀 안 함 = 구조적 공급과잉
+  - demand_destruction            # 수요 자체 붕괴 (재고 신호 무효)
+percentile_overfit_risk: false
+cheapness_sign: low_multiple
+inventory_inputs:
+  - days_of_supply
+  - inventory_zscore
+  - production_qoq

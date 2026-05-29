@@ -1,0 +1,19 @@
+# archetype: speculative_flow (alts — 수급/과열 주도)
+# R2: value_trap_guard 최강(영구손상 위험). funding=regime-dependent companion(primary 부적합).
+archetype: speculative_flow
+primary_metric: sopr              # 실현손익비 (과열/투매 국면 측정)
+companion_signals:
+  - funding_rate                  # 레버리지 과열 (regime-dependent, primary 부적합)
+  - open_interest                 # 미결제약정 (쏠림)
+  - stablecoin_supply             # 잠재 매수력 (건조도)
+value_trap_guards:
+  - liquidation_cascade           # 청산 연쇄 = 급락
+  - permanent_impairment          # 영구 손상 (vaporware·러그)
+  - vaporware_collapse            # 펀더멘털 부재 토큰 붕괴
+percentile_overfit_risk: true     # ★ 투기 분위는 불안정 → 절대 신호 + 강한 guard 의존
+cheapness_sign: low_multiple
+flow_inputs:
+  - funding_rate
+  - sopr
+  - stablecoin_supply
+  - open_interest

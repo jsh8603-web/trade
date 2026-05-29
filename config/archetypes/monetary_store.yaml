@@ -1,0 +1,19 @@
+# archetype: monetary_store (BTC 류 가치저장)
+# R2: primary=MVRV(낮을수록 cheap, mechanical robust). realized-price = on-chain cost-basis.
+archetype: monetary_store
+primary_metric: mvrv              # 시총/실현시총 (낮을수록 저평가, 평균회귀)
+companion_signals:
+  - realized_price                # on-chain cost basis (지지선)
+  - nvt                           # 네트워크가치/전송량 (밸류 확증)
+  - lth_supply                    # 장기보유 공급 (확신 매물대)
+value_trap_guards:
+  - network_impairment            # 죽는 체인 = realized price 아래 영구 (평균회귀 실패)
+  - forced_deleverage             # LUNA/FTX 류 강제 청산 cascade
+  - hashrate_collapse             # 보안 예산 붕괴
+percentile_overfit_risk: false    # MVRV 절대수준이 분위보다 mechanical robust
+cheapness_sign: low_multiple
+onchain_inputs:
+  - realized_price
+  - nvt
+  - hash_rate
+  - lth_supply

@@ -1,0 +1,19 @@
+# archetype: network_utility (ETH 류 준-현금흐름 — fee burn·staking)
+# R2: equity archetype 최근접 (quasi-cashflow). primary = fee/burn 수익률.
+archetype: network_utility
+primary_metric: fee_burn_yield    # 수수료 소각 수익률 (P/fees 역수 동형)
+companion_signals:
+  - staking_yield                 # 스테이킹 실질이율
+  - active_addresses              # 사용 수요
+  - active_dev_count              # 개발 활성도 (펀더멘털 지속성)
+value_trap_guards:
+  - high_apy_death_spiral         # 토큰 인플레 > 스테이킹 이율 = 희석 (저평가 착시)
+  - dev_activity_collapse         # 개발 급감 = 네트워크 쇠퇴
+  - fee_revenue_decay             # 수수료 기반 붕괴
+percentile_overfit_risk: false
+cheapness_sign: low_multiple
+utility_inputs:
+  - fee_burn
+  - staking_yield
+  - active_addresses
+  - active_dev_count

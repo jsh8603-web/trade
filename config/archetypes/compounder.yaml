@@ -1,0 +1,19 @@
+# archetype: compounder (고ROIC 복리기업)
+# claude R4: ★ 함정이 비싼 쪽. 저멀티플 = 보통 구조훼손 신호이지 기회 아님.
+#           가치 = ROIC 지속성·재투자 복리. cheapness_sign = expensive_trap.
+archetype: compounder
+primary_metric: roic_durability
+companion_signals:
+  - reinvestment_rate
+  - revenue_durability
+  - incremental_roic
+value_trap_guards:
+  - multiple_unwind         # 고멀티플 → 성장 둔화 시 디레이팅 (비싼 쪽 함정)
+  - growth_deceleration     # 복리 엔진 둔화
+  - roic_fade               # 해자 침식 → ROIC 평균회귀
+percentile_overfit_risk: true   # 저멀티플을 "싸다"로 오판하면 안 됨 (sign 반대)
+cheapness_sign: expensive_trap
+quality_inputs:
+  - roic_durability
+  - reinvestment_rate
+  - moat_proxy
