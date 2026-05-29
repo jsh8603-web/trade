@@ -165,17 +165,21 @@ class KisClient:
             )
             return None
         try:
-            # pykis 2.x: KisAuth(id, appkey, secretkey, account, virtual) → PyKis
             from pykis import PyKis
-            from pykis.client.auth import KisAuth
-            auth = KisAuth(
-                id=self._hts_id,
-                appkey=self._appkey,
-                secretkey=self._appsecret,
-                account=self._account_no,
-                virtual=self._paper,  # 모의투자 우선
-            )
-            self._pykis = PyKis(auth, keep_token=True)
+            if self._paper:
+                # pykis 2.x 모의 전용: 모의 키를 실전/모의 슬롯 양쪽에 주입(실전 도메인 호출 안 함).
+                # 검증: PyKis(id,account,appkey,secretkey + virtual_*=동일키) 생성 OK.
+                self._pykis = PyKis(
+                    id=self._hts_id, account=self._account_no,
+                    appkey=self._appkey, secretkey=self._appsecret,
+                    virtual_id=self._hts_id, virtual_appkey=self._appkey,
+                    virtual_secretkey=self._appsecret, keep_token=True,
+                )
+            else:
+                self._pykis = PyKis(
+                    id=self._hts_id, account=self._account_no,
+                    appkey=self._appkey, secretkey=self._appsecret, keep_token=True,
+                )
             logger.info("pykis 2.x 초기화 완료 (paper=%s)", self._paper)
             return self._pykis
         except Exception as exc:
