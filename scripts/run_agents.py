@@ -896,6 +896,14 @@ def main():
                 )
             except Exception as _me:
                 log(f"[core-gate] memory 로깅 예외(무시): {_me}")
+            try:  # WP4: 거시 레짐 분류 chain 가동(stub FRED=NullFredAdapter, 실데이터=go-live)
+                from core.brain.regime_classifier import RegimeClassifier
+                _mv = RegimeClassifier().classify()
+                _st = getattr(_mv, "status", None)
+                log(f"[core-gate] 거시 레짐 chain 가동: status={getattr(_st, 'value', _st)} "
+                    f"regimes={getattr(_mv, 'regimes', {})}")
+            except Exception as _re:
+                log(f"[core-gate] 레짐 분류 예외(무시): {_re}")
             if _verdict.verdict == VerdictType.REJECTED:  # WP2: 우회불가 백스톱
                 log(f"[core-gate] RiskGate 거부 → 주문 차단(hold): {_verdict.reason}")
                 decision = "hold"
