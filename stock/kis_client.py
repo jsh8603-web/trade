@@ -121,6 +121,7 @@ class KisClient:
         appkey: Optional[str] = None,
         appsecret: Optional[str] = None,
         account_no: Optional[str] = None,
+        hts_id: Optional[str] = None,  # pykis 2.x KisAuth 필수 (HTS 로그인 아이디)
         paper: bool = True,  # 모의투자 우선 기본값
         dry_run: Optional[bool] = None,
         emergency_stop: Optional[bool] = None,
@@ -129,6 +130,7 @@ class KisClient:
         self._appkey = appkey or os.environ.get("KIS_APPKEY", "")
         self._appsecret = appsecret or os.environ.get("KIS_APPSECRET", "")
         self._account_no = account_no or os.environ.get("KIS_ACCOUNT_NO", "")
+        self._hts_id = hts_id or os.environ.get("KIS_HTS_ID", "")
         self._paper = paper
         self._dry_run = dry_run if dry_run is not None else (
             os.environ.get("DRY_RUN", "true").lower() == "true"
@@ -157,18 +159,24 @@ class KisClient:
         """pykis PyKis 인스턴스 획득. credential 부재 시 None."""
         if self._pykis is not None:
             return self._pykis
-        if not (self._appkey and self._appsecret and self._account_no):
-            logger.warning("KIS credential 부재 — 실 네트워크 이연 (deferral-pinning)")
+        if not (self._appkey and self._appsecret and self._account_no and self._hts_id):
+            logger.warning(
+                "KIS credential 부재(appkey/secret/account/hts_id 중 누락) — 실 네트워크 이연 (deferral-pinning)"
+            )
             return None
         try:
+            # pykis 2.x: KisAuth(id, appkey, secretkey, account, virtual) → PyKis
             from pykis import PyKis
-            self._pykis = PyKis(
+            from pykis.client.auth import KisAuth
+            auth = KisAuth(
+                id=self._hts_id,
                 appkey=self._appkey,
-                appsecret=self._appsecret,
-                account_number=self._account_no,
+                secretkey=self._appsecret,
+                account=self._account_no,
                 virtual=self._paper,  # 모의투자 우선
             )
-            logger.info("pykis 초기화 완료 (paper=%s)", self._paper)
+            self._pykis = PyKis(auth, keep_token=True)
+            logger.info("pykis 2.x 초기화 완료 (paper=%s)", self._paper)
             return self._pykis
         except Exception as exc:
             logger.error("pykis 초기화 실패: %s", exc)
