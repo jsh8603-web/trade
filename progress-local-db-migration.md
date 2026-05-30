@@ -19,8 +19,13 @@ note: Supabase→로컬 SQLite 전환 추적. 루트 progress.md 미변경(격�
 - ⛔ SACRED: execute_trade 실주문 로직·live_trader run_cycle 본체 미변경(DB 호출부만 어댑터화). DRY_RUN 유지.
 
 ## Steps
-- [ ] **L0 — 스키마 추출 + 어댑터 골격** · `model: opus` (설계)
-- [ ] **L1 — PostgREST→SQL 변환 엔진** · `model: opus`
+- [x] **L0 — 스키마 추출 + 어댑터 골격** · `model: opus` ✅ (commit 4e67b0f)
+  - scripts/build_sqlite_schema.py: migrations 50 → core/db/schema.sql 48테이블, **failures=0** (재생성 결정론, diff=0)
+  - core/db/: base(추상) + filters(PostgREST→SQL) + sqlite_backend(+numpy 벡터) + supabase_backend(레거시) + __init__(INV_DB_BACKEND 스위치)
+  - tests/test_db_adapter_smoke.py **7 passed**
+  - ⚠️ python 경로 = `C:/Users/jsh86/AppData/Local/Programs/Python/Python312/python.exe` (PATH에 `python` 없음 — bash `python` 호출 시 command not found)
+- [x] **L1 — PostgREST→SQL 변환 엔진** · `model: opus` ✅ (L0에 통합, core/db/filters.py)
+  - eq/ne/gt/gte/lt/lte/like/ilike/in/is/not + order(.desc/.asc) 변환. NOW()-INTERVAL은 caller가 ISO 문자열로 전달(어댑터 규약). test_filter_operators/test_order passed
 - [ ] **L2 — 핵심 쓰기 경로 전환** (save_decision·execute_trade DB부·run_agents) · `wf: harness2`
 - [ ] **L3 — 읽기/학습 경로 전환** (dynamic_risk·strategy_health·model_retrainer·regime_learner·evaluate_switches) · `wf: harness2`
 - [ ] **L4 — RL/RAG 경로** (data_collector psycopg2→sqlite, embedding numpy 코사인) · `wf: harness2`

@@ -51,7 +51,8 @@ def test_schema_applied(be):
 
 # ---------- CRUD ----------
 def test_insert_select_update_delete(be):
-    be.insert("decisions", {"decision": "buy", "reason": "test", "confidence": 0.7})
+    be.insert("decisions", {"market": "KRW-BTC", "decision": "buy",
+                            "reason": "test", "confidence": 0.7})
     got = be.select("decisions", filters={"decision": "eq.buy"}, limit=10)
     assert len(got) == 1 and got[0]["reason"] == "test"
 
@@ -66,7 +67,7 @@ def test_insert_select_update_delete(be):
 
 
 def test_json_column_roundtrip(be):
-    be.insert("decisions", {"decision": "hold",
+    be.insert("decisions", {"market": "KRW-BTC", "decision": "hold", "reason": "j",
                             "market_data_snapshot": {"rsi": 55, "sma": [1, 2]}})
     got = be.select("decisions", filters={"decision": "eq.hold"})
     # JSONB->TEXT 저장이라 문자열로 반환 (호출자가 json.loads)
