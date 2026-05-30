@@ -328,12 +328,19 @@ class RegimeClassifier:
         sparse JM 이 피처선택을 하므로 후보 피처를 넉넉히 넣는다 (§5.8-A SJM).
         """
         cols = {}
+        # ★누락지표 보강: HY OAS(최강 risk-regime, IG BAA10Y 보완) + real_rate_10y(M3 1차 driver,
+        # 가장 방어적 macro state). sparse JM feature-selection + len<60 graceful skip 으로 무회귀.
+        # ⚠️Fisher: nominal_10y level 미포함(spread T10Y2Y + breakeven 만) → real_rate 추가해도 정확공선 아님.
+        # # 후보(OOS 검증 후 활성): "dollar_broad", "oil_wti" — 시장가격이라 regime 분류 tautology 위험
+        # # (R1 FCI 경고 동형) + OOS 분류개선 미검증 → FRED 실데이터+regime-eval harness 확보 후 활성.
         for name in ["industrial_production", "core_cpi", "yield_10y_2y", "nfci",
-                     "credit_spread_baa", "unemployment_rate", "breakeven_5y", "cfnai"]:
+                     "credit_spread_baa", "credit_spread_hy_oas", "real_rate_10y",
+                     "unemployment_rate", "breakeven_5y", "cfnai"]:
             s = b.ts(name)
             if s is not None and len(s) >= 60:
                 # 레벨 vs 변화율 통일: 가격/스프레드는 diff, 지수는 YoY.
-                if name in ("yield_10y_2y", "nfci", "cfnai", "credit_spread_baa"):
+                if name in ("yield_10y_2y", "nfci", "cfnai", "credit_spread_baa",
+                            "credit_spread_hy_oas", "real_rate_10y"):
                     cols[name] = s.resample("ME").last().diff() if _is_high_freq(s) else s.diff()
                 else:
                     cols[name] = _yoy(s, 12)
