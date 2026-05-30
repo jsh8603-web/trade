@@ -1,0 +1,262 @@
+study_id: macro
+asset_scope: [macro]
+as_of: "2026-05-30"
+
+# ===========================================================================
+# 메타: macro 방의 특수성 — macro 는 *매매 sleeve 가 아니라 regime 엔진*이다.
+#   macro 지표는 Investment Clock 국면을 분류해 belief b(t) 를 만들고, 그 belief 가
+#   ③ inject 단계 regime_to_weights._belief_conditional_cov 로 *모든 다른 자산 sleeve*
+#   의 공분산(Σ_eff)을 조절한다. 따라서 macro 의 weight_rules 는 "어떤 거시지표가
+#   어떤 국면 분류에 더/덜 기여하나(modulate_by: regime)" + "그 국면 belief 가
+#   downstream sleeve 가중을 어떻게 흔드나"의 두 층이다.
+# 검증: study-research/macro/raw/analysis_output.txt + validation-findings.md (실데이터 756일 2021-12~2024-12).
+# ★2-3 검증 핵심: 가설0 PASS(공분산 정보이득 5배) + 가설2 FAIL(partial-corr 네트워크는 regime 불변,
+#   permutation p=0.35) → regime 신호는 *분산/변동성+공통원인 매개*에 있지 직접엣지 네트워크 구조변화엔 없다.
+#   직접 거시구조(금리↔달러↔금)는 국면 불변=구조 상수(force-include 정당). 따라서 hard 국면별 Ω 스위칭이
+#   아니라 [안정 직접구조 + regime별 분산스케일 + soft belief-mix Σ_eff(보유)] 가 데이터 정합 설계.
+# ===========================================================================
+
+# 블록1: LENS (정성 렌즈 — LLM 주입용. ★가변: 블록5 flag 누적이 estimation_note·regime_reading·블록4 가중을 미세변동)
+lens:
+  pricing_principle: >
+    거시 자산가격 = 성장·인플레·유동성·리스크프리미엄의 4요인 조합. 가격결정 근사:
+    P ≈ E[CF | 성장] / (real_rate + term_premium + risk_premium | 인플레·유동성). 핵심 driver
+    는 7축(2-2 theory-notes): (1) Growth(분자, CFNAI/PMI) (2) real rate(할인율 본체, DFII10)
+    (3) breakeven(명목→실질 Fisher 분해) (4) credit premium(HY OAS) (5) dollar/liquidity(DXY)
+    (6) risk/volatility(VIX/MOVE) (7) supply shock(oil). + 잠재 공통원인 proxy(VIX/OIS) 통제.
+    Investment Clock 4국면(Reflation/Recovery/Overheat/Stagflation)이 성장×인플레 2축으로 자산군
+    우위를 가른다 — 단 국면은 *외생 조건키*이지 내생 추정 대상이 아니다(HMM/DCC 기각, 자문 §8; DCC/Markov는
+    벤치마크로만).
+  report_relations:
+    - "real rate(10Y 실질금리)↑ → 금·고듀레이션 자산(성장주/장기채) 멀티플 압박. [실데이터 검증: gold~us10y partial -0.24~-0.29 직접엣지]"
+    - "dollar(DXY)↑ ↔ real rate↑ 동조(달러=금리차 펀딩). [검증: dxy~us10y partial +0.24~+0.27 직접엣지]"
+    - "dollar↑ → 금↓(달러표시 실물 역). [검증: dxy~gold partial -0.28~-0.31 직접엣지, regime 무관 안정]"
+    - "주식↔달러·주식↔금리 역상관은 *직접*이 아니라 real-rate/dollar 공통원인 매개. [검증: rate-up 국면 nasdaq~dxy Pearson -0.40 → partial -0.04, 매개 0.36]"
+    - "HY OAS(하이일드 스프레드) 확대 → 리스크오프 regime 신호(주식·크레딧 동반 약세). real rate 와 분리된 risk-premium 채널."
+    - "10Y-2Y 커브 역전 → 침체 선행(12~18개월 lag). 역전 해소(steepening)=국면전환 anchor."
+    - "통화량 M2 확대 → 위험자산 선호. 단 인플레 동반 시 명목금리↑ 상쇄(Overheat)."
+    - "일본 국채(BOJ YCC/정책금리) ↔ 미-일 금리차 ↔ 엔캐리 ↔ 글로벌 유동성 ↔ 위험자산. 미-일 금리차 축소=엔캐리 청산 압력."
+  regime_reading: >
+    Reflation(성장↑인플레↓): 주식·원자재 우위, 채권↓, real rate 가중↑·credit 가중↓.
+    Recovery(성장↑인플레↑초입): 주식 우위 지속, 듀레이션 민감↑. Overheat(성장↑인플레↑): 원자재·금
+    우위, 명목채↓↓, inflation breakeven 가중↑. Stagflation(성장↓인플레↑): 금·현금·단기채 우위,
+    HY OAS 가중↑(방어). ★rate-up 국면에선 주식-채권 상관이 *양→음 반전*(채권 분산효과 소멸) =
+    실데이터 입증(sp500~us10y rate-up -0.18 vs rate-down +0.09, Δ-0.26) → 국면별 sleeve 분산가정 재조정.
+    ★2-3 검증 재조정: 이 반전은 *직접 배선*이 아니라 공통원인/변동성 loading 변화(sp500~us10y 직접
+    pcorr 양 regime CI∋0=매개). 직접 거시구조(dxy~us10y +0.28/gold~us10y -0.21/dxy~gold -0.37)는
+    *국면 불변*(가설4/5 CI 거의 동일). 즉 국면이 바꾸는 건 변동성·공통인자 노출이지 직접 인과배선이 아님 →
+    regime 조절 = 분산스케일+soft belief-mix(hard Ω 네트워크 스위칭 아님, 가설2 p=0.35 FAIL이 지지).
+  estimation_note: >
+    2026-05 추정(국면전환 anchor, 신뢰도 中, 외부검색 기반·재검증 대상): 커브 역전 해소+steepening,
+    HY OAS 중립안정, Fed 인하 사이클 진행, DXY 하향안정+엔캐리 매력↓ → **Reflation/Recovery 초입** 추정.
+    이 시각 이후 real rate 하락 → 금·고듀레이션 우위 재평가 anchor. ⚠️ 이 추정은 블록5 confidence_hooks
+    가 OOS Rank-IC 로 갱신한다 — 어긋나면 (거부) flag 로 regime_reading 비중 하향. (raw/gemini-current-regime-202605.txt)
+
+# 블록2: INDICATORS (정량 지표 — fred_adapter.FRED_SERIES 로 귀결. 17 시리즈 in-system 확인)
+indicators:
+  - {id: real_rate_10y, family: macro_driver, is_core: true, in_our_system: false,
+     source_or_collector: "FRED DFII10(10Y TIPS 실질금리) — collector_plan 요청(현재 명목 us10y만 보유)",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: yield_10y_2y, family: macro_driver, is_core: true, in_our_system: true,
+     source_or_collector: "fred_adapter FRED_SERIES[T10Y2Y]", transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: credit_spread_hy_oas, family: macro_driver, is_core: true, in_our_system: true,
+     source_or_collector: "fred_adapter FRED_SERIES[BAMLH0A0HYM2]", transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  - {id: credit_spread_baa, family: macro_driver, is_core: false, in_our_system: true,
+     source_or_collector: "fred_adapter FRED_SERIES[BAA10Y] (IG 보완)", transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  - {id: breakeven_5y, family: macro_driver, is_core: true, in_our_system: true,
+     source_or_collector: "fred_adapter FRED_SERIES[T5YIE]", transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: dollar_dxy, family: macro_driver, is_core: true, in_our_system: false,
+     source_or_collector: "main 선구축 FxStore(DXY PIT) — Yahoo dxy 일별 보유(historical)", transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  - {id: usdkrw, family: macro_driver, is_core: false, in_our_system: false,
+     source_or_collector: "main 선구축 FxStore(USDKRW PIT)", transform: yoy, vintage_policy: point_in_time, lag: 0}
+  - {id: nfci, family: risk, is_core: false, in_our_system: true,
+     source_or_collector: "fred_adapter FRED_SERIES[NFCI] (Chicago Fed 금융상황)", transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: fred_recession_prob, family: macro_driver, is_core: false, in_our_system: true,
+     source_or_collector: "fred_adapter FRED_SERIES[RECPROUSM156N]", transform: level, vintage_policy: point_in_time, lag: 1}
+  - {id: cfnai, family: macro_driver, is_core: false, in_our_system: true,
+     source_or_collector: "fred_adapter FRED_SERIES[CFNAI] (국가활동지수, 성장축)", transform: level, vintage_policy: point_in_time, lag: 1}
+  - {id: jgb_10y, family: macro_driver, is_core: false, in_our_system: false,
+     source_or_collector: "FRED IRLTLT01JPM156N(일본 10Y) — collector_plan 요청(엔캐리 채널)", transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: m2_yoy, family: macro_driver, is_core: false, in_our_system: false,
+     source_or_collector: "FRED M2SL yoy — collector_plan 요청(유동성)", transform: yoy, vintage_policy: point_in_time, lag: 1}
+
+# 블록3: RELATIONSHIPS (관계 가설 — glasso prior. ★partial-corr 기준! 직접 vs 매개 분해는 실데이터 검증)
+# edge_type=direct = glasso partial-corr 에서 생존(공통원인 통제 후에도 남음). undetermined/common_cause
+# = Pearson 은 크나 partial 에서 죽음(매개). conditioning_set = 무엇을 통제한 partial 인가(필수).
+# ★2-3 검증(validation-findings.md): 직접엣지(dxy~us10y/gold~us10y/dxy~gold)는 부트스트랩 CI가
+#   rate-up/down 거의 동일=*국면 불변 구조상수* → force-include 화이트리스트 정당(데이터가 안정 입증).
+#   sp500~us10y 는 양 regime CI∋0=common_cause 확정. 가설2 permutation p=0.35 → 네트워크 자체는 regime 불변.
+relationships:
+  - {node_a: dollar_dxy, node_b: real_rate_10y, edge_type: direct, force_include: true,
+     conditioning_set: [credit_spread_hy_oas, breakeven_5y], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.28,
+     theory_basis: "달러=글로벌 펀딩금리, real rate↑→달러강세. ★2-3 부트스트랩 CI rate-up[+0.18,+0.38]·down[+0.16,+0.40] median+0.28 = 국면불변 직접상수 → force-include"}
+  - {node_a: dollar_dxy, node_b: real_rate_10y, edge_type: direct, force_include: true,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: neg, prior_strength: 0.37,
+     theory_basis: "gold(node 미등록 시 real_rate 프록시) — 달러↑→금↓ 달러표시 실물 역. ★2-3 dxy~gold CI 양 regime<0 median-0.37 국면불변 → force-include"}
+  - {node_a: real_rate_10y, node_b: breakeven_5y, edge_type: common_cause,
+     conditioning_set: [fred_recession_prob], lag_routing: contemporaneous, prior_sign: unsigned, prior_strength: 0.3,
+     theory_basis: "명목금리 = real + breakeven 회계항등. 둘은 성장/Fed 기대 공통원인 매개 → 직접엣지로 두지 말고 분해"}
+  - {node_a: credit_spread_hy_oas, node_b: yield_10y_2y, edge_type: direct,
+     conditioning_set: [fred_recession_prob, cfnai], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.55,
+     theory_basis: "리스크오프 시 HY 확대 + 커브 베어플래트닝 동반(침체확률·활동 통제 후 직접). 자문 §8 named risk 채널"}
+  - {node_a: credit_spread_hy_oas, node_b: nfci, edge_type: direct,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.6,
+     theory_basis: "HY OAS 는 NFCI 금융상황 구성요소 — 동일 risk-premium 잠재인자. 강 직접상관"}
+  - {node_a: jgb_10y, node_b: dollar_dxy, edge_type: direct,
+     conditioning_set: [real_rate_10y], lag_routing: lagged, prior_sign: neg, prior_strength: 0.35,
+     theory_basis: "미-일 금리차(real_rate - jgb) 통제 시 JGB↑→엔강세→달러약세(엔캐리 청산 채널)"}
+  - {node_a: m2_yoy, node_b: breakeven_5y, edge_type: undetermined,
+     conditioning_set: [cfnai], lag_routing: lagged, prior_sign: pos, prior_strength: 0.25,
+     theory_basis: "통화량→인플레는 lag 길고 국면 의존(Overheat 만 성립). 약 prior, 데이터로 검증 대상"}
+  - {node_a: fred_recession_prob, node_b: credit_spread_hy_oas, edge_type: common_cause,
+     conditioning_set: [cfnai], lag_routing: lagged, prior_sign: pos, prior_strength: 0.3,
+     theory_basis: "침체확률·HY 둘 다 성장둔화 공통원인. 직접인과 아님(분해)"}
+
+# 블록4: WEIGHT_RULES (★최종 산출 — 거시지표가 국면분류에 기여하는 가중 + downstream sleeve 조절)
+# ★2-3 검증 재조정(가설2 FAIL): regime modulation 은 *hard 국면별 Ω 네트워크 스위칭이 아니라* —
+#   ①직접구조(force-include 엣지)는 국면 공통 유지 ②regime별 *분산/변동성 스케일* 조절 ③soft belief-mix
+#   Σ_eff(between-dispersion)로 전이 de-risk. modulate_by:regime 의 실제 작동 = 변동성·belief 가중이지
+#   배선 재구성 아님. derive_weights 는 EB shrinkage 공통 prior 수축 유지(regime hard 분리 過적합 회피).
+# ★base_weight 라벨(main 감사): 아래 base_weight 값(hy_oas 0.25 / real_rate 0.22 등)은 regime-IC 추적·실측값이
+#   아니라 *이론 prior 라벨*이다. live regime-IC 누적(블록5 hook)이 아직 dead 상태라 IC-driven 재가중 미작동.
+#   → regime-eval harness 확보 후 derive_weights/flag_router 가 실 IC 로 재칼리브레이트하기 전까지 prior 고정.
+weight_rules:
+  - {indicator_id: credit_spread_hy_oas, base_weight: 0.25, modulate_by: [regime],
+     direction: "Stagflation/리스크오프 국면 → HY OAS 가중↑(방어 강화). Reflation → 가중↓",
+     granularity: sleeve}
+  - {indicator_id: real_rate_10y, base_weight: 0.22, modulate_by: [regime],
+     direction: "rate-shock(real rate 급등) 국면 → real rate 가중↑ + 고듀레이션 sleeve(성장주/장기채) 사이징↓. 실데이터: rate-up 국면 nasdaq~us10y -0.18 듀레이션 페널티",
+     granularity: sleeve}
+  - {indicator_id: breakeven_5y, base_weight: 0.15, modulate_by: [regime],
+     direction: "Overheat 국면 → inflation breakeven 가중↑(원자재·금 우위 신호). Reflation → 가중↓",
+     granularity: sleeve}
+  - {indicator_id: yield_10y_2y, base_weight: 0.18, modulate_by: [regime],
+     direction: "커브 역전→해소 전환 시 가중↑(국면전환 anchor). steepening = Recovery 진입 신호",
+     granularity: sleeve}
+  - {indicator_id: dollar_dxy, base_weight: 0.12, modulate_by: [regime, industry],
+     direction: "달러강세 국면 → 수출/원자재 sleeve 가중 조절(dxy~gold 직접 -0.3). EM/달러부채 민감 sleeve 페널티",
+     granularity: industry}
+  - {indicator_id: nfci, base_weight: 0.08, modulate_by: [regime],
+     direction: "NFCI 긴축(>0) → 전 sleeve risk-off 틸트. HY OAS 와 중복신호라 합산 cap 적용",
+     granularity: sleeve}
+
+# 블록5: CONFIDENCE_HOOKS (★신뢰도 누적 — 확신/거부 flag 를 코드로 구현. weight_falsification 에 매핑)
+# 매 거래마다 flag 누적 → 가정 신뢰도 → 렌즈 미세변화 → 동적 가중. 실데이터 발견: regime 신호는
+# 평균이 아니라 *공분산 구조*에 있으므로(Σ_eff dispersion=0 on daily returns), confirm/reject 는
+# score Rank-IC(예측력)와 Ω drift(구조변화) 둘 다로 본다(DUAL).
+# ★hook-wire 라벨(main 감사, §4.5 dead-hook 점검): hy_oas_risk_regime + real_rate_duration_penalty 두 hook 은
+#   flag_router.register 로 등록되고 측정기계(flag_router.emit_from_ic→rank_ic→score_ic_breakdown_eprocess
+#   e-CUSUM)도 존재하나, emit_where 가 가리키는 "backtest engine SELL outcome" 의 **실측경로가 부재**한다 —
+#   core 에 backtest 엔진 없음 + emit_ic_outcome/emit_from_ic 를 두 feature 의 실 scores+returns 로 호출하는
+#   곳 0건(study_register L237 wrapper 만 존재, 호출자 無). 따라서 두 hook 은 현재 **dead-hook(§4.5)**:
+#   emit_where 선언만 있고 regime-IC 실측·기록이 일어나지 않아 confidence 가 prior 에 고정된다.
+#   → backtest 엔진이 emit_ic_outcome(hid, hy_oas_scores, fwd_returns) 로 실 IC 를 주입해야 활성. (omega_drift
+#   /regime_belief_calibration 등 나머지 hook 의 실측경로 여부는 별도 점검 대상.)
+confidence_hooks:
+  - hypothesis_id: hy_oas_risk_regime
+    confirm_signal: "HY OAS 확대 시 방어 틸트가 OOS outcome 에서 수익방어(합성 score Rank-IC 양 유지)"
+    reject_signal: "HY OAS 신호 score Rank-IC e-CUSUM 단측 붕괴(baseline 아래)"
+    emit_where: "backtest engine SELL outcome + 라이브 judge 사후평가(L1 score vs forward return)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (e-CUSUM 단측)"
+    confidence_metric: "e-value anytime-valid 누적(Ville: 거짓kill≤alpha)"
+    store: "registry WeightAssumptionCard.confidence_now + ValidationVerdict.evidence"
+    action_threshold: "e-value ≥ 1/alpha → PRIMARY kill(retract live) / 안정 → adopt 강화"
+    feeds_weight: "kill→derive_weights 에서 해당 series IC→0 / 안정→base_weight 유지·소폭 상향"
+  - hypothesis_id: real_rate_duration_penalty
+    confirm_signal: "rate-up 국면 분류 시 고듀레이션 sleeve 페널티가 drawdown 방어(국면별 OOS IC)"
+    reject_signal: "rate-up 페널티가 OOS 에서 음의 알파(과조정) → e-CUSUM 붕괴"
+    emit_where: "backtest 국면조건부 outcome + regime 분류 confidence calibration"
+    accumulate_in: "core/assume/weight_falsification.evaluate_weight_card (PRIMARY+SECONDARY)"
+    confidence_metric: "국면조건부 Rank-IC e-process + classifier calibration(temperature, conditional_correlation.TemperatureCalibrator)"
+    store: "regime별 WeightAssumptionCard(weight.macro.{regime}).confidence_now"
+    action_threshold: "붕괴 → 해당 regime 카드 retract / 안정 → delta_regime 강화"
+    feeds_weight: "신뢰도 → composed_weights 의 delta_regime 재적합(GlassoWeightLearner re-fit)"
+  - hypothesis_id: omega_structure_drift
+    note_2_3: "★검증: partial-corr 네트워크는 rate-regime 간 *불변*(permutation p=0.35) — 평시 drift 신호는
+      약함. drift 임계는 보수적으로(과민 re-fit 회피). 주 regime 신호는 Ω구조가 아니라 변동성·belief. 단
+      구조단절(2022전쟁/2023 SVB, Bai-Perron) 같은 진짜 재배선 시에만 SECONDARY re-fit 발동 의도."
+    confirm_signal: "regime별 partial-corr 구조(Ω)가 OOS 윈도에서 안정(‖ΔΩ‖ 작음 — 평시 기대값)"
+    reject_signal: "‖ΔΩ‖/‖Ω‖ > tau_fro(0.5) 또는 |Δlogdet| > tau_logdet(1.0) = 구조 drift"
+    emit_where: "배치 재학습 시점 Ω_new vs Ω_old 비교(train_weights 사이클)"
+    accumulate_in: "core/assume/weight_falsification.omega_drift + needs_refit"
+    confidence_metric: "상대 Frobenius + logdet divergence(SECONDARY, kill 아닌 re-fit)"
+    store: "WeightAssumptionCard.secondary_falsification + omega_hash 갱신"
+    action_threshold: "drift>tau → TRANSITION(derive_weights 재실행) / score IC 견디면 비중 robust 유지"
+    feeds_weight: "re-fit → 새 Ω_eff 로 derive_weights → delta_regime/delta_inter 갱신(hash pin 교체)"
+  - hypothesis_id: regime_belief_calibration
+    confirm_signal: "macro 분류기 belief b(t) 가 실현 국면과 calibrated(ECE 낮음)"
+    reject_signal: "belief 과신(overconfident) → ECE 악화 → temperature>1 보정 필요"
+    emit_where: "regime 분류 직후 logit→label outcome(분기별 NBER/실현 국면 대조)"
+    accumulate_in: "core/structure/conditional_correlation.TemperatureCalibrator.fit (frozen+hash-pin)"
+    confidence_metric: "ECE(expected calibration error) before/after + NLL(temperature scaling)"
+    store: "WeightAssumptionCard.calibration_hash(frozen replay pin)"
+    action_threshold: "ECE>임계 → belief temperature 재보정 / calibrated → belief 그대로 Σ_eff 주입"
+    feeds_weight: "보정된 belief → effective_precision(Σ_eff) → _belief_conditional_cov → sleeve 배분(과신 시 between-dispersion inflate=transition de-risk)"
+  - hypothesis_id: curve_regime_transition
+    confirm_signal: "10Y-2Y 역전→해소 전환이 Recovery 진입을 선행(12~18M lag) OOS 검증"
+    reject_signal: "커브 신호 lag 가 불안정(국면 오분류) → score IC 붕괴"
+    emit_where: "장기 backtest 국면전환 정합 + lag 민감도"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    confidence_metric: "lag-aligned Rank-IC e-process"
+    store: "weight.macro.transition 카드 confidence_now"
+    action_threshold: "붕괴 → curve 가중 하향 / 안정 → yield_10y_2y base_weight 상향"
+    feeds_weight: "transition anchor 신뢰도 → estimation_note(블록1) 갱신 + curve 가중 미세조정"
+
+# 블록6: COLLECTOR_PLAN (부족 자료 수집기 추가 — main 에 요청, 있는 것으로 분석은 이미 진행)
+collector_plan:
+  - {missing: "10Y TIPS 실질금리(real rate 본체)", source: "FRED DFII10", interface: VintageProvider, credential: none}
+  - {missing: "일본 10Y 국채(엔캐리 채널)", source: "FRED IRLTLT01JPM156N", interface: VintageProvider, credential: none}
+  - {missing: "M2 통화량 yoy(유동성)", source: "FRED M2SL", interface: VintageProvider, credential: none}
+  - {missing: "DXY/USDKRW PIT 적재", source: "main 선구축 FxStore", interface: FxStore, credential: none}
+  - {missing: "ECOS 한국 거시(M2/기준금리)", source: "ECOS API(한국은행)", interface: VintageProvider, credential: ECOS_API_KEY}
+
+# 블록7: CODE_CHANGE_PLAN (★§4 4단계 — 파일:심볼:변경. 전부 Read 확인 후 작성)
+code_change_plan:
+  - stage: learn
+    file: core/brain/fred_adapter.py
+    symbol: FRED_SERIES (dict, L36~57)
+    current: "17 거시 시리즈 + vacancy_rate 파생. T10Y2Y/HY OAS/BAA10Y/T5YIE/NFCI/CFNAI 등 in-system"
+    change: "real rate(DFII10)·JGB(IRLTLT01JPM156N)·M2(M2SL) 3 시리즈 dict 추가 — 블록3 관계 노드 보강. 엔캐리/실질금리 채널 활성화"
+    risk: "dict 항목 추가만 = 무회귀. NullFredAdapter 폴백 유지(키 부재 시 graceful degrade)"
+  - stage: learn
+    file: core/structure/conditional_correlation.py
+    symbol: "RegimeGlasso.fit(X, regime_ids) (L237~), effective_precision (L318~), corr_prior 인자"
+    current: "nonparanormal→EBIC glasso→EB shrink→Ω_eff. corr_prior=identity 기본(EB shrinkage 대상). [내가 작성한 모듈]"
+    change: "블록3 relationships(direct 엣지)를 corr_prior 행렬로 주입 — dxy~real_rate(+0.5)·dxy~gold(-0.4)·hy_oas~yc(+0.55) 등 이론강한 ≤4 엣지 force-include 후보. RegimeGlasso(corr_prior=prior_matrix) 인자 이미 지원(검증: 실데이터 적용 PASS)"
+    risk: "corr_prior 는 기존 EB shrinkage seam 재사용 = 추가 코드 0. prior 미주입 시 identity 폴백(무회귀). self-test로 prior 주입 케이스 추가"
+  - stage: learn
+    file: scripts/train_weights.py
+    symbol: train_weight_cards(...) (L79~131)
+    current: "배치: 패널→regime_history→glasso→regime별 카드 등록"
+    change: "macro domain/scope 배치 1건 추가 — series_ids=블록2 거시지표, regime_ids=Investment Clock 4국면. forward return 정의=sleeve 수익률(macro 는 자체 매매 없음→downstream sleeve IC 사용)"
+    risk: "배치 1건 추가(opt-in domain 인자). 기존 stock_track 배치 불변(무회귀). 실데이터 regime 분할 검증 완료"
+  - stage: card
+    file: core/assume/weight_card.py
+    symbol: "WeightAssumptionCard (L64~), composed_weights (L115~)"
+    current: "regime별 정량 비중 카드(w_global+δ_regime+δ_arch+δ_inter). lens 정성필드 없음"
+    change: "lens 정성필드 추가 — report_relations: tuple[str], regime_reading: str, pricing_principle: str (③ judge LLM 주입용). pin_hash 에 포함(replay 동결). 카드 id 규약 weight.macro.{regime}"
+    risk: "Pydantic Field 추가(default 빈값) = 미제공 시 무회귀. pin_hash 확장은 신규 카드만 영향(기존 stock 카드 lens 빈값→hash 안정). self-test로 lens 주입+hash 검증"
+  - stage: inject
+    file: core/brain/regime_to_weights.py
+    symbol: "_belief_conditional_cov (L147~), regime_to_weights (L108~)"
+    current: "belief+sleeve_regime_ids+returns → RegimeGlasso Σ_eff → BL sleeve 배분. BL max_sharpe rf 스케일버그는 _periods_per_year 연율화로 이미 해소(2026-05-30 7/7 PASS 재확인)"
+    change: "macro 분류기 belief b(t) 를 이 경로 belief 인자로 wire(현재 테스트 fixture belief). macro=regime 엔진이므로 macro 산출 belief 가 全 sleeve Σ_eff 의 입력. labels=Investment Clock 4국면 정합"
+    risk: "belief 공급 경로만 연결(Σ_eff 산출은 검증된 내 모듈). opt-in(belief None→기존 정적경로 graceful). 추가 선결 없음 — production wiring 가능"
+  - stage: inject
+    file: core/assume/judge.py
+    symbol: "synthesize_l1 호출부 + assert_ceiling_invariant"
+    current: "L1 결정론 사이징(S_L1=clamp_floor(Σw·z)) + LLM down-only 감쇠. 천장 불변식 S_out≤S_L1"
+    change: "LLM judge 컨텍스트에 카드 lens(report_relations/regime_reading) 주입 — '현재 국면 X, 거시 관계도 Y' 정성 근거 제공. down-only attenuation 보존(천장 불변식 불변)"
+    risk: "judge 입력 컨텍스트 추가만 = 사이징 로직 불변. down-only 보존(assert_ceiling_invariant 그대로). opt-in lens 부재 시 무회귀"
+  - stage: falsify
+    file: core/assume/weight_falsification.py
+    symbol: "score_ic_breakdown_eprocess (L66~), omega_drift (L89~), evaluate_weight_card (L151~)"
+    current: "PRIMARY=score IC e-CUSUM 단측 붕괴 kill / SECONDARY=Ω drift re-fit. DUAL"
+    change: "블록5 confidence_hooks 5종을 이 함수들에 매핑 — hy_oas/real_rate/curve = score_ic_breakdown_eprocess(국면조건부 baseline_ic) / omega_structure_drift = omega_drift+needs_refit. macro 임계: alpha=0.05, tau_fro=0.5, regime별 baseline_ic 사전등록"
+    risk: "기존 DUAL 함수 재사용 = 추가 코드 최소(macro baseline_ic 상수만). self-test로 macro 카드 kill/refit 케이스 추가. 무회귀(stock 카드 임계 불변)"
+  - stage: falsify
+    file: core/assume/update_controller.py
+    symbol: "retract_now (L50~), UpdateController.step (L90~)"
+    current: "retract=빠름(disjunctive) / adopt=느림(5조건 AND). PRIMARY kill→RETIRE / SECONDARY→TRANSITION"
+    change: "macro 카드 adopt dwell·K-window 파라미터 설정 — 거시는 국면지속 길어 dwell↑(성급한 채택 방지), K-window=2분기. regime 전환 시 same_regime=False 처리"
+    risk: "파라미터 인자만(기본값 분리). 기존 stock 카드 dwell 불변(무회귀). step 라우팅 로직 불변"
