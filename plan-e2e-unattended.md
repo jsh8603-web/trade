@@ -83,3 +83,39 @@ note: 무인 패치 + 주요 파이프라인 E2E 실작동 검사. SO-7 무인 �
 ### 제약
 - 외부 실 API 키(Upbit/Telegram/Supabase/FRED) 없으면 graceful degrade 확인까지(실전송·실주문=사람게이트).
 - ⛔ SACRED 유지. 발견 고장 즉시 패치(detect→patch). 완료까지 자율주행.
+
+---
+
+## 추가: 실거래 동작 보장 — 매매경로 6분할 검증 (M 단계 — 2026-05-30 사용자 지시 "1")
+
+> "실제 트레이딩 시작하면 동작 보장? 동작 보장 위한 테스트 쪼개서." → 매매 경로를 단계로 분할, 각각 독립 검증.
+> e2e(조각 안깨짐)와 별개 = **실거래 켜기 전 매매 흐름의 안전·정확성 단계별 증명**.
+> ⛔ SACRED: execute_trade.py diff=0(읽기만, 동작 검증). DRY_RUN 유지. 실주문 0.
+
+### M1 — 주문 생성 정확성
+- 결정(buy/sell/qty/price) → execute_trade 주문 파라미터(수량·side·금액) 올바른가. 반올림/최소단위/KRW↔수량 환산.
+- 검증: 의도 금액 → 실 주문 금액 일치, side 정확, 음수/0 방어.
+
+### M2 — 안전장치 게이트 독립 검증 (각각 쪼개서)
+- DRY_RUN=true → 실주문 미발생 / EMERGENCY_STOP=true → 즉시 차단(DRY_RUN보다 먼저) / MAX_TRADE_AMOUNT 초과 클램프 / MAX_DAILY_TRADES 초과 차단 / MIN_TRADE_INTERVAL_HOURS 미달 차단 / MIN_TRADE_AMOUNT 미달 차단.
+- 검증: 각 게이트 단독 ON 시 주문 차단/클램프 실증. 우회 불가(via_gate).
+
+### M3 — 잔고·체결 처리
+- 주문 후 잔고 반영, 부분체결 잔여 처리, 체결 실패 시 상태 일관성(중복차감 없음).
+- 검증: 부분체결 시나리오 + 실패 롤백.
+
+### M4 — 무인 안전장치 실손실 발동
+- MDD -15% → KillSwitch HALTED → auto_derisk_due → de-risk. 연속손절 → 매수 차단. 급락 → FOMO 차단.
+- 검증: 실손실 시나리오 주입 → 매수 차단·축소 실발동(이미 무인 74 passed, 매매경로 관점 재확인).
+
+### M5 — 멱등성·중복주문 방지
+- 같은 cycle 2회 실행 → 중복 주문 0. last_trade_time/daily_trades 카운터 정확.
+- 검증: 동일 결정 반복 호출 → 1건만.
+
+### M6 — 상태 영속·재시작 복구
+- 재시작 후 일일카운터·last_trade_time·halt 상태·frozen_bag 복원. data/*.json 영속.
+- 검증: 상태 쓰기 → 재로드 → 일관성.
+
+### 자율주행 (사용자 "1 plan progress 박고 진행")
+- M1~M6 자율 완주. 발견 고장 즉시 패치(테스트 격리/실결함 구분). 실결함이면 코드 패치, SACRED 준수.
+- 자율 범위 밖: 실거래 flip·실주문·자본·출금 = 사람게이트.
