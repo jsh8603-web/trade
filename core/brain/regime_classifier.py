@@ -328,9 +328,12 @@ class RegimeClassifier:
         sparse JM 이 피처선택을 하므로 후보 피처를 넉넉히 넣는다 (§5.8-A SJM).
         """
         cols = {}
-        # ★누락지표 보강: HY OAS(최강 risk-regime, IG BAA10Y 보완) + real_rate_10y(M3 1차 driver,
-        # 가장 방어적 macro state). sparse JM feature-selection + len<60 graceful skip 으로 무회귀.
+        # ★누락지표 보강: HY OAS(risk-regime, IG BAA10Y 보완) + real_rate_10y(M3 1차 driver, 방어적 macro state).
+        # sparse JM feature-selection + len<60 graceful skip 으로 무회귀.
         # ⚠️Fisher: nominal_10y level 미포함(spread T10Y2Y + breakeven 만) → real_rate 추가해도 정확공선 아님.
+        # ★비대칭 주의(main 감사): 활성 2종(HY OAS/real_rate)도 regime-분류 OOS hit 개선은 보류 2종과 *동일하게 미검증*.
+        #   활성 근거 = (a)비-tautology(시장가격 아님→순환참조 無) + (b)factor-beta prior(M3 1차 driver)뿐,
+        #   regime-IC OOS 아님. 보류 2종과의 유일한 차이 = tautology 안전 유무. (활성=검증완료 라는 인상 방지)
         # # 후보(OOS 검증 후 활성): "dollar_broad", "oil_wti" — 시장가격이라 regime 분류 tautology 위험
         # # (R1 FCI 경고 동형) + OOS 분류개선 미검증 → FRED 실데이터+regime-eval harness 확보 후 활성.
         for name in ["industrial_production", "core_cpi", "yield_10y_2y", "nfci",
