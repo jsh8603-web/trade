@@ -66,3 +66,8 @@ skfolio/
 data/reports/
 data/embeddings_store/
 data/macro_store/
+
+# local SQLite DB (Supabase 대체)
+data/inv.db
+data/inv.db-*
+.l0-*.txt
