@@ -33,6 +33,11 @@ note: Supabase→로컬 SQLite 전환 추적. 루트 progress.md 미변경(격�
 - [ ] **L6 — 회귀 + 실구동** (run_agents·live_trader DRY_RUN SQLite, 전체 0 fail) · `model: sonnet`
 
 ## Working Notes
+> [ckpt-202605311400:btn-Inv] **L0/L1 완료**
+> - **마지막 결정**: L0/L1 실제 완료 + 커밋 (HEAD=7b22f2e). 산출물: scripts/build_sqlite_schema.py(변환기) + core/db/{base,filters,sqlite_backend,supabase_backend,__init__}.py(어댑터 6파일) + core/db/schema.sql(48테이블, failures=0, 재생성 결정론) + tests/test_db_adapter_smoke.py(**10 passed**: CRUD/PostgREST필터/JSON/벡터코사인). INV_DB_BACKEND=sqlite 기본.
+> - **다음 의도**: L2 착수 — 핵심 쓰기 경로 전환. save_decision.py(311줄, 순수 Supabase REST 확인됨)의 `_post_with_retry`→`db.insert("decisions",...)`, execute_trade DB호출부, run_agents. **L2~L5는 75파일 정형 전환 = harness2 위임 권장** (plan §실행엔진). 전환 패턴: `from core.db import db` 후 `requests.post(SUPABASE_URL/rest/v1/{table})` → `db.insert(table, row)`, GET+params(gte/in/order) → `db.select(table, filters={...}, order=..., limit=...)`.
+> - **동기화 필요**: ⚠️ **python 경로 = `C:/Users/jsh86/AppData/Local/Programs/Python/Python312/python.exe`** (bash `python` = command not found, 이게 직전 세션 4h 손실 root cause). pytest = `<위경로> -m pytest`. ⚠️ 이 세션 도구출력 간헐 손상(internal error) — L2 정밀전환은 도구 안정 후. SACRED 유지: execute_trade 실주문로직·live_trader run_cycle 본체 미변경(DB호출부만), R15/brain M파일 6종 격리. peer btn-button fabda53 stale — L2 전 git pull --rebase 검토.
+
 > [ckpt-202605302010:btn-Inv]
 > - **마지막 결정**: Supabase→로컬 SQLite 전체 전환 설계 확정. core/db/ 어댑터 계층(base 추상 insert/select/update/delete/rpc_match + sqlite_backend PostgREST필터→SQL변환 + supabase_backend 레거시옵션 + schema.sql). INV_DB_BACKEND=sqlite 기본. 벡터=numpy 코사인. 의존 75파일·중앙추상화 부재 조사 완료. plan/progress/handoff 작성. long-mode MAX, ctx 89% 강제compact 임박.
 > - **다음 의도**: L0 착수 — supabase/migrations/*.sql 48개 → core/db/schema.sql(SQLite DDL: SERIAL→INTEGER AUTOINCREMENT, JSONB→TEXT, vector→BLOB, timestamptz→TEXT ISO, RLS제거) + core/db/base.py 인터페이스 + sqlite_backend 골격. 그 전 자문 ⑧(gemini+claude 병렬, 어댑터 설계 검증) 권장.
