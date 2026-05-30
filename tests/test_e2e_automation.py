@@ -116,6 +116,31 @@ def state_dir(tmp_path):
     return data_dir
 
 
+@pytest.fixture(autouse=True)
+def _rebind_supabase_module_globals(monkeypatch):
+    """테스트 격리: SUPABASE_URL/KEY 는 각 모듈에서 import 시점에 1회 평가된다.
+
+    batch 실행 시 다른 테스트가 모듈을 먼저 import 하면 빈 문자열로 굳어, env_vars 의
+    monkeypatch.setenv() 가 무력화되고 _fetch_*() 가 `if not SUPABASE_URL: return []`
+    에 걸려 mock 한 requests.get 까지 도달 못 한다 (단독 실행은 통과, batch 만 실패).
+    → 모듈 전역 SUPABASE_URL/KEY 도 직접 rebind (이미 import 된 모듈에 한해).
+    """
+    import sys as _sys
+    for _name in (
+        "scripts.dynamic_risk",
+        "scripts.strategy_health",
+        "scripts.model_retrainer",
+        "scripts.regime_learner",
+    ):
+        _mod = _sys.modules.get(_name)
+        if _mod is not None:
+            if hasattr(_mod, "SUPABASE_URL"):
+                monkeypatch.setattr(_mod, "SUPABASE_URL", "https://test.supabase.co", raising=False)
+            if hasattr(_mod, "SUPABASE_KEY"):
+                monkeypatch.setattr(_mod, "SUPABASE_KEY", "test-key", raising=False)
+    yield
+
+
 @pytest.fixture
 def feedback_hub_state_with_disabled(state_dir):
     """feedback_hub_state.json with a disabled model."""
