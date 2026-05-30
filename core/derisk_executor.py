@@ -173,10 +173,12 @@ class DeriskExecutor:
     ⛔ LLM/brain/HRP import 0. fail-safe: 예외 → 더 줄이는 방향.
     """
 
-    def __init__(self, exchange: ExchangeAdapter) -> None:
+    def __init__(self, exchange: ExchangeAdapter, frozen_path: Path | None = None) -> None:
         self._exchange = exchange
         self._entry_blocked: bool = False  # 신규 진입 차단 플래그
         self._frozen_symbols: set[str] = set()  # frozen bag 처리된 symbol
+        self._frozen_path = frozen_path if frozen_path is not None else _FROZEN_BAG_PATH
+        self._load_frozen_bag()  # 재시작 후 frozen 보호 복구 (Phase Gate 보안 P0)
 
     # ── Public API ────────────────────────────────────────────────────
 
@@ -369,6 +371,33 @@ class DeriskExecutor:
 
         return total_filled, False
 
+    def _load_frozen_bag(self) -> None:
+        """재시작 시 frozen_bag.json 을 읽어 _frozen_symbols 복구 (보호 무력화 방지, 보안 P0).
+
+        파일 없음/파손 = 빈 set 유지 (fail-safe). 재시작 후 이미 frozen 된 symbol 을
+        다시 full IOC 시도하던 갭 차단.
+        """
+        try:
+            if not self._frozen_path.exists():
+                return
+            with self._frozen_path.open("r", encoding="utf-8") as f:
+                try:
+                    recs = json.load(f)
+                except json.JSONDecodeError:
+                    recs = []
+            if isinstance(recs, list):
+                for r in recs:
+                    sym = r.get("symbol") if isinstance(r, dict) else None
+                    if sym:
+                        self._frozen_symbols.add(sym)
+            if self._frozen_symbols:
+                self._entry_blocked = True
+                logger.warning(
+                    "frozen_bag 복구: %d symbols entry-blocked", len(self._frozen_symbols)
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("_load_frozen_bag: 복구 실패 (%s) — 빈 set 유지", exc)
+
     def _record_frozen_bag(
         self,
         symbol: str,
@@ -376,9 +405,9 @@ class DeriskExecutor:
         ts: float,
         reason: str,
     ) -> None:
-        """frozen_bag.json 에 {symbol, qty, ts, reason} append."""
+        """frozen_bag.json 에 {symbol, qty, ts, reason} append (원자적 쓰기)."""
         entry = {"symbol": symbol, "qty": qty, "ts": ts, "reason": reason}
-        path = _FROZEN_BAG_PATH
+        path = self._frozen_path
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             existing: list[dict] = []
@@ -389,8 +418,13 @@ class DeriskExecutor:
                     except json.JSONDecodeError:
                         existing = []
             existing.append(entry)
-            with path.open("w", encoding="utf-8") as f:
+            # 원자적 쓰기 (tmp+rename) — 부분쓰기 손상 방지 (Phase Gate 보안 P2)
+            tmp = path.with_suffix(".tmp")
+            with tmp.open("w", encoding="utf-8") as f:
                 json.dump(existing, f, ensure_ascii=False, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            tmp.replace(path)
             logger.warning("frozen_bag recorded: %s", entry)
         except Exception as exc:  # noqa: BLE001
             logger.error("_record_frozen_bag: write failed: %s", exc)

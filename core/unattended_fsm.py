@@ -43,6 +43,7 @@ SOFT_TRIGGER_VOL  = float(os.environ.get("UNATTENDED_SOFT_TRIGGER_VOL",  "0.05")
 SOFT_RELEASE_VOL  = float(os.environ.get("UNATTENDED_SOFT_RELEASE_VOL",  "0.02"))  # vol 해제
 
 COOLDOWN_BASE_H   = float(os.environ.get("UNATTENDED_COOLDOWN_BASE_H",   "1.0"))   # 기본 1h
+MAX_COOLDOWN_SEC  = float(os.environ.get("UNATTENDED_MAX_COOLDOWN_SEC",  str(24 * 3600.0)))  # backoff 상한 (Phase Gate)
 MAX_REARM_PER_DAY = int(os.environ.get("UNATTENDED_MAX_REARM_PER_DAY",   "3"))     # 일일 상한
 
 _DEFAULT_STATE_PATH = Path(os.environ.get(
@@ -194,9 +195,18 @@ class UnattendedStateMachine:
             self._save()
             return UnattendedState.PERMANENT_FREEZE
 
-        # 하드 트리거 (any 상태 → HARD_DERISK): mdd<=HARD, heartbeat_loss, recon_break
-        hard_trigger = (mdd <= MDD_HARD) or heartbeat_loss or recon_break
-        if hard_trigger and self.state not in (
+        # 하드 트리거 분리 (Phase Gate 품질 P0 / 보안 절충):
+        #  - mdd_hard: 시장 급락. NORMAL/SOFT_HALT 에서만 신규 발동. COOLDOWN/RE_ARM_EVAL 중
+        #    재급락은 RE_ARM_EVAL 의 재무장 차단(mdd>REARM_MDD 아니면 NORMAL 복귀 거부)이 커버 →
+        #    과도한 daily_triggers 소진(whipsawing→조기 FREEZE) 방지.
+        #  - infra_hard: 봇 정지(heartbeat_loss)·장부 불일치(recon_break). 시장 cooldown 과 무관한
+        #    인프라 위험 → COOLDOWN/RE_ARM_EVAL 중에도 즉시 재집행 (HARD_DERISK 진행 중만 제외).
+        mdd_hard   = (mdd <= MDD_HARD)
+        infra_hard = heartbeat_loss or recon_break
+        hard_trigger = mdd_hard or infra_hard
+        if infra_hard and self.state != UnattendedState.HARD_DERISK:
+            return self._trigger_hard(mdd, heartbeat_loss, recon_break, now, kst_today)
+        if mdd_hard and self.state not in (
             UnattendedState.HARD_DERISK,
             UnattendedState.COOLDOWN,
             UnattendedState.RE_ARM_EVAL,
@@ -337,10 +347,10 @@ class UnattendedStateMachine:
             self._st.last_update_date = kst_today
 
     def _calc_cooldown_sec(self) -> float:
-        """지수 backoff: base_h * 3600 * 2^(daily_triggers-1)."""
+        """지수 backoff: base_h * 3600 * 2^(daily_triggers-1), 상한 MAX_COOLDOWN_SEC (폭발 방지)."""
         exp = max(0, self._st.daily_triggers - 1)
         sec = COOLDOWN_BASE_H * 3600.0 * (2 ** exp)
-        return sec
+        return min(sec, MAX_COOLDOWN_SEC)
 
     def _mono_elapsed_since_enter(self) -> float:
         """monotonic 기준 cooldown_enter 이후 경과 시간(초).

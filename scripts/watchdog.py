@@ -53,7 +53,13 @@ WATCHDOG_UPBIT_SECRET = os.environ.get("WATCHDOG_UPBIT_SECRET", "")
 # de-risk floor (floor 0 = IOC 상한 내 최대 축소, 전량청산 아님)
 # 실운영 시 심볼별 floor 를 .env 또는 config로 설정
 _FLOOR_JSON_STR = os.environ.get("WATCHDOG_FLOORS_JSON", "{}")
-WATCHDOG_FLOORS: dict[str, float] = json.loads(_FLOOR_JSON_STR)
+try:
+    WATCHDOG_FLOORS: dict[str, float] = json.loads(_FLOOR_JSON_STR)
+    if not isinstance(WATCHDOG_FLOORS, dict):
+        raise ValueError("WATCHDOG_FLOORS_JSON must be a JSON object")
+except Exception as _exc:  # noqa: BLE001 — 잘못된 JSON 으로 watchdog import crash 방지 (Phase Gate 보안 P1)
+    logger.warning("WATCHDOG_FLOORS_JSON 파싱 실패 (%s) — 빈 floors 사용", _exc)
+    WATCHDOG_FLOORS = {}
 
 
 # ── Heartbeat writer (봇 메인 루프에서 호출) ─────────────────────────
