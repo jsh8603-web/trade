@@ -1,0 +1,44 @@
+=== H4 Window Flip Validation (REIT sub-sector) ===
+Tickers: {'Industrial': 'PLD', 'Apartment': 'AVB', 'Office': 'BXP', 'Healthcare': 'WELL', 'Datacenter': 'EQIX', 'Storage': 'PSA', 'Retail': 'SPG', 'Hotel': 'HST', 'Specialty': 'AMT'}
+Price data: 2018-01-02 ~ 2026-05-28, n_days=2112
+Missing per ticker:
+Industrial    0
+Apartment     0
+Office        0
+Healthcare    0
+Datacenter    0
+Storage       0
+Retail        0
+Hotel         0
+Specialty     0
+dtype: int64
+After dropna full rows: n_days=2112
+Anchors (month-end): 77 from 2020-01-31 to 2026-05-28
+
+Window pair                n    mean ン     std ン    mean swap%    frac swap>=2 tier
+--------------------------------------------------------------------------------
+   1d vs   30d              77     0.043     0.306         89.3%                66.5%
+  30d vs   90d              77     0.364     0.326         77.3%                52.1%
+  90d vs  365d              77     0.320     0.341         78.8%                55.6%
+ 365d vs  730d              67     0.424     0.283         72.1%                46.9%
+   1d vs  365d              77     0.043     0.328         87.4%                68.0%
+  30d vs  730d              67     0.143     0.324         87.7%                59.0%
+   1d vs  730d              67     0.051     0.326         88.9%                64.2%
+
+=== Per-sector window flip frequency (1d vs 365d ranking absolute change distribution) ===
+Sector              n    mean |ツrank|   frac |ツ|>=3
+-------------------------------------------------------
+Industrial         77            2.57         50.6%
+Apartment          77            2.14         35.1%
+Office             77            2.84         51.9%
+Healthcare         77            2.90         48.1%
+Datacenter         77            3.19         59.7%
+Storage            77            2.86         54.5%
+Retail             77            3.23         53.2%
+Hotel              77            2.87         55.8%
+Specialty          77            3.29         63.6%
+
+=== H4 verdict ===
+Mean Kendall ン (short vs long window pairs): 0.077
+Mean swap rate (>=1 tier): 88.0%
+≧ H4 CONFIRMED: window flip evidence (swap > 30% + ン < 0.7)

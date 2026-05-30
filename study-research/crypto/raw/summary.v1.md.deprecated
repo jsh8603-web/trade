@@ -1,0 +1,128 @@
+---
+tags: [type/research, domain/inv, phase/study-system, topic/crypto-lens]
+date: 2026-05-30
+study_id: crypto
+asset_scope: [coin]
+---
+
+# crypto 스터디 요약 (사람용)
+
+> STUDY-KIT 통일 지시서 산출. study_session.yaml(7블록) 본문과 함께 읽는다.
+
+## 0. 본 방의 핵심 결정 — coin 예외 명시 반영
+
+**§4 ③ STUDY-KIT 의 coin 예외 조항을 가장 큰 설계 제약으로 받았다.** 코인은 펀더멘털 cash
+flow 가 없어 다지표 동적 가중치 학습(R15 WeightAssumptionCard) 의 IC 수렴이 안 되고
+(coin_consensus_lens.dcf_not_used()=True), 우리 시스템엔 이미 coin 전용 결정엔진
+(Orchestrator·detect_regime)·전용 사이징(coin_sizing)·전용 consensus lens(CoinConsensusLens)
+가 SACRED 로 박제돼 있다. 이걸 weight_panel 학습으로 덮으면 무회귀 위반.
+
+→ 결론: 블록7 의 **stage=learn / stage=card(weight_panel)** 는 미적용 처리, 대신
+**stage=inject / stage=falsify** 에 집중. 블록2~4 의 "지표 가중치"는 *주식식 종목 평가
+지표 가중*이 아니라 **(a) consensus lens 프롬프트 정성 강조 비중 (b) belief b(t) regime
+soft membership 가중 (c) coin_sizing 의 belief modulator 가중**으로 해석된다.
+
+## 1. 일반론·리포트 핵심 (블록1 lens 정제 결과)
+
+코인 가격결정의 5축:
+1. **투기적 자본흐름**: stablecoin 시총·거래소 입출금·funding rate (perpetual swap)
+2. **공급 schedule**: halving 4년 사이클(2012/2016/2020/2024). post-halving 12~18개월
+   강세 → distribution top → -75~-85% drawdown 의 4사이클 실증 패턴
+3. **거시 유동성**: real rate·DXY·M2 (위험자산 risk-on/off 채널, 'digital gold' 디커플
+   서사 ETF 후 활성)
+4. **규제·이벤트 shock**: 거래소 해킹·SEC·국가 금지·ETF 승인 (coin_memory 이벤트 태그
+   halving/exchange_hack/delisting/depegging/regulatory/whale_move/listing 와 1:1 매핑)
+5. **네트워크 가치**: Metcalfe-like 활성주소·on-chain 거래량
+
+★ 핵심 cycle indicator = **MVRV** (Market value / Realized value). 코인판 P/B 유사 —
+realized value 는 마지막 on-chain 이동가의 합 ≈ 코스트베이시스 총합. MVRV>2.4 = 평균
+보유자 고이익 영역 = 7~30일 horizon mean-revert 하락 신호. **우리 시스템에 이미 이걸
+구현한 closed-loop 가 있다** (core/data/instrument_source.run_mvrv_closed_loop, fixture
+검증 p<0.05 reject). 따라서 본 스터디의 가장 큰 부가가치는 (a) MVRV 외 on-chain 6~7
+지표를 consensus lens 의 정성 가중으로 정리 (b) FGI regime 을 belief b(t) 로 변환해
+사이징 modulator 와 macro Σ_eff 게이트로 wire.
+
+## 2. 결정 사항 — 무엇을 채택했나
+
+### 채택
+- **MVRV 가정카드 재사용**: 기존 `crypto.mvrv_mean_reverts` (commodity_assumptions L327)
+  lifecycle 그대로. 블록5 confidence_hooks 의 hypothesis_id 로 mapping.
+- **FGI 5단계 → belief b(t) 변환**: 새 함수 `coin_track._fgi_to_belief(fgi: int)` 추가
+  → soft membership (인접 regime smoothing) → `_belief_conditional_cov` 의 belief 인자로
+  forwarding. 단일 축 belief 가 아니라 (FGI regime soft) ⊗ (halving cycle phase) 2축
+  보고 — 단일 축은 정보 손실.
+- **lens 정성필드 카드화**: crypto sleeve 전용 `weight.crypto.lens_only` 카드 — w_global·
+  delta_regime·ic 모두 빈 tuple(지표가중 미학습) but lens 4 정성필드(pricing_principle/
+  report_relations/regime_reading/estimation_note) 완전 채움. coin_consensus_lens 의
+  build_coin_lens_prompt 가 이걸 prefix 로 주입.
+- **belief modulator 사이징**: `coin_sizing.size_coin_portfolio(belief=...)` 인자 추가 →
+  extreme_greed 우세 시 BTC_CRISIS_CAP 0.40→0.30, extreme_fear/greed 합>0.5 시
+  COIN_CORR_THRESHOLD 0.75→0.65. opt-in.
+- **신규 confidence_hooks 4종 카드**: fgi_contrarian / funding_cascade / halving_anchor /
+  macro_abstain. 모두 score_ic_breakdown_eprocess + update_controller dwell 축소(코인
+  변동성 빠름 — coin_memory half_life 4h 와 정합).
+
+### 기각
+- **종목(ticker) 단위 학습**: STUDY-KIT §4 ③ 의 coin 예외. 블록4 granularity=sleeve 만.
+  단일 BTC 의 경우 ticker 학습이 sleeve 학습과 동치이므로 큰 손실 없음. 멀티코인은
+  coin_sizing 의 HRP tail 이 이미 코인 cross-section 처리.
+- **weight_panel.build_indicator_matrix 진입**: 위 동일 사유. 블록2 indicators 는 기존
+  PIT 경로(CoinMetricsMvrvProvider + coin_consensus_lens.CoinLensData + external_data)
+  그대로 사용 — neueregistration 없음.
+- **conditional_correlation.RegimeGlasso 다지표 학습**: coin sleeve 는 cross-asset glasso
+  학습 입력으로 단일 시계열(sleeve 수익률) 만 기여 — 자체적으로 다지표 partial-corr
+  학습 X. 블록3 relationships 는 consensus lens 프롬프트 정성 박제 + 향후 데이터
+  검증(외부 자문 + on-chain 분석 백서) 시 partial-corr 입력 용 보존.
+
+## 3. 막힌 점·확인 필요 — main 에 보고 항목
+
+### 데이터 부족 (블록6 collector_plan 7건)
+1. **halving cycle phase** — 결정론 schedule(공개 사실) → days_since 함수만 추가하면
+   해결. credential 불필요.
+2. **BTC dominance** — CoinGecko /global 무료 가능. CMC 키 있으면 우선.
+3. **stablecoin supply** — DefiLlama /stablecoins 무료.
+4. **aSOPR** — CoinMetrics Community 가능여부 확인 필요 (불가시 Glassnode 유료 키).
+5. **funding rate / OI 시계열** — Binance public API 무료 (현재는 라이브 snapshot 만).
+6. **거래소 reserve 시계열** — CryptoQuant 유료 또는 CoinMetrics Community 한정.
+7. **ETH on-chain (MVRV/SOPR)** — 멀티코인 확장 시 CoinMetrics Community.
+
+→ 우선순위: (1)(2)(3)(5) 무료·확정 → 즉시 가능. (4)(6)(7) 유료/조건부 → 사용자 판단.
+
+### 자문 미수행 (idle 금지 — 직접 진행, 자문 raw 미확보)
+본 세션은 코드 사실 확인 + on-chain 일반론 지식 베이스로 lens 를 작성했다. STUDY-KIT
+§0/§2 의 `/gemini-web` + `/claude-web` 병렬 자문은 9세션 동시 경합 가능성 + main 지시
+("무거운 분석 말고 가볍게") 를 종합해 직접 작성으로 폴백. 추후 main 통합 시점에서:
+- gemini-web: MVRV·SOPR·NUPL on-chain 사이클 지표 간 partial-corr 검증(블록3 relationships
+  prior_sign·prior_strength 보정)
+- claude-web: halving cycle 4사이클 sample 의 통계적 검정력 한계(N=4 bootstrap 문제) 논의
+
+자문 raw 확보 시 `raw/` 에 archive 누적 예정.
+
+### 명확화 필요
+- **coin sleeve 의 belief 가 다른 sleeve(stock/macro) 의 Σ_eff 에 영향을 줘야 하나?**
+  현 설계는 coin belief 가 자기 sleeve 사이징 modulator + macro 카드의 abstain 게이트
+  까지만 영향. 다른 sleeve 의 _belief_conditional_cov 에는 coin belief 가 직접 들어가지
+  않음 (그건 macro 방이 산출하는 거시 regime belief 의 역할). main 통합 시 확인 요청.
+- **crypto.mvrv_mean_reverts 카드의 e-process 변환**: 현재 instrument_source 는 binomial
+  p-value 기반 FDR_DECISION 만 emit. 이걸 e-value anytime-valid 로 업그레이드하는 것이
+  바람직하나, 기존 검증된 lifecycle 을 깨뜨릴 수 있음. 점진 — 일단 binomial 유지하고
+  parallel 로 e-process 누적기를 추가, 두 신호 합의 시에만 retract 권고.
+
+## 4. 핵심 발견 정리 (블록별 1줄)
+
+| 블록 | 핵심 |
+|------|------|
+| 1 lens | MVRV anchor + halving 4축 + FGI 5단계 → 2축 belief 보고 |
+| 2 indicators | 9개 in_our_system / 4개 collector_plan. MVRV PIT provider 활용 |
+| 3 relationships | MVRV→price mean-revert(direct, lag=7d) 가 가장 강한 prior |
+| 4 weight_rules | granularity=sleeve 만 (coin 예외) — consensus lens 정성 가중 |
+| 5 confidence_hooks | 5 hypothesis. MVRV·FGI·funding·halving·macro_abstain. e-process 매핑 |
+| 6 collector_plan | 무료 4건 즉시 / 유료 3건 조건부 |
+| 7 code_change_plan | learn/card(weight_panel) 미적용, inject 3 / falsify 2 = 5건 적용 |
+
+## 5. main 보고용 1줄 요약
+
+> crypto = coin 예외(§4③) 명시 반영. weight_panel 진입 X. 대신 (a) FGI→belief b(t) wire
+> (b) consensus lens 정성 prefix (c) belief modulator 사이징 (d) MVRV·FGI·funding·halving·
+> macro_abstain 5 confidence_hooks → score_ic_breakdown_eprocess. 무료 collector 4건 추가
+> 권고. main 통합 후 G1~G6 골격으로 production wiring 가능.

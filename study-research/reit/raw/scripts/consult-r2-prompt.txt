@@ -1,0 +1,42 @@
+REIT 자산군 framework R2 자문. R1 (gemini + claude) 핵심 합의 + 신규 critique 박제 후 진입.
+
+[R1 핵심 합의 + critique 박제]
+
+- 6 cluster 분할 = NAREIT/FTSE 14 sector collapse, 실무 수용 가능 (mid). 단:
+  - C2 Office+Retail 병합 논쟁 (WFH 구조 공실 vs 소비 driver 분리)
+  - ★ C6 Specialty (lodging+storage) 병합 강한 비판 — Hotel β_rate=+1.79 vs Storage 통상 음수 = 정반대 부호. C6 분리 → C6a Hotel / C6b Storage 검토.
+- 누락 critical sub-sector: Gaming (VICI/GLPI, NNN), SFR (INVH/AMH), Timberland/Farmland (C7 Alternative), ★ mREIT (NLY/AGNC/MFA — equity REIT 와 duration profile 근본 다름, breakeven + real rate 양쪽 민감) C8 별도.
+- Healthcare 단독 cluster 채택 (mid) — Medicare policy proxy 차등 가능성.
+- 거시 driver 추가: HY OAS + Inflation Breakeven (mandatory). Fisher 항등식 collinearity 경고 — "nominal + real + breakeven 동시 투입 금지, real+breakeven 만". Supply leading = Census Construction Put in Place + CMBS Delinquency (CBRE/CoStar appraisal lag 회피).
+- Sub-cluster 차등화 합당하나 over-parameterization risk → hierarchical/ridge shrinkage 권고. 9 sub-sector × multi-driver n=753 daily OLS 불안정.
+- Real rate 분해: NAV 할인율 = real / lease escalator = breakeven channel. 단 학설 부호 inconclusive — Glascock·Lu·So 2002 (REIT-inflation 음의 관계는 통화정책 발현 spurious) vs Beracha (hedging + illusion 공존, illusion dominant). β_rate=−3.82 decompose expect: real β ≈ −4~−6 / breakeven β ≈ 0~소폭 양수 (sample-dependent, 정량 split 은 실측만 가능).
+- TIPS 데이터: FRED DFII10 2003-01 부터 daily continuous, M3 window 2022-2024 fully available. 사용자 brief 의 "1997-2022 단축" 표현은 부정확 정정.
+
+[질문 Q4-Q7 + R1 carry 7건]
+
+Q4 (REIT β_rate(nominal) 학술 cross-verify). M3 결과 VNQ β_rate = −3.82 bp t=−5.65 (2022-2024). M1 us_stock β_rate = +0.008 (≈0) 와 정반대. (a) REIT 채권성 듀레이션 학술 reference (Chen-Tzang 1988, Mueller-Pauley 1995, Giliberto-Shulman 2017, Liu-Mei 1992, Yobaccio et al. 1995 등) 의 정량 β_rate 범위? (b) 2022-2024 sample 의 특이성 (긴축 cycle dominance) vs 1990-2020 long-run β_rate 추정치 차이는 어느 정도? (c) M1 주식 ≈0 vs REIT −3.82 차이의 mechanism 학설 합의?
+
+Q5 (Hotel β_rate +1.79 paradox). Hotel sub-sector REIT (HST, MAR) 가 short-lease (1박 단위 pricing) 로 인플레 hedge 성격이라 rate-up 시에도 positive return loading 발생하는가? (a) 학술 reference (Beracha-Krautz 2022 lodging REIT, Holland-Ott-Riddiough 2000 hotel-REIT 모델, Bond-Carrick-Sweeney 2018 specialty REIT)? (b) Hotel β_rate 가 rate sensitivity 가 아니라 GDP/consumption proxy 일 가능성 — orthogonalize 시 어떻게 변하는가? (c) counter-example: rate-up + recession 동시 시나리오 (2008 GFC, 2020 COVID) 의 Hotel REIT 실적?
+
+Q6 (within-sleeve ρ=0.547 decomposition). REIT 9 sub-sector pairwise mean ρ = 0.547. (a) Fama-French + Q-factor REIT 변형 (Mueller 2015, Chen-Liu 2019, Ling-Naranjo 2015) 으로 broad REIT beta vs sub-sector unique factor 분리 best practice? (b) 0.547 가 broad market beta 의 어느 정도 (REIT broad ETF VNQ 자체 beta 인지 / equity broad beta 인지 / 두 가지 mix 인지)? (c) shrinkage / hierarchical Bayes 회귀 적용 시 sub-sector unique factor 추출 stability?
+
+Q7 (Tower long-duration paradox). AMT (Tower) E4 β_rate = −12.01 bp (rate-down 인데 가장 음수 강도, cum return +17%만 — 동일 epoch Retail +70%). (a) lease escalator pass-through 약함 가설 (Towers 5G/cellular long-term contract escalator = 3% fixed, inflation > 3% 시 net 약함) 학술/실무 evidence? (b) Tower 의 capex 사이클 (5G rollout, edge computing) 이 rate sensitivity 보다 dominant 가능성? (c) Tower 의 international exposure (AMT India, Africa 등) 이 USD strength loading 보강 가능성?
+
+[Hard constraint - R1 supervisor 박제]
+
+- 답변 시 collinearity 경고 적용: "nominal + real + breakeven 동시 투입 금지" 를 기억하고 multi-regressor 설계 답변 시 본 invariant 위반 X.
+- mREIT 별도 cluster 채택 검토 중 — equity REIT 9 sub-sector 와 mREIT (NLY/AGNC/MFA) 의 거시 sensitivity 차이 정량 reference 가능하면 첨부.
+- shrinkage / hierarchical Bayes 회귀 권고 — 9 × 4 driver × epoch 의 small-N 회귀 안정화 best practice (ridge 페널티 λ tuning, Bayes prior 선정) 학술 reference?
+
+[응답 형식 의무]
+
+- ⛔ "X 가 답" 단정 X. 학술 reference + counter-example + 결정기준 명시.
+- 정량 수치 (β 추정치, Rank-IC, n, p-value, λ 등) primary source 인용 필수.
+- 단정 시 신뢰도 (low / mid / high) 명시.
+- ★ 학술 inconclusive 영역 정직 보고.
+- 답변 길이: 각 Q 당 400-800자, 총 1500-2400자.
+
+[Framing 차이]
+
+- Gemini Pro (R2-G): R1 의 Follow-up Question (DA Audit Workflow 듀레이션 mismatch 팩터 inject 제안) 도 학설 ref 제공해 cross-verify.
+- Claude Opus 4.7 (R2-C): R1 critique 라인 유지 + Tower/Hotel paradox 실무 mechanism 깊이 분석.

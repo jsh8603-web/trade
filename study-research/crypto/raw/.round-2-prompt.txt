@@ -1,0 +1,48 @@
+Round 1 에서 다른 모델(너+다른 모델)과 내가 비교한 결과, 다음 7개 미수렴/차이 점이 남았다. 너의 의견을 좁혀줘.
+
+[시스템 컨텍스트 재상기] coin = §4③ 예외. weight_panel learn 미적용. 대신 (a) FGI→belief soft membership wire (b) consensus lens 정성 prefix (c) coin_sizing belief modulator. ticker 세분화 X, sleeve granularity 만. 보유 데이터: Upbit 가격/캔들, CoinMetrics MVRV PIT, FGI, perpetual funding/OI/whale/reserve (consensus_lens), RSI/SMA dev. 추가 가능: halving phase·BTC dominance·stablecoin supply·SOPR.
+
+[차이 1] prior_strength 캘리브레이션
+한 모델 A: MVRV 0.8 / funding cascade 0.9 등 높은 prior. 다른 모델 B: "거의 모든 가설의 95% CI 가 0 포함을 디폴트로 예상" — prior_strength 를 의도적으로 낮게 박으라. 본 시스템은 glasso EBIC + EB shrinkage (corr_prior 가 identity 아니면 force-include 후보). 어느 쪽이 안전?
+- 옵션 (가): 전 가설 0.3~0.5 범위 보수 통일
+- 옵션 (나): 채널별 차등 — microstructure(funding/OI) 0.5~0.7 / on-chain(MVRV/SOPR) 0.3~0.5 / macro(real_rate/DXY) 0.2~0.4 / halving 0.1~0.2
+- 옵션 (다): 다른 권고
+
+[차이 2] Halving phase 처리
+모델 A: "공급 schedule → 메커니즘 검증 가능 (채굴자 매도 압력)". 모델 B: "N=4 사실상 검정 불가, halving = factor 아니라 regime label only, across-phase 비교 금지, within-phase conditioning interaction term only". 본 시스템에서 어떻게 wire?
+- 옵션 (가): halving 4단계 phase 를 belief b(t) regime label 로만, Rank-IC standalone 산출 금지, 다른 지표의 conditioning 으로만
+- 옵션 (나): 채굴자 압력 메커니즘 (network hashrate·miner outflow) 을 별도 보조 지표로 추가
+- 옵션 (다): 둘 다
+
+[차이 3] Liu & Tsyvinski 2021 null result 함의
+"pre-2020 crypto returns 는 macro factor 로 설명 안 됨" 학술 null. ETF 이후 macro 상관 변화. macro_real_rate / DXY / stablecoin_supply prior 처리?
+- 옵션 (가): pre-2020 / post-2020 split 학습 (실데이터 검증 시 명시적 break)
+- 옵션 (나): rolling regime 으로 break 자동 흡수 (별도 split 없음)
+- 옵션 (다): 2024-01 ETF spot 승인을 추가 break point 로 (2 split: pre-2020 / 2020-2023 / post-2024)
+
+[차이 4] ETF 후 on-chain 의미 약화
+"코인이 ETF 커스터디 / 콜드로 이동 → exchange reserve / whale 의 historical IC down-weight 필요" 의견. 우리는 confidence_hooks reject_signal 로 자동 down-weight 가능. 추가 사전 down-weight 가 필요한가?
+- 옵션 (가): prior_strength 자체를 낮춰서 시작 (예: whale_inflow prior 0.4 → 0.2)
+- 옵션 (나): pre-2024 데이터만으로 fit, post-2024 OOS 평가 (rolling re-fit)
+- 옵션 (다): exchange reserve 류 지표 제거, MVRV·funding 만 남김
+
+[차이 5] partial-corr edge 의 cluster 학습
+모델 B 가 제시한 5 partial-corr edge 표 (예: MVRV ⊥ fwd_ret | FGI, dominance ⊥ alt_excess | BTC_ret·real_rate 등). 만약 실데이터에서 partial 이 유의하게 잔존하면 (edge=direct 확인) 우리 시스템 어디에 코드화?
+- coin sleeve 는 cross-asset glasso 학습에 단일 시계열만 기여
+- coin 내부 multi-indicator glasso 를 별도 instance 로 학습 가능? (RegimeGlasso(X=[MVRV, FGI, funding, dominance, ...], regime_ids=halving_phase) 처럼 — sleeve 내 partial-corr 구조)
+- 아니면 partial-corr 분석은 offline 검증으로만 두고 결과 prior 만 consensus lens prompt 정성 prefix 에 박제
+
+[차이 6] Crypto 3-factor (CMKT/CSIZE/CMOM, Liu/Tsyvinski/Wu 2022)
+우리 ticker 세분화 X — cross-section 검증 미배선. 그러나:
+- BTC time-series CMOM 만 추출해 coin_consensus_lens 의 RSI/funding 와 합성한 모멘텀 라인 추가 가능?
+- 아니면 momentum 지표 중복 (RSI / 12-1 가격 / funding) 으로 cap 적용?
+- 아니면 CSIZE 는 alt-season 신호로 dominance 와 합성?
+
+[차이 7] Stablecoin supply 역인과 위험
+"crypto 가격 ↑ → stablecoin 발행 demand ↑" 가 역인과면 spurious. 검증 절차:
+- Granger causality + lead/lag 검증 어떤 horizon (30d/90d) 에서 stablecoin 이 가격을 선행 vs 후행?
+- 또는 stablecoin "neto creation" (mint - redeem) vs total supply 어느 쪽이 더 깨끗한 dry powder 신호?
+- 우리 보유 데이터 (DefiLlama 무료) 로 어떤 검증 가능?
+
+[답변 형식]
+각 차이마다 (1) 권고 옵션 + 사유 (2) 우리 시스템 wire 방법 (코드 경로 또는 confidence_hooks 매핑) (3) 솔직한 약점 / 미해결 의문. 이전 답변과 일관성 유지하되 정정 환영.

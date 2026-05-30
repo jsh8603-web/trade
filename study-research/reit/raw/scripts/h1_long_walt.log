@@ -1,0 +1,73 @@
+=== H1 Long-WALT Cross-section Rate-shock Validation ===
+Fetching FRED DGS10 from: https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10
+DGS10 sample: 1962-01-02 ~ 2026-05-28, n=16086
+Price data: 2018-01-02 ~ 2026-05-28, n=2112
+WALT (years): {'Healthcare': np.float64(12.0), 'Datacenter': np.float64(8.0), 'Specialty': np.float64(8.0), 'Retail': np.float64(7.0), 'Office': np.float64(6.0), 'Industrial': np.float64(5.0), 'Apartment': np.float64(1.0), 'Hotel': np.float64(1.0), 'Storage': np.float64(1.0)}
+WALT rank (1=longest): {'Healthcare': 1.0, 'Datacenter': 2.5, 'Specialty': 2.5, 'Retail': 4.0, 'Office': 5.0, 'Industrial': 6.0, 'Apartment': 8.0, 'Hotel': 8.0, 'Storage': 8.0}
+D:\projects\Inv\study-research\reit\raw\scripts\h1_long_walt_cross_section.py:69: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  shock_entry = shock_today & ~shock_today.shift(1).fillna(False)
+Rate-shock entry dates (DGS10 4w ツ > 50.0bp first crossings): n=23
+  2022-03-25  4w_ツ=51bp
+  2022-04-01  4w_ツ=65bp
+  2022-04-21  4w_ツ=58bp
+  2022-04-29  4w_ツ=57bp
+  2022-06-14  4w_ツ=61bp
+  2022-06-21  4w_ツ=53bp
+  2022-08-29  4w_ツ=52bp
+  2022-09-01  4w_ツ=58bp
+  2022-09-06  4w_ツ=56bp
+  2022-09-08  4w_ツ=51bp
+  2022-09-12  4w_ツ=53bp
+  2022-09-22  4w_ツ=59bp
+  2022-10-06  4w_ツ=54bp
+  2022-10-13  4w_ツ=52bp
+  2022-10-19  4w_ツ=63bp
+  2023-03-02  4w_ツ=69bp
+  2023-08-16  4w_ツ=53bp
+  2023-10-02  4w_ツ=51bp
+  2023-10-06  4w_ツ=52bp
+  2023-10-18  4w_ツ=56bp
+  2024-10-29  4w_ツ=54bp
+  2025-01-07  4w_ツ=52bp
+  2025-01-10  4w_ツ=55bp
+
+=== Per-entry Rank-IC (WALT_rank vs fwd_60d_return_rank, n_sectors=9) ===
+entry          shock_bp    Rank-IC        p
+---------------------------------------------
+2022-03-25          51     +0.451    0.223
+2022-04-01          65     +0.477    0.194
+2022-04-21          58     +0.613    0.079
+2022-04-29          57     +0.681    0.043
+2022-06-14          61     -0.460    0.213
+2022-06-21          53     -0.775    0.014
+2022-08-29          52     +0.162    0.678
+2022-09-01          58     +0.094    0.811
+2022-09-06          56     +0.162    0.678
+2022-09-08          51     +0.332    0.383
+2022-09-12          53     +0.196    0.614
+2022-09-22          59     +0.077    0.845
+2022-10-06          54     +0.672    0.047
+2022-10-13          52     +0.681    0.043
+2022-10-19          63     +0.860    0.003
+2023-03-02          69     -0.034    0.931
+2023-08-16          53     +0.400    0.286
+2023-10-02          51     -0.060    0.879
+2023-10-06          52     +0.136    0.727
+2023-10-18          56     +0.136    0.727
+2024-10-29          54     +0.162    0.678
+2025-01-07          52     +0.298    0.436
+2025-01-10          55     +0.264    0.493
+
+Total rate-shock entries: 23
+Mean Rank-IC: +0.240
+Std  Rank-IC: 0.362
+Median:        +0.196
+Min/Max:       -0.775 / +0.860
+Fraction negative: 17.4%
+Approx z (mean/SE): +3.18
+
+=== H1 verdict ===
+Traceback (most recent call last):
+  File "D:\projects\Inv\study-research\reit\raw\scripts\h1_long_walt_cross_section.py", line 126, in <module>
+    print(f"≧ H1 REJECTED: mean Rank-IC {mean_ic:+.3f} > +0.05 (sign mismatch \u2014 long-WALT outperform!)")
+UnicodeEncodeError: 'cp949' codec can't encode character '\u2014' in position 58: illegal multibyte sequence

@@ -1,0 +1,46 @@
+나는 [Inv 알고리즘 트레이딩 시스템]의 'crypto' 자산군 담당 전문 애널리스트다. 다음 시스템 특수성을 먼저 받아라:
+
+[시스템 컨텍스트]
+1) 본 시스템은 평가지표 가중치를 거시 국면·종목 특성에 따라 동적 변경한다 (R15 메타레이어, glasso partial-corr 학습 → belief-mixed Ω_eff → derive_weights 의 Ω·IC 가중)
+2) 단, coin 은 weight_panel 학습 예외 — 이유 (a) DCF 미성립 (b) 변동성·구조변화 빠름 (4h half-life vs 주식 24h/거시 168h) (c) 별도 coin 결정엔진(Orchestrator)·전용 사이징(Kelly+HRP tail+crisis BTC cap)·전용 consensus lens(on-chain/FGI/funding/RSI, DCF 미사용) 이 SACRED 박제됨
+3) 따라서 코인 lens 는 (a) belief→사이징 modulator (b) consensus lens 정성 prefix 로만 적용. ticker 세분화 X, sleeve granularity 만.
+4) 보유 데이터:
+   - 가격: Upbit ticker/캔들 30일/4h봉 42개/오더북/체결 (실시간)
+   - on-chain: CoinMetrics MVRV PIT (vintage·knowable_from 지원)
+   - sentiment: Fear&Greed Index (외부 API)
+   - 파생: perpetual funding rate, OI change, whale inflow, exchange reserve change (consensus lens 입력)
+   - 기술: RSI(14), SMA(20) deviation, MACD, BB, Stoch (자체 계산)
+5) 추가 가능 (무료): halving phase (결정론 schedule), BTC dominance (CoinGecko), stablecoin supply (DefiLlama), funding/OI 시계열 (Binance public). 조건부 (유료): SOPR/NUPL (Glassnode), exchange reserve 시계열 (CryptoQuant)
+6) 본 작업 목표: 단순 인덱스 추종이 아니라 (a) 코인 가격결정 driver 의 이론적 정리 (b) 그 driver 가 우리 시계열에서 어떻게 검증되는지 partial-corr·Rank-IC·regime 분해 (c) 검증된 driver 만 consensus lens 정성 prefix + 사이징 modulator 에 wire
+
+[★질문 — 3종을 동시에 답해줘]
+
+[①이론 수집방향]
+코인 가격결정을 깊이 이해하려면 무슨 이론·교과서·논문·리포트·OSS 를 봐야 하나? 5~10개 핵심 자료를 제안하고, 각 자료가 어떤 driver 를 설명하는지 1줄로. 특히 다음 5개 채널을 어떻게 다룰지:
+(i) 펀더멘털 없는 자산의 가치평가 이론 (MVRV/NUPL/SOPR realized-value 기반 cycle indicator)
+(ii) 공급 schedule 효과 (halving cycle 4기, 통계적 검정력 N=4 한계 포함)
+(iii) 거시 유동성 transmission (real rate·DXY·M2·stablecoin supply)
+(iv) 시장 미시구조 (perpetual funding cascade, BTC dominance rotation, alt-season)
+(v) 'digital gold' vs 'risk asset' 디커플 시점 (BTC spot ETF 2024 승인 후 변화, 기관 채택)
+
+[②이론 검증방향]
+위 이론들을 우리 보유 데이터로 어떻게 시계열 검증하나? 구체적 방법론을 제시:
+- 어떤 partial-corr edge 가 적용 가능한가 (예: MVRV ⊥ price | FGI, dominance ⊥ price | macro real_rate 등)
+- regime 분해 단위 (FGI 5단계 / halving 4-phase / macro risk-on·off 의 조합 belief)
+- Rank-IC 산출 단위 (BTC 단일 vs 멀티코인 cross-section vs sleeve aggregate)
+- 검정력 한계 (halving 4 사이클 N 문제, MVRV 시계열 길이, FGI 일별/이벤트별)
+- forward return 정의 (horizon 7d / 30d / 90d 중 어떤 가설은 어떤 horizon)
+- 무lookahead 검증 방법 (knowable_from 사용)
+
+[③핵심 가설 초안 — 반증조건 포함]
+위 driver 중 검증가능한 핵심 가설 5~8개를 다음 형식으로 제시:
+- 가설 텍스트: "<driver> → <price 영향> in <regime/조건>"
+- 반증조건: "<어떤 통계가 어떻게 나오면 거부> (예: hit rate < 0.5 binomial p>0.05, Rank-IC e-CUSUM 단측 붕괴 임계, partial-corr 추정치 0 포함 95% CI)"
+- partial-corr edge 분류: direct / common_cause / undetermined + conditioning_set
+- prior_sign: pos / neg / unsigned
+- prior_strength: 0~1
+- forward return horizon
+- 우리 시스템 어느 코드 경로에서 신호 발생/누적 (예: instrument_source.run_mvrv_closed_loop, weight_falsification.score_ic_breakdown_eprocess 등)
+
+[답변 형식]
+①②③ 섹션 명확히 구분. 각 섹션 명료한 bullet/표/단락. 모호함·"필요시"·"적절히" 같은 말 금지. 너 모델의 솔직한 의견, 다른 모델과 다를 수 있는 관점 환영. 우리 시스템 구체적인 코드 경로까지 짚어주면 더 좋다.

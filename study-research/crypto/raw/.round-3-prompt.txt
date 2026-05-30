@@ -1,0 +1,49 @@
+Round 2 비교 결과 4개 차이는 수렴됐다 (✓ prior 채널차등+force-include 임계 0.3 / ✓ halving 두 객체 분리 = regime label N=4 + miner flow 연속 / ✓ momentum composite(RSI+12-1+funding) cap + dominance=size proxy / ✓ stablecoin net creation + lead-lag 게이트). 남은 3개만 좁히자.
+
+[남은 미수렴 1 — partial-corr 학습 위치 — ★가장 큰 미수렴]
+A 권고: Offline 검증 → consensus_lens 정성 prefix 박제. 사유: 1D(fwd_ret) vs ND(지표) 구조 overfitting 위험.
+B 권고: 내부 RegimeGlasso 인스턴스 신설 (X = [MVRV, FGI, funding, OI, dominance, RSI, SMA_dev, SOPR, fwd_ret], regime_ids = vol/macro regime, nonparanormal 전처리, fwd_ret 노드 포함, corr_prior = offline 표 warm-start). 사유: cross-asset glasso 는 coin 단일 노드 처리라 sleeve 내부 partial-corr 못 잡음. GGM 이 정확히 direct vs indirect(confounded) 분리 도구.
+
+본 시스템 SACRED: coin_consensus_lens.dcf_not_used() / weight_panel 진입 X (§4③). 다만 우리는 별도 분리된 coin-internal RegimeGlasso 인스턴스를 신설할 자유가 있다(이미 conditional_correlation.RegimeGlasso 가 corr_prior 인자 지원).
+
+★결정 필요: 다음 중 어느 것?
+(가) Offline 박제만 — 정적 prefix
+(나) 내부 glasso 인스턴스 신설 + offline warm-start (B 권고)
+(다) hybrid: offline 박제 + 내부 glasso 인스턴스 BOTH — 정적 prefix 가 baseline, 내부 glasso 산출이 추가 modulator. 차이 발생 시 정적 prefix 우선 (안전 우선)
+
+좁히는 기준: 우리 데이터 (~14년 MVRV, FGI 2018-2~, funding 2020-9~, dominance 2013~) 의 effective N · regime window · nonparanormal 전처리 비용. 그리고 corr_prior warm-start 시 force-include 임계 0.3 적용은 동의된 상태.
+
+[남은 미수렴 2 — macro break 처리]
+A 권고: rolling 엔진 + 2024-01 ETF break 명시 + post-ETF prior_strength 상향 multiplier.
+B 권고: rolling 엔진 + macro 채널만 2020-03 one-sided fit start (pre-2020 데이터로 macro→crypto 학습 금지). 2024 ETF 는 rolling 흡수 + "watch regime" 플래그만.
+
+본 시스템: confidence_hooks 가 regime-conditional baseline_ic 사전등록 가능. macro_orchestrator 의 H29 abstain 게이트 존재.
+
+★결정 필요:
+(가) rolling 만 (break 명시 X) — 가장 안전
+(나) macro 채널만 2020-03 fit start (B 권고)
+(다) macro 채널 2020-03 + 2024-01 ETF 까지 2-split (A+B 결합)
+
+좁히는 기준: post-2020 6.5년 vs post-2024 1.5년 statistical power. 그리고 macro vs on-chain 채널의 break 위치가 다른가?
+
+[남은 미수렴 3 — ETF net flow 신규 지표]
+A 권고: 별도 언급 X (기존 지표 rolling 으로 충분).
+B 권고: Farside Investors 무료 daily ETF flow 를 신규 지표로 추가 (post-2024 only, prior 0.3~0.4). 사유: ETF flow 가 historical whale/exchange_reserve 의 institutional demand 신호를 더 깨끗하게 대체. 단 1.5년 짧음.
+
+★결정 필요:
+(가) 추가 — Farside ETF net flow 신규 collector
+(나) 보류 — 짧은 표본 (1.5년) 에 prior 박는 게 위험
+(다) 조건부 추가 — 데이터 누적 시점에서 (예: 3년 = 2027-01) 활성화
+
+좁히는 기준: 본 시스템 confidence_hooks 가 prior_strength 자동 조정 가능 → 짧은 표본이라도 rolling reject_signal 발화 시 자동 down-weight.
+
+[부수 질문 — Round 1·2 에서 답하지 않은 빈틈]
+1. 우리 시스템 belief b(t) 는 FGI 5단계 soft membership 으로 계획돼있다 (coin_track._fgi_to_belief 신설). 그러나 belief 가 (FGI regime) ⊗ (halving phase) ⊗ (macro regime) 3축 product 면 셀 빈도 폭주(차원의 저주, 차이 5 의 nonparanormal/glasso instability 와 동일). 어느 축이 belief 의 *primary* 인가?
+   - 옵션 (가): FGI primary, halving·macro 는 conditioning
+   - 옵션 (나): macro primary, FGI·halving 은 conditioning
+   - 옵션 (다): belief 가 단일 축 아닌 3축 vector — _belief_conditional_cov 의 belief 인자가 dict 가 아니라 nested dict 로 확장 (단 시스템 수정 비용 큼)
+
+2. confidence_hooks 의 5 hypothesis (mvrv / fgi / funding / halving / macro_abstain) 중 *가장 핵심* 1개만 즉시 활성화한다면 어느 것? 나머지는 phased rollout. 본 시스템은 신뢰도 누적 데이터 부족하므로 1 hypothesis 활성 → OOS 검증 → 다음 활성화 점진 rollout 권고.
+
+[답변 형식]
+3개 결정 + 2개 부수 질문. 각각 (1) 선택 옵션 + 한 줄 사유 (2) 우리 시스템 wire 위치 (구체 코드 경로) (3) 약점 / 미해결 의문. 수렴 신호 — 더 물을 게 없으면 "수렴, 추가 round 불필요" 1줄.

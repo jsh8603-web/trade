@@ -1,0 +1,67 @@
+======================================================================
+=== H3 + H5 Combined Validation (sector proxy, regime-conditional) ===
+======================================================================
+DGS10: 1962-01-02 ~ 2026-05-28, n=16086
+Real GDP YoY: n=313, last=2.57%
+CPI YoY: n=939, last=3.95%
+Price data: 2018-01-02 ~ 2026-05-28, n=2112
+
+======================================================================
+=== H3: debt WAM cross-section in rate-shock window ===
+======================================================================
+Debt WAM (years, sector-avg proxy): {'Healthcare': np.float64(7.0), 'Datacenter': np.float64(5.5), 'Specialty': np.float64(6.0), 'Retail': np.float64(6.5), 'Office': np.float64(6.0), 'Industrial': np.float64(6.0), 'Apartment': np.float64(7.0), 'Hotel': np.float64(4.5), 'Storage': np.float64(6.0)}
+Debt WAM rank (1=longest): {'Healthcare': 1.5, 'Datacenter': 8.0, 'Specialty': 5.5, 'Retail': 3.0, 'Office': 5.5, 'Industrial': 5.5, 'Apartment': 1.5, 'Hotel': 9.0, 'Storage': 5.5}
+D:\projects\Inv\study-research\reit\raw\scripts\h3_h5_combined.py:84: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  shock_entry = shock_today & ~shock_today.shift(1).fillna(False).infer_objects(copy=False)
+Rate-shock entries: n=23
+H3 mean Rank-IC (debt_WAM_rank vs fwd_60d_return_rank), n=23: -0.117
+std: 0.268, median: -0.157, frac_negative: 78.3%
+Approx z (mean/SE): -2.09
+
+=> H3 REJECTED: long-WAM underperform (sign mismatch from hypothesis +)
+Caveat: sector-average debt WAM proxy = range only 2.5y. Ticker-level WAM via EDGAR NLP for tighter test.
+
+======================================================================
+=== H5: regime x sub-sector cross-section Rank-IC matrix ===
+======================================================================
+Regime labels (quarterly, 2018+): n=33
+Regime distribution:
+Reflation      12
+Recovery        7
+Overheat        6
+Mid             3
+Recession       3
+Stagflation     2
+Name: count, dtype: int64
+
+=== Per-regime average rank by sub-sector (1 = best, 9 = worst) ===
+Regime          n_q  Healthcare Datacenter  Specialty     Retail     Office Industrial  Apartment      Hotel    Storage
+---------------------------------------------------------------------------------------------------------------------
+Reflation        12        3.75       5.17       4.17       5.75       5.42       4.83       5.17       5.83       4.92
+Mid               3        6.00       3.67       4.33       6.33       5.33       4.33       4.00       5.67       5.33
+Recession         3        3.00       5.33       7.00       3.00       6.67       4.00       5.67       5.00       5.33
+Overheat          6        5.33       4.67       5.67       4.67       6.83       5.00       4.33       5.50       3.00
+Stagflation       2        3.50       3.50       6.50       2.50       8.50       2.00       7.50       3.50       7.50
+Recovery          7        3.43       4.14       7.43       3.57       5.43       5.00       6.00       3.86       6.14
+
+=== Pairwise regime rank Spearman consistency ===
+  Reflation      vs Mid           : rho=+0.211  p=0.586
+  Reflation      vs Recession     : rho=-0.030  p=0.940
+  Reflation      vs Overheat      : rho=+0.004  p=0.991
+  Reflation      vs Stagflation   : rho=+0.038  p=0.922
+  Reflation      vs Recovery      : rho=-0.226  p=0.559
+  Mid            vs Recession     : rho=-0.606  p=0.084
+  Mid            vs Overheat      : rho=+0.194  p=0.617
+  Mid            vs Stagflation   : rho=-0.219  p=0.571
+  Mid            vs Recovery      : rho=-0.571  p=0.108
+  Recession      vs Overheat      : rho=+0.253  p=0.511
+  Recession      vs Stagflation   : rho=+0.768  p=0.016
+  Recession      vs Recovery      : rho=+0.849  p=0.004
+  Overheat       vs Stagflation   : rho=+0.077  p=0.844
+  Overheat       vs Recovery      : rho=-0.067  p=0.864
+  Stagflation    vs Recovery      : rho=+0.621  p=0.074
+
+Mean inter-regime Spearman rho: +0.087
+=> H5 CONFIRMED: regimes produce DIVERGENT rankings (regime label matters BUT not single static mapping)
+
+Note: 'Reflation' rank for industrial is the key v1 hypothesis test point.

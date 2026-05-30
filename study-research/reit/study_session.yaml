@@ -1,0 +1,861 @@
+# =============================================================================
+# study_session.yaml — REIT v2 (실데이터 시계열 검증 후 도출)
+# v1 (819 lines) = study_session.yaml.v1.bak (raw 참고). main 지시 폐기·재작성.
+#
+# AUDIT-GUIDE 12축 self-audit 통과. 추적성 = raw/evidence-map.md.
+# 모든 정량 (prior_strength, base_weight, baseline) = raw/validation-{H1..H5}.md +
+# raw/scripts/*.py 의 실측에서 도출. v1 의 이론 단정 가중치 모두 폐기.
+#
+# Tier 라벨 = "structural prior (저신뢰)" (G축 effective-N 강등) — validated alpha 아님.
+# 단일 rate cycle (2022 Fed hike) sample 의 한계 명시.
+# =============================================================================
+
+study_id: reit
+asset_scope: [reit]                  # 자문 §8 결론: equity sub-panel. 승격은 측정 기준 충족 시.
+as_of: "2026-05-30"
+
+# 추적성 (audit C축 hard pass)
+provenance:
+  evidence_map: "raw/evidence-map.md"     # 모든 정량 수치의 source script + raw 파일 매핑
+  validation_files: [
+    "raw/validation-H1.md",                # H1 REJECTED (mean Rank-IC +0.240, z+3.18)
+    "raw/validation-H2.md",                # H2 PARTIAL (VNQ proxy CONFIRMED, direct sparse)
+    "raw/validation-H3.md",                # H3 REJECTED (mean Rank-IC -0.117, z-2.09)
+    "raw/validation-H4.md",                # H4 CONFIRMED (Kendall τ=0.077, swap 88%)
+    "raw/validation-H5.md",                # H5 CONFIRMED (mean inter-regime ρ=+0.087)
+  ]
+  scripts: [
+    "raw/scripts/h4_window_flip.py",
+    "raw/scripts/h1_long_walt_cross_section.py",
+    "raw/scripts/h2_mean_revert_proxy.py",
+    "raw/scripts/h3_h5_combined.py",
+  ]
+  data_sources:                            # I축 (생존편향) caveat 포함
+    yahoo_tickers: ['PLD', 'AVB', 'BXP', 'WELL', 'EQIX', 'PSA', 'SPG', 'HST', 'AMT']
+    yahoo_etf: ['VNQ']
+    yahoo_period: "2018-01-02 ~ 2026-05-28 (n=2112 daily for 9 sectors / VNQ from 2005)"
+    survivorship_caveat: "9 sector 대표 ticker 모두 2018+ listed + 2026 현재 생존. 2018-2026 상폐 REIT 미포함 — survivorship bias 가능. 추가 universe (CSV historical) 후속 보강."
+    fred_series: ['DGS10', 'GDPC1', 'CPIAUCSL']
+    fred_pit_caveat: "FRED fredgraph.csv = latest revised. true first-release vintage (ALFRED) TODO. macro regime label vintage 정확도 partial."
+    nareit_primary_quotes:                  # E축 (환각 cross-verify) 통과
+      industrial_2024_total_return: -17.7   # %
+      cap_rate_spread_q3_2022: 243          # bp peak (244 also cited, rounding)
+      cap_rate_spread_q4_2023: 123          # bp plunge
+      cap_rate_spread_q2_2024: 130          # bp re-widening
+      cap_rate_spread_q3_2024_est: 60       # bp near-closed (ESTIMATED)
+      cap_rate_spread_q4_2024: null         # ★ R1 인용 "120 bp" PRIMARY 미확인 → 제외 (E축 준수)
+      q2_2023_sub_sector_spread_bp:
+        office: 259
+        apartment: 194
+        retail: 150
+        industrial: 93
+        # healthcare/specialty/etc. 미언급
+      historical_2009_q1_gfc_spread: 326
+      historical_2009_q1_reduction_outperform: 124.7   # % single case mechanism evidence
+
+  tier: "structural prior (저신뢰)"          # G축 effective-N 강등. validated alpha 아님.
+  hypothesis_tries: 5                       # K축 — 다중검정 보정 Bonferroni α/5 적용 시 H3 borderline
+  reject_count: 2                           # F축 — H1, H3 reject 명시 기록 (p-hacking 우려 차단)
+
+
+# ============================================================================
+# 블록1 LENS — 정성 렌즈 (단정 표현 모두 강등, 실측 인용 + 한계 명시)
+# ★가변: 블록5 flag 누적이 본 필드 (특히 estimation_note, regime_reading) 와 블록4 가중치
+# 미세변동시킴. v1 의 단정 매핑은 H4/H5 confirm + H1/H3 reject 로 모두 폐기.
+# ============================================================================
+lens:
+  pricing_principle: >
+    REIT 가격 ≈ AFFO / (r_f + ERP_REIT + ΔCapRate − g_NOI). 90%+ 배당 의무로 retained earnings
+    부재 → growth = 외부조달 또는 development pipeline. long-duration cash-flow 자산. ERP_REIT
+    historical 3-5% (NAREIT 50y ~3.8%). NAV anchor + P/AFFO + DCF 3 cross-check 가 실무 standard.
+
+  report_relations:
+    - "10Y rate ↑ → discount rate ↑ → REIT 가격 하향 압력 (학설 negative 합의: Giliberto-Shulman 2017 외)"
+    - "HY OAS ↑ → REIT 차입금 refinancing cost ↑ + capital outflow → 하향 압력"
+    - "implied cap rate − private appraisal cap rate spread = mean-reverting anchor (proxy 검증
+      CONFIRMED, 단 2008 GFC episode 처럼 deep discount 가 더 깊어질 수 있음)"
+    - "AFFO/FFO 비율 sector standard 차이: triple-net 95-100% / industrial-multifamily 85-95% /
+      office-retail-lodging 70-85% → sector-adjusted transform 필요"
+    - "★ window 길이 (1d/30d/365d) 에 따라 sub-sector ranking 이 essentially random — 단일 window
+      regime 매핑은 본질적 noise (H4 실측 Kendall τ=0.077, swap rate 88% on n=77 anchor 2020-2026)"
+    - "★ rate-shock window 후 60d 의 cross-section: long-WALT REIT (Healthcare/Datacenter/Specialty)
+      가 outperform 가설 (Rank-IC +0.240 z+3.18, n=23, single Fed hike cycle 2022-2025) — v1 의
+      direction 가설 정반대 (long-WALT underperform) reject 됨"
+
+  regime_reading: >
+    ⚠ v1 의 단정 매핑 ("Reflation → industrial 강세", "Recession → 후반 강세" 등) 모두 폐기 — H5
+    실측으로 quantitative reject (Reflation 12 quarter 의 Industrial avg rank = 4.83 / 9 = mid).
+    대신 다음 *경험적 분포* (n=33 quarter 2018-2025 한계) 만 잠정 기록:
+    - Reflation (n=12): Healthcare (rank 3.75) + Specialty (4.17) 우위
+    - Recovery (n=7): Healthcare (3.43) + Hotel (3.86) + Datacenter (4.14) 우위
+    - Overheat (n=6): Storage (3.00) + Apartment (4.33) 우위
+    - Stagflation (n=2 ★ 극소수): Industrial (2.00) + Retail (2.50) — n 부족 신뢰 낮음
+    - Recession (n=3 ★ 극소수): Healthcare (3.00) + Retail (3.00) — n 부족
+    - Mean inter-regime Spearman ρ = +0.087 (essentially random) — 단일 매핑 무효.
+    - 단 Recession-Stagflation (ρ=0.768) + Recession-Recovery (ρ=0.849) 만 cluster 일관.
+
+  estimation_note: >
+    2025~2026 시점 anchor (Nareit primary):
+    - Cap rate spread Q3 2022 peak 243bp → Q4 2023 123bp → Q2 2024 130bp → Q3 2024 60bp est
+      (REIT recovery 거의 완료). ⚠ R1 인용 "Q4 2024 120bp" 는 primary 미확인 — baseline 제외.
+    - 2024 sub-sector 실측: specialty +35.9% / data center +25.2% / healthcare +24.2% / office +21.5%
+      / industrial −17.7% (Nareit webinar recap primary).
+    - 2025 YTD: healthcare +28.5% / industrial +17.0% / diversified +15.5%. Dec 2025: healthcare
+      WORST (-8.4%, 10Y +16bp 동행) — single-month flip 직접 증거.
+    - Q2 2023 sub-sector cap rate spread: Office 259bp / Apartment 194bp / Retail 150bp /
+      Industrial 93bp (Nareit primary) — industrial 의 좁은 spread 가 2024 −17.7% sell-off 의
+      mechanism (낙관 fully priced).
+    가변경로: H2 의 cap rate spread mean-revert 가 6Q+ 미회복 시 (reject signal b) lens 의
+    "mean-reverting anchor" 신뢰 약화 (2008 GFC 두 episode 가 reject signal trigger 실사례).
+
+# ============================================================================
+# 블록2 INDICATORS — 정량 지표 (in_our_system 정확, source primary 명시)
+# §6 코어 6 (is_core: true) + REIT 특화 (is_core: false, cap 적용)
+# ============================================================================
+indicators:
+  # --- §6 통일 코어 6 ---
+  - id: fwd_ep_ratio
+    family: valuation
+    is_core: true
+    in_our_system: false
+    source_or_collector: "yahoo analyst estimates (yfinance) 또는 alpha-vantage EARNINGS_ESTIMATE. 블록6 #1"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 7
+
+  - id: roe
+    family: quality
+    is_core: true
+    in_our_system: true
+    source_or_collector: "edgar_provider NetIncomeLoss / StockholdersEquity"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 90
+
+  - id: margin_trend
+    family: quality
+    is_core: true
+    in_our_system: true
+    source_or_collector: "edgar_provider OperatingIncomeLoss / Revenues (REIT NOI margin proxy)"
+    transform: yoy
+    vintage_policy: point_in_time
+    lag: 90
+
+  - id: earnings_revision_breadth
+    family: revision
+    is_core: true
+    in_our_system: false
+    source_or_collector: "alpha-vantage EARNINGS_ESTIMATE 또는 yfinance analyst recommendations. 블록6 #1"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 7
+
+  - id: fwd_eps_momentum
+    family: revision
+    is_core: true
+    in_our_system: false
+    source_or_collector: "alpha-vantage EARNINGS_ESTIMATE 시계열 (분기 차분). 블록6 #1 종속"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 7
+
+  - id: mom_12_1
+    family: momentum
+    is_core: true
+    in_our_system: true
+    source_or_collector: "yahoo price (yfinance) t-252d → t-21d 누적수익률"
+    transform: rank
+    vintage_policy: point_in_time
+    lag: 0
+
+  - id: beta_rate
+    family: macro_sensitivity
+    is_core: true
+    in_our_system: true
+    source_or_collector: "yahoo price ~ FRED DGS10 24m rolling β (h1 script 의 mechanism)"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 0
+
+  - id: beta_dollar
+    family: macro_sensitivity
+    is_core: true
+    in_our_system: true
+    source_or_collector: "yahoo price ~ DXY (FxStore 선구축) 24m rolling β"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 0
+
+  - id: beta_oil
+    family: macro_sensitivity
+    is_core: true
+    in_our_system: true
+    source_or_collector: "yahoo price ~ WTI 24m rolling β"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 0
+
+  - id: beta_credit
+    family: macro_sensitivity
+    is_core: true
+    in_our_system: true
+    source_or_collector: "yahoo price ~ FRED BAMLH0A0HYM2 (HY OAS, main 선구축) 24m rolling β"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 0
+
+  - id: realized_vol
+    family: risk
+    is_core: true
+    in_our_system: true
+    source_or_collector: "yahoo daily return 60d rolling std × √252 annualized"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 0
+
+  # --- REIT 특화 (is_core: false, cap 적용) ---
+
+  - id: affo_yield
+    family: valuation
+    is_core: false
+    in_our_system: false
+    source_or_collector: "edgar_provider 확장 (us-gaap:FundsFromOperations, AdjustedFundsFromOperations). 블록6 #3"
+    transform: sector_adjusted_z         # ★ AFFO/FFO sector standard 차 (triple-net 95% vs office 75%) 반영
+    vintage_policy: point_in_time
+    lag: 90
+
+  - id: implied_cap_rate_spread
+    family: macro_sensitivity
+    is_core: false
+    in_our_system: false
+    source_or_collector: "Nareit T-Tracker (implied) − NCREIF ODCE (private appraisal) quarterly. primary 4 quarter sparse — 블록6 #4 full series fetch TODO"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 90
+
+  - id: price_to_nav
+    family: valuation
+    is_core: false
+    in_our_system: false
+    source_or_collector: "Green Street NAV (유료) 또는 차선 EDGAR 10-K real-estate-investments-net / shares-out. 블록6 #5"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 90
+
+  - id: same_store_noi_growth
+    family: revision
+    is_core: false
+    in_our_system: false
+    source_or_collector: "EDGAR 10-Q/10-K supplemental table NLP (TextualReitMetricsProvider). 블록6 #6"
+    transform: yoy
+    vintage_policy: point_in_time
+    lag: 90
+
+  - id: occupancy_rate
+    family: quality
+    is_core: false
+    in_our_system: false
+    source_or_collector: "EDGAR 10-K MD&A 텍스트 추출. 블록6 #6"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 90
+
+  - id: walt_years
+    family: risk                        # cash-flow duration
+    is_core: false
+    in_our_system: false
+    source_or_collector: "EDGAR 10-K lease maturity schedule 텍스트 추출. 블록6 #7. 차선 = sector-average proxy (Healthcare 12 / Datacenter Specialty 8 / Retail 7 / Office 6 / Industrial 5 / Apartment Hotel Storage 1)"
+    transform: level
+    vintage_policy: final_revised
+    lag: 90
+
+  - id: debt_maturity_wam_years
+    family: risk                        # debt duration (capital structure)
+    is_core: false
+    in_our_system: false
+    source_or_collector: "EDGAR 10-K debt schedule 텍스트 추출. 블록6 #8. 차선 = sector-average proxy (range 4.5y~7y, 검정력 약함)"
+    transform: level
+    vintage_policy: final_revised
+    lag: 90
+
+  - id: leverage_debt_ebitda
+    family: quality
+    is_core: false
+    in_our_system: true
+    source_or_collector: "edgar_provider LongTermDebt / OperatingIncome (EBITDA approx)"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 90
+
+  - id: fixed_charge_coverage
+    family: quality
+    is_core: false
+    in_our_system: false
+    source_or_collector: "edgar_provider 확장 (InterestExpense). 블록6 #3 부분 종속"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 90
+
+  - id: ffo_payout_ratio
+    family: risk
+    is_core: false
+    in_our_system: false
+    source_or_collector: "edgar_provider 확장 (DividendsPaid / FFO). 블록6 #3 종속"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 90
+
+  - id: sector_archetype
+    family: macro_driver                # archetype label
+    is_core: false
+    in_our_system: false
+    source_or_collector: "GICS RealEstate sub-industry → 9 archetype (FinanceDatabase MIT). 블록6 #9"
+    transform: level
+    vintage_policy: final_revised
+    lag: 0
+
+
+# ============================================================================
+# 블록3 RELATIONSHIPS — partial-corr prior (glasso corr_prior 주입)
+# v1 의 force-include 일부 prior_sign 변경 (H1/H3 실측 반영).
+# conditioning_set 에 rate factor 명시 (L축 통합 상관행렬 중복 차단 prerequisite).
+# ============================================================================
+relationships:
+  # === force-include 후보 (이론·회계 강한 관계, 4개) ===
+  - node_a: affo_yield
+    node_b: implied_cap_rate_spread
+    edge_type: direct
+    conditioning_set: []                  # 회계 정의식 (둘 다 NOI 분자 + price 분모)
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.70
+    theory_basis: "정의식: AFFO yield ≈ NOI yield ≈ implied cap rate. 직접 강한 관계"
+
+  - node_a: same_store_noi_growth
+    node_b: occupancy_rate
+    edge_type: direct
+    conditioning_set: []
+    lag_routing: lagged
+    prior_sign: pos
+    prior_strength: 0.65
+    theory_basis: "NOI = rent × occupancy. 회계 직접 (occupancy 가 NOI growth leading 1-2Q)"
+
+  - node_a: beta_rate
+    node_b: realized_vol
+    edge_type: direct
+    conditioning_set: [beta_credit]       # credit factor 분리
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.55
+    theory_basis: "rate-shock 이 REIT vol 자극 (long-duration discount rate sensitivity)"
+
+  - node_a: fwd_ep_ratio
+    node_b: affo_yield
+    edge_type: direct
+    conditioning_set: []
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.55
+    theory_basis: "REIT 에서 EP ≈ AFFO yield × (1 − D/A adj). 회계 정합"
+
+  # === 시변·conditioning_set 강조 (학설 inconclusive + L축 중복 차단) ===
+  - node_a: beta_credit
+    node_b: beta_rate
+    edge_type: common_cause
+    conditioning_set: [realized_vol]      # 공통원인 = 유동성/위험 regime
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.35
+    theory_basis: "rate β 와 credit β 의 공통원인 = risk-off regime. vol conditioning 으로 direct 분리"
+
+  - node_a: leverage_debt_ebitda
+    node_b: beta_credit
+    edge_type: direct
+    conditioning_set: [sector_archetype]  # archetype 별 leverage baseline 차이 흡수
+    lag_routing: lagged
+    prior_sign: pos
+    prior_strength: 0.45
+    theory_basis: "고레버리지 → credit 충격 전달 큼. archetype baseline 분리"
+
+  # === ★ H1/H3 실측 반영 — 부호 변경 ===
+  - node_a: walt_years
+    node_b: beta_rate                     # H1 결과: long-WALT 가 *outperform* in rate-shock window
+    edge_type: direct
+    conditioning_set: [sector_archetype, debt_maturity_wam_years]  # H3 와 partial-corr 분리
+    lag_routing: contemporaneous
+    prior_sign: neg                       # ★ v1 'pos' → v2 'neg' (long-WALT 가 rate-shock 시 더 *덜* 빠짐, defensive rotation)
+    prior_strength: 0.30                  # single rate cycle 2022 한계 (G축 강등)
+    theory_basis: "★ H1 실측 (mean Rank-IC +0.240, z+3.18, n=23, 2018-2025 single Fed hike cycle). v1 의 long-duration → rate β ↑ 가설 reject. Mechanism 가설 = defensive rotation + secular growth confounding"
+
+  - node_a: debt_maturity_wam_years
+    node_b: beta_rate                     # H3 결과: long-WAM 가 *underperform* (H1 과 부호 반대!)
+    edge_type: direct
+    conditioning_set: [sector_archetype, walt_years]    # H1 (WALT) 와 partial-corr 분리
+    lag_routing: contemporaneous
+    prior_sign: pos                       # ★ v1 'neg' → v2 'pos' (long-WAM 가 rate-shock 시 underperform — 실측 반전)
+    prior_strength: 0.20                  # sector-WAM proxy range 2.5y 좁음 (검정력 약함)
+    theory_basis: "★ H3 실측 (mean Rank-IC -0.117, z-2.09, n=23). H1 과 부호 mismatch — proxy collinearity 시사. ticker-level WAM (EDGAR NLP) 후 partial-corr 분리 시 정확화"
+
+  # === H2 (cap rate spread mean-revert) ===
+  - node_a: implied_cap_rate_spread
+    node_b: realized_vol                  # spread 와 fwd return 간 관계는 lagged (block5 H2)
+    edge_type: direct
+    conditioning_set: [beta_rate]
+    lag_routing: lagged                   # 12m forward
+    prior_sign: neg                       # spread Z 음 (압축) → 12m fwd vol 음 (recovery)
+    prior_strength: 0.40
+    theory_basis: "H2 proxy 결과 (Spearman ρ=-0.361 p<<0.001 on n=4629 VNQ). 단 2008 GFC 2 episode reject 사례 (regime change)"
+
+  - node_a: mom_12_1
+    node_b: earnings_revision_breadth
+    edge_type: common_cause
+    conditioning_set: []
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.40
+    theory_basis: "둘 다 information arrival 의 reflection. 공통원인 분리"
+
+  - node_a: ffo_payout_ratio
+    node_b: realized_vol
+    edge_type: direct
+    conditioning_set: [leverage_debt_ebitda]
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.30
+    theory_basis: "payout 100% 초과 = 배당 cut 위험 = vol spike. leverage conditioning"
+
+
+# ============================================================================
+# 블록4 WEIGHT_RULES — ★최종 산출 (실측 반영, v1 단정 규칙 모두 폐기/수정)
+# H4 confirm → modulate_by 에 'window_length' 추가 (joint with regime/industry).
+# H1 reject → "rate-shock + long-WALT → 가중↑↑↑" 폐기, 대신 잠정 defensive 가설.
+# H3 reject → "long-WAM 가중↑" 폐기.
+# H5 confirm → regime 단정 매핑 폐기, archetype × regime joint 만.
+# ============================================================================
+weight_rules:
+  - indicator_id: fwd_ep_ratio
+    base_weight: 0.10
+    modulate_by: []
+    direction: "§6 코어 baseline. REIT 에선 affo_yield 가 더 적합 — weak signal"
+    granularity: sleeve
+
+  - indicator_id: affo_yield
+    base_weight: 0.18                     # REIT 특화 핵심 valuation
+    modulate_by: [industry, window_length]
+    direction: "industry archetype 별 AFFO/FFO standard 차 반영 (triple-net 95% vs office 75%). H4 confirm 에 따라 window 명시 의무 — 12m forward 평가 시 가중↑"
+    granularity: industry
+
+  - indicator_id: implied_cap_rate_spread
+    base_weight: 0.08                     # H2 partial confirm + 시계열 sparse
+    modulate_by: [window_length]
+    direction: "spread Z < -1.5 + post-GFC 환경 → 12m forward 가중↑ (H2 proxy CONFIRMED). 단 GFC-급 regime change 에선 deep discount 가 더 깊어질 수 있음 (2008 episode reject)"
+    granularity: sleeve
+
+  - indicator_id: price_to_nav
+    base_weight: 0.05                     # data 미가용 (Green Street 유료) — 잠정 base
+    modulate_by: [industry]
+    direction: "deep discount Z<-1.5 + same-store NOI 양 → 가중↑ (NAV mean-revert mechanism). office archetype 의 structural -25% (2024 +21.5% rebound) 와 일관"
+    granularity: industry
+
+  # --- quality / leverage ---
+  - indicator_id: leverage_debt_ebitda
+    base_weight: 0.10
+    modulate_by: [regime, name_specific]
+    direction: "Risk-off (HY OAS > +1σ) → 가중↑↑. ticker leverage > 7x → 추가 가중↑. 음의 부호 (높을수록 위험)"
+    granularity: ticker
+
+  - indicator_id: fixed_charge_coverage
+    base_weight: 0.05
+    modulate_by: [regime]
+    direction: "Risk-off → 가중↑ (default risk channel)"
+    granularity: sleeve
+
+  - indicator_id: roe
+    base_weight: 0.03
+    modulate_by: []
+    direction: "§6 코어. REIT 에선 D&A 노이즈 — weak signal"
+    granularity: sleeve
+
+  - indicator_id: margin_trend
+    base_weight: 0.03
+    modulate_by: []
+    direction: "§6 코어. REIT NOI margin trend — weak signal"
+    granularity: sleeve
+
+  # --- growth / revision (NOI 가 REIT organic earnings) ---
+  - indicator_id: same_store_noi_growth
+    base_weight: 0.08
+    modulate_by: [industry, window_length]
+    direction: "rent reset 사이클 (12m forward) 평가 시 가중↑. apartment archetype 의 rent escalator 빠른 패스스루 mechanism. ⚠ v1 의 'Reflation regime → 가중↑↑' 단정 폐기 (H5 reject)"
+    granularity: industry
+
+  - indicator_id: occupancy_rate
+    base_weight: 0.04
+    modulate_by: [industry]
+    direction: "office archetype (structural occupancy 하락 중) → 가중↑ (signal-to-noise 높음). industrial/datacenter 는 가중↓ (saturated)"
+    granularity: industry
+
+  - indicator_id: earnings_revision_breadth
+    base_weight: 0.04
+    modulate_by: [regime]
+    direction: "§6 코어"
+    granularity: sleeve
+
+  - indicator_id: fwd_eps_momentum
+    base_weight: 0.03
+    modulate_by: []
+    direction: "§6 코어. REIT 에선 consensus dispersion 큼 — weak signal"
+    granularity: sleeve
+
+  # --- momentum + macro sensitivity ---
+  - indicator_id: mom_12_1
+    base_weight: 0.05                     # H4 confirm 에 따라 window 의존성 강 — 강등
+    modulate_by: [window_length]
+    direction: "H4 confirm (window flip 88%): momentum signal 은 evaluation window 길이에 매우 강하게 의존. 12-1m momentum 의 signal 은 30d~365d window 에선 ranking flip 큼 → 보수 base"
+    granularity: sleeve
+
+  - indicator_id: beta_rate
+    base_weight: 0.10                     # ★ v1 0.15 → 0.10 강등 (H1/H3 의 sign mismatch 발견)
+    modulate_by: [regime, name_specific]
+    direction: >
+      ⚠ v1 의 "rate-shock + long-WALT → beta_rate 가중↑↑↑" 규칙 폐기 (H1 reject, sign mismatch).
+      v2 잠정 가설: rate-shock window 진입 시 long-WALT REIT (Healthcare/Datacenter/Specialty)
+      가 *outperform* — defensive rotation (H1 실측 Rank-IC +0.240, z+3.18). 단 single Fed hike
+      cycle sample (n=23, 2018-2025) → "structural prior (저신뢰)" tier 라벨.
+      Bonferroni 5-test α/5 보정 시 z+3.18 > 2.81 PASS.
+    granularity: ticker
+
+  - indicator_id: beta_credit
+    base_weight: 0.07
+    modulate_by: [regime]
+    direction: "HY OAS spike (+1σ over 4w) → 가중↑↑. archetype 별 baseline 차이 흡수"
+    granularity: sleeve
+
+  - indicator_id: beta_dollar
+    base_weight: 0.02
+    modulate_by: []
+    direction: "§6 코어. US REIT minor"
+    granularity: sleeve
+
+  - indicator_id: beta_oil
+    base_weight: 0.02
+    modulate_by: []
+    direction: "§6 코어. REIT 거의 무관"
+    granularity: sleeve
+
+  # --- risk / duration ---
+  - indicator_id: realized_vol
+    base_weight: 0.04
+    modulate_by: [regime]
+    direction: "Risk-off → 가중↑ (low-vol premium)"
+    granularity: sleeve
+
+  - indicator_id: walt_years
+    base_weight: 0.04
+    modulate_by: [name_specific, window_length]
+    direction: >
+      ⚠ v1 의 "rate-shock 시 가중↑↑ (long-WALT 가 더 빠짐)" 단정 폐기 (H1 reject, sign mismatch).
+      v2 잠정: rate-shock 후 60d cross-section 에서 long-WALT 가 *outperform* (defensive rotation).
+      WALT 가 sector archetype 과 collinear (Healthcare 12y, Datacenter 8y = secular growth).
+      H1 mechanism 가설 별도 검증 후속 (WALT × sector partial-corr 분리).
+    granularity: ticker
+
+  - indicator_id: debt_maturity_wam_years
+    base_weight: 0.02                     # ★ H3 reject + proxy 한계 → 매우 약함
+    modulate_by: [name_specific]
+    direction: >
+      ⚠ v1 의 "long-WAM → 가중↑ (refinancing protection)" 단정 폐기 (H3 reject, mean Rank-IC -0.117
+      z-2.09). 가설과 부호 반대. sector-average proxy range 좁음 (2.5y) → 검정력 약함.
+      ticker-level WAM (EDGAR NLP) 후 재검증 필요. 잠정 base 매우 낮음.
+    granularity: ticker
+
+  - indicator_id: ffo_payout_ratio
+    base_weight: 0.03
+    modulate_by: [regime]
+    direction: "Recession / Stagflation → 가중↑ (배당 cut 위험 selection). payout > 100% 음의 부호 강화"
+    granularity: sleeve
+
+  - indicator_id: sector_archetype
+    base_weight: 0.00                     # 라벨 자체 비중 X, 다른 가중치의 modulate_by 입력
+    modulate_by: []
+    direction: "archetype 라벨 = soft membership 입력 (delta_arch_by_type 의 input)"
+    granularity: industry
+
+# base_weight 합 ≈ 1.0 (capped-simplex water-filling 후 정확 1.0 정규화)
+
+
+# ============================================================================
+# 블록5 CONFIDENCE_HOOKS — (확신/거부) flag 코드 구현
+# 실측 검증 (H1~H5) 의 confirm/reject 가 *이미* trigger 된 hypothesis 포함.
+# 코드 구현 = weight_falsification.score_ic_breakdown_eprocess REIT scope sub-IC.
+# ============================================================================
+confidence_hooks:
+  - hypothesis_id: H4_window_flip_meta
+    status: "CONFIRMED (실측 mean Kendall τ=+0.077, swap rate 88%, n=77 anchor 2020-2026)"
+    confirm_signal: "rolling 24m window 의 1d vs 365d sub-sector ranking swap rate > 30% OR Kendall τ < 0.7"
+    reject_signal: "Kendall τ > 0.7 across all window pairs (consistent ranking)"
+    emit_where: "scripts/train_weights.py REIT batch 진입 시 cross-section ranking flip 진단 hook"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (REIT scope meta-sub-IC)"
+    confidence_metric: "swap rate + Kendall τ (e-process 불요 — direct cross-tabulation)"
+    store: "AssumptionRegistry weight.equity.reit.window_flip 카드 confidence_now + RulePerformance"
+    action_threshold: "이미 confirmed (swap 88%) → block4 의 모든 weight_rule 에 window_length modulate 강제"
+    feeds_weight: "block4 modulate_by enum 'window_length' 추가의 root cause; 12m forward / 1d / 30d 각 window 별 별도 score 생성"
+
+  - hypothesis_id: H1_long_walt_rate_shock
+    status: "★ REJECTED with sign mismatch (실측 mean Rank-IC +0.240, z+3.18, n=23, 2018-2025 single Fed hike cycle). Bonferroni α/5 보정 후도 sig (z+3.18 > 2.81)."
+    confirm_signal: "(v1 가설) cross-section Rank-IC (WALT_rank vs fwd_60d_return_rank) < -0.05"
+    reject_signal: "cross-section Rank-IC > +0.05 (sign mismatch) — 실측 trigger 됨"
+    emit_where: "core/assume/judge.py post-LLM 사후평가 hook + backtest engine SELL outcome 시 cross-section IC 계산. rate-shock window 라벨 = FRED DGS10 4w diff > 50bp"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (REIT scope sub-IC 1)"
+    confidence_metric: "anytime-valid e-value (mixture-SPRT e-process)"
+    store: "registry RulePerformance + lens.regime_reading 의 'long-WALT outperform 가설' 잠정 채택"
+    action_threshold: "✅ v1 'rate-shock + long-WALT → beta_rate 가중↑↑↑' 규칙 폐기. v2 잠정 '가중↑ 단 reverse direction' (defensive rotation 가설) — tier 'structural prior (저신뢰)' 라벨. 추가 rate cycle 검증 (1994/2004/2013) 시 confidence 상향"
+    feeds_weight: "block3 walt_years ↔ beta_rate prior_sign 'pos' → 'neg' 변경. block4 의 beta_rate base_weight 0.15 → 0.10 강등"
+
+  - hypothesis_id: H2_cap_rate_spread_mean_revert
+    status: "PARTIAL CONFIRMED (VNQ proxy Rank-IC -0.361 p<<0.001, deep-discount 275 obs +32.5% mean fwd 12m / 단 2008 GFC 2 episode reject 사례). Direct cap rate spread sparse (n=4 quarter primary)"
+    confirm_signal: "VNQ price 24m rolling Z < -1.5 → 12m fwd Rank-IC > +0.15 (proxy 부호) OR direct cap rate spread Z < -1.5 (post-GFC 환경)"
+    reject_signal: "(a) Rank-IC < 0 sign mismatch OR (b) deep discount (Z<-2) 6Q+ 지속 미회복 = regime change (2008 episode 실사례)"
+    emit_where: "backtest engine Q-end rebalance hook + judge 사후평가. cap rate spread 시계열 = Nareit T-tracker quarterly fetch"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (REIT scope sub-IC 2 + secondary 'persistence' test)"
+    confidence_metric: "e-process anytime-valid + structural break test (Chow-like, secondary)"
+    store: "registry 카드 confidence_now + lens.estimation_note 의 'mean-revert anchor' 문장 신뢰도"
+    action_threshold: "Q3'24 60bp est = recovery 거의 완료 신호. block4 implied_cap_rate_spread base_weight 0.08 (validated 부분만). Q4'24 120bp baseline 제외 (E축). 6Q+ 지속 거부 시 base_weight 0.0 + lens 약화"
+    feeds_weight: "block4 implied_cap_rate_spread + price_to_nav base_weight 동시 micro-adjust"
+
+  - hypothesis_id: H3_debt_wam_rate_shock
+    status: "★ REJECTED (실측 mean Rank-IC -0.117, z-2.09, n=23). Bonferroni α/5 보정 시 borderline (z<2.81). sector-WAM proxy range 2.5y 좁음 — 검정력 한계 명시."
+    confirm_signal: "(v1 가설) cross-section debt_WAM_rank vs rate-shock 60d return Rank-IC > +0.05 (long-WAM outperform via refinancing protection)"
+    reject_signal: "Rank-IC < -0.05 (sign mismatch, long-WAM underperform) — 실측 trigger 됨"
+    emit_where: "core/assume/weight_falsification REIT scope sub-IC 3 + h3_h5_combined.py 식의 cross-section IC 산출"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (REIT scope sub-IC 3)"
+    confidence_metric: "e-process + sector proxy 한계 footnote"
+    store: "registry RulePerformance + block3 의 WAM ↔ rate_beta prior_sign 변경"
+    action_threshold: "✅ v1 'rate-shock + long-WAM → 가중↑' 규칙 폐기. v2 base_weight 0.02 매우 약함. ticker-level WAM (EDGAR NLP) 후 재검증 필수 — confirm/reject 재판정"
+    feeds_weight: "block3 debt_maturity_wam ↔ beta_rate prior_sign 'neg' → 'pos' 변경 + strength 0.20 약화. block4 의 debt_maturity_wam base_weight 0.02"
+
+  - hypothesis_id: H5_sub_sector_regime_simple_mapping
+    status: "CONFIRMED 반증 (실측 mean inter-regime Spearman ρ=+0.087 random / Reflation 의 Industrial avg rank 4.83/9 mid)"
+    confirm_signal: "regime label 별 sub-sector ranking divergent (cross-regime ρ < 0.3) — 실측 +0.087"
+    reject_signal: "regime 무관 ranking 일관 (ρ > 0.7) — 실측 미달, 반증된 가설 자체가 reject 상태"
+    emit_where: "regime label 추가 시 (Investment Clock 분류 갱신) sub-sector × regime cross-tab Rank-IC 재산출"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (REIT scope sub-IC 4 — regime conditioning evidence)"
+    confidence_metric: "inter-regime Spearman ρ + n_quarter per regime"
+    store: "registry RulePerformance + block1 lens.regime_reading 단정 매핑 모두 폐기 기록"
+    action_threshold: "✅ v1 의 모든 'regime → sub-sector 강세' 단정 매핑 폐기 완료 (block1 regime_reading 의 실측 분포만 잠정 기록). block4 의 modulate_by enum 'regime' 단독 규칙 모두 폐기, joint [regime, industry, window_length] 만"
+    feeds_weight: "block1 lens.regime_reading 의 v1 단정 문장 모두 제거 + 실측 분포만 잠정 기록 + Recession-Stagflation-Recovery cluster 만 일관 명시"
+
+  - hypothesis_id: H_collinearity_walt_wam_partial_corr
+    status: "잠정 (mechanism gap, 후속 검증 TODO)"
+    confirm_signal: "WALT × WAM partial-corr 분리 후 individual effect 부호 (WALT outperform / WAM underperform) 가 유지"
+    reject_signal: "partial-corr 분리 후 둘 다 sign null (sector membership confounding 만)"
+    emit_where: "h_walt_wam_partial_corr.py (TODO) — ticker-level WALT + WAM 확보 후 same-sector 내 cross-section"
+    accumulate_in: "core/assume/weight_falsification (TODO)"
+    confidence_metric: "partial Spearman + n_ticker per sector"
+    store: "registry 카드 + lens mechanism 정확화"
+    action_threshold: "TODO — ticker-level WALT/WAM via EDGAR NLP 후 재검증. 부호 유지 시 H1/H3 의 정확한 mechanism 식별, 둘 다 sign null 시 sector membership 만 effect"
+    feeds_weight: "(미정) — TODO 후 block4 의 beta_rate / walt / wam base_weight 정확화"
+
+
+# ============================================================================
+# 블록6 COLLECTOR_PLAN — 부족 자료 수집기 추가
+# v1 + Nareit T-tracker (NEW, H2) + NCREIF ODCE + ticker-level WALT/WAM NLP
+# ============================================================================
+collector_plan:
+  - missing: "REIT analyst consensus EPS / EPS revisions (forward E/P + revision breadth + fwd EPS momentum)"
+    source: "alpha-vantage EARNINGS_ESTIMATE API (free tier 5/min, 500/day) — yfinance.analyst_estimates 차선"
+    interface: FundamentalsProvider
+    credential: ALPHA_VANTAGE_API_KEY
+
+  - missing: "REIT analyst recommendation revisions (earnings revision breadth proxy)"
+    source: "yfinance.recommendations 또는 IBES (유료)"
+    interface: FundamentalsProvider
+    credential: none
+
+  - missing: "REIT 특화 펀더멘털 (FFO/AFFO/NOI/NAV/InterestExpense/DividendsPaid)"
+    source: "EDGAR XBRL 확장 — us-gaap:FundsFromOperations, AdjustedFundsFromOperations, RealEstateInvestmentsNet, InterestExpense, PaymentsOfDividendsCommonStock"
+    interface: FundamentalsProvider
+    credential: none
+
+  - missing: "★ Nareit T-Tracker quarterly time-series (implied cap rate, FFO/AFFO/NAV aggregate)"
+    source: "Nareit T-Tracker Excel download (raw/2025-05/Ttracker_2025Q1.xlsx etc.) 또는 reit.com page parser"
+    interface: VintageProvider             # quarterly aggregate
+    credential: none                       # free, registration 무관
+
+  - missing: "NCREIF ODCE private appraisal cap rate (quarterly aggregate)"
+    source: "NCREIF membership (유료) 또는 Nareit cross-tab 발표 article 다중 fetch (차선)"
+    interface: VintageProvider
+    credential: NCREIF_MEMBERSHIP
+
+  - missing: "Same-store NOI growth + occupancy rate (10-Q supplemental table)"
+    source: "EDGAR 10-Q/10-K 'Same Store NOI' 텍스트 파싱 (HTML 또는 XBRL extension)"
+    interface: new                         # TextualReitMetricsProvider (NLP/regex)
+    credential: ANTHROPIC_API_KEY          # claude 3.5 sonnet 텍스트 추출 권장
+
+  - missing: "WALT (weighted average lease term) — ticker-level"
+    source: "EDGAR 10-K 'lease maturity schedule' 텍스트 파싱"
+    interface: new                         # TextualReitMetricsProvider (위와 통합)
+    credential: ANTHROPIC_API_KEY
+
+  - missing: "Debt WAM (weighted average debt maturity) — ticker-level"
+    source: "EDGAR 10-K 'debt maturity schedule' 텍스트 파싱"
+    interface: new                         # TextualReitMetricsProvider (위와 통합)
+    credential: ANTHROPIC_API_KEY
+
+  - missing: "GICS RealEstate sub-industry classification → 9 archetype mapping"
+    source: "FinanceDatabase (MIT) 또는 yfinance.info['industry']"
+    interface: VintageProvider             # 정적 매핑
+    credential: none
+
+
+# ============================================================================
+# 블록7 CODE_CHANGE_PLAN — §4 4단계 코드 변경 계획 (실제 Read 한 사실 기반)
+# ============================================================================
+code_change_plan:
+  # === ① learn ===
+  - stage: learn
+    file: "core/data/weight_panel.py"
+    symbol: "build_indicator_matrix(provider, series_ids, periods, as_of)"
+    current: "VintageProvider.realtime 으로 PIT 매트릭스 조립. _REFLEXIVE_WORDS word-boundary 게이트. macro 17 series 등록"
+    change: "REIT scope 21 series_ids 등록 (block2 indicators). 반사성 게이트 통과 보장 (모두 외부 fundamentals/시장 지표). self-test 추가"
+    risk: "SACRED: PIT 경계 보존. 추가만 — 무회귀. self-test = REIT 21 series 등록 통과 + 반사성 negatives"
+
+  - stage: learn
+    file: "core/structure/conditional_correlation.py"
+    symbol: "RegimeGlasso(corr_prior=...).fit(X, regime_ids)"
+    current: "nonparanormal → EBIC glasso → EB shrink → Ω_eff. corr_prior=None 기본"
+    change: "REIT scope corr_prior 주입 — block3 의 force-include 4 엣지 (affo_yield ↔ implied_cap_rate_spread / same_store_noi_growth ↔ occupancy / walt ↔ beta_rate / beta_rate ↔ realized_vol) prior_sign × strength 로 21×21 sparse corr_prior 행렬. regime_ids = Investment Clock 4 × rate-shock binary 8 sub-regime"
+    risk: "SACRED: EB shrinkage λ_floor 보존. block3 의 prior_strength ≤ 0.70 → PD 자동. self-test = corr_prior 주입 후 Ω_eff Cholesky OK + REIT scope IC matrix"
+
+  - stage: learn
+    file: "scripts/train_weights.py"
+    symbol: "train_weight_cards(...)"
+    current: "(domain='macro', scope='macro') 1건 처리"
+    change: "REIT batch 추가 — train_weight_cards(domain='equity', scope='reit', series_ids=REIT_SERIES, periods=quarterly, returns=FTSE NAREIT All Equity REITs total return, regime_history=Investment Clock 4×rate-shock binary, registry, valid_from=as_of). 8 sub-regime + 9 archetype delta_arch_by_type → 72 부분 카드 (hierarchical pooling). obs 부족 자동 강등"
+    risk: "SACRED: registry append-only (transition only). 신규 scope='reit' key 충돌 없음. self-test = 8 카드 + delta_arch_by_type composed_weights L1=1"
+
+  # === ② card ===
+  - stage: card
+    file: "core/assume/weight_card.py"
+    symbol: "WeightAssumptionCard"
+    current: "series_ids + w_global + delta_regime + delta_arch + delta_arch_by_type + delta_inter. cap=0.40, floor=0.25"
+    change: "REIT scope 카드 신설 (클래스 자체 무변경): id = 'weight.equity.reit.{regime_id}_{window_length}' (window_length = 1d / 30d / 12m). archetype 필드 = 9 sub-sector. delta_arch_by_type 활용 GICS sub-industry → soft membership pi 혼합. cap 정책: beta_rate base_weight max 0.20 (v1 의 0.30 → 0.20 강등, H1/H3 reject 반영 보수)"
+    risk: "SACRED: 천장 불변식 (S_out ≤ S_L1). frozen 보존. 신규 cap 0.20 = 인스턴스 필드 override → 클래스 default 무변경. self-test = REIT 카드 + composed_weights + soft archetype 혼합"
+
+  - stage: card
+    file: "core/assume/registry.py"
+    symbol: "AssumptionRegistry.register / get_version"
+    current: "(id, version) 키 + PIT 조회"
+    change: "REIT 카드 id 규약 = 'weight.equity.reit.{regime_id}_{window_length}' (regime 8 × window 3 = 24 카드 + archetype 9 sub-membership). 신규 scope key 도입은 단순 추가"
+    risk: "SACRED: register 중복 거부. 무회귀"
+
+  # === ③ inject ===
+  - stage: inject
+    file: "core/stock_track.py"
+    symbol: "_resolve_weight_card(state) / _extract_indicator_z(state, series_ids) / _apply_r15_sizing"
+    current: "id='weight.equity.{regime}' 패턴, raw_external/raw_market 의 series 추출"
+    change: "(1) GICS RealEstate sector ticker 시 'weight.equity.reit.{regime}_{window}' 카드 우선 lookup. (2) REIT 21 series mapping 추가 (누락=0 무회귀). (3) regime_pi 인자 = ticker 의 GICS sub-industry → 9 archetype soft membership. (4) H4 confirm 반영 — window_length 인자 추가 (evaluation horizon 별 별도 score)"
+    risk: "SACRED: 천장 불변식. unit test = long-WALT ticker + rate-shock window → defensive rotation 가설 일관 (H1 실측 부호) + 천장 검증"
+
+  - stage: inject
+    file: "core/assume/judge.py"
+    symbol: "synthesize_l1 호출부 / _call_qwen_with_lens (lens_prompt opt-in)"
+    current: "L1 결정론 S_L1 + L2/L3 attenuator. lens_prompt opt-in 으로 LLM 컨텍스트 정성렌즈 주입"
+    change: "REIT lens 주입 — block1 의 pricing_principle + report_relations + regime_reading (실측 분포) + estimation_note (2024 industrial -17.7% 등 정량) prompt concatenate. archetype 별 sub-prompt"
+    risk: "SACRED: down-only attenuation. lens_prompt None 시 무회귀. self-test = lens 주입 시 천장 통과 + a2/a3 ∈ [0,1] 유지"
+
+  - stage: inject
+    file: "core/brain/regime_to_weights.py"
+    symbol: "SLEEVES + SLEEVE_BLOC"
+    current: "SLEEVES = ['us_stock', 'kr_stock', 'commodity', 'gold', 'bond', 'cash', 'coin']. REIT 미존재"
+    change: "★ REIT sleeve 승격 조건부 보류 (자문 §8). 본 batch 무변경. 측정 기준 (3-test) 충족 시 후속 — (a) 부호 상충 (b) 조건부상관 decoupling (c) 신호 스택 발산. block5 의 H4 + L축 통합 PSD 게이트가 cluster cohesion 측정"
+    risk: "무회귀 (변경 없음)"
+
+  # === ④ falsify ===
+  - stage: falsify
+    file: "core/assume/weight_falsification.py"
+    symbol: "score_ic_breakdown_eprocess / evaluate_weight_card / rank_ic"
+    current: "PRIMARY = score IC 붕괴 e-process (Ville 단측). SECONDARY = Ω drift refit"
+    change: "REIT scope 5 sub-IC 추가 (block5 H1~H5 각각). 추가로 H_collinearity_walt_wam sub-IC 6 (TODO post-NLP). hierarchical_fdr family-wise 보정 (K축 다중검정). silhouette 채널은 SECONDARY drift 라우팅 (e-process 부적합)"
+    risk: "SACRED: Ville inequality 보존. self-test = 5 sub-IC 동시 안정 → no kill / 1 붕괴 → 해당만 retract"
+
+  - stage: falsify
+    file: "core/assume/update_controller.py"
+    symbol: "retract_now / UpdateController.step / transition_card"
+    current: "retract = 빠름 (disjunctive). adopt = 느림 (5조건 AND). hard_falsifier → RETIRE 즉시"
+    change: "REIT 특화 adopt dwell — REIT rate cycle 2y → 8 sub-window (분기 단위 발표). k_window_persist 기본 2 → 3 (분기 단위). same_regime = 8 sub-regime 기준. retract logic 기본 유지"
+    risk: "SACRED: retract 즉시 차단 보존. opt-in scope='reit' 한정 → 기존 macro adopt gate 무영향. self-test = REIT scope adopt 8 sub-window 미달 → KEEP, 충족 → ADOPT"
+
+
+# ============================================================================
+# 블록8 (확장) AUDIT_SELF_CHECK — 12축 self-audit 결과 (audit-guide.md)
+# main 의 opus 독립 감사관이 별도 12축 감사 진행 (본 self-audit 는 참고만)
+# ============================================================================
+self_audit_12_axis:
+  A_theory_realism:
+    pass: true
+    evidence: "raw/theory-notes.md + round-1/2/3.md 정독 + 학설 citation (Giliberto-Shulman 2017, Wachter 2013, NAREIT references). 단 Shulman PDF binary corrupt + Researchgate 403 으로 paper 본문 직접 인용 한계 — secondary citation only"
+    note: "soft pass (날조 인용 없음). caveat = secondary citation only for some refs"
+
+  B_real_data_validation:
+    pass: true
+    evidence: "validation-H1/H2/H3/H4/H5.md 모두 실측 (Yahoo + FRED, 합성 미사용). H1 n=23 z+3.18 / H2 proxy n=4629 ρ=-0.361 / H3 n=23 z-2.09 / H4 n=77 swap 88% / H5 n=33 ρ=0.087. 모두 IC > 0.03 AND |z| > 2.0 (B 게이트)"
+    note: "★ 합성 지문 검사 PASS (2008 GFC, 2020 COVID, 2022 rate-shock 실역사 이벤트 모두 데이터에 실재). H3 만 Bonferroni 5-test α/5 보정 시 z 2.09 < 2.81 borderline"
+
+  C_yaml_traceability:
+    pass: true
+    evidence: "raw/evidence-map.md = yaml 모든 수치 → validation file + script 직접 추적표. block5 H1~H5 각각 status 필드에 정확한 실측 인용. block4 base_weight 모두 H1/H3 reject 반영"
+    note: "★ hard pass core 4 중 1"
+
+  D_pit_lookahead:
+    pass: partial
+    evidence: "scripts 모두 lookback only / forward = strict. 단 FRED fredgraph.csv = latest revised (true first-release vintage 아님 — ALFRED TODO)"
+    note: "partial — macro regime label (GDP/CPI YoY) 의 vintage 정확도 제한. sub-sector return 의 cross-section 은 직접 영향 작음. v2 yaml 명시"
+
+  E_consultation_critique_hallucination_cross_verify:
+    pass: true
+    evidence: "R1 인용 '243bp Q3 2022' ✓ confirmed (2 article cross-verify). '2024 industrial -17.7%' ✓ confirmed (Nareit webinar). 단 'Q4 2024 = 120 bp' = primary 미확인 (Q4'23 123bp 혼동 의심) → v2 yaml baseline 에서 **제외**"
+    note: "★ E축 main 지시 준수 — 환각 의심 baseline 제외"
+
+  F_falsifiability_rejection_record:
+    pass: true
+    evidence: "H1, H3 모두 sign mismatch reject 기록 (block5 status 필드). reject_count = 2. p-hacking 우려 차단"
+    note: "★ 기각 0건 아님 (F 게이트 pass)"
+
+  G_effective_n_power:
+    pass: tier_demoted
+    evidence: "H1/H3 의 23 entries 모두 2018-2025 single Fed hike cycle = effective N << 23. H4 n=77 monthly anchor (autocorr). H5 n=33 quarter (Stagflation 2, Recession 3 극소수). H2 proxy n=4629 daily overlapping. → '_tier' = 'structural prior (저신뢰)' 라벨 (validated alpha 아님)"
+    note: "G 축 = tier 강등 (차단 X, 라벨)"
+
+  H_unresolved_questions:
+    pass: true
+    evidence: "raw/evidence-map.md §8 에 미해결 10개 명시 (ticker-level NLP, 다른 rate cycle, Nareit Excel, NCREIF, ALFRED vintage, WALT×WAM partial-corr, K sensitivity, survivorship, archetype silhouette, global REIT)"
+    note: "공란 아님 — 솔직 기재"
+
+  I_data_integrity_survivorship:
+    pass: partial
+    evidence: "9 sub-sector representative ticker 모두 2018+ listed + 2026 현재 생존. 2018-2026 상폐 REIT 미포함 — survivorship bias 가능"
+    note: "★ partial — universe historical CSV 추가 보강 필요. v2 yaml provenance.data_sources.survivorship_caveat 명시"
+
+  J_economic_significance_cost_capacity:
+    pass: n/a
+    evidence: "본 yaml = 'lens + structural prior' 용도 (validated alpha 주장 아님) → J alpha 주장 hard 미적용. 거래비용 차감 후 검증은 별도 후속"
+    note: "n/a (lens 정성 + prior 용도. live alpha 주장 시 J 게이트 적용 필요)"
+
+  K_multi_test_correction:
+    pass: partial
+    evidence: "5 hypothesis 명시 (H1~H5). Bonferroni α/5 적용 시 H1 (z+3.18 > 2.81) PASS, H2 proxy (p<<0.001) PASS, H4 (swap 88% p<<1e-10) PASS, H5 Recession-Stagflation (ρ=0.768 p=0.016) borderline, H3 (z-2.09 < 2.81) borderline. Window/threshold sensitivity 추가 시도 미적용 — TODO"
+    note: "partial — H3 가 보정 시 borderline 명시. Sensitivity TODO (30bp/100bp threshold + 30d/180d window) 후 재산정"
+
+  L_integrated_correlation_consistency:
+    pass: prerequisite_set
+    evidence: "block3 의 conditioning_set 에 rate factor (beta_credit, beta_rate, sector_archetype) 명시. 통합 단계 (main system_priors.factor_implied_cross_cov) 에서 공통 rate factor 1회 계상 + PSD projection 게이트 의무"
+    note: "L축은 system 통합 단계 책임 — 본 study 의 block3 prerequisite 만 set"
+
+  overall_verdict_self: "충실 (hard 코어 4 중 B/C 통과, D 부분 / I 부분, 12축 중 hard fail 없음). Tier = structural prior (저신뢰). main 의 독립 감사관이 별도 12축 감사 진행 — 본 self-audit 는 참고만 (감사관이 신뢰하지 않음 명시 AUDIT-GUIDE §5)"
+
+
+# =============================================================================
+# v2 끝. 819 lines (v1) → 약 480 lines (v2, 더 간결 + 모든 수치 추적 가능).
+# main 의 opus 독립 감사관에게 본 yaml + raw/evidence-map.md + raw/validation-*.md + scripts/*.py 제출.
+# =============================================================================

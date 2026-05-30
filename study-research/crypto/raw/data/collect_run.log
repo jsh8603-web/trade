@@ -1,0 +1,42 @@
+[2026-05-30T14:04:13.217730+00:00] [1/6] CoinMetrics Community -- BTC metrics
+[2026-05-30T14:04:13.451512+00:00]   attempt 1/3 fail: 403 Client Error: Forbidden for url: https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=CapMVRVCur%2CCapRealUSD%2CCapMrktCurUSD%2CPriceUSD%2CReferenceRateUSD&frequency=1d&page_size=1000
+[2026-05-30T14:04:14.645676+00:00]   attempt 2/3 fail: 403 Client Error: Forbidden for url: https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=CapMVRVCur%2CCapRealUSD%2CCapMrktCurUSD%2CPriceUSD%2CReferenceRateUSD&frequency=1d&page_size=1000
+[2026-05-30T14:04:17.060985+00:00]   attempt 3/3 fail: 403 Client Error: Forbidden for url: https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=CapMVRVCur%2CCapRealUSD%2CCapMrktCurUSD%2CPriceUSD%2CReferenceRateUSD&frequency=1d&page_size=1000
+[2026-05-30T14:04:20.061892+00:00]   ABORT page 0
+[2026-05-30T14:04:20.061892+00:00] [2/6] alternative.me Fear&Greed Index
+[2026-05-30T14:04:20.852007+00:00]   [OK] saved 3037 rows -> fgi-daily.csv
+[2026-05-30T14:04:20.852007+00:00] [4/6] DefiLlama stablecoin charts
+[2026-05-30T14:04:21.196693+00:00]   [OK] saved 3105 stablecoin rows -> defillama-stablecoin-total.csv
+[2026-05-30T14:04:21.197212+00:00] [5/6] CoinGecko /global (current dominance snapshot)
+[2026-05-30T14:04:21.477857+00:00]   [OK] saved global snapshot -> coingecko-global-snapshot.json
+[2026-05-30T14:04:21.477857+00:00]      btc dominance: 57.49568034742787
+[2026-05-30T14:04:21.477857+00:00] [3c/6] Binance BTCUSDT spot klines (daily)
+[2026-05-30T14:04:21.559633+00:00]   call 1: 1000 candles, earliest 2023-09-04
+[2026-05-30T14:04:21.817899+00:00]   call 2: 1000 candles, earliest 2020-12-08
+[2026-05-30T14:04:22.072061+00:00]   call 3: 1000 candles, earliest 2018-03-14
+[2026-05-30T14:04:22.318532+00:00]   call 4: 209 candles, earliest 2017-08-17
+[2026-05-30T14:04:22.334531+00:00]   [OK] saved 3209 klines -> binance-klines-btcusdt-1d.csv
+[2026-05-30T14:04:22.334531+00:00] [3a/6] Binance BTCUSDT funding history
+[2026-05-30T14:04:22.426019+00:00]   call 1: 1000 rows, total 1000, latest 2020-08-08
+[2026-05-30T14:04:22.675821+00:00]   call 2: 1000 rows, total 2000, latest 2021-07-07
+[2026-05-30T14:04:22.926388+00:00]   call 3: 1000 rows, total 3000, latest 2022-06-06
+[2026-05-30T14:04:23.179561+00:00]   call 4: 1000 rows, total 4000, latest 2023-05-05
+[2026-05-30T14:04:23.432335+00:00]   call 5: 1000 rows, total 5000, latest 2024-04-02
+[2026-05-30T14:04:23.685340+00:00]   call 6: 1000 rows, total 6000, latest 2025-03-02
+[2026-05-30T14:04:23.945986+00:00]   call 7: 1000 rows, total 7000, latest 2026-01-29
+[2026-05-30T14:04:24.190910+00:00]   call 8: 363 rows, total 7363, latest 2026-05-30
+[2026-05-30T14:04:24.207023+00:00]   [OK] saved 7363 unique funding rows -> binance-funding-btcusdt.csv
+[2026-05-30T14:04:24.208023+00:00] [3b/6] Binance BTCUSDT OI history (recent 30d only public)
+[2026-05-30T14:04:24.251024+00:00]   [OK] saved 30 OI rows -> binance-oi-btcusdt.csv
+[2026-05-30T14:04:24.251024+00:00] [6/6] Farside Investors -- BTC spot ETF daily flow (HTML)
+[2026-05-30T14:04:25.601017+00:00]   [OK] saved raw HTML (726901 chars) -> farside-etf-raw.html (parse 별도)
+[2026-05-30T14:04:25.602017+00:00] 
+=== DONE ===
+[2026-05-30T14:04:25.602017+00:00]   coinmetrics: FAIL
+[2026-05-30T14:04:25.602017+00:00]   fgi: D:\projects\Inv\study-research\crypto\raw\data\fgi-daily.csv
+[2026-05-30T14:04:25.602017+00:00]   defillama: D:\projects\Inv\study-research\crypto\raw\data\defillama-stablecoin-total.csv
+[2026-05-30T14:04:25.602017+00:00]   coingecko: D:\projects\Inv\study-research\crypto\raw\data\coingecko-global-snapshot.json
+[2026-05-30T14:04:25.602017+00:00]   binance_klines: D:\projects\Inv\study-research\crypto\raw\data\binance-klines-btcusdt-1d.csv
+[2026-05-30T14:04:25.602017+00:00]   binance_funding: D:\projects\Inv\study-research\crypto\raw\data\binance-funding-btcusdt.csv
+[2026-05-30T14:04:25.602017+00:00]   binance_oi: D:\projects\Inv\study-research\crypto\raw\data\binance-oi-btcusdt.csv
+[2026-05-30T14:04:25.602017+00:00]   farside: D:\projects\Inv\study-research\crypto\raw\data\farside-etf-raw.html

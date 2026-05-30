@@ -1,0 +1,37 @@
+REIT 자산군 멀티에셋 framework 의 industry-level lens 설계 자문. 기존 v2 산출 (M3 실측 + validation H1~H5 + theory-notes) input 보존·재사용. 라운드 1 = sub-cluster 분할 + 거시 driver 동적가중 framework + real rate decomposition.
+
+[기존 실측 input 박제]
+
+1. M3 macro linkage 실측 (2022-01 ~ 2024-12, n=753 daily, VNQ + 9 sub-sector ETF + FRED DGS10):
+   - VNQ β_rate(nominal Δus10y, bp) = −3.82 bp, t=−5.65 (★ M1 us_stock +0.008 ≈0 패턴 불일치 = REIT 채권성 듀레이션 실증)
+   - VNQ β_dollar(Δlog DXY) = −0.841, t=−8.33 (M1 us_stock −0.879 와 거의 동일 강도)
+   - VNQ β_oil(Δlog WTI) = −0.008, t=−0.42 (≈0)
+   - rate-UP 시 dollar loading 2배 패턴 (M1 us_stock 1.68배) REIT 약화: |E1|/|E4| 1.11~1.52배
+   - within-sleeve (9 sub-sector) pairwise mean ρ = 0.547 (M1 us_stock~tech 0.96 대비 낮음, sector effect 존재)
+   - Paradox: Hotel β_rate=+1.79 단독 양수 (lodging short-lease), Tower E4 β_rate=−12.01 가장 음수 (pivot 임에도 cum +17%만)
+   - E1 (긴축 2022Q1~Q3) 9 sub-sector 일관 음수, E4 (pivot 2023Q4~2024) 광범위 폭주 (Retail +70.04%, Healthcare +58.60%)
+
+2. 5 가설 validation 결과 (2026-05-30):
+   - H1 (long-WALT positive forward-return 학설) REJECT sign mismatch: rate-shock 이후 cross-section Rank-IC = +0.240, z=+3.18, n=23 entries — long-WALT 가 outperform (학설과 반대 부호)
+   - H2 (cap-rate spread mean-reversion) PARTIAL: VNQ proxy ρ=−0.361 CONFIRMED, but 2008 GFC 2 episode (−35/−43%) reject 사례
+   - H3 (long-WAM Debt positive 학설) REJECT sign mismatch: Rank-IC = −0.117, z=−2.09 — H1 과 부호 반대 (WALT vs WAM 변별)
+   - H4 (window flip) CONFIRMED: Kendall τ=0.077, swap rate 88%, n=77 monthly anchors
+   - H5 (regime-stable rank) CONFIRMED falsification: mean inter-regime ρ=+0.087 (random)
+
+3. 이론 frame (theory-notes): pricing principle = DCF (P ≈ AFFO / (r_f + ERP_REIT + ΔCapRate − g_NOI)). 4 approach (NAV/P/FFO/P/AFFO/DCF). 2024 industrial sub-sector -17.7% / 243bp Q3 2022 cap rate spread peak (primary 검증 통과).
+
+[질문 Q1-Q3]
+
+Q1 (sub-cluster 분할). REIT 9 sub-sector ETF (PLD=Industrial / AVB=Apartment / BXP=Office / WELL=Healthcare / EQIX=Datacenter / PSA=Storage / SPG=Retail / HST=Hotel / AMT=Tower) 를 거시 sensitivity 패턴별 6 cluster (C1 Residential / C2 Commercial-Retail / C3 Industrial-Logistics / C4 Datacenter-Infra / C5 Healthcare / C6 Specialty=lodging+storage) 로 분할하려 한다. (a) 이 6 cluster 분할이 학술/실무에서 합의 가능한 분류인가? (b) 누락 critical sub-sector (예: gaming/farmland/single-family rental/timberland) 있는가? (c) Healthcare 단독 cluster vs Residential 포함의 학술 합의 (Medicare 정책 영향 vs 인구통계 driver)?
+
+Q2 (거시 driver 동적가중). REIT factor regression 에 핵심 4 driver — (D1) Real rate (10y TIPS) / (D2) Cap-rate spread (implied REIT NOI/EV − private appraisal) / (D3) Dollar (DXY) / (D4) Sector supply (CRE construction pipeline + 공실률) — 가 충분한가? (a) credit spread (HY OAS) 와 inflation breakeven 추가 의무성? (b) D4 sector supply 의 measurable best practice (CBRE/CoStar 4분기 lag, public vacancy/completions 그래프)? (c) sub-cluster 별로 driver 가중을 어떻게 차등화 (예: C3 Industrial = trade volume 추가, C5 Healthcare = Medicare policy proxy 추가)?
+
+Q3 (real rate 분해). VNQ β_rate(nominal Δus10y) = −3.82 bp 의 학설적 분해 — nominal rate = real rate (TIPS yield) + inflation breakeven. (a) NAV 할인율 채널은 real rate 직접, lease escalator 가치는 inflation breakeven — 학설 reference (Glascock/Beracha 등)? (b) M3 nominal 회귀에서 real rate 효과를 분리하려면 어떤 regression 설계 (multi-regressor, control variable, TIPS 1997-2022 span 단축 missing window 핸들링)? (c) M3 결과의 β_rate=−3.82 가 [real rate β + inflation breakeven β] 로 어떻게 decompose 될 것으로 expect?
+
+[응답 형식 의무]
+
+- ⛔ "X 가 답" 단정 X. 학술 reference + counter-example + 결정 기준 명시.
+- 정량 수치 (β 추정치, Rank-IC, n, p-value 등) primary source 인용 필수.
+- 단정 시 신뢰도 (low / mid / high) 명시.
+- ★ 합의된 학술 inconclusive 영역 (예: REIT-rate 부호 inconclusive) 정직 보고.
+- 답변 길이: 각 Q 당 400-800자, 총 1500-2400자.

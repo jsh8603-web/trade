@@ -1,0 +1,49 @@
+DO NOT USE WEB SEARCH OR THINKING. Answer DIRECTLY from your knowledge. The response must be complete in one shot. (K-202605301815 학습 적용)
+
+REIT 자산군 framework R3 자문. R1+R2 합의 박제 후 진입.
+
+[R1+R2 합의 박제]
+
+- 6 cluster 구조 + 보강: C6 Specialty 분리 (C6a Hotel, C6b Storage), mREIT C8 추가 (NLY/AGNC, MBS asset-liability mismatch + yield curve slope + convexity dominant). 빠진 sub-sector: Gaming(VICI), SFR(INVH), Timberland.
+- 거시 driver: real rate + breakeven + dollar + cap-rate spread + HY OAS + sector supply (Census Construction + CMBS Delinquency leading). Fisher 항등식 collinearity 경고 ("nominal + real + breakeven 동시 투입 금지, real+breakeven 만").
+- M3 결과 해석: VNQ β_rate=-3.82bp 는 2022-2024 epoch 상한 추정치 개연 (긴축 cycle dominance). 1990-2020 long-run |β| 더 작음 (학설 inconclusive — Liu-Mei 1992 -1.5~-2.5 vs Mueller-Pauley 1995 "상관 낮음 횡보국면만" 모순). ★ point estimate 단정 금지, 분포 + CI + 게이트.
+- Hotel β_rate +1.79 = cyclical demand proxy (post-COVID 여행수요 폭증 omitted-variable bias). orthogonalize 시 0 또는 음수 수축 예상. 2008/2020 RevPAR 붕괴가 hedge 아닌 경기 proxy 실증.
+- Tower E4 β_rate=-12.01 = 3 채널 (escalator incomplete pass-through + 5G capex/Sprint-TMobile churn + AMT India/Africa USD EM exposure translation loss). longest-duration REIT 정합.
+- within ρ=0.547 decomposition: 2-stage Ling-Naranjo (sub-sector ~ VNQ + market 1차, 잔차 ρ = unique). 0.547 = REIT broad + equity broad mix. shrinkage 의무 = Ridge L2 + Ledoit-Wolf 2003/2004 + Jorion 1986 Bayes-Stein.
+
+[질문 Q8-Q10 + R2 carry 6건]
+
+Q8 (H1/H3 REJECT 모순 학설 해석). M3 결과 H1 (long-WALT positive forward-return 학설) Rank-IC = +0.240 z=+3.18 (REJECT sign mismatch, long-WALT outperform) + H3 (long-WAM Debt positive 학설) Rank-IC = -0.117 z=-2.09 (REJECT sign mismatch, long-WAM underperform). WALT (lease duration) 와 Debt WAM (debt maturity) 가 rate-shock 이후 정반대. (a) 학술 합의 reference 가능? (b) WALT 길어도 rent escalator + redevelopment 옵션 = positive vs WAM 길면 refinancing risk = negative — 분리 mechanism 학술 ref? (c) 학설상 "long-WALT 가 rate-shock 후 outperform" 가 H1 의 본래 주장과 반대인데, H1 의 원전 학설 (long-WALT underperform) source author + year? counter-example?
+
+Q9 (5게이트 REIT 한정 임계). eq_kr 5게이트 default (n>30, OOS Rank-IC>0.05, regime stable, ES>3% annualized, robustness) 가 REIT 자산군에 그대로 적용 가능? (a) sub-sector 9 × monthly anchor → 작은 n 한계 (예: 5년 monthly = 540 obs, 9 sector 분리 시 cell 당 ~60). (b) 5게이트 임계 조정 필요? (예: OOS Rank-IC threshold 0.05 → 0.03 완화 vs n>50 강화). (c) shrinkage / hierarchical Bayes 적용 시 5게이트 robustness gate 의 robustness criterion 어떻게 변경?
+
+Q10 (신규 가설 H6-H10 학설 ref + 반증조건). 후보 가설:
+- H6 "cap-rate spread > 200bp 진입 시 +12m mean-revert 75% confidence" (H2 reverse-shape). 학설 ref + 반증조건 (예: 2 consecutive episode reject = H6 reject)?
+- H7 "datacenter capex 사이클 lead REIT EQIX 6-9m". 학설 ref (AI capex proxy = Nvidia revenue / 메가hyperscaler capex disclosure) + 반증조건?
+- H8 "Tower long-duration discount = lease escalator pass-through 약함 (CPI > 3% 구간)". R2 합의 박제, 학술 ref 가능? 반증조건 = CPI > 3% 4 분기 이상에서 Tower cum return < equity average 이하 비율 60% 미만 = reject?
+- H9 "Healthcare β_rate 약함 = Medicare 정책 dominant (rate 보다)". 학설 ref + 반증조건 (예: Medicare reimbursement shock 와 Healthcare REIT return 상관 |ρ| > 0.3)?
+- H10 "REIT broad ETF flow vs sub-sector divergence regime 진입 신호". 학설 ref + 반증조건?
+
+[R2 carry 6건]
+(c1) Liu-Mei 1992 + Mueller-Pauley 1995 primary 인용 가능성 (정량 β range 인용 vs inconclusive)?
+(c2) Beracha-Krautz 2022 vs Beracha-Hardin (claude R2 인용) — 정확 ref 어느 쪽?
+(c3) AMT India 손상차손 10-K 2023 실수치 (Q4 2023 Africa $0.5B impairment 보고 기억)?
+(c4) Ling-Naranjo 2015 REIT systematic/idiosyncratic 분해 best practice paper 정확 ref?
+(c5) Green Street tower longest-duration REIT 분류 = 실무 publication 인용 가능?
+(c6) Sprint/T-Mobile 2020 합병발 carrier churn 2022-24 tower leasing volume 영향 정량?
+
+[Hard constraint]
+
+- ★ point estimate (β_rate, Rank-IC, λ) 단정 금지 — 분포 + CI + 게이트.
+- 학설 inconclusive 영역 정직 보고.
+- collinearity invariant (nominal + real + breakeven 동시 X) 유지.
+- mREIT C8 분리 합의 유지.
+
+[응답 형식]
+- 학설 ref 가능한 경우 author + year + journal 표기.
+- 확신 (low/mid/high) 표기.
+- 답변 길이: 자유, 단 잘리지 않도록 1 shot 완결.
+
+[Framing]
+- Gemini Pro (R3-G): 신규 가설 H6-H10 의 학설 ref novel insight 우선.
+- Claude Opus 4.7 (R3-C): R2 carry 6건 primary ref 정확성 + 반증조건 정량성 우선.

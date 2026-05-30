@@ -1,0 +1,302 @@
+study_id: crypto
+asset_scope: [coin]
+as_of: "2026-05-30"
+
+# ============================================================================
+# 메타 — 2-3 실데이터 검증 후 v2 yaml. v1 은 raw/study_session.v1.yaml.deprecated.
+# ★★★ 모든 숫자·prior·partial-corr 값이 raw/validation-*.md 실측에서 도출됨 (C축 추적성).
+#
+# 데이터 소스 (실데이터, ⛔합성·시뮬 없음):
+#  - CoinMetrics BTC daily (CapMVRVCur, RealUSD, MrktUSD, PriceUSD), 2010-07~2026-05, n=5795
+#  - Binance BTCUSDT spot klines 1d, 2017-08~2026-05, n=3209
+#  - Binance USDT-M perpetual funding 8h, 2019-09~2026-05, n=7363
+#  - alternative.me Fear&Greed Index daily, 2018-02~2026-05, n=3037
+#  - DefiLlama stablecoin total supply daily, 2017-11~2026-05, n=3105
+#  - Farside Investors BTC spot ETF daily flow, 2024-01~2026-05, n=613
+#  - CoinGecko /global snapshot (BTC dominance 57.5%)
+#
+# 분석 코드: scripts/{h1_mvrv, h2_funding, h3_stablecoin, h4_etf, h5_halving,
+#            prior_ladder, eff_n_gate}.py + lib_common.py
+#
+# ★자문 정정 (R1~R3 가설 vs 실측 1차 결과):
+#  - H1 MVRV marginal 가설 = trend 지속 (정반대) — partial corr conditioning 후만 mean-revert
+#  - H2 funding cascade = ★REJECT (extreme long funding 후 fwd_3d 양수 +1.9%)
+#  - H3 stablecoin = 부분 검증 (Granger OK), but bidirectional reflexive 위험 (BTC→supply 도 lag 7d 유의)
+#  - H4 ETF flow = 1차 검증 (hit rate 56.7% p=0.006, but CI 포함)
+#  - H5 halving = standalone X 유지, conditioning 효과 음 IC 일관성 확인
+#  - prior ladder ★실측 정정: on-chain (sharpe 1.27) > micro (sharpe 0.97) — ladder 역방향
+#
+# coin §4③ 예외 박제: weight_panel 학습 진입 X (SACRED coin_consensus_lens 불침범).
+# ============================================================================
+
+# 블록1: LENS (정성 — LLM 주입용. ★가변: 블록5 flag → estimation_note·가중 미세변동)
+lens:
+  pricing_principle: >
+    코인 가격결정 5축 (실측 보정):
+    (1) 투기적 자본흐름 = stablecoin 시총·거래소 입출금·funding rate.
+    (2) 공급 schedule = halving 4년 사이클 (N=4 검정 불가, regime label only).
+    (3) 거시 유동성 = real_rate·DXY·M2 — Liu&Tsyvinski 2021 null 근거 macro 채널 2020-03 fit start.
+    (4) 시장 미시구조 = perpetual funding/OI, BTC dominance rotation.
+    (5) 네트워크 가치 = realized cap (cost-basis), Metcalfe-like.
+    ★펀더멘털 cash flow 부재 = DCF 비성립 (coin_consensus_lens.dcf_not_used()).
+    MVRV = market_cap / realized_cap = 코인판 P/B 유사 cycle 진동자.
+  report_relations:
+    - "MVRV>2.4 (실측 1154 일수, 19.9% of 5795d) → marginal fwd_30d 평균 +22.9% (★trend 지속, 자문 mean-revert 가설 marginal 정반대). partial corr | FGI×halving = -0.085 p<0.001 (조건부 mean-revert 잔존, but BB95%CI=(-0.235, +0.073) = 0 포함 = partial 직접엣지 약)"
+    - "★[REJECT] funding cascade — Binance BTCUSDT 8h funding 7363 obs. |funding|>0.05%/8h 진입 후 fwd_3d 가 양 (+1.9% at p99+long n=24, +0.8% at p95+long n=118), cascade 가설 부호 정반대. Rank-IC=-0.041 BB95%CI=(-0.11,+0.02) = 0 포함. extreme long funding 은 cascade 아니라 trend 지속의 *수반 현상*"
+    - "stablecoin growth → BTC: Granger lag 7d p=0.0005 / lag 14d p=0.0022 = supply lead 확인. ★단 BTC→supply 도 lag 7d p=0.0138 = bidirectional (reflexive 위험). rolling Rank-IC sharpe=-0.43 (역방향 시기 다수). dry powder 효과 = regime-dependent, prior 보수화 필수"
+    - "halving 4 phase: post_0_6m / post_6_18m / post_18_24m / post_24_36m 의 fwd_30d 단순평균 = +6.6% / +8.5% / -7.5% / +1.1%. post_6_18m 최대 +, post_18_24m distribution → bear 전이 가설 데이터 일치 but N=4 통계 검정 불가 (구조적 prior 라벨)"
+    - "BTC ETF (post-2024) net flow → 5d cum > 0 인 경우 fwd_30d > 0 hit rate = 56.7% (n=374, binomial p=0.006). digital-gold 채택 가설 1차 검증, but CI 포함. 1.5~2yr probation observe-only prior 유지"
+    - "FGI regime conditioning 안에서 MVRV → fwd_30d IC 모두 음 (-0.06 ~ -0.65, 20 cell 중 16 cell N≥30 통과). MVRV 의 신호는 *FGI/halving conditioning 후* 만 안정"
+    - "거시 transmission: M2↑→stablecoin demand↑→BTC. real_rate↑→ 위험자산 멀티 압박 (post-2020 채널, 2024 ETF 부분 디커플)"
+  regime_reading: >
+    FGI 5단계 × halving phase 4단계 conditioning 으로 가설별 부호 달라짐.
+    ★ extreme_fear & post_6_18m (markup) = MVRV mean-revert 가장 약함 (IC -0.03). ★ extreme_fear & post_18_24m (distribution) = MVRV mean-revert 가장 강함 (IC -0.51). ★ funding extreme long & all phase = trend 지속 (자문 cascade 가설 기각). belief b(t) primary = FGI 5-state soft membership, macro·halving = parametric multiplier.
+  estimation_note: >
+    2026-05 추정 (실데이터 anchor, ★신뢰도 中→低, 후속 OOS 재검증 의무):
+    (a) 현재 MVRV (CoinMetrics 최신) = 1.36 (low, 9th percentile 부근), MVRV<1.5 영역.
+    (b) BTC dominance 57.5% (CoinGecko snapshot), alt-season 비활성.
+    (c) 2024-04 halving 후 약 13개월 → post_6_18m markup phase 중후반.
+    (d) 일별 funding rate (7363 obs 평균 +0.000108) = 평소 수준.
+    ★fwd 30d 예상 시 marginal trend 우세 (post_6_18m +8.5% 평균), but MVRV<1.5 = mean-revert 신호 활성도 낮음.
+    ⚠️ 본 추정은 블록5 confidence_hooks 가 OOS Rank-IC 로 갱신 — H1·H2 가설 부호 정정 사항이 추가 데이터로 재검증되면 lens 다시 갱신.
+
+# 블록2: INDICATORS (정량 지표 — 실수집 PIT 데이터 기반)
+# in_our_system: 우리 시스템 *기존* 코드 경로에 이미 있는가
+# source_or_collector: 실측 사용한 무료 API + 우리 PIT provider 매핑
+indicators:
+  - {id: mvrv_btc, family: macro_sensitivity, is_core: false, in_our_system: true,
+     source_or_collector: "CoinMetrics CapMVRVCur PIT (community v4 무료, n=5795 2010-07~). 시스템 wire = core/data/instrument_source.CoinMetricsMvrvProvider",
+     transform: level, vintage_policy: point_in_time, lag: 1}
+  - {id: fgi, family: risk, is_core: false, in_our_system: true,
+     source_or_collector: "alternative.me FGI daily (n=3037 2018-02~). 시스템 wire = agents/external_data.ExternalDataAgent.collect_all → sources.fear_greed",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: funding_rate, family: risk, is_core: false, in_our_system: true,
+     source_or_collector: "Binance USDT-M BTCUSDT 8h funding (n=7363 2019-09~). 시스템 wire = coin_consensus_lens.CoinLensData.funding_rate (현재 라이브 snapshot 만, 시계열 수집 필요)",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: btc_price, family: momentum, is_core: false, in_our_system: true,
+     source_or_collector: "Binance BTCUSDT spot 1d klines (n=3209 2017-08~). 시스템 wire = scripts/collect_market_data.py (Upbit) — Binance global 와 분리 운영",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: stablecoin_total_supply, family: macro_driver, is_core: false, in_our_system: false,
+     source_or_collector: "DefiLlama /stablecoincharts/all 무료 (n=3105 2017-11~). ★collector_plan 신규",
+     transform: yoy, vintage_policy: point_in_time, lag: 0}
+  - {id: btc_dominance, family: macro_driver, is_core: false, in_our_system: false,
+     source_or_collector: "CoinGecko /global 무료 (현재 snapshot only, daily history 유료). ★collector_plan 신규 + 일별 시계열은 별도 archive 누적 필요",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: etf_net_flow_usd, family: macro_driver, is_core: false, in_our_system: false,
+     source_or_collector: "Farside Investors HTML scrape 무료 (n=613 2024-01~). ★collector_plan 신규 — 1.5~2yr probation observe-only",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: halving_phase, family: macro_driver, is_core: false, in_our_system: false,
+     source_or_collector: "결정론 schedule (2012-11-28 / 2016-07-09 / 2020-05-11 / 2024-04-19). days_since_halving 산출 함수만 추가, 외부 API 없음",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+
+# 블록3: RELATIONSHIPS (관계 가설 — partial-corr 기준, 실측 IC·CI 인용)
+# direct/common_cause/undetermined 분류는 실측 partial-corr CI 결과 반영
+relationships:
+  - {node_a: mvrv_btc, node_b: btc_price, edge_type: undetermined,
+     conditioning_set: [fgi, halving_phase], lag_routing: lagged, prior_sign: neg, prior_strength: 0.30,
+     theory_basis: "실측: marginal Spearman(MVRV,fwd_30d)=-0.071 / partial(|FGI,halving)=-0.085 p<0.001 BB95%CI=(-0.235,+0.073). CI 0 포함 = direct 확정 X. regime-conditional 20 cell 모두 음 IC = conditioning 후 mean-revert 잔존. marginal 단독 사용 시 trend confound."}
+  - {node_a: funding_rate, node_b: btc_price, edge_type: undetermined,
+     conditioning_set: [], lag_routing: lagged, prior_sign: pos, prior_strength: 0.15,
+     theory_basis: "★[자문 REJECT] cascade 가설 부호 정반대 실측. extreme long funding (p99) 후 fwd_3d=+1.9% (trend 지속). Rank-IC=-0.041 CI=(-0.11,+0.02). prior 0.6→0.15 하향 + 부호 정정 (자문 neg → 실측 pos / trend follow). cascade 효과는 intra-day 분 단위 신호 가능성, daily 손실"}
+  - {node_a: stablecoin_total_supply, node_b: btc_price, edge_type: undetermined,
+     conditioning_set: [], lag_routing: lagged, prior_sign: pos, prior_strength: 0.20,
+     theory_basis: "Granger supply->BTC p<0.005 (lag 7d) 유의 = lead 확인. ★단 BTC->supply 도 lag 7d p=0.014 (bidirectional reflexive). rolling Rank-IC sharpe=-0.43 (시기 부호 반전). 자문 prior 0.3→0.2 하향 + reflexive guard 의무"}
+  - {node_a: etf_net_flow_usd, node_b: btc_price, edge_type: undetermined,
+     conditioning_set: [], lag_routing: lagged, prior_sign: pos, prior_strength: 0.05,
+     theory_basis: "post-2024 only n=613. 5d cum flow >0 후 fwd_30d>0 hit rate 56.7% binomial p=0.006. Rank-IC=+0.057 CI=(-0.16,+0.23) 0 포함. ★probation observe-only 0.05 유지 (claude r3 정정)"}
+  - {node_a: mvrv_btc, node_b: halving_phase, edge_type: undetermined,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: unsigned, prior_strength: 0.10,
+     theory_basis: "regime label only. MVRV→fwd_30d IC 가 phase 별로 -0.03 (post_6_18m markup, 약함) ~ -0.61 (post_18_24m distribution, 강함). conditioning 효과 확인, but standalone IC 산출 X"}
+  - {node_a: fgi, node_b: btc_price, edge_type: undetermined,
+     conditioning_set: [mvrv_btc, halving_phase], lag_routing: lagged, prior_sign: unsigned, prior_strength: 0.15,
+     theory_basis: "FGI 단독 → BTC 효과는 MVRV 와 강 공통원인 매개 (둘 다 sentiment cycle proxy). FGI×halving 의 conditioning 만 belief b(t) 입력 의미. 자문 prior 0.20→0.15"}
+
+# 블록4: WEIGHT_RULES (★★실측 prior ladder 정정 반영. coin 예외: granularity=sleeve 만)
+# claude r3 hybrid (offline 표 = shrinkage target + internal glasso). 본 yaml = offline 표.
+# ★실측 prior ladder (자문 vs 실측):
+#   on-chain MVRV: 자문 0.4 → 실측 sharpe 1.27 → 0.55 상향
+#   micro funding: 자문 0.6 → 실측 sharpe 0.97 + cascade REJECT → 0.45 하향
+#   macro stablecoin: 자문 0.3 → 실측 sharpe -0.43 → 0.20 하향
+#   ETF flow: probation observe-only 0.05 유지
+#   halving: regime label only 0.10 유지
+weight_rules:
+  - {indicator_id: mvrv_btc, base_weight: 0.55, modulate_by: [regime, industry],
+     direction: "★실측 정정 후 가장 강한 sleeve modulator (on-chain rolling sharpe 1.27). conditioning regime = FGI 5 × halving 4. mvrv 신호 = *conditional only* (marginal 단독 사용 X). post_18_24m + extreme_fear 에서 -0.65 강한 mean-revert → coin_sizing Kelly 보수화 강. post_6_18m + greed 에서 -0.03 약 → modulator 거의 무영향",
+     granularity: sleeve}
+  - {indicator_id: funding_rate, base_weight: 0.15, modulate_by: [regime],
+     direction: "★[자문 정정] cascade 가설 REJECT → trend follow 부호로 재정의. extreme long funding (p95+) 진입 시 = bull trend 지속 정황 → coin_sizing fraction 유지 또는 소폭 확대 (Kelly 보수화 trigger X). 단 rolling sharpe 0.97 (양수 안정) — 신호 자체는 보존, 부호만 반전",
+     granularity: sleeve}
+  - {indicator_id: stablecoin_total_supply, base_weight: 0.20, modulate_by: [regime],
+     direction: "Granger lead 확인 (p<0.005 lag 7d) but bidirectional reflexive. growth (Δsupply z-score) > 1 진입 + macro risk-on regime 동시 충족 시에만 가중. rolling sharpe -0.43 부호 반전 시기 다수 → reject_signal 빨리 발화하도록 임계 보수",
+     granularity: sleeve}
+  - {indicator_id: etf_net_flow_usd, base_weight: 0.05, modulate_by: [regime],
+     direction: "probation observe-only. 5d cum>0 + risk-off macro regime 시에만 'digital-gold demand' 가중 적용 (자문 가설). 데이터 누적 시 confidence_hooks 가 OOS reject_signal 발화. glasso 노드 미포함 (complete-case window 수축 회피)",
+     granularity: sleeve}
+  - {indicator_id: halving_phase, base_weight: 0.10, modulate_by: [regime],
+     direction: "regime label only (standalone IC 산출 X). belief b(t) regime 입력. post_0_6m / post_6_18m = MVRV mean-revert 약 → 가중 modulator 낮춤. post_18_24m / post_24_36m = mean-revert 강 → 가중 modulator 높임",
+     granularity: sleeve}
+  - {indicator_id: fgi, base_weight: 0.10, modulate_by: [regime],
+     direction: "FGI 5-state = belief b(t) primary 축 (D5 합의). soft membership. extreme_fear/extreme_greed conditioning 시 다른 가설의 weight modulator 적용. 자체 가중치는 conditioning 역할 정도만 (15→10)",
+     granularity: sleeve}
+
+# 블록5: CONFIDENCE_HOOKS (★실측 결과 → e-process 매핑. coin 도 falsify 단계는 적용)
+# 매 거래/예측마다 flag 누적 → 신뢰도 → lens·가중 미세변동
+confidence_hooks:
+  - hypothesis_id: crypto_mvrv_conditional_mean_revert
+    confirm_signal: "FGI × halving_phase conditioning 후 MVRV → fwd_30d Rank-IC 음 유지 (현재 실측: 20 cell 중 16 cell N≥30 통과, 모두 IC<-0.03 음)"
+    reject_signal: "조건부 IC 가 양으로 부호 반전 OR e-CUSUM 단측 붕괴 (baseline_ic=-0.10, sd=0.15)"
+    emit_where: "instrument_source.run_mvrv_closed_loop (이미 ledger 운영) + scripts/h1_mvrv.py 의 conditional Rank-IC 라이브 갱신"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (regime별 baseline_ic 사전등록)"
+    confidence_metric: "e-value anytime-valid (Ville 이론, alpha=0.05) — 우리 e_cusum_one_sided 사용 가능"
+    store: "registry crypto.mvrv_conditional_mean_revert 카드 confidence_now + EventLedger FDR_DECISION"
+    action_threshold: "e-value>=20 = retract / 안정 = base_weight 0.55 유지 또는 소폭 상향"
+    feeds_weight: "kill → coin_sizing.size_coin_portfolio 의 MVRV-conditional 사이징 가중 0. confirm → 가중 유지"
+  - hypothesis_id: crypto_funding_trend_follow
+    confirm_signal: "[★자문 정정 반영] extreme long funding (p95+) 진입 후 fwd_3d 양 hit rate 유지 (현재 실측 51.7% at p95+long, 50/118 음 — borderline)"
+    reject_signal: "hit rate 0.5 미달 + binomial p>0.05 OR Rank-IC 부호 반전 (자문 원래 가설 = neg cascade 회귀)"
+    emit_where: "scripts/h2_funding.py + coin_consensus_lens 의 funding extreme 트리거 후 outcome"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    confidence_metric: "regime-conditional Rank-IC e-process"
+    store: "crypto.funding_trend_follow 카드 confidence_now"
+    action_threshold: "p<0.05 + IC 양 안정 = trend follow 부호 확정 / 붕괴 = cascade 가설 재검증 (부호 재반전 가능)"
+    feeds_weight: "neutral → coin_sizing 에 funding 입력 가중치 보수화"
+  - hypothesis_id: crypto_stablecoin_lead_with_reflexive_guard
+    confirm_signal: "Granger supply->BTC p<0.05 유지 + rolling Rank-IC 부호 양 + BTC->supply Granger p>0.05 (단방향)"
+    reject_signal: "BTC->supply p<0.01 + supply->BTC p>0.05 = 역인과 우세 / 또는 rolling sharpe <0 누적"
+    emit_where: "scripts/h3_stablecoin.py 의 Granger + CCF 정기 재실행 (월 1회 권고)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess + lead_lag_validity gate"
+    confidence_metric: "양방향 Granger F-test p-value 비율 + rolling Rank-IC sharpe"
+    store: "crypto.stablecoin_dry_powder 카드 confidence_now + lead-lag-validity gate"
+    action_threshold: "lead 우세 = base_weight 0.20 유지 / reflexive 위협 = 가중 0 (raw signal 차단)"
+    feeds_weight: "신뢰도 → consensus lens prompt 의 stablecoin 라인 가중 + sizing modulator"
+  - hypothesis_id: crypto_etf_flow_probation
+    confirm_signal: "post-2024 rolling Rank-IC 양 유지 + 5d cum>0 후 fwd_30d>0 binomial p<0.05 누적"
+    reject_signal: "OOS rolling IC 단측 붕괴 OR ETF flow price-chasing (reflexive: flow=f(prev_ret) 유의)"
+    emit_where: "scripts/h4_etf.py (정기 재실행) + farside daily 누적"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    confidence_metric: "OOS rolling IC sharpe + reflexive F-test"
+    store: "crypto.etf_flow_probation 카드 confidence_now"
+    action_threshold: "1.5yr 더 누적 후 prior 0.05 → 0.15 promotion 가능 / 붕괴 = 즉시 0 차단"
+    feeds_weight: "prior_strength probation 동적 갱신 (자동 ramp)"
+  - hypothesis_id: crypto_halving_phase_conditional
+    confirm_signal: "phase 별 H1 MVRV → fwd_30d IC 일관성 (현재 실측 5 phase 중 5 phase 음, 절대값 0.03~0.61 차이)"
+    reject_signal: "phase 간 IC 부호 반전 (mean-revert vs trend follow regime 충돌)"
+    emit_where: "scripts/h5_halving.py + 각 halving 후 분기별 재평가"
+    accumulate_in: "core/assume/weight_falsification.omega_drift (secondary, kill 아님)"
+    confidence_metric: "phase-conditional IC stability (4-cycle bootstrap, CI 매우 넓음 명시)"
+    store: "crypto.halving_phase_conditional 카드 secondary_falsification 필드"
+    action_threshold: "drift>tau = estimation_note 신뢰도 라벨 하향 (中→低) / 안정 = anchor 유지"
+    feeds_weight: "신뢰도 → lens estimation_note (LLM 주입 시 신뢰도 표기) 자동 갱신"
+  - hypothesis_id: crypto_macro_abstain
+    confirm_signal: "coin_track_macro.H29 abstain (macro unavailable) 시 buy→hold 차단이 drawdown 방어 — OOS hit rate"
+    reject_signal: "abstain 빈도 과다로 missed-rally 누적 (Type II error 음 알파)"
+    emit_where: "coin_track_macro.generate_candidate 의 H29 차단 시점 → 7~14d outcome"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (abstain hit-rate)"
+    confidence_metric: "abstain-conditional Rank-IC + missed-rally 페널티"
+    store: "crypto.macro_abstain 카드 confidence_now"
+    action_threshold: "안정 = H29 임계 유지 / 거부 = abstain 임계 완화"
+    feeds_weight: "신뢰도 → macro_view 의 belief 게이트 가중"
+
+# 블록6: COLLECTOR_PLAN (실측 사용 무료 API + 추가 필요 자료)
+# 본 검증 = 이미 6 free API 실수집·실측. 신규 통합 collector 만 등록.
+collector_plan:
+  - {missing: "CoinMetrics BTC MVRV/realized PIT (현재 우리 instrument_source 는 fixture 만)",
+     source: "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics (page_size=1000 anonymous OK, metric 분리 호출 필수 — 묶음 403)",
+     interface: VintageProvider, credential: none}
+  - {missing: "Binance USDT-M perpetual funding rate 시계열 (현재 라이브 snapshot 만)",
+     source: "https://fapi.binance.com/fapi/v1/fundingRate (startTime 명시 walk-forward 필수, endTime=None 일 시 200 record cap)",
+     interface: VintageProvider, credential: none}
+  - {missing: "alternative.me FGI 시계열 (현재 외부 외에 보존 안 됨)",
+     source: "https://api.alternative.me/fng/?limit=0",
+     interface: VintageProvider, credential: none}
+  - {missing: "DefiLlama stablecoin total supply (DeFi 담보·OTC 포함 노이즈 명시)",
+     source: "https://stablecoins.llama.fi/stablecoincharts/all",
+     interface: VintageProvider, credential: none}
+  - {missing: "Farside Investors BTC ETF net flow daily (HTML scrape, 후속 parser 분리 작업 필요)",
+     source: "https://farside.co.uk/bitcoin-etf-flow-all-data/",
+     interface: VintageProvider, credential: none}
+  - {missing: "halving phase 결정론 함수 (코드 추가만, 외부 API 없음)",
+     source: "공개 사실 (2012-11-28 / 2016-07-09 / 2020-05-11 / 2024-04-19) → days_since_halving 산출",
+     interface: new, credential: none}
+  - {missing: "BTC dominance 일별 시계열 (현재 CoinGecko snapshot only, daily history 유료)",
+     source: "CoinGecko Pro / CoinMarketCap Pro (유료) 또는 매일 snapshot archive 누적",
+     interface: VintageProvider, credential: "coingecko_pro_key (option)"}
+  - {missing: "Binance OI 시계열 (현재 30d public window only)",
+     source: "https://fapi.binance.com/futures/data/openInterestHist (30d max public, 장기는 paid 또는 매일 누적 archive)",
+     interface: VintageProvider, credential: none}
+  - {missing: "miner outflow / hashrate (H5 보조 지표 — direction.md theory-notes §1 ii)",
+     source: "CoinMetrics MinerNetTransfers / HashRate (Community tier 일부 무료)",
+     interface: VintageProvider, credential: none}
+
+# 블록7: CODE_CHANGE_PLAN (★§4 4단계 — coin 예외 반영, claude r3 hybrid 수용)
+# learn/card (weight_panel) = 미적용 사유 명시
+# inject = 3건 (coin_track / coin_consensus_lens / coin_sizing)
+# falsify = 2건 (weight_falsification / update_controller)
+# 신규 1건 = core/coin_track/internal_corr.py (D4 hybrid 의 internal glasso)
+code_change_plan:
+  - stage: learn
+    file: core/data/weight_panel.py
+    symbol: "build_indicator_matrix(store, series_ids, periods, as_of) (L100~)"
+    current: "series_ids 로 시점×지표 PIT 행렬 조립 + 반사성 게이트(_REFLEXIVE_WORDS)"
+    change: "⛔★coin 미적용 — STUDY-KIT §4③ 예외. 본 자산군은 weight_panel 진입 X. 블록2 indicators 는 신규 collector 6종 (CoinMetrics MVRV, Binance funding, FGI, DefiLlama stablecoin, Farside ETF, halving schedule) 로 별도 lifecycle 운영"
+    risk: "미적용 = 무회귀. weight_panel 본체 미변경"
+  - stage: learn
+    file: core/structure/conditional_correlation.py
+    symbol: "RegimeGlasso.fit(X, regime_ids), effective_precision(models, belief)"
+    current: "nonparanormal→EBIC glasso→EB shrink→Ω_eff. corr_prior 인자 지원"
+    change: "⛔★coin sleeve 는 cross-asset glasso 학습에 단일 시계열 (sleeve 수익률) 만 기여. coin 내부 partial-corr 은 신규 internal glasso 인스턴스 (D4 hybrid). cross-asset 본체 미변경. ★별도 추가 = core/coin_track/internal_corr.py (코드 추가만, SACRED 미터치)"
+    risk: "본체 미변경. neuere 인스턴스 추가만 = 무회귀"
+  - stage: learn
+    file: scripts/train_weights.py
+    symbol: "train_weight_cards(...) (L79~131)"
+    current: "배치: 패널→regime_history→glasso→regime별 카드 등록"
+    change: "⛔★coin domain 배치 미적용. 대신 별도 lifecycle = instrument_source.run_mvrv_closed_loop (이미 emit) + scripts/h1_mvrv.py·h2_funding.py 정기 재실행 → AssumptionRegistry crypto.* 카드 lifecycle"
+    risk: "미적용 = 무회귀"
+  - stage: card
+    file: core/structure/commodity_assumptions.py
+    symbol: "build_crypto_cards() (L323~)"
+    current: "crypto.mvrv_mean_reverts + crypto.speculative_flow_overheat 2 카드"
+    change: "★실측 정정 반영 신규 카드 6종 등록: (a) crypto.mvrv_conditional_mean_revert ★기존 mvrv_mean_reverts 대체 (marginal trend 정정) (b) crypto.funding_trend_follow ★cascade 가설 부호 반전 (c) crypto.stablecoin_lead_with_reflexive_guard (d) crypto.etf_flow_probation (e) crypto.halving_phase_conditional (f) crypto.macro_abstain. 블록5 confidence_hooks 와 1:1 매핑"
+    risk: "신규 6 카드 추가. 기존 2 카드 deprecate (또는 v2 alias 매핑). self-test 로 6 카드 동시 등록 + 회귀 확인"
+  - stage: card
+    file: core/assume/weight_card.py
+    symbol: "WeightAssumptionCard (L64~), pin_hash (L150~)"
+    current: "regime별 정량 비중 카드 + lens 정성필드 없음"
+    change: "★crypto sleeve 전용 lens-only 변형 — w_global·delta_regime·ic 빈 tuple (지표가중 미학습) + lens 4 정성필드 (pricing_principle/report_relations/regime_reading/estimation_note) 완전 채움. pin_hash 에 lens 텍스트 포함. id 규약 = weight.crypto.lens_only"
+    risk: "Pydantic Field default_factory 빈값 = lens-only 카드 valid. composed_weights 0 벡터 반환 = 사이징 modulator 가법 무영향(graceful)"
+  - stage: inject
+    file: core/coin_track.py
+    symbol: "collect_market_state, recommended_next_check, _fgi_to_regime"
+    current: "FGI → 5단계 regime → next-check interval. Orchestrator 위임"
+    change: "★(coin inject 본체) — _fgi_to_belief(fgi: int) → dict[regime_label, prob] 신규 추가 (soft membership, 인접 regime smoothing). MarketState.raw_external_data['coin_belief'] 주입. _fgi_to_regime 불변(SACRED). belief primary 축 = FGI 5-state (D5 합의)"
+    risk: "함수 추가만. 기존 SACRED 결정엔진 본체 미변경. self-test 로 belief sum≈1.0 + edge case (fgi=0/100) 검증"
+  - stage: inject
+    file: core/coin_consensus_lens.py
+    symbol: "build_coin_lens_prompt(ctx, lens) (L57~), CoinConsensusLens.run_with_lens"
+    current: "on-chain/sentiment/funding/technical 4 섹션 프롬프트. DCF 미사용"
+    change: "★lens 정성필드 주입 — build_coin_lens_prompt prefix 에 weight_card.lens (pricing_principle/report_relations/regime_reading/estimation_note) 4 섹션 추가. 카드 미제공 시 기존 프롬프트 graceful fallback"
+    risk: "프롬프트 prefix 추가만. JSON 파서 영향 X. timeout (15s) 유지. opt-in lens 부재 시 무회귀"
+  - stage: inject
+    file: core/coin_sizing.py
+    symbol: "size_coin_portfolio (L178~), hrp_multi_coin"
+    current: "단일 BTC = risk_sizing 위임 (Kelly) / 멀티 = HRP tail + H25 BTC crisis cap=0.40. COIN_CORR_THRESHOLD=0.75"
+    change: "★belief modulator 추가 — size_coin_portfolio 인자 belief: Optional[dict]=None. belief 가 주어지면 (a) extreme_fear/extreme_greed 합>0.5 → COIN_CORR_THRESHOLD 0.75→0.65 (crisis 보수화) (b) extreme_greed 단독>0.5 → BTC_CRISIS_CAP 0.40→0.30 (★단 funding_rate trend_follow 가설 confirmed 시 base Kelly 유지)"
+    risk: "신호처리 modulator 추가만. risk_gate.check() 경유 유지. SACRED execute_trade.py / risk_sizing.py 본체 미변경. opt-in belief=None 폴백 무회귀"
+  - stage: inject
+    file: core/coin_track/internal_corr.py
+    symbol: "신규 모듈"
+    current: "(미존재)"
+    change: "★(D4 hybrid 신규) RegimeGlasso 인스턴스 신설. X = [mvrv, fgi, funding_mean, supply_g7d, log_ret_1d] (eff_n_gate 결과 5 지표 가용). regime_ids = vol regime (tertile) × FGI 5단계. nonparanormal 전처리. corr_prior = offline 표 warm-start (블록3 relationships). stability gate: per-regime effective N>=100 (eff_n_gate.md 73% admit rate). bounded envelope. cross-asset 인스턴스와 물리 분리"
+    risk: "신규 코드만 추가 = 본체 미변경 = 무회귀. eff_n_gate 검증 73% admit (영구폐쇄 위험 LOW). self-test 로 stability gate 통과 시뮬 + corr_prior 주입 케이스 추가"
+  - stage: falsify
+    file: core/assume/weight_falsification.py
+    symbol: "score_ic_breakdown_eprocess (L66~), rank_ic (L51~), omega_drift (L89~)"
+    current: "PRIMARY=score IC e-CUSUM 단측 / SECONDARY=Ω drift re-fit"
+    change: "★블록5 confidence_hooks 6종 매핑 (실측 baseline_ic 사전등록): mvrv_conditional baseline=-0.10 sd=0.15 / funding_trend_follow baseline=+0.05 sd=0.10 / stablecoin baseline=0.0 sd=0.08 + lead-lag-validity gate / etf_probation baseline=+0.05 sd=0.10 / halving_phase=secondary omega_drift only / macro_abstain hit_rate=0.6 baseline"
+    risk: "기존 함수 재사용 = 추가 코드 최소 (baseline 상수 + lead-lag 게이트 함수만). self-test 6 가설 각 kill/유지 케이스. 무회귀 (기존 stock 카드 임계 불변)"
+  - stage: falsify
+    file: core/assume/update_controller.py
+    symbol: "retract_now (L50~), UpdateController.step (L90~)"
+    current: "retract=빠름(disjunctive) / adopt=느림(5조건 AND)"
+    change: "★coin 카드 adopt dwell·K-window — 코인 변동성 빠름 (coin_memory half_life 4h 정합) 대비, 단 reflexive risk (stablecoin) 가설은 dwell 길게 (premature retract 방지). funding_trend_follow (★자문 정정 가설) 는 K-window 짧게 (1주) 빠른 검증"
+    risk: "신규 카드만 dwell 인자 조정. 기존 crypto.mvrv_mean_reverts (deprecated)·stock·macro 카드 dwell 불변. 무회귀"
