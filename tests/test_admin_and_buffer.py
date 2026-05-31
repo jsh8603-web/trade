@@ -405,15 +405,15 @@ class TestUpdateDbStatus:
             admin_review._update_db_status({}, "promoted")
 
     def test_successful_patch(self):
-        """Sends PATCH request with correct parameters."""
-        mock_requests = MagicMock()
-        with patch.dict(os.environ, {"SUPABASE_URL": "http://x", "SUPABASE_SERVICE_ROLE_KEY": "k"}):
-            with patch.dict("sys.modules", {"requests": mock_requests}):
-                admin_review._update_db_status({"id": 42}, "promoted")
-                mock_requests.patch.assert_called_once()
-                args, kwargs = mock_requests.patch.call_args
-                assert "42" in args[0]
-                assert kwargs["json"]["status"] == "promoted"
+        """Calls db.update with correct table, filter, and patch payload."""
+        with patch.object(admin_review.db, "update") as mock_update:
+            admin_review._update_db_status({"id": 42}, "promoted")
+            mock_update.assert_called_once()
+            args, kwargs = mock_update.call_args
+            # db.update(table, filters, patch)
+            assert args[0] == "rl_training_results"
+            assert args[1] == {"id": "eq.42"}
+            assert args[2]["status"] == "promoted"
 
 
 # ============================================================================
@@ -823,9 +823,9 @@ class TestGetStats:
 class TestGetSubmissionsFromDb:
     """get_submissions_from_db() — DB vs local fallback"""
 
-    def test_no_env_vars_falls_back_to_local(self):
-        """Without SUPABASE env vars, falls back to local."""
-        with patch.dict(os.environ, {}, clear=True):
+    def test_empty_db_falls_back_to_local(self):
+        """Empty db.select result falls back to local."""
+        with patch.object(admin_review.db, "select", return_value=[]):
             with patch.object(admin_review, "get_submissions_local", return_value=[]) as mock_local:
                 result = admin_review.get_submissions_from_db()
                 mock_local.assert_called_once()
@@ -833,38 +833,24 @@ class TestGetSubmissionsFromDb:
 
     def test_db_success(self):
         """Successful DB call returns data."""
-        mock_requests = MagicMock()
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = [{"trainer_id": "db_user"}]
-        mock_requests.get.return_value = mock_resp
-        with patch.dict(os.environ, {"SUPABASE_URL": "http://x", "SUPABASE_SERVICE_ROLE_KEY": "k"}):
-            with patch.dict("sys.modules", {"requests": mock_requests}):
-                result = admin_review.get_submissions_from_db()
+        with patch.object(admin_review.db, "select", return_value=[{"trainer_id": "db_user"}]):
+            result = admin_review.get_submissions_from_db()
         assert len(result) == 1
         assert result[0]["trainer_id"] == "db_user"
 
     def test_db_failure_falls_back(self):
-        """DB request failure falls back to local."""
-        mock_requests = MagicMock()
-        mock_requests.get.side_effect = Exception("connection error")
-        with patch.dict(os.environ, {"SUPABASE_URL": "http://x", "SUPABASE_SERVICE_ROLE_KEY": "k"}):
-            with patch.dict("sys.modules", {"requests": mock_requests}):
-                with patch.object(admin_review, "get_submissions_local",
-                                  return_value=[{"trainer_id": "local"}]) as mock_local:
-                    result = admin_review.get_submissions_from_db()
-                    mock_local.assert_called_once()
+        """db.select exception falls back to local."""
+        with patch.object(admin_review.db, "select", side_effect=Exception("connection error")):
+            with patch.object(admin_review, "get_submissions_local",
+                              return_value=[{"trainer_id": "local"}]) as mock_local:
+                result = admin_review.get_submissions_from_db()
+                mock_local.assert_called_once()
         assert result[0]["trainer_id"] == "local"
 
-    def test_db_non_200_falls_back(self):
-        """Non-200 status falls back to local."""
-        mock_requests = MagicMock()
-        mock_resp = MagicMock()
-        mock_resp.status_code = 500
-        mock_requests.get.return_value = mock_resp
-        with patch.dict(os.environ, {"SUPABASE_URL": "http://x", "SUPABASE_SERVICE_ROLE_KEY": "k"}):
-            with patch.dict("sys.modules", {"requests": mock_requests}):
-                with patch.object(admin_review, "get_submissions_local",
-                                  return_value=[]) as mock_local:
-                    result = admin_review.get_submissions_from_db()
-                    mock_local.assert_called_once()
+    def test_db_empty_rows_falls_back(self):
+        """Empty rows from DB fall back to local."""
+        with patch.object(admin_review.db, "select", return_value=[]):
+            with patch.object(admin_review, "get_submissions_local",
+                              return_value=[]) as mock_local:
+                result = admin_review.get_submissions_from_db()
+                mock_local.assert_called_once()

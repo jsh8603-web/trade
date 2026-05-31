@@ -237,14 +237,11 @@ class TestR2DbQueryError:
         assert result["halt"] is False
         assert result.get("skipped") is True
 
-    def test_get_db_snapshot_error_returns_sentinel(self, tmp_path, monkeypatch):
-        """_get_db_portfolio_snapshot: 요청 예외 시 _DB_QUERY_ERROR sentinel 반환."""
+    def test_get_db_snapshot_error_returns_sentinel(self, tmp_path):
+        """_get_db_portfolio_snapshot: db.select 예외 시 _DB_QUERY_ERROR sentinel 반환."""
         trader = _make_trader(tmp_path)
-        monkeypatch.setenv("SUPABASE_URL", "https://fake.supabase.co")
-        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "fake_key")
 
-        import requests as _req
-        with patch("rl_hybrid.rl.live_trader._req.get" if False else "requests.get",
+        with patch("rl_hybrid.rl.live_trader.db.select",
                    side_effect=ConnectionError("DB 연결 실패")):
             result = trader._get_db_portfolio_snapshot()
 
