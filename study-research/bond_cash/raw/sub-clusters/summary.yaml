@@ -1,0 +1,118 @@
+# bond_cash v2 Phase 5 통합 summary.yaml (2026-05-31, btn-powerbi, main option A)
+# ★ 잠정 산출 — Phase 6 별 main 12축 audit 후 Phase 7 통합 yaml 정제
+# 본 작업방 supervisor 직접 평가 ⛔ — verdict 라벨은 small-N rigor §2 5단계 자기-라벨, audit subagent 가 cross-check
+
+study_id: bond_cash
+phase: 5_done_pending_audit
+session: btn-powerbi
+date: 2026-05-31
+main_directive: "option A (P0 self-fetch + supervisor 작성 + STUDY DONE 보고 → main 12축 audit)"
+
+# ---- coverage / provenance (D축)
+coverage:
+  common_period: {start: 2007-12-18, end: 2026-03-04}
+  n_panel_per_sub_cluster: 4580
+  provenance_json: study-research/bond_cash/raw/_v2_analysis/_provenance.json
+  data_excluded_from_commit: true   # fetch_p0.py 재실행 복원 (18MB binary)
+
+# ---- driver 정의
+drivers:
+  - {id: MOVE_Z,        source: "yfinance ^MOVE rolling 252 Z-score", role: "vol regime + 사이징"}
+  - {id: ACM_TP10,      source: "NY Fed ACMTP10 daily ffill", role: "term premium decompose"}
+  - {id: DGS10_chg20,   source: "FRED DGS10 20d Δ", role: "rate level change"}
+  - {id: T10Y2Y,        source: "FRED DGS10 - DGS2", role: "curve slope"}
+  - {id: BAA10Y_chg20,  source: "FRED BAA10Y 20d Δ", role: "credit spread Δ proxy (BAMLH0A0HYM2 historical 부재 → DA의 eq_us_defensive H3 검증 경로 재사용)"}
+
+# ---- ★ K축 driver 공선 (main 지시 사전 박제)
+driver_pairwise_corr:
+  ACM_TP10__T10Y2Y: +0.813           # 매우 강한 공선 (TP↑ = curve steepening 일관)
+  BAA10Y_chg20__DGS10_chg20: -0.388  # credit risk premium 상쇄
+  BAA10Y_chg20__MOVE_Z: +0.282       # vol-credit covariate
+  other_pairs_abs_lt_0_1: true
+effective_tests_note: |
+  명목 tests = 7 sub-cluster × 5 driver × 3 forward = 105 (+ regime cell split 별도).
+  driver 공선 (ACM_TP10 ↔ T10Y2Y +0.813 등) → effective 검정수 << 105 (PCA 분해 시 ~3 effective component).
+  Bonferroni α/420 = 0.000119 적용 (★보수적 상한, main 지시 그대로 유지).
+
+# ---- sub-cluster verdict 요약
+sub_clusters:
+  tsy_long:
+    etf: TLT
+    duration: 17
+    verdicts: {"★CONFIRMED 강력": 7, "PARTIAL CONFIRMED": 3, "TENTATIVE DIRECTIONAL": 2, "★REJECTED": 3}
+    bonferroni_pass: 0
+    note: "DGS10/ACM 강한 raw signal 다수, multiple comparison 보정 후 Bonferroni 통과 0"
+  tsy_mid:
+    etf: IEF
+    duration: 8
+    verdicts: {"★CONFIRMED 강력": 3, "PARTIAL CONFIRMED": 7, "TENTATIVE DIRECTIONAL": 3, "★REJECTED": 2}
+    bonferroni_pass: 0
+  tsy_short:
+    etf: SHY
+    duration: 2
+    verdicts: {"PARTIAL CONFIRMED": 7, "TENTATIVE DIRECTIONAL": 5, "★REJECTED": 3}
+    bonferroni_pass: 0
+  ig_credit:
+    etf: LQD
+    duration: 8
+    credit: "A-/BBB+"
+    verdicts: {"★CONFIRMED 강력": 3, "PARTIAL CONFIRMED": 9, "★REJECTED": 3}
+    bonferroni_pass: 0
+  hy_credit:
+    etf: HYG
+    duration: 4
+    credit: "B+/BB"
+    verdicts: {"★CONFIRMED 강력": 1, "PARTIAL CONFIRMED": 8, "TENTATIVE DIRECTIONAL": 3, "★REJECTED": 3}
+    bonferroni_pass: 0
+    regime_conditional_findings:
+      - {driver: MOVE_Z, fwd: 60, regime: rate_up_vol_high, ic: -0.1513, raw_p: 0, n: 1036, bonferroni_pass: true,
+         interpretation: "★ MOVE Z↑ → HYG forward 60d return ↓, rate-up+vol-high regime 안에서만 작동. 사용자 prior 'MOVE 사이징 직결' = unconditional 약함, regime-conditional 안에서 확인."}
+      - {driver: ACM_TP10, fwd: 20, regime: rate_up_vol_high, ic: +0.1944, raw_p: 0, n: 1036, bonferroni_pass: true,
+         interpretation: "TP↑ → HYG forward 20d ↑, rate-up+vol-high 환경. credit 회복 신호 가능성."}
+  cash_tbill:
+    etf: BIL
+    duration: 0.1
+    verdicts: {"★CONFIRMED 강력": 7, "PARTIAL CONFIRMED": 4, "TENTATIVE DIRECTIONAL": 2, "★REJECTED": 2}
+    bonferroni_pass: 6
+    note: "★ 유일하게 Bonferroni 통과 6/15. zero duration 으로 driver noise-free 신호 강함 (cash carry, FEDFUNDS, 단기 rate)"
+  tips:
+    etf: TIP
+    duration: 7
+    verdicts: {"★CONFIRMED 강력": 1, "PARTIAL CONFIRMED": 10, "TENTATIVE DIRECTIONAL": 2, "★REJECTED": 2}
+    bonferroni_pass: 0
+
+# ---- ★ 사용자 prior 검증 결과 (★강조)
+user_prior_validation:
+  - prior: "★ MOVE 사이징 직결 (사용자 명시 최우선)"
+    unconditional: "약함 (mini sample TLT × MOVE_Z fwd20 Rank-IC +0.0141 raw p=0.295, 모든 sub-cluster 의 unconditional MOVE_Z 거의 무효)"
+    regime_conditional: "★ rate-up + vol-high regime 안에서 강하게 작동 — HYG fwd60 IC=-0.151 (Bonferroni 통과). risk gate / down-only attenuation 의 정량 근거."
+    actionable: "weight_rules block4 MOVE_Z 항 = regime conditional only (rate-up+vol-high cell 한정 attenuation) 권장. unconditional sleeve-level 적용은 over-correction risk."
+  - prior: "ACM TP 분해 (사용자 메시지 #3, 누락 critical)"
+    finding: "ACM_TP10 unconditional fwd20/60 weak Rank-IC, 단 regime conditional rate-up+vol-high 에서 강함 (HYG fwd20 IC=+0.194, Bonferroni 통과). TP regime-conditional 적용 권장."
+
+# ---- tier 라벨 (★supervisor 직접 평가 ⛔ 금지 — Phase 6 audit subagent 결정)
+tier_label_request: "Phase 6 main 12축 audit subagent (opus 1m) 가 평가. supervisor 자기-라벨 ⛔."
+expected_tier_per_sub:
+  cash_tbill: "validated_alpha (Bonferroni 6/15 통과, n=4580, J축 거래비용 확인 후)"
+  hy_credit: "structural_prior_low_confidence (regime-conditional 2 spec 만 Bonferroni 통과, 다른 13 spec 보정 후 무유의)"
+  tsy_long/tsy_mid/tsy_short/ig_credit/tips: "structural_prior_low_confidence (Bonferroni 미통과, raw signal 강함 but multiple comparison 보정 미통과)"
+
+# ---- K축 시도횟수 공시
+tries:
+  consult_rounds: 9   # v1 5R + v2 R1 + v2 R2 (3 batch)
+  websearch_native: 5
+  webfetch_native: 2  # 둘 다 403
+  validation_tests_nominal: 105  # 7 × 5 × 3
+  validation_tests_with_regime_split: 105 + 7*5*3*4   # = 525
+  bonferroni_alpha: 0.05 / 420  # = 0.000119
+  effective_tests_lt_nominal: true   # driver 공선 정량 박제
+
+# ---- 미해결 (H축, Phase 6 audit subagent 인계)
+unresolved:
+  - driver 공선 PCA 분해 (Phase 7 통합 yaml 시 weight_rules redundancy 제거)
+  - regime cell = in-sample classification → Phase 6 walk-forward OOS 의무
+  - BAMLH0A0HYM2 1996-2023 ICE 라이센스 부재 → BAA10Y proxy 채택 (DA H3 검증 경로 재사용 명시)
+  - ACM TP10 daily ffill (monthly publish) — within-month lookahead 0 검증 필요
+  - J축 거래비용 (TLT 0.02%, HYG 0.08%+) 차감 후 양 알파 검증 (alpha 주장 시 의무)
+  - Kim-Wright vs ACM cross-check (R2 자문 권고, R3 후속)
+  - regime-conditional MOVE_Z 작동 가설 = TP/credit 채널과의 confound 분해 (mediation analysis Phase 7)

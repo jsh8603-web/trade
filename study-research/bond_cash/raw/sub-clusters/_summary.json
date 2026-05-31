@@ -1,0 +1,101 @@
+{
+  "alpha_bonf": 0.00011904761904761905,
+  "sub_clusters": {
+    "tsy_long": {
+      "etf": "TLT",
+      "n_panel": 4580,
+      "start": "2007-12-18",
+      "end": "2026-03-04",
+      "tests": 15,
+      "bonferroni_pass": 0,
+      "verdicts": {
+        "\u2605CONFIRMED \uac15\ub825": 7,
+        "PARTIAL CONFIRMED": 3,
+        "TENTATIVE DIRECTIONAL": 2,
+        "\u2605REJECTED": 3
+      }
+    },
+    "tsy_mid": {
+      "etf": "IEF",
+      "n_panel": 4580,
+      "start": "2007-12-18",
+      "end": "2026-03-04",
+      "tests": 15,
+      "bonferroni_pass": 0,
+      "verdicts": {
+        "\u2605CONFIRMED \uac15\ub825": 3,
+        "PARTIAL CONFIRMED": 7,
+        "TENTATIVE DIRECTIONAL": 3,
+        "\u2605REJECTED": 2
+      }
+    },
+    "tsy_short": {
+      "etf": "SHY",
+      "n_panel": 4580,
+      "start": "2007-12-18",
+      "end": "2026-03-04",
+      "tests": 15,
+      "bonferroni_pass": 0,
+      "verdicts": {
+        "PARTIAL CONFIRMED": 7,
+        "TENTATIVE DIRECTIONAL": 5,
+        "\u2605REJECTED": 3
+      }
+    },
+    "ig_credit": {
+      "etf": "LQD",
+      "n_panel": 4580,
+      "start": "2007-12-18",
+      "end": "2026-03-04",
+      "tests": 15,
+      "bonferroni_pass": 0,
+      "verdicts": {
+        "\u2605CONFIRMED \uac15\ub825": 3,
+        "PARTIAL CONFIRMED": 9,
+        "\u2605REJECTED": 3
+      }
+    },
+    "hy_credit": {
+      "etf": "HYG",
+      "n_panel": 4580,
+      "start": "2007-12-18",
+      "end": "2026-03-04",
+      "tests": 15,
+      "bonferroni_pass": 0,
+      "verdicts": {
+        "\u2605CONFIRMED \uac15\ub825": 1,
+        "PARTIAL CONFIRMED": 8,
+        "TENTATIVE DIRECTIONAL": 3,
+        "\u2605REJECTED": 3
+      }
+    },
+    "cash_tbill": {
+      "etf": "BIL",
+      "n_panel": 4580,
+      "start": "2007-12-18",
+      "end": "2026-03-04",
+      "tests": 15,
+      "bonferroni_pass": 6,
+      "verdicts": {
+        "\u2605CONFIRMED \uac15\ub825": 7,
+        "PARTIAL CONFIRMED": 4,
+        "TENTATIVE DIRECTIONAL": 2,
+        "\u2605REJECTED": 2
+      }
+    },
+    "tips": {
+      "etf": "TIP",
+      "n_panel": 4580,
+      "start": "2007-12-18",
+      "end": "2026-03-04",
+      "tests": 15,
+      "bonferroni_pass": 0,
+      "verdicts": {
+        "\u2605CONFIRMED \uac15\ub825": 1,
+        "PARTIAL CONFIRMED": 10,
+        "TENTATIVE DIRECTIONAL": 2,
+        "\u2605REJECTED": 2
+      }
+    }
+  }
+}
