@@ -12,7 +12,8 @@
 
 study_id: reit
 asset_scope: [reit]                  # 자문 §8 결론: equity sub-panel. 승격은 측정 기준 충족 시.
-as_of: "2026-05-30"
+as_of: "2026-05-31"                  # ★ R4 carry primary verify + 12축 audit 충실 PASS (2026-05-31)
+version: "v3"                        # v2 (R4 carry 전) → v3 (R4 carry 5건 verify + main audit verdict 반영). v2.bak 백업.
 
 # 추적성 (audit C축 hard pass)
 provenance:
@@ -23,12 +24,27 @@ provenance:
     "raw/validation-H3.md",                # H3 REJECTED (mean Rank-IC -0.117, z-2.09)
     "raw/validation-H4.md",                # H4 CONFIRMED (Kendall τ=0.077, swap 88%)
     "raw/validation-H5.md",                # H5 CONFIRMED (mean inter-regime ρ=+0.087)
+    "raw/r4-carry-verify.md",              # ★ R4 carry primary verify (2026-05-31) — 환각 2건 catch (AMT factor 10x + Beracha 재환각) / Ling-Naranjo 1997·1999 CONFIRMED primary 6/6 / §5 REIT-stock integration CONFIRMED 강력 (regime-conditional 통합 강화)
+    "raw/m3-macro-linkage.md",             # M3 macro linkage (β_rate / β_dollar / 9 sub-sector)
   ]
   scripts: [
     "raw/scripts/h4_window_flip.py",
     "raw/scripts/h1_long_walt_cross_section.py",
     "raw/scripts/h2_mean_revert_proxy.py",
     "raw/scripts/h3_h5_combined.py",
+    "raw/scripts/m3_macro_linkage.py",
+    "raw/scripts/r4_carry_verify.py",      # ★ R4 carry corr·Rank-IC small-N rigor (Newey-West HAC + block bootstrap + Bonferroni)
+    "raw/scripts/audit_spurious_check.py", # ★ main 12축 audit subagent 의 spurious 독립 검증 (level vs return ADF/KPSS, half-split OOS, rolling 36m)
+  ]
+  audit_reports: [
+    "raw/evaluation-reit-20260531.md",     # ★ main opus 1m 12축 audit verdict — 충실 PASS, hard-fail 0. spurious 검정 + 환각 catch primary 재확인 + tier 차등 정직.
+  ]
+  raw_archive_native: [                    # ★ R4 carry native-research 3계층 저장 (~/.claude/docs/archive/research-raw/)
+    "amt-10k-2023-body-native-20260531.htm",         # AMT 10-K 2023 body (4.0 MB inline XBRL)
+    "cci-10k-2023-body-native-20260531.htm",         # CCI 10-K 2023 body (2.5 MB inline XBRL)
+    "beracha-crossref-native-20260531.json",         # ★ 재환각 catch (JRER NOT RealEstateEconomics)
+    "ling-naranjo-1997-crossref-native-20260531.json", # ★ CONFIRMED 6/6
+    "ling-naranjo-1999-crossref-native-20260531.json", # ★ CONFIRMED 6/6
   ]
   data_sources:                            # I축 (생존편향) caveat 포함
     yahoo_tickers: ['PLD', 'AVB', 'BXP', 'WELL', 'EQIX', 'PSA', 'SPG', 'HST', 'AMT']
@@ -54,8 +70,94 @@ provenance:
       historical_2009_q1_reduction_outperform: 124.7   # % single case mechanism evidence
 
   tier: "structural prior (저신뢰)"          # G축 effective-N 강등. validated alpha 아님.
-  hypothesis_tries: 5                       # K축 — 다중검정 보정 Bonferroni α/5 적용 시 H3 borderline
-  reject_count: 2                           # F축 — H1, H3 reject 명시 기록 (p-hacking 우려 차단)
+  hypothesis_tries: 11                      # K축 — H1-H5 + R4 carry 5건 + spurious check + § corr 6 = 누적 11. Bonferroni α/11 = 0.0045 (§5 full p=3.5e-05 << 0.0045 생존)
+  reject_count: 5                           # F축 — H1, H3 reject + R4 carry 3건 REJECT (AMT $3.22B magnitude / Beracha 재환각 ref / §4 economic factors 4/4 비유의)
+
+
+# ============================================================================
+# 블록0.5 REFERENCES R4 carry primary verify (★ 2026-05-31 추가)
+# CrossRef DOI + SEC EDGAR primary 직접 fetch + main 12축 audit verdict 박제.
+# ★ E축 환각 catch: AMT $3.22B → $322M (factor 10x) / Beracha-Feng-Hardin 2019 재환각.
+# ============================================================================
+references_r4_verified:
+  ling_naranjo_1997:
+    status: "★ CONFIRMED primary 6/6 (CrossRef DOI 10.1023/a:1007754312084)"
+    citation: "Naranjo, A., & Ling, D. C. (1997). Economic Risk Factors and Commercial Real Estate Returns. Journal of Real Estate Finance and Economics, 14(3)."
+    role: "economic risk factors → CRE returns mechanism anchor (term spread / default spread / IP / inflation)"
+    empirical_2026_05_31: "VNQ-factor corr 4/4 비유의 (term_spread r=-0.016 / hy_oas r=-0.103 / indpro_yoy r=+0.137 / cpi_yoy r=-0.103, n=35 small, Bonferroni α/4=0.0125, 0/4 생존)"
+    tier: "structural_low (small-N n=35, REJECT weak — BAA-AAA proxy n=250+ 확장 후 재verify 권고, R5 후속)"
+
+  ling_naranjo_1999:
+    status: "★ CONFIRMED primary 6/6 (CrossRef DOI 10.1111/1540-6229.00781)"
+    citation: "Ling, D. C., & Naranjo, A. (1999). The Integration of Commercial Real Estate Markets and Stock Markets. Real Estate Economics, 27(3)."
+    role: "★ REIT-stock market integration regime-conditional mechanism anchor (★ 본 study 핵심 발견)"
+    empirical_2026_05_31:
+      full_sample: "VNQ-^GSPC return corr r=0.746 (NW p=3.5e-05, n=260, block bootstrap CI [0.645, 0.808])"
+      high_vol_regime: "r=0.814 (NW p=4.8e-05, n=124, CI [0.778, 0.858])"
+      low_vol_regime: "r=0.518 (NW p=1.4e-04, n=125, CI [0.286, 0.668])"
+      regime_diff: "high - low = +0.296 (tail-correlation 1 수렴 정합)"
+    spurious_audit_2026_05_31: "★ main audit 재확인: level corr 0.927 (I(1) 비정상 ADF p=0.93~1.00) vs return corr 0.746 (정상 ADF p<0.0001). half-split OOS 1st 0.748 / 2nd 0.787, rolling 36m min 0.161 max 0.912 항상 양 부호. 독립 SPY ticker 0.751 일치. spurious 아님 확정."
+    tier: "structural_strong (★ 단 tradable alpha 아닌 ★공분산 prior 라벨, L축 통합 시 stock sleeve 와 공통 equity-market 인자 중복 계상 1회 계상 주의)"
+
+  amt_10k_2023:
+    status: "★ SEC EDGAR primary verify (Acc-no 0001053507-24-000011, filed 2024-02-27, body amt-20231231.htm)"
+    primary_facts:
+      vil_goodwill_impairment_q3_2023: "$322.0M (★ R3 박제 $3.22B = factor 10x 환각 catch)"
+      fy_2023_total_goodwill: "$402.0M (India $322M + Spain $80M)"
+      fy_2022_india_intangibles: "$508.6M (tower $97M + tenant intangibles $411.6M)"
+      india_sale_consideration_2024: "$2.5B (210 billion INR, VIL OCDs + 매각 consideration)"
+    event_study_2026_05_31:
+      window: "2023-10 monthly return (Q3 earnings release month)"
+      event_return: "+0.080 (+8.0%)"
+      prior_6m_baseline: "mean -0.034 / std 0.058"
+      z_score: "+1.96 (★ 매각 announce $2.5B 호재 정합, n=1 single-event TENTATIVE DIRECTIONAL)"
+    role: "AMT India unit divestment + C4 Datacenter-Infra cluster duration profile"
+
+  cci_10k_2023:
+    status: "★ SEC EDGAR primary verify (Acc-no 0001051470-24-000062, filed 2024-02-23, body cci-20231231.htm)"
+    primary_facts:
+      fy_2023_sprint_cancellations_actual: "$250M (non-renew $21M + cash $170M + deferred amort $59M)"
+      fy_2025_sprint_guide: "$235M (Towers $200M + Fiber $35M)"
+      baseline_non_sprint_churn: "1-2% annual site rental revenue"
+    r3_claim_verdict: "PARTIAL CONFIRMED magnitude $200M order / TENTATIVE multi-year range 2021-24 + $400M 상단 (primary 미확인, R5 후속 10-K 2021/2022 fetch)"
+    event_study_2026_05_31:
+      window: "2024-01 monthly return (Q4 2023 earnings release)"
+      event_return: "-0.049 (-4.9%)"
+      z_score: "-0.47 (noise 수준, 사전 가격 반영 가능성, n=1 TENTATIVE)"
+    role: "CCI Sprint-T-Mobile decommission Tower churn cycle + C4 Datacenter-Infra cluster"
+
+  inflation_hedging_anchor:
+    # ★ Beracha-Feng-Hardin 2019 = 재환각 catch (2026-05-31 R4 carry) — yaml 인용 제거 완료.
+    rejected_ref: "Beracha-Feng-Hardin 2019 (★ 2026-05-31 catch: JRER 41(4) 'REIT Operational Efficiency and Shareholder Value' DOI 10.22300/0896-5803.41.4.513, NOT RealEstateEconomics inflation hedging — 1차 환각 catch Beracha-Krautz 2022 대체 ref 가 또 환각 = 재환각)"
+    rejection_reason: "journal 오기 (Real Estate Economics → JRER 41(4)) + topic 환각 (inflation hedging → operational efficiency). 학설 anchor 부적격."
+    valid_anchors:
+      - "Yobaccio, E., Rubens, J. H., & Ketcham, D. C. (1995). The Inflation-Hedging Properties of Risk Assets: The Case of REITs. Journal of Real Estate Research, 11(3)."
+      - "Glascock, J. L., Lu, C., & So, R. W. (2002). REIT Returns and Inflation: Perverse or Reverse Causality Effects? Journal of Real Estate Finance and Economics, 24(3)."
+    empirical_2026_05_31: "VNQ-CPI yoy r=-0.112 (NW p=0.090 비유의, n=258, block bootstrap CI [-0.218, -0.010]) = weak negative 학설 PARTIAL CONFIRMED broader anchor"
+    tier: "structural_low (weak directional, 비유의 — Yobaccio 1995 / Glascock-Lu-So 2002 broader anchor 만 유지)"
+    pit_caveat_2026_05_31: "FRED CPIAUCSL = latest-revised vintage. true first-release (ALFRED) PIT 보정 후속 의무 (R5 carry)."
+
+main_audit_2026_05_31:
+  verdict: "★ 충실 PASS (hard-fail 0건)"
+  auditor: "main opus 1m independent audit subagent"
+  audit_artifact: "raw/evaluation-reit-20260531.md (12축 + spurious check) + raw/scripts/audit_spurious_check.py (독립 spurious/OOS/rolling 검증)"
+  key_findings:
+    spurious_check_pass: "★ §5 spurious 아님 확정 — level corr 0.927 (I(1) ADF p=0.93~1.00) vs return corr 0.746 (정상 ADF p<0.0001). half-split OOS 1st 0.748 / 2nd 0.787, rolling 36m min 0.161 max 0.912 항상 양 부호. 독립 SPY ticker 0.751 robust. bond_cash 차분소멸 함정 미발생."
+    hallucination_catch_accuracy: "★ AMT $322M SEC EDGAR primary 실재 + '$3.22B' 부재 → factor 10x catch 정확. Beracha-Hardin 2019 JRER 41(4) operational efficiency = journal 오기 + topic 환각 둘 다 정확 catch. 연쇄 환각(1차 catch 후 대체 ref 재환각) E축 모범."
+  hard_fail_axes: 0
+  pass_axes: ["A", "B", "C(N/A v3 시점만 적용)", "D(partial CPI vintage)", "E (강)", "F", "G(tier 정직)", "H", "I(partial)", "J(N/A 정성용도)", "K", "L(N/A 보류)"]
+  tier_assignments_v3:
+    h6_reit_stock_integration_regime: "structural_strong (★ 단 tradable alpha 아닌 공분산 prior 라벨)"
+    h3_reit_cpi_hedge: "structural_low (weak directional, 비유의)"
+    h4_economic_risk_factors: "structural_low (n=35 small, REJECT weak — BAA-AAA proxy 확장 후 재verify)"
+    h1_amt_goodwill_event: "TENTATIVE DIRECTIONAL (n=1 single event)"
+    h2_cci_churn_event: "TENTATIVE DIRECTIONAL (n=1 single event, noise)"
+  r5_followup_required:
+    - "§4 BAA-AAA spread proxy (FRED, 1953+) n=250+ 확장 재verify (현 REJECT 가 검정력 부족인지 진짜 null 인지 분리)"
+    - "§3 FRED CPIAUCSL first-release vintage (ALFRED) PIT 보정"
+    - "CCI multi-year range (10-K 2021/2022) verify ($200M-$400M 2021-24 + $400M 상단)"
+    - "Beracha-Feng-Hardin 2019 인용 yaml 제거 완료 (본 v3) — Yobaccio 1995/Glascock-Lu-So 2002 anchor 만 유지"
+    - "§5 regime-conditional integration hook system_priors.factor_implied_cross_cov 박제 시 stock sleeve 와 공통 equity-market 인자 ★1회 계상 (L축 hard)"
 
 
 # ============================================================================
@@ -656,6 +758,63 @@ confidence_hooks:
     action_threshold: "TODO — ticker-level WALT/WAM via EDGAR NLP 후 재검증. 부호 유지 시 H1/H3 의 정확한 mechanism 식별, 둘 다 sign null 시 sector membership 만 effect"
     feeds_weight: "(미정) — TODO 후 block4 의 beta_rate / walt / wam base_weight 정확화"
 
+  # ====== ★ R4 carry primary verify hook (2026-05-31, main 12축 audit 충실 PASS) ======
+
+  - hypothesis_id: H6_reit_stock_integration_regime
+    status: "★ CONFIRMED 강력 (Ling-Naranjo 1999 RealEstateEconomics 27(3) 학설 정합. VNQ-^GSPC return corr full r=0.746 / high_vol r=0.814 / low_vol r=0.518, all NW p<0.001, n=260. spurious 검정 통과 — level vs return ADF + half-split OOS + rolling 36m 항상 양). tier=structural_strong (★ 단 tradable alpha 아닌 공분산 prior 라벨)."
+    confirm_signal: "VNQ-^GSPC rolling 12m return corr > 0.5 + regime split (vol > median) 에서 high_vol corr 가 low_vol 보다 > +0.2 큼"
+    reject_signal: "(a) return corr < 0.3 (integration 붕괴) OR (b) high_vol < low_vol (regime conditioning 반전) OR (c) level corr 0.927 와 return corr 0.746 의 gap < 0.10 (spurious 의심)"
+    emit_where: "scripts/r4_carry_verify.py + 후속 system_priors integration hook"
+    accumulate_in: "system_priors.factor_implied_cross_cov (G5) — ★ stock sleeve 와 공통 equity-market 인자 중복 계상 1회 계상 (L축 hard)"
+    confidence_metric: "Newey-West HAC t-stat + block bootstrap 95% CI + half-split OOS + rolling 36m min/max"
+    store: "system_priors.reit_stock_integration_card (★ regime-conditional 공분산 prior, NOT tradable alpha)"
+    action_threshold: "★ tradable alpha 아닌 공분산 prior. block4 weight_rule 직접 변조 X. L축 통합 시 stock-equity-REIT 공통인자 1회 계상 의무. high_vol regime entry 시 reit-stock 통합 강화 (시변 공분산 스케일링)."
+    feeds_weight: "block4 직접 가중치 변동 없음. system_priors.factor_implied_cross_cov 의 [stock, reit] off-diagonal regime-conditional scaling (high_vol scaler 1.5 / low_vol scaler 1.0)."
+
+  - hypothesis_id: H_reit_cpi_hedge_weak_negative
+    status: "PARTIAL CONFIRMED weak negative (broader literature Yobaccio 1995 / Glascock-Lu-So 2002 학설 정합. VNQ-CPI yoy r=-0.112, NW p=0.090, n=258, block bootstrap CI [-0.218, -0.010]). tier=structural_low (비유의)."
+    confirm_signal: "VNQ-CPI yoy rolling 60m corr < 0 (sign 일관) + block CI 상한 < 0"
+    reject_signal: "(a) rolling corr > +0.10 (REIT positive inflation hedge 가설 부활) OR (b) p > 0.30 무방향 random"
+    emit_where: "scripts/r4_carry_verify.py + 후속 BAA-AAA proxy n 확장 재verify (R5)"
+    accumulate_in: "block4 의 inflation_hedge_lens 약식 modulator (단, 비유의 weak directional 만)"
+    confidence_metric: "Newey-West HAC + block bootstrap CI + rolling stability"
+    store: "registry inflation_hedge_card (weak directional / Yobaccio 1995 + Glascock-Lu-So 2002 anchor)"
+    action_threshold: "PIT 보정 후 (ALFRED CPI vintage, R5 carry) 재verify. block4 직접 변동 X (비유의), lens.report_relations 만 'REIT 빈약 inflation hedge' 박제."
+    feeds_weight: "(미정) — Beracha-Feng-Hardin 2019 인용 제거 (★ 재환각 catch), broader anchor 만 유지. block4 weight 변동 없음."
+
+  - hypothesis_id: H_economic_risk_factors_small_n_reject
+    status: "REJECT weak (Ling-Naranjo 1997 JREFE 14(3) 학설 ref CONFIRMED but 실측 n=35 small, Bonferroni α/4=0.0125 0/4 생존 — term_spread r=-0.016 / hy_oas r=-0.103 / indpro_yoy r=+0.137 / cpi_yoy r=-0.103, all NW p > 0.05). tier=structural_low (small-N, REJECT)."
+    confirm_signal: "4 factors 중 ≥ 1개 NW p < 0.0125 (Bonferroni) + block CI 0 미포함"
+    reject_signal: "(★ 현재) 4/4 비유의, Bonferroni 0/4 생존 — REJECT weak"
+    emit_where: "scripts/r4_carry_verify.py + 후속 BAA-AAA spread proxy (FRED, 1953+) 로 n=250+ 확장 재verify (R5)"
+    accumulate_in: "block4 economic_risk_factor_lens (현재 REJECT, n 확장 후 재판정)"
+    confidence_metric: "Newey-West HAC + Bonferroni 보정 (m=4) + n 명시"
+    store: "registry economic_factors_card (n=35 small, REJECT weak, R5 BAA-AAA 확장 후 재verify)"
+    action_threshold: "★ block4 economic_factors weight 0 (REJECT 정직). R5 carry BAA-AAA proxy 확장 후 재verify — 검정력 부족 (n=35) 인지 진짜 null 인지 분리 후 base_weight 재판정. **★ 2026-05-31 §1.7 self-check 결과**: term_spread (level n=600) ADF p=0.005 정상 ✓ / indpro_yoy ADF p<0.0001 정상 ✓ / cpi_yoy ADF p=0.003 정상 ✓ / **hy_oas (level n=37 small) ADF p=0.10 + KPSS p=0.01 = 비정상 의심 (I(1) 후보)** = ★ ADF 미검정 형식 위반 (promo-log ERROR-202605311600 level-on-level-spurious 4th recurrence). 종속변수 = VNQ return (차분, 정상) → mixed regression (strict level-on-level 아님), 결과 비유의 REJECT = false positive type-I risk 0 (robust). R5 보완 = **BAA-AAA spread proxy (FRED 1953+) 확장 시 (a) `adfuller(driver)` 사전 검정 의무 (b) p>0.05 unit-root 면 차분 강제 (c) cointegration 검정 (Engle-Granger ADF + Johansen) 통과 후 level 회귀 허용** = 동일 root cause 5th recurrence 방지."
+    feeds_weight: "현재 base_weight 0 (REJECT). R5 후 BAA-AAA spread 대체 default proxy + n=250+ → ADF 사전 검정 통과 후 재verify → base_weight 0.0-0.05 범위 재판정."
+
+  - hypothesis_id: H_amt_event_study_tentative_directional
+    status: "TENTATIVE DIRECTIONAL (n=1 single event). AMT 2023-10 monthly return +8.0% (z=+1.96 vs prior 6m mean -0.034, std 0.058). VIL Goodwill Impairment $322M 발표에도 +rebound — 매각 announce $2.5B 호재 정합 (단, n=1 단정 금지)."
+    confirm_signal: "(★ n 확장 후) ±20 day daily CAR around 2023-10-26 (Q3 earnings call) > +5% + 통계 유의"
+    reject_signal: "CAR < 0 OR z < 1.0 — impairment 사후 가격 negative 반응"
+    emit_where: "scripts/r4_carry_verify.py + 후속 ±20 day daily CAR 재verify (R5)"
+    accumulate_in: "lens.estimation_note (AMT India 매각 $2.5B + VIL Goodwill $322M, NOT $3.22B)"
+    confidence_metric: "z-score (n=1 single event) + 후속 ±20 day daily CAR window"
+    store: "registry amt_vil_event_card (TENTATIVE DIRECTIONAL, n=1)"
+    action_threshold: "block4 직접 변동 X (n=1). lens 박제만. R5 ±20 day daily CAR + 추가 impairment event (2022 $508M India intangibles) cross-section 확장 가능."
+    feeds_weight: "(미정) — n=1 단정 금지."
+
+  - hypothesis_id: H_cci_event_study_tentative_directional
+    status: "TENTATIVE (n=1 single event, noise). CCI 2024-01 monthly return -4.9% (z=-0.47 vs prior 6m mean +0.007, std 0.118). Sprint Cancellations $250M (2023) + $235M (2025 guide) 발표 = 사전 가격 반영 가능성, noise 수준."
+    confirm_signal: "(★ n 확장 후) ±20 day daily CAR around 2024-01-24 (Q4 earnings call) < -3% + z < -1.5"
+    reject_signal: "CAR > 0 OR z > 0 — Sprint Cancellations price-in 완료 (현재 z=-0.47 = 가까운 신호)"
+    emit_where: "scripts/r4_carry_verify.py + 후속 ±20 day daily CAR + 2025 expected guide event-study"
+    accumulate_in: "lens.estimation_note (CCI Sprint $250M 2023 + $235M 2025 guide)"
+    confidence_metric: "z-score (n=1) + 후속 ±20 day daily CAR + 2025 actual realization 검증"
+    store: "registry cci_sprint_event_card (TENTATIVE, noise)"
+    action_threshold: "block4 직접 변동 X. R5 multi-year (2021/2022 10-K) + ±20 day daily CAR 확장 후 재verify."
+    feeds_weight: "(미정) — n=1 noise."
+
 
 # ============================================================================
 # 블록6 COLLECTOR_PLAN — 부족 자료 수집기 추가
@@ -706,6 +865,38 @@ collector_plan:
     source: "FinanceDatabase (MIT) 또는 yfinance.info['industry']"
     interface: VintageProvider             # 정적 매핑
     credential: none
+
+  # ====== ★ R4 carry R5 후속 collector (2026-05-31, main audit verdict 권고) ======
+
+  - missing: "BAA-AAA credit spread (default spread proxy, 1953+) — §4 economic_risk_factors n=35 small → n=250+ 확장 재verify"
+    source: "FRED CSV public — id=AAA + id=BAA (또는 직접 BAA10Y-AAA10Y), period 1953-04-01+ monthly. 이미 yaml 의 default spread 후보로 식별."
+    interface: VintageProvider             # 무인증 free fetch
+    credential: none
+    note: "★ R4 carry §4 (Ling-Naranjo 1997 Economic Risk Factors) 4/4 비유의는 HY OAS series 시작 2010 이 n bottleneck. BAA-AAA = long history (1953+). R5 후속 재verify 의무. main audit 권고."
+
+  - missing: "FRED ALFRED first-release vintage CPI (CPIAUCSL) — §3 VNQ-CPI hedge PIT 보정"
+    source: "ALFRED (Archival Federal Reserve Economic Data) API/CSV. fredalfred.com/series_data?id=CPIAUCSL"
+    interface: VintageProvider
+    credential: none
+    note: "★ R4 carry §3 (VNQ-CPI weak negative) 현재 latest-revised vintage 사용. true first-release vintage 로 PIT 보정 후 재verify — D축 hard PIT 충족 의무."
+
+  - missing: "CCI 10-K 2021/2022 multi-year Sprint Cancellations range verify"
+    source: "SEC EDGAR Crown Castle (CIK 0001051470) 10-K 2021 (Acc-no 0001051470-22-000019, filed 2022-02-22) + 10-K 2022 (Acc-no 0001051470-23-000041, filed 2023-02-24)"
+    interface: VintageProvider             # SEC EDGAR public + User-Agent header
+    credential: none
+    note: "★ R4 carry §2 (CCI Sprint churn $200-400M/yr 2021-24) multi-year range + $400M 상단 primary 미확인 → 2021/2022 10-K body grep verify 후 TENTATIVE → PARTIAL/CONFIRMED 재판정."
+
+  - missing: "AMT 8-K Item 2.06 Material Impairments (2023 Q3 announcement)"
+    source: "SEC EDGAR American Tower (CIK 0001053507) 8-K filings 2023-09 ~ 2023-11 검색"
+    interface: VintageProvider             # SEC EDGAR public
+    credential: none
+    note: "★ R4 carry §1 (AMT VIL Goodwill $322M event) ±20 day daily CAR window 확장 — 8-K announcement date + Q3 earnings call date primary 확인."
+
+  - missing: "AMT/CCI daily close 2022-01 ~ 2026-05 — event-study ±20 day daily CAR window"
+    source: "yfinance public AMT + CCI daily"
+    interface: VintageProvider
+    credential: none
+    note: "★ R4 carry §1/§2 (n=1 monthly TENTATIVE) → ±20 day daily CAR window expansion. n>40 (daily) 로 통계 inference 가능. R5 후속."
 
 
 # ============================================================================
@@ -854,8 +1045,43 @@ self_audit_12_axis:
 
   overall_verdict_self: "충실 (hard 코어 4 중 B/C 통과, D 부분 / I 부분, 12축 중 hard fail 없음). Tier = structural prior (저신뢰). main 의 독립 감사관이 별도 12축 감사 진행 — 본 self-audit 는 참고만 (감사관이 신뢰하지 않음 명시 AUDIT-GUIDE §5)"
 
+  # ====== ★ R4 carry main audit verdict 박제 (2026-05-31) — references_r4_verified.main_audit_2026_05_31 참조 ======
+  overall_verdict_main_audit_2026_05_31:
+    verdict: "★ 충실 PASS (hard-fail 0건)"
+    auditor: "main opus 1m independent audit subagent"
+    audit_artifact: "raw/evaluation-reit-20260531.md + raw/scripts/audit_spurious_check.py"
+    spurious_check: "★ §5 REIT-stock integration r=0.746 = spurious 아님 확정. level corr 0.927 (I(1) 비정상) vs return corr 0.746 (정상, 차분 후 robust). half-split OOS 1st 0.748 / 2nd 0.787, rolling 36m min 0.161 max 0.912 항상 양 부호. 독립 SPY ticker 0.751 일치. bond_cash 차분소멸 함정 미발생."
+    hallucination_catch_accuracy: "★ AMT $322M SEC EDGAR primary 실재 + '$3.22B' 부재 → factor 10x catch 정확. Beracha-Hardin 2019 JRER 41(4) operational efficiency = journal 오기 + topic 환각 둘 다 정확 catch. E축 모범 (연쇄 환각 catch)."
+    hard_fail: 0
+    tier_v3_assignments:
+      h6_reit_stock_integration_regime: "structural_strong (★ 단 tradable alpha 아닌 ★공분산 prior 라벨, L축 통합 시 stock sleeve 와 공통 equity-market 인자 ★1회 계상 의무)"
+      h_reit_cpi_hedge_weak_negative: "structural_low (weak directional, 비유의)"
+      h_economic_risk_factors_small_n_reject: "structural_low (n=35 small, REJECT weak — BAA-AAA proxy 확장 후 재verify R5)"
+      h_amt_event_study: "TENTATIVE DIRECTIONAL (n=1 single event)"
+      h_cci_event_study: "TENTATIVE DIRECTIONAL (n=1 single event, noise)"
+    r5_carry_followup:
+      - "§4 BAA-AAA spread proxy (FRED, 1953+) n=250+ 확장 재verify"
+      - "§3 FRED CPIAUCSL first-release vintage (ALFRED) PIT 보정"
+      - "CCI multi-year range (10-K 2021/2022) Sprint Cancellations $200-400M/yr 2021-24 verify"
+      - "AMT/CCI ±20 day daily CAR window event-study 확장 (n>40)"
+      - "★ Beracha-Feng-Hardin 2019 인용 yaml v3 에서 ★ 제거 완료 — Yobaccio 1995 / Glascock-Lu-So 2002 broader anchor 만 유지"
+
 
 # =============================================================================
-# v2 끝. 819 lines (v1) → 약 480 lines (v2, 더 간결 + 모든 수치 추적 가능).
-# main 의 opus 독립 감사관에게 본 yaml + raw/evidence-map.md + raw/validation-*.md + scripts/*.py 제출.
+# v3 끝. v2 (819 → 480 lines 간결) → v3 (R4 carry primary verify + 12축 audit ★ 충실 PASS 반영, references_r4_verified + main_audit_2026_05_31 + 5 confidence_hooks + 5 collector_plan R5 후속 추가).
+#
+# v3 추적성 (audit C축):
+#   - r4-carry-verify.md = ref/event verify + 학설 ↔ 실측 corr (small-N rigor 5 의무)
+#   - r4_carry_verify.py(.log) = yfinance + FRED + Newey-West HAC + block bootstrap + Bonferroni
+#   - evaluation-reit-20260531.md = main opus 1m 12축 audit verdict (충실 PASS, hard-fail 0)
+#   - audit_spurious_check.py = main 의 spurious 독립 검증 (level vs return ADF/KPSS, half-split OOS, rolling 36m)
+#   - ~/.claude/docs/archive/research-raw/ = native-research raw 박제 (AMT/CCI 10-K + CrossRef DOI 3건)
+#
+# v3 핵심 발견:
+#   ★ §5 REIT-stock integration regime-conditional 통합 강화 (Ling-Naranjo 1999 정합) — structural_strong 공분산 prior
+#   ★ 환각 2건 catch: AMT $3.22B → $322M (factor 10x) + Beracha-Feng-Hardin 2019 재환각 (JRER NOT RealEstateEconomics)
+#   ★ Ling-Naranjo 1997/1999 CONFIRMED primary 6/6 (CrossRef DOI)
+#
+# 본 yaml + raw/r4-carry-verify.md + scripts/r4_carry_verify.py(.log) + raw/evaluation-reit-20260531.md + raw/scripts/audit_spurious_check.py 모두 main 에 제출.
+# main 의 system_priors integration 시 L축 (★ stock sleeve 와 공통 equity-market 인자 1회 계상) 주의.
 # =============================================================================

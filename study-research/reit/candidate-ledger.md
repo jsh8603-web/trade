@@ -1,8 +1,9 @@
 ---
-tags: [type/candidate-ledger, study_id/reit, purpose/work-queue, status/main-priority-corrected-20260531]
+tags: [type/candidate-ledger, study_id/reit, purpose/work-queue, status/r4-carry-verify-done-20260531]
 date: 2026-05-31
 purpose: ★main 정정 후 = merit 후보 작업큐. (1순위) merit 후보 추가 study (이론→실데이터→상관·Rank-IC) + main collector 구현 요청. (2순위·종착) study 후도 빠진 것만 "merit 없음 or 실측 무상관" 사유 기록.
 note: ⏳이연 = 탈락 사유 부적격 (main 정정). 모든 ⏳후보 → merit 작업큐 전환 + collector 요청 main 송신 의무.
+r4_carry_verify: "★ 2026-05-31 완료 — raw/r4-carry-verify.md + raw/scripts/r4_carry_verify.py(.log). 환각 2건 catch (AMT factor 10x + Beracha 재환각), Ling-Naranjo 1997/1999 CONFIRMED, regime-conditional 통합 강화 발견. main 12축 audit subagent verdict 대기."
 ---
 
 # REIT 지표·변수 후보 원장 (candidate ledger)
@@ -98,12 +99,21 @@ note: ⏳이연 = 탈락 사유 부적격 (main 정정). 모든 ⏳후보 → me
 | **book value MTM 시계열** | mREIT book/share 추세 | SEC 10-Q 분기 추출 |
 | **C8 신규 가설**: empirical duration gap × curve slope | R3 carry, equity REIT 9 와 분리 | Phase 5 C8 cluster dispatch 시 작성 |
 
-### C. R4 carry 3건 (Phase 5 dispatch + 별도 트랙)
-| 후보 | 사유 | unblock 조건 |
-|---|---|---|
-| **Beracha-Feng-Hardin 2019 primary PDF** | claude R2 인용 "Beracha-Krautz" 환각 의심 → gemini "Beracha-Feng-Hardin 2019 RealEstateEconomics" 대체 권고. 정확 ref 검증 | Real Estate Economics 2019 vol/issue 정독 |
-| **AMT India VIL $3.22B Goodwill Impairment 10-K 2023** | gemini R3 정량 박제, claude R3 "방향성 high 정확 수치 단정 금지". 10-K 원문 풀 필요 | SEC EDGAR AMT 2023 10-K Item 7 (impairment) |
-| **CCI/AMT churn schedule ($200M-$400M/yr 2021-24)** | gemini R3 정량, claude R3 단정 금지. 공식 가이던스 원문 | CCI/AMT 10-K + analyst day disclosure |
+### C. R4 carry 3건 — ★ 2026-05-31 verify 완료 (raw/r4-carry-verify.md)
+
+| 후보 | 사유 | unblock 조건 | **2026-05-31 verdict** |
+|---|---|---|---|
+| **Beracha-Feng-Hardin 2019 primary PDF** | claude R2 인용 "Beracha-Krautz" 환각 의심 → gemini "Beracha-Feng-Hardin 2019 RealEstateEconomics" 대체 권고 | CrossRef DOI 10.22300/0896-5803.41.4.513 | ★ **REJECTED (재환각)**: paper 자체는 존재하지만 **JRER 41(4)** (NOT RealEstateEconomics) + **"REIT Operational Efficiency"** topic (NOT inflation hedging). yaml 박제 시 인용 **제거 의무**. broader literature (Yobaccio 1995 / Glascock-Lu-So 2002) anchor 유지. 단 broader 학설 자체는 실측 weak negative (r=-0.112, n=258, CI [-0.218, -0.010]) **PARTIAL CONFIRMED**. |
+| **AMT India VIL $3.22B Goodwill Impairment 10-K 2023** | gemini R3 정량 박제, claude R3 "단정 금지" | SEC EDGAR AMT 2023 10-K Item 7 | ★ **REJECTED (factor 10x 오기)**: primary = **$322.0M** (Q3 2023 India unit goodwill impairment) + $402.0M (FY 2023 total India+Spain) + 누적 (2022 intangibles $508.6M + 2023 goodwill $322M) ≈ $830M total. R3 박제 "$3.22B" = magnitude 10x 오기 환각. AMT 2023-10 event-study +8% rebound (z=+1.96, 매각 announce $2.5B 호재 정합). |
+| **CCI/AMT churn schedule ($200M-$400M/yr 2021-24)** | gemini R3 정량, claude R3 단정 금지 | CCI/AMT 10-K | **PARTIAL CONFIRMED** magnitude / **TENTATIVE** range: primary CCI 10-K 2023 = $250M (2023 FY: $21M non-renew + $170M cash + $59M deferred) + $235M (2025 guide). magnitude $200M order OK. multi-year range "2021-24" 및 $400M 상단 = primary 미확인 (R5 carry CCI 10-K 2021/2022 fetch 후 verify). |
+
+### C2. R4 carry **신규 발견 학설 anchor** (★ 2026-05-31 corr 분석)
+
+| 발견 | 학설 ref | 정량 evidence | tier | unblock |
+|---|---|---|---|---|
+| **REIT-stock integration regime-conditional 통합 강화** | Ling-Naranjo 1999 RealEstateEconomics 27(3) DOI 10.1111/1540-6229.00781 (★ primary 6/6 일치) | VNQ-^GSPC monthly corr: full r=0.746 [CI 0.645, 0.808] / high_vol r=0.814 [0.778, 0.858] / low_vol r=0.518 [0.286, 0.668], all NW p<0.001, n=260 | **structural_strong** | yaml v3 block5 confidence_hooks 에 **regime-conditional 통합 hook** 박제 (main verdict 후) |
+| **Ling-Naranjo 1997 Economic Risk Factors** ref CONFIRMED, 실측 weak | Ling-Naranjo 1997 JREFE 14(3) DOI 10.1023/a:1007754312084 (★ primary 6/6 일치) | term_spread/hy_oas/indpro_yoy/cpi_yoy 4 factors all 비유의 (n=35 small, Bonferroni 0/4 생존) | **structural_low** (small-N tier 강등) | n 확장 후 재verify (BAA-AAA spread 대체 → n=250+ 가능) — R5 carry |
+| **AMT India 매각 $2.5B + VIL OCDs** (★ 신규 fact) | SEC EDGAR AMT 10-K 2023 primary | 210 billion INR ≈ $2.5B (VIL OCDs + 매각 consideration) | observation | yaml block1 lens estimation_note 박제 |
 
 ### D. Universe 확장 후보 (R3 carry, equity REIT 9 외)
 | 후보 | tier | 사유 |
@@ -125,10 +135,13 @@ note: ⏳이연 = 탈락 사유 부적격 (main 정정). 모든 ⏳후보 → me
 
 ## ❌ 미채택 / proxy 대체 / 환각 catch / Fisher 제외 / tautology
 
-### A. ★ 환각 / phantom ref catch (R3 supervisor cross-verify)
+### A. ★ 환각 / phantom ref catch (R3 supervisor cross-verify + ★ R4 carry 재환각 catch)
+
 | 후보 | 사유 |
 |---|---|
-| **Beracha-Krautz 2022** | 환각/Working Paper 오류 개연 (gemini R3 + claude R3 모두 confidence low) → **Beracha-Feng-Hardin 2019 RealEstateEconomics 대체** |
+| **Beracha-Krautz 2022** (1차 환각) | 환각/Working Paper 오류 개연 (gemini R3 + claude R3 모두 confidence low) → **Beracha-Feng-Hardin 2019 RealEstateEconomics** 대체 권고 |
+| **Beracha-Feng-Hardin 2019 RealEstateEconomics inflation hedging** (★ 2차 환각, 2026-05-31 R4 catch) | ★ **재환각**: paper 자체는 존재 (JRER 41(4) "REIT Operational Efficiency") but journal 오기 + topic 환각 (inflation hedging X). 1차 환각 대체 ref 가 또 환각. yaml 박제 시 **인용 제거 의무**. broader literature (Yobaccio 1995 / Glascock-Lu-So 2002) 만 학설 anchor 유지. **ERROR-202605310200 promotion-log 박제** |
+| **AMT VIL Goodwill "$3.22B"** (★ factor 10x 환각, 2026-05-31 R4 catch) | gemini R3 박제 "$3.22B (2023)" = SEC EDGAR primary $322.0M (Q3 2023) factor 10x 오기. ★ 자문 정량 단위 ($ B vs $ M) primary cross-verify 의무 박제. **ERROR-202605310200 promotion-log 박제** |
 | **Ling-Naranjo 2014/2015** | phantom 가능 (Ling-Naranjo-Scheick 2014 "Information Dynamics" 연도 혼용 외 별 신뢰 인용 X) → **Ling-Naranjo 1997 JREFE 14(3) + 1999 RealEstateEconomics 27(3) 대체** |
 | **Green Street tower longest-duration citation** | proprietary 구독, 학술 citation 부적합 (claude R3) → **mechanism 자기완결 박제** (5-10y term + renewal option + 고정 ~3% escalator) |
 | **Liu-Mei 1992 정량 β range (-1.5~-2.5)** | 오귀속 risk high (claude R3) — 논문 주제 = predictability/market timing, clean rate-beta 추정 아님. **정성적 inconclusive primary 만 인용** |

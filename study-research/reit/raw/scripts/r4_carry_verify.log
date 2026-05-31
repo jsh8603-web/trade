@@ -1,0 +1,128 @@
+[fetch] yfinance VNQ + ^GSPC monthly...
+[fetch] monthly returns: n=260, range=2004-10-01 ~ 2026-05-01
+[fetch] FRED public CSV (CPI, DGS10, DGS2, BAMLH0A0HYM2, INDPRO)...
+[fetch] FRED ok: CPI n=951, DGS10 n=16086, INDPRO n=1288
+[§3.2] VNQ-CPI yoy: r=-0.112, NW p=0.090, n=258, block CI=[-0.218, -0.010]
+[§4.2] VNQ-term_spread: r=-0.016, NW p=0.862, Bonf-survive=False
+[§4.2] VNQ-hy_oas: r=-0.103, NW p=0.351, Bonf-survive=False
+[§4.2] VNQ-indpro_yoy: r=0.137, NW p=0.261, Bonf-survive=False
+[§4.2] VNQ-cpi_yoy: r=-0.103, NW p=0.534, Bonf-survive=False
+[§5.2] full: r=0.746, NW p=0.000, n=260
+[§5.2] high_vol: r=0.814, NW p=0.000, n=124
+[§5.2] low_vol: r=0.518, NW p=0.000, n=125
+[§1 AMT event] 2023-10 return=0.080, prior 6m mean=-0.034, z=1.96
+[§2 CCI event] 2024-01 return=-0.049, prior 6m mean=0.007, z=-0.47
+[summary] R4 carry 실측 verify 완료. small-N rigor: hedge 어휘 강제 + Bonferroni + block bootstrap CI.
+{
+  "meta": {
+    "session": "btn-GCP",
+    "ckpt": "ckpt-202605310200",
+    "date": "2026-05-31",
+    "rigor": "small-N: n+p+NW HAC+block bootstrap+Bonferroni",
+    "seed_note": "no synthetic seed \u2014 fetch \uc2e4\ud328 \uc2dc raise (5 \uae08\uc9c0 #2)"
+  },
+  "\u00a73_reit_cpi_hedge": {
+    "claim": "REIT-CPI hedge (broader literature: Yobaccio 1995 / Glascock-Lu-So 2002 = NEGATIVE \ub610\ub294 spurious)",
+    "n": 258,
+    "pearson_r": -0.11198220610205949,
+    "nw_se": 0.06606507446642937,
+    "nw_t": -1.6950288334112553,
+    "nw_p": 0.09006995117631367,
+    "nw_lag": 4,
+    "block_bootstrap_mean": -0.11682222558999511,
+    "ci_95_lo": -0.21828117762440022,
+    "ci_95_hi": -0.009517401261058394,
+    "verdict_raw": "REJECT (REIT-inflation positive hedge \ube44\uc720\uc758)"
+  },
+  "\u00a74_economic_risk_factors": {
+    "claim": "Ling-Naranjo 1997 JREFE 14(3) \u2014 Economic Risk Factors \u2192 CRE Returns (term spread / default spread / IP / inflation)",
+    "n": 35,
+    "factors": {
+      "term_spread": {
+        "r": -0.01637103680129348,
+        "nw_p": 0.8615167183376529,
+        "ci_95_lo": -0.35181446528573823,
+        "ci_95_hi": 0.1075543987835533,
+        "n": 35,
+        "bonferroni_alpha": 0.0125,
+        "bonferroni_survive": false
+      },
+      "hy_oas": {
+        "r": -0.10291640053278772,
+        "nw_p": 0.3505131932271206,
+        "ci_95_lo": -0.1997888839513264,
+        "ci_95_hi": 0.1965065128631996,
+        "n": 35,
+        "bonferroni_alpha": 0.0125,
+        "bonferroni_survive": false
+      },
+      "indpro_yoy": {
+        "r": 0.13666226793172337,
+        "nw_p": 0.2607358659835377,
+        "ci_95_lo": -0.13413687631924137,
+        "ci_95_hi": 0.384298883349129,
+        "n": 35,
+        "bonferroni_alpha": 0.0125,
+        "bonferroni_survive": false
+      },
+      "cpi_yoy": {
+        "r": -0.1034668974543411,
+        "nw_p": 0.5337939571959134,
+        "ci_95_lo": -0.35772334227856356,
+        "ci_95_hi": 0.239970417758308,
+        "n": 35,
+        "bonferroni_alpha": 0.0125,
+        "bonferroni_survive": false
+      }
+    },
+    "bonferroni_m": 4,
+    "bonferroni_alpha": 0.0125
+  },
+  "\u00a75_reit_stock_integration": {
+    "claim": "Ling-Naranjo 1999 RealEstateEconomics 27(3) \u2014 REIT-stock market integration regime-conditional",
+    "regime_results": {
+      "full": {
+        "r": 0.7459481567960154,
+        "nw_p": 3.4739636140201924e-05,
+        "ci_95_lo": 0.6448267444464499,
+        "ci_95_hi": 0.8082487305836694,
+        "n": 260
+      },
+      "high_vol": {
+        "r": 0.8142182280271478,
+        "nw_p": 4.7589264706493495e-05,
+        "ci_95_lo": 0.7781959536285882,
+        "ci_95_hi": 0.8578204147211268,
+        "n": 124
+      },
+      "low_vol": {
+        "r": 0.5176062870346679,
+        "nw_p": 0.00013726149055637293,
+        "ci_95_lo": 0.28640678682098364,
+        "ci_95_hi": 0.6679277317812563,
+        "n": 125
+      }
+    },
+    "regime_split": "VNQ rolling 12m vol > median (high) vs <= median (low)"
+  },
+  "\u00a71_amt_event_study": {
+    "claim": "AMT VIL Goodwill Impairment $322M (Q3 2023) announcement effect",
+    "event_month": "2023-10",
+    "event_return": 0.08024389370110452,
+    "prior_6m_mean": -0.033599970184524874,
+    "prior_6m_std": 0.05800589672007735,
+    "z_score": 1.9626257039868338,
+    "n_event": 1,
+    "verdict_raw": "TENTATIVE DIRECTIONAL (n=1 single event, prior 6m baseline) \u2014 single-event single-asset, hedge \uc5b4\ud718 \uac15\uc81c"
+  },
+  "\u00a72_cci_event_study": {
+    "claim": "CCI Sprint Cancellations $250M (2023 FY)+$235M (2025 guide) announcement",
+    "event_month": "2024-01 (Q4 2023 earnings release)",
+    "event_return": -0.048645535557402475,
+    "prior_6m_mean": 0.006788848700035525,
+    "prior_6m_std": 0.1177840080471849,
+    "z_score": -0.47064440390949075,
+    "n_event": 1,
+    "verdict_raw": "TENTATIVE DIRECTIONAL (n=1 single event, single-asset) \u2014 hedge \uac15\uc81c"
+  }
+}
