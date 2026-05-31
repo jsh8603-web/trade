@@ -1,0 +1,396 @@
+{
+  "meta": {
+    "indicator": "noaa_oni_3m_ma (ENSO)",
+    "source_oni": "https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt",
+    "source_price": "IMF/PCPS via DBnomics",
+    "panel": [
+      "maize",
+      "wheat",
+      "soybean",
+      "rice",
+      "sugar",
+      "cocoa"
+    ],
+    "note": "ONI predictive(forward h개월) · 월별 overlap 자기상관 → 실질 유의 = HAC p AND block bootstrap CI 0 미포함 AND Bonferroni 생존. 6 commodity x 3 fwd = 다중비교."
+  },
+  "tests": [
+    {
+      "commodity": "maize",
+      "fwd_m": 3,
+      "n": 423,
+      "spearman_rho": -0.2109,
+      "spearman_p_raw": 1e-05,
+      "nw_t_hac": -2.932,
+      "nw_p_hac": 0.00337,
+      "nw_beta_ci95": [
+        -0.04505,
+        -0.00895
+      ],
+      "boot_rho_ci95": [
+        -0.3464,
+        -0.0726
+      ]
+    },
+    {
+      "commodity": "maize",
+      "fwd_m": 6,
+      "n": 420,
+      "spearman_rho": -0.1765,
+      "spearman_p_raw": 0.00028,
+      "nw_t_hac": -2.366,
+      "nw_p_hac": 0.01799,
+      "nw_beta_ci95": [
+        -0.07322,
+        -0.00687
+      ],
+      "boot_rho_ci95": [
+        -0.2842,
+        -0.0469
+      ]
+    },
+    {
+      "commodity": "maize",
+      "fwd_m": 12,
+      "n": 414,
+      "spearman_rho": -0.0245,
+      "spearman_p_raw": 0.61922,
+      "nw_t_hac": -0.423,
+      "nw_p_hac": 0.67209,
+      "nw_beta_ci95": [
+        -0.05778,
+        0.03726
+      ],
+      "boot_rho_ci95": [
+        -0.1901,
+        0.1582
+      ]
+    },
+    {
+      "commodity": "wheat",
+      "fwd_m": 3,
+      "n": 423,
+      "spearman_rho": -0.2686,
+      "spearman_p_raw": 0.0,
+      "nw_t_hac": -3.675,
+      "nw_p_hac": 0.00024,
+      "nw_beta_ci95": [
+        -0.05253,
+        -0.01599
+      ],
+      "boot_rho_ci95": [
+        -0.3898,
+        -0.1777
+      ]
+    },
+    {
+      "commodity": "wheat",
+      "fwd_m": 6,
+      "n": 420,
+      "spearman_rho": -0.2198,
+      "spearman_p_raw": 1e-05,
+      "nw_t_hac": -2.829,
+      "nw_p_hac": 0.00467,
+      "nw_beta_ci95": [
+        -0.07964,
+        -0.01445
+      ],
+      "boot_rho_ci95": [
+        -0.4197,
+        -0.0459
+      ]
+    },
+    {
+      "commodity": "wheat",
+      "fwd_m": 12,
+      "n": 414,
+      "spearman_rho": -0.0218,
+      "spearman_p_raw": 0.65761,
+      "nw_t_hac": -0.317,
+      "nw_p_hac": 0.75104,
+      "nw_beta_ci95": [
+        -0.08322,
+        0.06003
+      ],
+      "boot_rho_ci95": [
+        -0.3032,
+        0.27
+      ]
+    },
+    {
+      "commodity": "soybean",
+      "fwd_m": 3,
+      "n": 423,
+      "spearman_rho": -0.1853,
+      "spearman_p_raw": 0.00013,
+      "nw_t_hac": -2.235,
+      "nw_p_hac": 0.02542,
+      "nw_beta_ci95": [
+        -0.03849,
+        -0.00252
+      ],
+      "boot_rho_ci95": [
+        -0.3439,
+        -0.008
+      ]
+    },
+    {
+      "commodity": "soybean",
+      "fwd_m": 6,
+      "n": 420,
+      "spearman_rho": -0.1342,
+      "spearman_p_raw": 0.00587,
+      "nw_t_hac": -1.489,
+      "nw_p_hac": 0.1364,
+      "nw_beta_ci95": [
+        -0.0577,
+        0.00787
+      ],
+      "boot_rho_ci95": [
+        -0.2568,
+        0.0443
+      ]
+    },
+    {
+      "commodity": "soybean",
+      "fwd_m": 12,
+      "n": 414,
+      "spearman_rho": -0.002,
+      "spearman_p_raw": 0.96707,
+      "nw_t_hac": -0.07,
+      "nw_p_hac": 0.94432,
+      "nw_beta_ci95": [
+        -0.04951,
+        0.0461
+      ],
+      "boot_rho_ci95": [
+        -0.1509,
+        0.2342
+      ]
+    },
+    {
+      "commodity": "rice",
+      "fwd_m": 3,
+      "n": 423,
+      "spearman_rho": 0.0975,
+      "spearman_p_raw": 0.04504,
+      "nw_t_hac": 0.103,
+      "nw_p_hac": 0.91772,
+      "nw_beta_ci95": [
+        -0.02656,
+        0.02951
+      ],
+      "boot_rho_ci95": [
+        -0.0691,
+        0.267
+      ]
+    },
+    {
+      "commodity": "rice",
+      "fwd_m": 6,
+      "n": 420,
+      "spearman_rho": 0.1355,
+      "spearman_p_raw": 0.00541,
+      "nw_t_hac": 0.409,
+      "nw_p_hac": 0.68267,
+      "nw_beta_ci95": [
+        -0.03765,
+        0.05749
+      ],
+      "boot_rho_ci95": [
+        -0.0862,
+        0.4053
+      ]
+    },
+    {
+      "commodity": "rice",
+      "fwd_m": 12,
+      "n": 414,
+      "spearman_rho": 0.109,
+      "spearman_p_raw": 0.02654,
+      "nw_t_hac": 0.199,
+      "nw_p_hac": 0.84259,
+      "nw_beta_ci95": [
+        -0.05168,
+        0.06333
+      ],
+      "boot_rho_ci95": [
+        -0.094,
+        0.4862
+      ]
+    },
+    {
+      "commodity": "sugar",
+      "fwd_m": 3,
+      "n": 423,
+      "spearman_rho": -0.1026,
+      "spearman_p_raw": 0.03489,
+      "nw_t_hac": -1.163,
+      "nw_p_hac": 0.24472,
+      "nw_beta_ci95": [
+        -0.04342,
+        0.01108
+      ],
+      "boot_rho_ci95": [
+        -0.2324,
+        0.0922
+      ]
+    },
+    {
+      "commodity": "sugar",
+      "fwd_m": 6,
+      "n": 420,
+      "spearman_rho": -0.0946,
+      "spearman_p_raw": 0.05263,
+      "nw_t_hac": -0.988,
+      "nw_p_hac": 0.3232,
+      "nw_beta_ci95": [
+        -0.07925,
+        0.02613
+      ],
+      "boot_rho_ci95": [
+        -0.2691,
+        0.1851
+      ]
+    },
+    {
+      "commodity": "sugar",
+      "fwd_m": 12,
+      "n": 414,
+      "spearman_rho": -0.0621,
+      "spearman_p_raw": 0.20727,
+      "nw_t_hac": -0.469,
+      "nw_p_hac": 0.63918,
+      "nw_beta_ci95": [
+        -0.10938,
+        0.06715
+      ],
+      "boot_rho_ci95": [
+        -0.2658,
+        0.2711
+      ]
+    },
+    {
+      "commodity": "cocoa",
+      "fwd_m": 3,
+      "n": 423,
+      "spearman_rho": 0.0889,
+      "spearman_p_raw": 0.06767,
+      "nw_t_hac": 1.048,
+      "nw_p_hac": 0.29475,
+      "nw_beta_ci95": [
+        -0.01305,
+        0.04303
+      ],
+      "boot_rho_ci95": [
+        -0.0636,
+        0.2457
+      ]
+    },
+    {
+      "commodity": "cocoa",
+      "fwd_m": 6,
+      "n": 420,
+      "spearman_rho": 0.0126,
+      "spearman_p_raw": 0.79656,
+      "nw_t_hac": 0.679,
+      "nw_p_hac": 0.49721,
+      "nw_beta_ci95": [
+        -0.03294,
+        0.06785
+      ],
+      "boot_rho_ci95": [
+        -0.187,
+        0.2124
+      ]
+    },
+    {
+      "commodity": "cocoa",
+      "fwd_m": 12,
+      "n": 414,
+      "spearman_rho": -0.1085,
+      "spearman_p_raw": 0.02731,
+      "nw_t_hac": -0.144,
+      "nw_p_hac": 0.88556,
+      "nw_beta_ci95": [
+        -0.09183,
+        0.07927
+      ],
+      "boot_rho_ci95": [
+        -0.3765,
+        0.119
+      ]
+    }
+  ],
+  "multiple_comparison": {
+    "n_tests": 18,
+    "bonferroni_alpha": 0.002778,
+    "survive_bonferroni": [
+      [
+        "maize",
+        3,
+        -0.2109,
+        1e-05
+      ],
+      [
+        "maize",
+        6,
+        -0.1765,
+        0.00028
+      ],
+      [
+        "wheat",
+        3,
+        -0.2686,
+        0.0
+      ],
+      [
+        "wheat",
+        6,
+        -0.2198,
+        1e-05
+      ],
+      [
+        "soybean",
+        3,
+        -0.1853,
+        0.00013
+      ]
+    ],
+    "survive_nw_hac_p05": [
+      [
+        "maize",
+        3,
+        -2.932,
+        0.00337
+      ],
+      [
+        "maize",
+        6,
+        -2.366,
+        0.01799
+      ],
+      [
+        "wheat",
+        3,
+        -3.675,
+        0.00024
+      ],
+      [
+        "wheat",
+        6,
+        -2.829,
+        0.00467
+      ],
+      [
+        "soybean",
+        3,
+        -2.235,
+        0.02542
+      ]
+    ]
+  },
+  "verdict": {
+    "status": "MEASURED",
+    "note": "라벨=main 판정. HAC 미생존+CI 0포함+Bonferroni 탈락이면 미채택(실측 무상관), 생존 시 채택 후보."
+  }
+}
