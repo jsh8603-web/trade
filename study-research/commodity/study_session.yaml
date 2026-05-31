@@ -1,0 +1,866 @@
+---
+tags: [type/study-contract, domain/commodity, phase/study-system, version/v2]
+date: 2026-05-30
+note: |
+  STUDY-KIT v2 §3 7-블록 산출. v1 → raw/v1/ 보존. v2 = direction.md (자문 3R 수렴) + theory-notes.md (학파 정독)
+  + validation-summary.md (실데이터 검증 H4/H5/H7 강력 확인, H1 정합, H3 partial, H10 데이터 부재) 기반.
+  ★ archetype pooling (부록 B) 적용 — ticker 독립 학습 X, sub-sleeve archetype prior + soft membership.
+  ★ gold 별도 방 — 본 yaml 의 precious sleeve 는 silver/platinum/palladium 위주 (main 통합 시 조율).
+provenance:
+  - direction.md (자문 R1+R2+R3 × claude-web + gemini-web 수렴)
+  - raw/theory-notes.md (학파 정독 정리)
+  - raw/validation-summary.md (실데이터 검증, prior/lag/threshold 정정)
+  - raw/v2-validate-results.json + v2-validate-v2-results.json (Python 분석)
+---
+
+study_id: commodity
+asset_scope: [commodity]
+as_of: "2026-05-30"
+sub_sleeves: [energy, industrial_metals, precious_metals_non_gold, agricultural]
+archetype_pooling: hierarchical_partial_pooling   # 부록 B — composed_weights = w_global + δ_regime + δ_arch_by_type + δ_inter
+gold_coordination: gold 방 (study_id=gold) 별도 — 본 방의 H1 은 reference. precious sleeve = silver/Pt/Pd
+
+# ============================================================================
+# 블록1 LENS — 정성 렌즈 (LLM 주입). ★가변: 블록5 flag 누적이 estimation_note/regime_reading 미세 변동
+# 학파 정독 (theory-notes.md Part A+B+C 결과) 반영
+# ============================================================================
+lens:
+  pricing_principle: |
+    원자재 가격 = 현물 수급 (Theory of Storage: F(t,T) = S·exp((r+u−y)(T−t))) × 보유비용 (real rate + storage − convenience yield)
+    × USD 표시단위 (DXY). 현금흐름·배당 없음 → (a) 거시 driver (real rate·DXY·credit) (b) 산업 demand cycle (글로벌 PMI/중국)
+    (c) 공급 충격 (OPEC·기상·geopolitical, discrete jump) (d) 재고 cushion 4축 동등 중요.
+    ★Gorton-Hayashi-Rouwenhorst (2013) 통합 명제: KWB(storage) + HK(backwardation) = inventory state variable 매개.
+    ★Deaton-Laroque (1992) competitive storage: 재고 ≥ 0 → positive skewness, 공급부족 시 spike, 공급과잉 시 mean revert.
+
+  report_relations:
+    - "Theory of Storage: F=S·exp((r+u−y)(T−t)). y(convenience yield) ↑ → backwardation, y ↓ → contango"
+    - "Tang-Xiong 2012 financialization: ★실측 압도적 재현. 2004 이후 sub-sector 교차상관 0.045→0.30 (6배 급등). 2008 위기 spike 0.37"
+    - "Real rate ↑ → 비현금자산 압박 (gold/precious 특히, single partial corr 약 — 36m rolling mean ≈ -0.07, regime 의존)"
+    - "DXY ↑ → 모든 USD 표시 commodity 가격 ↓ (Q3 cross-sleeve covariance에 대한 단일 정적 prior 금지)"
+    - "Kilian 2009 SVAR: oil shock 의 macro 효과는 source 의존 (supply-driven → equity-, demand-driven → equity+, precautionary → mixed)"
+    - "Hamilton NOI: WTI 1년 NOI > 10% (★검증된 임계, 원안 30% 너무 strict) → 12m forward CFNAI mean −0.46 (vs normal −0.13)"
+    - "★ Copper bellwether (Dr. Copper): INDPRO YoY ↔ copper return optimal **lag 12m** (spearman 0.40 p=1e-12), 3m 보다 강함"
+    - "GHR 2013 inventory state variable: norm_inv 가 basis + prior return 동시 설명. H2/H3/BGR redundant 가능성"
+    - "BGR 2019 basis_momentum: Basis = ln(F1)−ln(F2), RelBasis = Basis − 12m MA, BasisMom = sign×sign ∈ {-1,0,+1}"
+    - "Deaton-Laroque positive skewness: 가격 분포 right tail heavy, 2020-04 negative WTI 의 이론적 base (storage capacity 한계)"
+    - "Bioenergy 채널 (corn ethanol RFS, soy biodiesel): WTI ↑ → biofuel margin → agri demand (B matrix 분리, claude R3 refinement)"
+    - "Look-ahead bias 차단: ALFRED real-time vintage 필수 (CFNAI/WASDE 대폭 revise, final vintage 사용 시 IC 부풀려짐)"
+
+  regime_reading: |
+    [Reflation/Recovery] DXY 약·real rate 안정·INDPRO YoY > +3%: industrial sleeve 우위 (copper 12m forward +5.85% expected — 실측).
+                         carry indicator 가중 ↑, financialization low (cross-corr < 0.2)
+    [Overheat]           real rate ↑·인플레 ↑·DXY 강: gold 양면 (real rate vs inflation hedge), precious sleeve mixed
+    [Stagflation]        성장 ↓·인플레 ↑: gold·precious 우위, energy mixed, industrial 약
+                         contango_flip flag 시 carry 가중 즉시 감액 (roll cost drag)
+    [Risk-off / VIX>30]  ★Tang-Xiong financialization 가속 — cross-sector mean corr spike 0.37 (2008 학습).
+                         diversification 사라짐 → weight 보수 (sleeve 간 corr ~1 가정), vol weight ↑.
+                         precious safe-haven, energy demand-destruction 분리.
+    [NOI > 10% shock]    ★ 검증된 12m forward CFNAI = −0.46. recession lead 위험.
+                         모든 risk-on commodity 가중 ↓, gold/precious 가중 ↑.
+    [Inflationary boom]  Kilian supply shock 우세 시 energy↔equity negative cov (-0.3~-0.5), 단 demand-shock 우세 시 + cov.
+                         단일 정적 prior 금지.
+
+  estimation_note: |
+    2026-05 검증 시점 anchor (가변 — 매월 갱신):
+      - cross-sector mean corr 60d ≈ 0.18 (post-2011 평균 0.17 부근, 위험 회피 mode 아님)
+      - 실측 partial-corr(Au, DFII10 | DXY) 36m = -0.078 → real rate 압박 weak regime (gold 안정대)
+      - WTI 1yr NOI 최근 수치 → recession lead 위험 평가 (NOI > 10% 진입 여부 모니터)
+      - INDPRO YoY 최근 → copper 12m forward outlook
+      - DBC vs WTI 12m drag = −3.6%/yr 평균 — contango 누적 손실 진행 중
+
+# ============================================================================
+# 블록2 INDICATORS — 정량 지표 (★검증 후 lag/transform 정정 반영)
+# 명명 규약: weight_panel._REFLEXIVE_WORDS 의 "inventory" 회피 → days_of_supply / stock_to_use / lme_stocks 사용
+# ============================================================================
+indicators:
+  # --- 거시 driver (macro 부) ---
+  - id: real_rate_dfii10
+    family: macro_driver
+    is_core: true
+    in_our_system: false
+    source_or_collector: "FRED DFII10 (10Y TIPS) — fred_adapter.FRED_SERIES 1줄 추가"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 1
+
+  - id: dxy_index
+    family: macro_driver
+    is_core: true
+    in_our_system: false
+    source_or_collector: "FxStore (main 선구축) 또는 FRED DTWEXBGS"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 0
+
+  - id: indpro_yoy   # ★ H4 핵심 지표 (12m optimal lag — latest-vintage 잠정)
+    family: macro_driver
+    is_core: true
+    in_our_system: true
+    source_or_collector: "fred_adapter FRED_SERIES[INDPRO] yoy 변환"
+    transform: yoy
+    vintage_policy: point_in_time   # ALFRED real-time vintage 의무 (revise 대폭)
+    lag: 1
+    latest_vintage_provisional: true   # ★ main 감사 D soft: 현 실측 = latest vintage 잠정, ALFRED 재검증 의무 (look-ahead 미차단)
+    alfred_revalidation_required: true
+
+  - id: china_credit_impulse_z   # ★누락지표 추가 (M3 실검증 2026-05-31, theory-notes L401/L415 이론화 후 실데이터 검증)
+    family: macro_sensitivity
+    is_core: false   # industrial sleeve 한정, validated alpha 아님
+    in_our_system: false
+    source_or_collector: "DBnomics BIS/WS_TC/Q.CN.P.A.M.770.A (China 민간비금융 credit-to-GDP %, break 조정) → 4q diff impulse. ★정통=TSF flow/GDP 이나 공개 API 부재 → BIS stock 비율 proxy. 재검증 falsifier=TSF 확보 시"
+    transform: own_history_z   # impulse(4q diff) 후 z
+    vintage_policy: point_in_time   # BIS 분기 발표 시차
+    lag: 2   # 분기 발표 + 측정
+    prior_tier: structural_low_confidence   # ★실검증: Newey-West HAC p>0.25, Bonferroni/FDR 18 test 0 생존
+    validated_alpha: false   # 방향성 약 양(+) prior, 자기상관·다중비교 보정 후 비유의
+    validation_ref: "raw/validation-china-credit-impulse.md (실데이터 n=113-116분기, copper forward ρ +0.14~0.18 비유의)"
+    pit_note: "★감사 D축 보강: 본 지표 = credit-to-GDP 비율의 4q diff(PIT clean, trend 추정 無). HP-filter gap(bis_gap_level 변형)은 trend 후행 데이터 사용=look-ahead 잠재 → 본 지표엔 미사용. 비율 차분만 PIT 적용"
+
+  - id: cfnai
+    family: macro_driver
+    is_core: false
+    in_our_system: true
+    source_or_collector: "fred_adapter FRED_SERIES[CFNAI]"
+    transform: level
+    vintage_policy: point_in_time   # ALFRED 의무
+    lag: 1
+
+  - id: credit_spread_hy_oas
+    family: macro_driver
+    is_core: false
+    in_our_system: true
+    source_or_collector: "fred_adapter[BAMLH0A0HYM2] (main 선구축)"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 0
+
+  - id: vix_level
+    family: risk
+    is_core: false
+    in_our_system: false
+    source_or_collector: "Yahoo ^VIX 또는 FRED VIXCLS"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 0
+
+  # --- commodity-specific (carry/inventory/term structure) ---
+  - id: roll_yield   # CME term structure 필요 (Phase 2)
+    family: valuation
+    is_core: true
+    in_our_system: false
+    source_or_collector: "신규 collector: front/back month CME EOD (CL/HG/GC/ZC/ZW/ZS)"
+    transform: level   # ★percentile_overfit_risk: false (commodity_carry.yaml)
+    vintage_policy: point_in_time
+    lag: 0
+
+  - id: bgr_basis_momentum_12m   # ★검증된 BGR 시그널
+    family: valuation
+    is_core: true
+    in_our_system: false
+    source_or_collector: "동일 CME term structure collector. Basis=ln(F1)-ln(F2), RelBasis=Basis-12mMA, BasisMom=sign×sign"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 0
+
+  - id: convenience_yield_z
+    family: valuation
+    is_core: false
+    in_our_system: false
+    source_or_collector: "commodity_assumptions.carry_convenience_zscore (rolling-60 z). 입력=futures+spot+real_rate"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 0
+
+  - id: days_of_supply   # ★"inventory" 토큰 회피 (reflexive gate)
+    family: macro_sensitivity
+    is_core: false
+    in_our_system: false
+    source_or_collector: "신규 EIA Open Data API (free key 필요). Crude: PET.WCESTUS1.W (FRED 404 — EIA 직접). Petroleum stocks / 일일 demand"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 7   # EIA weekly Wed
+
+  - id: stock_to_use_ratio
+    family: macro_sensitivity
+    is_core: false
+    in_our_system: false
+    source_or_collector: "신규 USDA WASDE collector (free, monthly 11일경). corn/wheat/soy 별"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 30
+
+  - id: lme_metal_stocks_z   # industrial sleeve
+    family: macro_sensitivity
+    is_core: false
+    in_our_system: false
+    source_or_collector: "LME daily report (1차 stub band, 유료 도입 정책 결정 후)"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 1
+
+  # --- momentum / risk ---
+  - id: momentum_12_1   # AMP 2013 핵심
+    family: momentum
+    is_core: true
+    in_our_system: false
+    source_or_collector: "Yahoo 또는 CME 현물 가격 → 12-1 month total return (직전 1m 제외, look-ahead 차단)"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 1
+
+  - id: realized_vol_60d
+    family: risk
+    is_core: true
+    in_our_system: false
+    source_or_collector: "동일 가격 시계열 → 60d realized vol annualized"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 1
+
+  - id: wti_noi_1yr   # ★Hamilton 1996 (threshold 10% — latest-vintage 잠정)
+    family: macro_sensitivity
+    is_core: false   # energy 한정 → archetype delta
+    in_our_system: false
+    source_or_collector: "FRED DCOILWTICO → max(0, p_t − max(p_{t-12..t-1})) / max"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 0
+    latest_vintage_provisional: true   # ★ main 감사 D soft: CFNAI 매칭 = latest vintage 잠정, ALFRED 재검증 의무
+    alfred_revalidation_required: true
+
+  - id: mm_net_long_oi_z   # ★H8 speculative (NOT financialization)
+    family: macro_sensitivity
+    is_core: false
+    in_our_system: false
+    source_or_collector: "★collector 구현완료(main): CFTC Socrata 6dca-aqww legacy COT noncommercial=speculative proxy (무료·키불요, n=1736주 1986~). 정통 MM(disagg)=후속"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 3   # 주간 T+3 (CFTC 화요일→금요일 공시)
+    validation_ref: "raw/validation-cftc-speculative.md (n=394 spectrum / n=382 momentum-control). 1m fwd ρ+0.223 HAC p=0.0025 — ★독립감사(2026-05-31) 격하: 12-1m momentum 통제만 통과, trailing 1/3/6m(경제적 교란) 통제 시 p=0.13~0.61 소멸 + PIT conservative-lag p=0.76 소멸 = momentum proxy + 월경계 취약"
+    validated_alpha: false   # ★독립감사 격하: validated 과대주장이었음(통제변수 부실 + PIT T+3 미흡수 + n=405 미추적). 재신청=trailing 1/3/6m 통제 생존 + M+2 forward(T+3 흡수) 재검증
+
+  - id: cross_sector_mean_corr_60d   # ★H5 financialization outcome
+    family: macro_sensitivity
+    is_core: false
+    in_our_system: false
+    source_or_collector: "4-sleeve daily log return 60d rolling pairwise corr 평균 (Yahoo 즉시 가능)"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 0
+
+  - id: cit_long_position_z   # ★H5 financialization driver (Phase 2)
+    family: macro_sensitivity
+    is_core: false
+    in_our_system: false
+    source_or_collector: "pre-2015 CFTC IID + post-2015 Barclays/Bloomberg index AUM (분기) 또는 Supplemental CIT 12 농산물"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 90
+
+  - id: noaa_oni_3m_ma   # agri 한정
+    family: macro_sensitivity
+    is_core: false
+    in_our_system: false
+    source_or_collector: "NOAA CPC https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt (무료 ASCII, revision 거의 없음)"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 30
+
+  - id: cushing_utilization_pct   # ★H9 storage_limit_nonlinearity 핵심
+    family: risk
+    is_core: false
+    in_our_system: false
+    source_or_collector: "EIA Open Data API: PET.W_EPC0_SAX_YCUOK_MBBL.W / 가용 capacity"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 7
+
+  - id: ted_or_fra_ois_spread   # ★H11 liquidity crash
+    family: risk
+    is_core: false
+    in_our_system: false
+    source_or_collector: "FRED TEDRATE (deprecated 2022) → 대체 FRA-OIS spread 또는 BAA10Y"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 0
+
+# ============================================================================
+# 블록3 RELATIONSHIPS — partial-corr 기준 (glasso prior). claude R3 + 검증 결과 반영
+# ★force-include ≤4 엣지 화이트리스트 후보 표시
+# ============================================================================
+relationships:
+  - node_a: real_rate_dfii10
+    node_b: roll_yield
+    edge_type: undetermined
+    conditioning_set: [dxy_index, indpro_yoy]
+    lag_routing: contemporaneous
+    prior_sign: neg
+    prior_strength: 0.40   # ★ validation: gold 한정 partial mean -0.07 (강하지 않음) → 0.45 → 0.40 하향
+    theory_basis: "Theory of Storage: r↑ → F-S spread ↑ → backwardation 약화. 단 regime 의존 강 (gold 방 결과 정합)"
+
+  - node_a: dxy_index
+    node_b: roll_yield
+    edge_type: direct
+    conditioning_set: [real_rate_dfii10]
+    lag_routing: contemporaneous
+    prior_sign: neg
+    prior_strength: 0.55
+    theory_basis: "USD 표시 commodity: DXY↑ → 가격↓ → spot 약세 → backwardation 약화"
+
+  - node_a: indpro_yoy   # H4 structural prior (저신뢰 tier — main 감사 G/K축)
+    node_b: momentum_12_1   # copper proxy (industrial sleeve archetype)
+    edge_type: direct
+    conditioning_set: [dxy_index]
+    lag_routing: lagged   # lag = 12m (latest-vintage 측정)
+    prior_sign: pos
+    prior_strength: 0.70   # structural prior tier (저신뢰)
+    prior_tier: structural_low_confidence   # ★ main 감사: overlapping window + Newey-West/block-bootstrap SE 미보정 + lag-selection deflation 미적용
+    validated_alpha: false   # ★ G/K축: validated alpha 표기 금지. SE 보정 = 후속 라운드
+    se_correction_status: "pending — Newey-West / Hansen-Hodrick / block-bootstrap (12m overlap), lag-selection deflation 필요"
+    theory_basis: "관찰된 통계 (raw, latest vintage): INDPRO YoY ↔ copper return spearman 0.40 lag 12m. structural prior 로만 사용, alpha 미주장"
+
+  - node_a: china_credit_impulse_z   # ★누락지표 (M3 실검증 2026-05-31)
+    node_b: momentum_12_1   # copper proxy (industrial sleeve)
+    edge_type: common_cause   # 글로벌 산업수요 (C) 매개 — INDPRO YoY 와 공통 trend (별 alpha 아님)
+    conditioning_set: [indpro_yoy, dxy_index]
+    lag_routing: lagged   # 4-6분기 lead (이론 6-12m)
+    prior_sign: pos
+    prior_strength: 0.20   # ★wide-prior 하한. ⛔점추정 박제 X — 실검증 ρ+0.14~0.18 비유의(HAC p>0.25, Bonferroni 0 생존)
+    prior_tier: structural_low_confidence
+    validated_alpha: false
+    theory_basis: "Biggs 2009 credit impulse → industrial metal 수요 6-12m lead. ★실검증(BIS proxy n=113-116): 방향성 약 양(+) 비유의, INDPRO 공통 trend. TSF flow/GDP 확보 시 재검증 falsifier (raw/validation-china-credit-impulse.md)"
+
+  - node_a: days_of_supply
+    node_b: convenience_yield_z
+    edge_type: direct
+    conditioning_set: []
+    lag_routing: contemporaneous
+    prior_sign: neg
+    prior_strength: 0.70   # ★force-include 화이트리스트 후보 #1 (Working theory 직접 동치)
+    theory_basis: "Working 1949: 재고 타이트 (days_of_supply ↓) → convenience yield ↑. 직접 동치 ★"
+    force_include_candidate: true
+
+  - node_a: convenience_yield_z
+    node_b: roll_yield
+    edge_type: direct
+    conditioning_set: []
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.65   # ★force-include 화이트리스트 후보 #2 (Theory of Storage 정의식)
+    theory_basis: "F=S·exp((r+u−y)(T−t)): y↑ → F<S(backwardation) → roll_yield ↑. 정의식 ★"
+    force_include_candidate: true
+
+  - node_a: bgr_basis_momentum_12m   # ★BGR 시그널
+    node_b: roll_yield
+    edge_type: direct
+    conditioning_set: [convenience_yield_z]   # GHR redundancy 가설 검정
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.50
+    theory_basis: "Bakshi-Gao-Rossi 2019: Basis_t · sign(RelBasis_t) 가 roll yield 의 미래 변화 예측. GHR redundancy 가능성 conditioning"
+
+  - node_a: vix_level   # ★H5 financialization outcome
+    node_b: cross_sector_mean_corr_60d
+    edge_type: direct
+    conditioning_set: []
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.80   # ★ 실측 확인: VIX>30 시 cross_corr 0.235 (>0.2), 2008 spike 0.37
+    theory_basis: "★Tang-Xiong 2012 검증된 명제: VIX 급등 → deleveraging → sleeve 간 corr spike. 실측 압도적"
+
+  - node_a: cit_long_position_z   # ★H5 driver
+    node_b: cross_sector_mean_corr_60d
+    edge_type: direct
+    conditioning_set: []
+    lag_routing: lagged
+    prior_sign: pos
+    prior_strength: 0.60   # post-2015 데이터 단절로 약, Phase 2 검증 후 갱신
+    theory_basis: "Tang-Xiong 2012: CIT index 자금 유입 → common ownership → cross-corr 비정상 상승"
+
+  - node_a: wti_noi_1yr   # ★H7 raw (검증된 임계 10%)
+    node_b: cfnai
+    edge_type: undetermined
+    conditioning_set: []
+    lag_routing: lagged   # 12m lag
+    prior_sign: neg
+    prior_strength: 0.55   # ★ 검증: NOI>10% 12m fwd CFNAI -0.46 vs normal -0.13. nonlinear threshold-conditional
+    theory_basis: "Hamilton 1996 NOI. ★실측: 30% threshold 단 1건 (kept original)→ 10% = 12 events 적정. nonlinear 비대칭"
+
+  - node_a: credit_spread_hy_oas
+    node_b: realized_vol_60d
+    edge_type: common_cause   # risk-off regime 매개
+    conditioning_set: []
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.45
+    theory_basis: "risk-off regime (C) 매개. partial-corr 으로 분해 시 regime 통제 후 약화"
+
+  - node_a: mm_net_long_oi_z   # ★H8 speculative (NOT financialization)
+    node_b: momentum_12_1
+    edge_type: common_cause   # 가격 trend (C) 매개
+    conditioning_set: []
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.35
+    theory_basis: "Hong-Yogo 2012: OI 변화 macro 예측. MM net long 은 momentum 과 공통 trend 매개"
+
+  - node_a: mm_net_long_oi_z   # ★H8 forward-predictive (실검증 2026-05-31, collector main 구현)
+    node_b: momentum_12_1   # copper return proxy
+    edge_type: direct   # 1m forward 예측 (단 momentum 교란 미해소 = common_cause 병존)
+    conditioning_set: [momentum_12_1]   # ★momentum 통제 후 잔존 IC = 독립 alpha 판정 게이트
+    lag_routing: lagged   # 1m forward
+    prior_sign: pos
+    prior_strength: 0.15   # ★독립감사 격하 후 wide-prior 하한. ⛔점추정 박제 X
+    prior_tier: structural_low_confidence   # ★독립감사(2026-05-31) 격하: validated 과대주장이었음
+    validated_alpha: false
+    theory_basis: "speculative net long → 1m fwd copper return ρ+0.223 HAC p=0.0025(n=394). ★독립감사 격하: 통제에 쓴 momentum_12_1(12-1m, corr 0.29)=가장 약한 교란. 경제적 교란 trailing 1/3/6m(corr 0.51/0.55/0.52) 통제 시 z p=0.13~0.61 소멸 = momentum proxy 미분리. + PIT: CFTC T+3 공시지연, conservative +1m lag 시 ρ→0.044 p=0.76 소멸(월경계 취약). 재신청=trailing 통제 생존 + M+2 forward 재검증"
+
+  - node_a: cushing_utilization_pct   # ★H9
+    node_b: roll_yield
+    edge_type: direct
+    conditioning_set: []
+    lag_routing: contemporaneous
+    prior_sign: neg   # 저장 한계 → super-contango (roll_yield 강음수)
+    prior_strength: 0.65   # Deaton-Laroque + 2020-04 학습
+    theory_basis: "Deaton-Laroque competitive storage: 저장 한계 시 nonlinear convex 가격 반응. 2020-04 negative WTI 학습"
+
+  - node_a: noaa_oni_3m_ma   # ★agri 한정
+    node_b: stock_to_use_ratio
+    edge_type: direct
+    conditioning_set: []
+    lag_routing: lagged   # ENSO → yield → 3-6m
+    prior_sign: neg   # El Niño (ONI+) → drought → stock_to_use ↓
+    prior_strength: 0.50
+    theory_basis: "Roberts-Schlenker 2013: ENSO → corn/soy yield. ONI + 시 drought → 재고 감소"
+
+# ============================================================================
+# 블록4 WEIGHT_RULES — ★archetype pooling (부록 B) 적용. ticker 독립 학습 X
+# modulate_by: regime/industry/size/name_specific
+# composed_weights = w_global + δ_regime + δ_arch_by_type + δ_inter
+# ============================================================================
+weight_rules:
+  - indicator_id: roll_yield
+    base_weight: 0.20
+    modulate_by: [regime, industry]
+    direction: |
+      Reflation/Overheat → roll_yield 가중 ↑ (carry premium 활성).
+      Stagflation + contango_flip → 즉시 감액 → 0.05.
+      ★Cushing 가동률 > 85% → 0 (storage_limit_nonlinearity flag, 2020-04 학습)
+    granularity: industry   # archetype: energy / industrial / precious_non_gold / agri
+    delta_regime_keys: [reflation, overheat, stagflation, risk_off]
+
+  - indicator_id: bgr_basis_momentum_12m
+    base_weight: 0.15
+    modulate_by: [regime, industry]
+    direction: |
+      모든 regime 에서 신호 +1 = long 강화. 단 GHR conditioning_set (convenience_yield_z) 통제 후
+      residual signal 만 weighting (redundancy 회피).
+    granularity: industry
+
+  - indicator_id: indpro_yoy   # ★검증된 핵심 driver
+    base_weight: 0.15
+    modulate_by: [industry]
+    direction: |
+      ★ industrial sleeve 에서 lag 12m forward 적용 (★ 검증 spearman 0.40).
+      INDPRO YoY > +3% → industrial archetype +0.05.
+      INDPRO YoY < -1% → industrial archetype -0.05, precious archetype +0.03.
+    granularity: industry
+
+  - indicator_id: convenience_yield_z
+    base_weight: 0.10
+    modulate_by: [regime, industry]
+    direction: |
+      industrial (Cu/Al) regime 가중 ↑ (수급 타이트 핵심).
+      precious_non_gold 가중 ↓ (monetary driver 우세).
+    granularity: industry
+
+  - indicator_id: days_of_supply   # 명명 reflexive 회피
+    base_weight: 0.10
+    modulate_by: [regime, name_specific]
+    direction: |
+      oversupply_decoupling flag (commodity_assumptions 보유) 발생 시 가중 ↓ (평균회귀 무력화).
+      정상 regime 평균회귀 베팅. 저장 한계 임계 (Cushing>85%) → tail flag (storage_limit_nonlinearity)
+    granularity: ticker   # archetype pooling 으로 종목별 다름 (WTI vs Brent, Cu vs Al)
+
+  - indicator_id: real_rate_dfii10
+    base_weight: 0.10
+    modulate_by: [industry]
+    direction: |
+      precious_non_gold sleeve: 가중 ↑, 부호 강제 음 (regime 의존 ★ 검증 -0.07 weak 단 sub-period 강해질 수)
+      industrial/agri: 가중 보통. energy: 가중 ↓
+    granularity: industry
+
+  - indicator_id: dxy_index
+    base_weight: 0.05
+    modulate_by: [regime]
+    direction: |
+      risk-off (VIX>30) regime: 가중 ↑ (DXY 강세 → commodity 압박 증폭)
+      평상시 보통
+    granularity: sleeve
+
+  - indicator_id: momentum_12_1
+    base_weight: 0.05
+    modulate_by: [regime]
+    direction: |
+      trending regime (vol 안정 + autocorr+): 가중 ↑
+      mean-reverting regime (VIX>25): 가중 ↓
+    granularity: sleeve
+
+  - indicator_id: realized_vol_60d
+    base_weight: 0.05
+    modulate_by: [regime]
+    direction: |
+      risk-off → 가중 ↑ (vol scale 사이징). 부호 음 (고 vol = 보수)
+    granularity: sleeve
+
+  - indicator_id: cross_sector_mean_corr_60d   # ★H5 검증
+    base_weight: 0.05
+    modulate_by: [regime]
+    direction: |
+      ★검증된 financialization 가속 signal. mean_corr > 0.30 (2008 학습) → diversification 무효 가정
+      → Risk Parity prior 재계산, vol weight ↑, 모든 sleeve corr ≈ 1 가정으로 사이징 보수.
+      mean_corr < 0.15 → normal sleeve allocation
+    granularity: sleeve
+
+# ============================================================================
+# 블록5 CONFIDENCE_HOOKS — flag 코드화 (★ 검증된 통계 → action threshold 정량)
+# ============================================================================
+confidence_hooks:
+  - hypothesis_id: h5_financialization_high_vix   # ★ 검증 완료
+    confirm_signal: "VIX > 30 후 mean cross-corr 60d > 0.30 (Tang-Xiong financialization 재현, 2008 학습)"
+    reject_signal: "VIX > 30 후 cross-corr < 0.15 (financialization 해소)"
+    emit_where: "주간 cron: 가격 → log return → 4-sleeve pairwise 60d rolling corr 평균 → VIX 매칭"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess + 신규 financialization_tracker"
+    confidence_metric: "Beta(α,β) posterior — α: confirm count, β: reject count, 신뢰도 = α/(α+β)"
+    store: "AssumptionRegistry + RulePerformance.financialization_regime"
+    action_threshold: "신뢰도 > 0.75 → risk-off regime weight_rules diversification adjust ↓, vol weight ↑. 신뢰도 < 0.30 → 평상 BL"
+    feeds_weight: "Σ_eff between-term 재계산 → derive_weights re-fit (route_lifecycle SECONDARY)"
+
+  - hypothesis_id: h4_china_copper_lag12m   # structural prior (저신뢰) — validated alpha 미주장
+    prior_tier: structural_low_confidence   # ★ main 감사 G/K축
+    validated_alpha: false   # SE 보정 (Newey-West/block-bootstrap) + lag-selection deflation = 후속 라운드
+    confirm_signal: "INDPRO YoY > +3% (또는 Caixin > 52 Phase 1.5) 후 12m forward copper return > 0 (관찰 spearman 0.40 latest-vintage)"
+    reject_signal: "확장 regime 12m forward copper return < 0 (Welch t-test 2y rolling p > 0.10 6m 지속)"
+    emit_where: "월말 cron: INDPRO YoY 갱신 → copper future return tracking (12m forward)"
+    accumulate_in: "core/assume/weight_falsification.evaluate_weight_card + 신규 commodity_confidence_tracker.china_demand_signal"
+    confidence_metric: "e-value anytime-valid (Ramdas SAVI), e_t 누적"
+    store: "AssumptionRegistry.RulePerformance + WeightAssumptionCard.confidence_now"
+    action_threshold: "e-value > 20 → copper base_weight × 1.15, delta_regime[expansion] += 0.05. e-value < 0.05 → 0.8, RETIRE 후보. ★structural prior tier 이므로 sizing alpha 주장 금지, 보수적 조정만"
+    feeds_weight: "weight_rules[indpro_yoy].base_weight 미세조정 + composed_weights.delta_regime[expansion]"
+
+  - hypothesis_id: h4b_china_credit_impulse_lead   # ★누락지표 (M3 실검증 2026-05-31) — structural_low_confidence
+    prior_tier: structural_low_confidence
+    validated_alpha: false   # ★실검증 18 test Bonferroni/HAC/FDR 0 생존. 방향성 약 prior 만
+    confirm_signal: "China credit impulse(BIS credit-to-GDP 4q diff) +1σ 후 4-6분기 copper return > 0 (관찰 ρ+0.14~0.18)"
+    reject_signal: "credit impulse +1σ 후 6분기 forward copper return < 0 6m 지속 (Welch t-test p>0.10)"
+    emit_where: "분기 cron: BIS WS_TC China credit-to-GDP 갱신 → 4q diff impulse → copper forward tracking"
+    accumulate_in: "신규 commodity_confidence_tracker.china_credit_impulse_signal"
+    confidence_metric: "e-value anytime-valid (small-N, 비유의 출발)"
+    store: "registry + RulePerformance"
+    action_threshold: "★validated alpha 아님 — sizing alpha 주장 금지. e-value>20 + ★TSF 재검증 통과 시에만 structural→validated 승격. 그 전엔 INDPRO conditioning 보강용만"
+    feeds_weight: "weight_rules[indpro_yoy] 보강 conditioning (독립 weight 아님). TSF 재검증 falsifier 후 재평가"
+    affects_indicator: indpro_yoy   # ★감사 보강(§4.5 죽은 hook 방지): flag 누적이 indpro conditioning tilt 로 전달
+    affects_edge: [china_credit_impulse_z, momentum_12_1]   # corr_prior 약화 대상 edge 명시
+    falsifier: "TSF(사회융자) flow/GDP 실데이터 확보 시 재측정 — BIS stock proxy 한계 해소. HAC p<0.05 미달이면 freeze 유지"
+
+  - hypothesis_id: h7_oil_macro_NOI_threshold_10pct   # ★ 검증 완료 (threshold 10% 정정)
+    confirm_signal: "WTI 1yr NOI > ★10% 후 12m forward CFNAI mean < -0.30 (검증 기반: 평균 -0.46)"
+    reject_signal: "NOI > 10% 후 12m forward CFNAI > 0 유지 (음효과 부재)"
+    emit_where: "월말 cron: WTI 가격 → NOI 계산 → CFNAI lag tracking"
+    accumulate_in: "신규 commodity_confidence_tracker.noi_recession_flag"
+    confidence_metric: "Beta posterior + threshold-conditional mean shift test"
+    store: "registry + RulePerformance"
+    action_threshold: |
+      NOI > 10% 진입 시 risk-on commodity 가중 ↓ 15%, precious_non_gold 가중 ↑ 10%.
+      NOI > 15% 진입 시 weight_rules entire sleeve risk_off mode (energy → 0.5x, precious → 1.3x)
+    feeds_weight: "weight_rules[roll_yield, momentum_12_1].base_weight regime trigger"
+
+  - hypothesis_id: h1_ref_gold_real_rate_weak   # ★ 검증된 weak partial-corr (-0.07 mean)
+    confirm_signal: "gold ↔ DFII10 36m rolling partial-corr (controlling DXY) 가 < -0.2 인 시기 식별 (특정 regime)"
+    reject_signal: "partial-corr > 0 6m 지속 (관계 완전 붕괴)"
+    emit_where: "분기 cron: gold 방 결과 통합 + 본 방 silver/Pt 응용 검증"
+    accumulate_in: "gold 방의 confidence_now 와 sync (★main 조율)"
+    confidence_metric: "regime-conditional partial-corr 분포"
+    store: "gold 방 registry + 본 방 reference"
+    action_threshold: "weak (mean -0.1) → real_rate base_weight 보수 (현재 0.10 default 유지)"
+    feeds_weight: "weight_rules[real_rate_dfii10] gold sleeve direction 정정"
+
+  - hypothesis_id: contango_flip_value_trap   # ★ 코드 기존 보유 활용
+    confirm_signal: "carry 양수 유지 + roll cost drag < 평균 (검증 DBC -3.6%/yr 기준)"
+    reject_signal: "term_structure_slope > 0 (contango) 진입 + roll yield 음전환 + 6주 누적 roll cost drag > 2σ"
+    emit_where: "주간 commodity_assumptions.carry_forward_slope → sign_flip 체크 + term_structure_slope 부호"
+    accumulate_in: "기존 contango_flip_persistence counter (commodity_assumptions 보유 활용)"
+    confidence_metric: "Poisson p-value (regime shift 강도) + persistence count"
+    store: "WeightAssumptionCard.secondary_falsification + value_trap_log"
+    action_threshold: "consecutive contango 4주+ AND drag > 2σ → roll_yield base_weight 0.20 → 0.05. 1주 normal 복귀 시 점진 회복"
+    feeds_weight: "weight_rules[roll_yield].base_weight 즉시 변경 (route_lifecycle SECONDARY refit)"
+
+  - hypothesis_id: h9_storage_limit_nonlinearity   # ★ Phase 2 (Cushing data 후)
+    confirm_signal: "Cushing 가동률 > 90% AND (F1-F2)/F1 > +5% (super-contango) AND 60d vol > 평균 + 1σ"
+    reject_signal: "Cushing > 90% 인데 super-contango 미발현 (가설 부재 — 다른 capacity 동작)"
+    emit_where: "주간 EIA 발표 + CME term structure"
+    accumulate_in: "신규 storage_constraint_tracker"
+    confidence_metric: "threshold-conditional mean shift + variance ratio"
+    store: "registry kill switch trigger"
+    action_threshold: "확인 시 해당 ticker (WTI 등) weight 0 강제 clamp (2020-04 학습)"
+    feeds_weight: "weight_rules entry 의 kill switch"
+
+# ============================================================================
+# 블록6 COLLECTOR_PLAN — direction.md priority ranking 적용
+# ============================================================================
+collector_plan:
+  - missing: "Real interest rate (10Y TIPS yield)"
+    source: "FRED DFII10"
+    interface: VintageProvider
+    credential: "FRED_API_KEY (이미 .env 보유 가정)"
+    priority: 1
+    impl_note: "core/brain/fred_adapter.py FRED_SERIES dict 에 'DFII10': 'real_rate_10y' 1줄 추가"
+
+  - missing: "Global PMI (US ISM, China Caixin)"
+    source: "FRED NAPM (US 무료, deprecated 가능). Caixin = OpenBB extension 또는 별도"
+    interface: VintageProvider
+    credential: "FRED_API_KEY"
+    priority: 1
+    impl_note: "NAPM 추가 + Caixin 은 OpenBB integration 별도 검토. INDPRO 이미 가용"
+
+  - missing: "CFTC COT (Disaggregated DCOT)"
+    source: "https://publicreporting.cftc.gov (free public API)"
+    interface: new   # 신규 CFTCProvider
+    credential: "none"
+    priority: 2
+    impl_note: |
+      core/brain/cftc_adapter.py 신규. Money Manager net long / OI 12m EWMA-vol-adj z (H8 매핑).
+      ★Tang-Xiong financialization driver 별도 (Supplemental CIT 또는 IID).
+
+  - missing: "Commodity futures term structure (F1, F2, F3 EOD)"
+    source: "CME 지연 EOD (무료, 10-15분 lag) 또는 OpenBB commodity_spot_prices"
+    interface: new
+    credential: "none (delayed EOD) 또는 OpenBB key"
+    priority: 3
+    impl_note: |
+      core/data/commodity_futures_term.py 신규. roll_yield, bgr_basis_momentum_12m, term_structure_slope 산출.
+      contract chain handling + roll handling 핵심 effort.
+
+  - missing: "EIA crude/petroleum stocks (US, weekly)"
+    source: "EIA Open Data API v2 (free key 무료 회원가입)"
+    interface: new
+    credential: "EIA_API_KEY (요청)"
+    priority: 4
+    impl_note: |
+      core/brain/eia_adapter.py 신규. PET.WCESTUS1.W (FRED 404, EIA 직접). days_of_supply 계산.
+      ★cushing_utilization_pct (H9 storage_limit) 핵심.
+
+  - missing: "NOAA ENSO/ONI (monthly)"
+    source: "https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt (무료 ASCII)"
+    interface: new
+    credential: "none"
+    priority: 5
+    impl_note: |
+      core/brain/noaa_enso_adapter.py 신규. revision 거의 없음 → vintage 단순.
+      agri sub-sleeve conditioning_set (corn/wheat/soy stock_to_use 와 결합)
+
+  - missing: "USDA WASDE stock-to-use ratio + survey consensus"
+    source: "USDA NASS Quick Stats API (무료) + survey consensus (외부 구매 또는 자체 forecast)"
+    interface: new
+    credential: "USDA_API_KEY (무료) + consensus 별도"
+    priority: 6
+    impl_note: |
+      core/brain/usda_adapter.py 신규. monthly 11일경. ★expectation 데이터 hardest (claude R3 지적).
+      ROI 가장 낮음 (H6 단일 가설만 unlock).
+
+  - missing: "LME warehouse stocks (Cu/Al/Ni metals)"
+    source: "LME daily report (HTML scrape) 또는 Quandl/Nasdaq Data Link 유료"
+    interface: new
+    credential: "Quandl key (유료) 또는 scrape (1차 stub 보수)"
+    priority: 7
+    impl_note: |
+      core/brain/lme_stub.py — netflow_guard 패턴 차용 (commodity_assumptions 활용).
+      proxy_forbidden + 보수 band. 유료 도입은 정책 결정 후.
+
+# ============================================================================
+# 블록7 CODE_CHANGE_PLAN — §4 4단계 (learn/card/inject/falsify)
+# 실제 코드 Read 후 작성 (theory-notes.md Part E + validation 결과 반영)
+# ============================================================================
+code_change_plan:
+  # ─── ① learn ──────────────────────────────────────────────────────────────
+  - stage: learn
+    file: core/brain/fred_adapter.py
+    symbol: FRED_SERIES (L36~57)
+    current: "17 시리즈. DFII10·NAPM·DCOILWTICO·POILBREUSDM 부재"
+    change: |
+      dict 에 commodity 핵심 4개 추가 (1줄):
+        "DFII10": "real_rate_10y"
+        "NAPM": "us_ism_manuf"
+        "DCOILWTICO": "wti_spot"
+        "POILBREUSDM": "brent_spot_m"
+      ★ALFRED real-time vintage 의무 명시 (CFNAI 등 revise → pit_mode='first_release' default 유지)
+    risk: "추가만, 기존 분류기/macro_assumption_card 무회귀. self-test 신규 추가."
+
+  - stage: learn
+    file: core/data/weight_panel.py
+    symbol: _REFLEXIVE_WORDS (L53~58)
+    current: |
+      frozenset 에 "inventory" 포함. commodity 의 days_of_supply 같은 외부 펀더멘털이 오탐 차단됨.
+    change: |
+      ★ (a)안 채택 (코드 무변경): 블록2 indicator naming 으로 회피.
+      days_of_supply / stock_to_use_ratio / lme_metal_stocks_z / cushing_utilization_pct / eia_crude_stocks 명명.
+      "inventory" 토큰 회피. (main 가 v1 통합 시 검증 ✅)
+    risk: "SACRED 반사성 게이트 보존. 코드 변경 0. 블록2 명명 규약만 준수."
+
+  - stage: learn
+    file: scripts/train_weights.py
+    symbol: train_weight_cards
+    current: |
+      배치 학습: FRED → store → panel → regime_history → glasso fit → regime 카드. macro 만 호출 중.
+      weight_card.composed_weights 이 이미 sub_sleeve (delta_arch + soft membership π) 지원 — 신규 모듈 불요.
+    change: |
+      신규 commodity 호출 (cron):
+        train_weight_cards(domain="commodity", scope="commodity",
+                            series_ids=COMMODITY_SERIES_IDS,
+                            sub_sleeve=<energy|industrial|precious_non_gold|agri>, ...)
+      ★ archetype pooling (부록 B) = 기존 composed_weights 의 delta_arch + soft membership π 직접 활용.
+      신규 모듈/sub-call/delta_arch_by_type 신규 학습 path 불요. sub_sleeve 필드 add-only 로 충분 (main 감사 확인).
+    risk: "함수 본문 무변경. 신규 cron entry 만 추가. 신규 모듈 0. 회귀 0."
+
+  - stage: learn
+    file: core/structure/commodity_assumptions.py
+    symbol: build_commodity_cards (L305~321) + 신규 함수
+    current: |
+      3 카드 (carry_premium_holds / seasonality_present / inventory_mean_reverts). BaseAssumptionFields 만.
+    change: |
+      신규 함수 추가 (★검증 통계 반영):
+        - `normalized_inventory_state(inv_z, basis, fwd_return, hp_lambda=129600)` — GHR 2013 H10 검정 (R² 공동)
+        - `noi_recession_signal(wti_series, threshold=0.10)` — Hamilton 검증된 10% 임계
+        - `financialization_outcome_corr(sleeve_returns, window=60)` — H5 outcome (Tang-Xiong)
+        - `cushing_storage_limit_flag(util_pct, contango, vol, t=0.85)` — H9 storage_limit
+      신규 모듈 core/assume/commodity_confidence_tracker.py:
+        - 매 사이클 confidence_hooks 카운터 업데이트
+        - Beta posterior / e-value 누적
+    risk: "기존 함수 변경 0. 신규 add-only. self-test 필수."
+
+  # ─── ② card ───────────────────────────────────────────────────────────────
+  - stage: card
+    file: core/assume/weight_card.py
+    symbol: WeightAssumptionCard (L64~)
+    current: |
+      필드: series_ids, w_global, delta_regime, delta_arch, delta_arch_by_type, delta_inter
+    change: |
+      Optional 필드 추가 (pydantic frozen 호환, default None):
+        lens_pricing_principle: Optional[str] = None
+        lens_regime_reading: Optional[str] = None
+        lens_estimation_note: Optional[str] = None
+        confidence_now: float = 0.5
+        confidence_metric_type: str = ""  # "e-value" | "beta-posterior"
+        sub_sleeve: Optional[str] = None  # "energy" | "industrial" | "precious_non_gold" | "agri" (archetype pooling)
+      pin_hash 에 lens 텍스트 제외 (replay 안정)
+    risk: "필드 추가만, default. 기존 카드 무회귀. composed_weights/derive_weights 무영향."
+
+  - stage: card
+    file: core/assume/registry.py
+    symbol: AssumptionRegistry id naming
+    current: "id 규약 'weight.{scope}.{regime}'"
+    change: |
+      id 규약 확장 (string 만 - 코드 변경 0):
+        "weight.commodity.{regime}.{sub_sleeve}"
+        예: weight.commodity.reflation.energy
+            weight.commodity.overheat.precious_non_gold
+            weight.commodity.stagflation.agri
+    risk: "registry 본문 무변경. naming convention 만."
+
+  # ─── ③ inject ─────────────────────────────────────────────────────────────
+  - stage: inject
+    file: core/stock_track.py
+    symbol: _extract_indicator_z, _resolve_weight_card, _apply_r15_sizing
+    current: |
+      종목 buy 시 S_L1 = clamp_floor(Σwz). _extract_indicator_z 는 현재 주식 지표 기준.
+    change: |
+      _extract_indicator_z 확장:
+        if asset_class == 'commodity':
+          sleeve = identify_commodity_sleeve(symbol)  # energy/industrial/precious_non_gold/agri
+          return extract_commodity_z(symbol, sleeve, as_of)
+      신규 helper extract_commodity_z(symbol, sleeve, as_of):
+        - sleeve 별 indicator panel 선택 (블록2 indicators)
+        - bgr_basis_momentum_12m, roll_yield, indpro_yoy 등 sleeve archetype 일관 순서 보장
+      _resolve_weight_card: regime + sub_sleeve 매칭 (id "weight.commodity.{regime}.{sleeve}")
+    risk: "신규 branch 만 추가. 기존 stock path 무영향 (opt-in). SACRED 천장 불변식 보존."
+
+  - stage: inject
+    file: core/assume/judge.py
+    symbol: synthesize_l1 호출부 + LLM 컨텍스트 조립
+    current: "L1 결정론 사이징 + LLM down-only 감쇠"
+    change: |
+      Judge LLM prompt 에 lens 필드 주입:
+        - card.lens_pricing_principle → Theory of Storage 핵심
+        - card.lens_regime_reading → 현 regime 의 commodity 시사점 (검증된 실측 포함)
+        - card.lens_estimation_note → 시점 anchor (NOI/cross_corr/INDPRO 등)
+        - card.confidence_now → 신뢰도 낮으면 LLM 보수 (down-only 보존)
+    risk: |
+      Judge prompt 확장만. synthesize_l1/assert_ceiling_invariant 무변경. SACRED 천장 보존.
+      opt-in: lens 필드 None → 기존 prompt (주식 카드 무영향).
+
+  - stage: inject
+    file: core/brain/regime_to_weights.py
+    symbol: SLEEVES, SLEEVE_BLOC, regime_to_weights
+    current: "belief 동적 공분산 BL 배분. 현 sleeve 목록 확인 필요"
+    change: |
+      신규 sleeve 'commodity' 등록 + sub-sleeve 구조 (claude R3 3-group, ★main 옵션 A 확정):
+        SLEEVES['commodity'] = {
+          'energy': {...},
+          'industrial': {...},
+          'precious_non_gold': {...},  # gold 는 별도 sleeve 'precious_gold'
+          'agri': {...},
+        }
+      ★ M3 macro-linkage caveat 박제 (★main 독립검증 격하 반영, macro-linkage.md §5~8):
+        - industrial ↔ precious_non_gold 분기 corr = +0.756 (p=0.0045, Bonferroni 후 유일 생존)
+          ⚠️ DXY 통제 부분상관 = +0.692 (dollar 잔차 산업수요 공통)
+          → factor_implied_cross_cov(B, Λ) 가 dollar 팩터로 1회계상하지만 산업수요 잔차 별도 남음 (흡수 미보장)
+          → 1회계상 단정 격하, "산업수요 잔차 caveat" 박제. A 잠정 유지 (n=12 한계, 구조변경 freeze)
+        - energy ↔ industrial 분기 corr = -0.145 (p=0.65, n=12) = 순수 잡음
+          → bloc 분류 통계 근거 부재. 자연 hedge 단정 X. n<30 panel 검정력 한계
+        - industrial ↔ DXY -0.643 (p=0.024, raw, multi-comp 미통과) = dollar 채널 raw 유의 신호
+        - precious_non_gold ↔ DXY -0.432 (p=0.16, n=12) = 방향성 약 prior, 비유의 (단정 금지)
+        - ⛔ 점추정 corr/β 계수 (-0.643 / -0.432 / +0.756 등) covariance prior 박제 금지
+          → wide-prior 또는 prior_tier: structural_low_confidence + validated_alpha: false 또는 freeze 만
+        - B 옵션 (dollar_sensitive/supply_shock/idiosyncratic 3-bloc) = freeze
+          사유: n=12 분기 검정력 한계, multi-comp 보정 후 +0.756 만 생존, OOS holdout 전 구조변경 금지
+          재검토 조건: OOS holdout (2025+) + 긴 history (≥20 분기) 확보 + Newey-West HAC SE 보정 후 (Phase 2+)
+        SLEEVE_BLOC:
+          'cyclical_commodity': ['commodity.energy', 'commodity.industrial']
+          'defensive_commodity': ['commodity.precious_non_gold', 'gold']
+          'idiosyncratic_commodity': ['commodity.agri']
+      regime_to_weights 가 belief-conditional 로 4 sub-sleeve 비중 산출.
+      ★Risk Parity (inverse vol) prior + BL view (Grinold w∝Ω·IC) 결합 (direction.md §5).
+    risk: |
+      sleeve 추가만. 기존 stock/macro sleeve 무영향. BL 입력 expand.
+      substrate 부족 시 default 0 비중 (graceful).
+
+  # ─── ④ falsify ────────────────────────────────────────────────────────────
+  - stage: falsify
+    file: core/assume/weight_falsification.py
+    symbol: score_ic_breakdown_eprocess (PRIMARY), omega_drift (SECONDARY)
+    current: |
+      PRIMARY = 합성 score Rank-IC e-CUSUM 단측 → primary_kill
+      SECONDARY = ‖ΔΩ‖·logdet drift > τ → secondary_refit
+    change: |
+      commodity 한정 hook (call-site 신규 commodity_confidence_tracker 에서 결합):
+        - PRIMARY 보강: rank_ic 입력에 carry_forward_slope.sign_flip 가중 (sign_flip True → ic 신호 ×−1)
+        - SECONDARY 보강: omega_drift 의 commodity 노드 부분집합 (roll_yield ↔ convenience_yield_z ↔ days_of_supply)
+        - ★ K boundary adaptive (claude R3 정합): K_sleeve = K_base × (σ_sleeve/σ_stock) × √((1+ρ)/(1−ρ))
+          단 caveat: returns 기반, |ρ|<0.3, marginal vol. pre-whitening 옵션 추가
+        - 신규 commodity Bai-Perron quarterly + e-CUSUM online (two-speed 설계, claude R3)
+    risk: "weight_falsification 본문 인터페이스 무변경. 호출자 측 commodity_confidence_tracker 에서 결합. self-test 신규."
+
+  - stage: falsify
+    file: core/assume/update_controller.py
+    symbol: UpdateController.step
+    current: "retract=빠름 / adopt=느림 (5조건 AND). dwell/K-window 파라미터."
+    change: |
+      commodity 카드 한정 kwarg 추가 (default = stock 동작):
+        adopt_dwell_periods: 6   # commodity quarterly cycle 길어 stock(3) 보다 김
+        adopt_k_window: 4
+        retract_immediate_on_carry_flip: True   # 신규 flag
+        retract_immediate_on_cushing_limit: True   # ★H9 storage_limit 신규 kill switch
+      step() 본문 무변경 — kwarg 만 추가
+    risk: |
+      신규 optional kwarg, default = 기존 stock 동작. 회귀 0.
+      retract_immediate flag True → 기존 PRIMARY kill 경로와 OR 결합.

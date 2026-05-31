@@ -1,0 +1,128 @@
+{
+  "collector": "CFTC Socrata 6dca-aqww (legacy COT, noncommercial=speculative proxy). 무료·키불요.",
+  "caveat": "정통 H8=Disaggregated Money Manager. legacy noncommercial = 더 긴 history speculative proxy. 라벨 정직.",
+  "series": {
+    "cftc_net_spec": {
+      "n_weekly": 1736,
+      "start": "1986-01-15",
+      "end": "2025-07-15"
+    },
+    "copper": {
+      "n_monthly": 426,
+      "start": "1990-01-01",
+      "end": "2025-06-01"
+    }
+  },
+  "tests": [
+    {
+      "fwd_m": 1,
+      "n": 394,
+      "spearman_rho": 0.2231,
+      "spearman_p_raw": 1e-05,
+      "nw_t_hac": 3.026,
+      "nw_p_hac": 0.00248,
+      "nw_ci95": [
+        0.00343,
+        0.01607
+      ],
+      "boot_rho_ci95": [
+        0.1059,
+        0.3279
+      ]
+    },
+    {
+      "fwd_m": 2,
+      "n": 394,
+      "spearman_rho": 0.1563,
+      "spearman_p_raw": 0.00186,
+      "nw_t_hac": 1.649,
+      "nw_p_hac": 0.09907,
+      "nw_ci95": [
+        -0.00194,
+        0.02253
+      ],
+      "boot_rho_ci95": [
+        0.0119,
+        0.2857
+      ]
+    },
+    {
+      "fwd_m": 3,
+      "n": 394,
+      "spearman_rho": 0.1128,
+      "spearman_p_raw": 0.02514,
+      "nw_t_hac": 0.876,
+      "nw_p_hac": 0.38105,
+      "nw_ci95": [
+        -0.00987,
+        0.02583
+      ],
+      "boot_rho_ci95": [
+        -0.0433,
+        0.2527
+      ]
+    },
+    {
+      "fwd_m": 6,
+      "n": 394,
+      "spearman_rho": 0.096,
+      "spearman_p_raw": 0.05681,
+      "nw_t_hac": 0.274,
+      "nw_p_hac": 0.78389,
+      "nw_ci95": [
+        -0.03016,
+        0.03997
+      ],
+      "boot_rho_ci95": [
+        -0.0844,
+        0.26
+      ]
+    },
+    {
+      "fwd_m": 12,
+      "n": 394,
+      "spearman_rho": 0.0645,
+      "spearman_p_raw": 0.20126,
+      "nw_t_hac": 0.354,
+      "nw_p_hac": 0.72366,
+      "nw_ci95": [
+        -0.04382,
+        0.06311
+      ],
+      "boot_rho_ci95": [
+        -0.1634,
+        0.2581
+      ]
+    }
+  ],
+  "meta": {
+    "multiple_comparison": {
+      "n_tests": 5,
+      "bonferroni_alpha": 0.01,
+      "survive_bonferroni": [
+        [
+          1,
+          0.2231,
+          1e-05
+        ],
+        [
+          2,
+          0.1563,
+          0.00186
+        ]
+      ],
+      "survive_nw_hac_p05": [
+        [
+          1,
+          3.026,
+          0.00248
+        ]
+      ]
+    },
+    "note": "월별+forward overlap 자기상관 → 실질 유의=HAC p AND block bootstrap CI 0 미포함."
+  },
+  "verdict": {
+    "status": "MEASURED",
+    "note": "verdict 라벨=main 이 small-N rigor 로 판정. HAC 미생존+CI 0포함이면 structural/REJECT 격하."
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "H4_fix": {
+    "n_aligned": 303,
+    "period": "2000-11-30..2026-01-31",
+    "pearson_r_indpro_yoy_to_cu_ret_3m": 0.19184901352546474,
+    "pearson_p": 0.0007881352130681908,
+    "spearman_rho": 0.15253572673405366,
+    "spearman_p": 0.007819150275757126,
+    "regression_slope": 0.6350805767567012,
+    "regression_p": 0.0007881352130681861,
+    "n_expand_indpro_gt_3pct": 60,
+    "n_contract_indpro_lt_neg1pct": 77,
+    "expand_cu_ret_3m_mean": 0.05852511581026922,
+    "contract_cu_ret_3m_mean": -0.002863513799171305,
+    "welch_t_expand_vs_contract": 2.420305245888263,
+    "welch_p_expand_vs_contract": 0.016860838257806793,
+    "spearman_ic_by_lag": {
+      "0": {
+        "n": 306,
+        "spearman_rho": 0.013363320444320198,
+        "p": 0.8159040394234537
+      },
+      "3": {
+        "n": 303,
+        "spearman_rho": 0.15253572673405366,
+        "p": 0.007819150275757126
+      },
+      "6": {
+        "n": 300,
+        "spearman_rho": 0.25239302658918433,
+        "p": 9.636413065222115e-06
+      },
+      "12": {
+        "n": 294,
+        "spearman_rho": 0.3997976537754571,
+        "p": 1.038915509494712e-12
+      }
+    },
+    "caveat": "INDPRO proxy for global activity. Caixin \ubcc4\ub3c4 \uac80\uc99d = Phase 1.5 \uc2e0\uaddc collector"
+  },
+  "H7_multi_threshold": {
+    "n_obs": 316,
+    "normal_cfnai_mean": -0.1259090909090909,
+    "shocks_by_threshold": {
+      "0.05": {
+        "n_shocks": 42,
+        "fwd_cfnai_by_lag": {
+          "0": {
+            "n": 42,
+            "mean_cfnai": 0.03203174603174603,
+            "std": 0.3351217334815286
+          },
+          "6": {
+            "n": 40,
+            "mean_cfnai": -0.1315714285714286,
+            "std": 0.6198421842157351
+          },
+          "12": {
+            "n": 40,
+            "mean_cfnai": -0.24582142857142855,
+            "std": 0.5794998575429422
+          },
+          "18": {
+            "n": 40,
+            "mean_cfnai": -0.16829166666666667,
+            "std": 0.3307995102893187
+          }
+        }
+      },
+      "0.1": {
+        "n_shocks": 12,
+        "fwd_cfnai_by_lag": {
+          "0": {
+            "n": 12,
+            "mean_cfnai": 0.047170634920634925,
+            "std": 0.41623533114247085
+          },
+          "6": {
+            "n": 11,
+            "mean_cfnai": -0.277142857142857,
+            "std": 0.8491766660130329
+          },
+          "12": {
+            "n": 11,
+            "mean_cfnai": -0.4585930735930736,
+            "std": 0.7602503917516782
+          },
+          "18": {
+            "n": 11,
+            "mean_cfnai": -0.29374458874458875,
+            "std": 0.4363384937012055
+          }
+        }
+      },
+      "0.15": {
+        "n_shocks": 3,
+        "fwd_cfnai_by_lag": {
+          "0": {
+            "n": 3,
+            "mean_cfnai": 0.07431746031746032,
+            "std": 0.2639525179285784
+          },
+          "6": {
+            "n": 2,
+            "mean_cfnai": -0.2032142857142857,
+            "std": 0.5482142857142858
+          },
+          "12": {
+            "n": 2,
+            "mean_cfnai": -0.8853571428571428,
+            "std": 1.1503571428571429
+          },
+          "18": {
+            "n": 2,
+            "mean_cfnai": -0.7616666666666665,
+            "std": 0.6983333333333333
+          }
+        }
+      },
+      "0.2": {
+        "n_shocks": 1,
+        "fwd_cfnai_by_lag": {
+          "0": {
+            "n": 1,
+            "mean_cfnai": 0.032,
+            "std": 0.0
+          }
+        }
+      },
+      "0.3": {
+        "n_shocks": 1,
+        "fwd_cfnai_by_lag": {
+          "0": {
+            "n": 1,
+            "mean_cfnai": 0.032,
+            "std": 0.0
+          }
+        }
+      }
+    },
+    "linreg_slope_noi_to_cfnai_t12": -1.5311567358352325,
+    "linreg_r": -0.0378144733384934,
+    "linreg_p": 0.5029977333654443,
+    "nonlinear_NOI_sq_slope": -10.981749676358659,
+    "nonlinear_NOI_sq_r": -0.030783869497044692,
+    "nonlinear_NOI_sq_p": 0.5856251499077024,
+    "interpretation": "Hamilton: NOI \ub2e8\uc870 \uc99d\uac00\uc5d0 \ub530\ub77c 12m \ud6c4 CFNAI \uc810\ucc28 \uc74c\uc218. nonlinear R\u00b2 \uac00 \ub2e8\uc870 \ud68c\uadc0\ubcf4\ub2e4 \uc758\ubbf8."
+  },
+  "H10_ghr_inv_state_proxy": {
+    "error": "no inventory data (EIA WCESTUS1 not in FRED)"
+  },
+  "H1_ref_gold_real_rate": {
+    "period": "2006-01-04..2026-05-22",
+    "n_obs_daily": 4089,
+    "simple_pearson_gold_real": NaN,
+    "partial_corr_full_period": NaN,
+    "partial_corr_full_p": NaN,
+    "rolling_36m_partial_corr_n": 3333,
+    "rolling_36m_partial_corr_mean": -0.07427426653756429,
+    "rolling_36m_partial_corr_min": -0.32296902042859593,
+    "rolling_36m_partial_corr_max": 0.011207689647967986,
+    "rolling_36m_last_value": -0.07815985207772407,
+    "fraction_below_neg_0p4": 0.0,
+    "fraction_below_neg_0p1": 0.0849084908490849,
+    "fraction_positive": 0.010801080108010801,
+    "interpretation": "H1 falsification = 36m partial > -0.1 6m \uc9c0\uc18d. mean < -0.4 = \uac15\ud558\uac8c \uc9c0\uc9c0, mean > -0.1 = \uae30\uac01"
+  }
+}

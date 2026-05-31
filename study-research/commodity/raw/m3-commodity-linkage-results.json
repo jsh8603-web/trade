@@ -1,0 +1,134 @@
+{
+  "panel_n": 12,
+  "period": "2022-03-31~2024-12-31",
+  "sleeves": [
+    "energy",
+    "industrial",
+    "precious_non_gold",
+    "agri"
+  ],
+  "regime_means": {
+    "sleeve_energy": {
+      "Recovery": -0.0025548607733279598,
+      "Reflation": -0.11078575708983308,
+      "긴축": 0.10929468238829038
+    },
+    "sleeve_industrial": {
+      "Recovery": -0.01667856243450283,
+      "Reflation": 0.058071082023176346,
+      "긴축": -0.06549800472988909
+    },
+    "sleeve_precious_non_gold": {
+      "Recovery": -0.041220837382956635,
+      "Reflation": 0.00507328639088241,
+      "긴축": -0.014110114306325434
+    },
+    "sleeve_agri": {
+      "Recovery": -0.05021824903735217,
+      "Reflation": -0.011471977656183128,
+      "긴축": -0.014511112623999844
+    }
+  },
+  "epoch_cumret": {
+    "E1_긴축충격": {
+      "sleeve_energy": 0.29427266037366917,
+      "sleeve_industrial": -0.22738496718118695,
+      "sleeve_precious_non_gold": -0.058311773203133965,
+      "sleeve_agri": 0.11932033751059223
+    },
+    "E2_전환반등": {
+      "sleeve_energy": -0.321082736104483,
+      "sleeve_industrial": 0.08686810936001432,
+      "sleeve_precious_non_gold": -0.11278910813729315,
+      "sleeve_agri": -0.136073794314592
+    },
+    "E3_금리재상승": {
+      "sleeve_energy": 0.19629567444271223,
+      "sleeve_industrial": -0.004009587473394527,
+      "sleeve_precious_non_gold": 0.0036472063222554585,
+      "sleeve_agri": -0.156981276013047
+    },
+    "E4_pivot인하": {
+      "sleeve_energy": -0.063968793396466,
+      "sleeve_industrial": 0.08574871846816756,
+      "sleeve_precious_non_gold": -0.02460975581617153,
+      "sleeve_agri": -0.0956085413698945
+    }
+  },
+  "cross_sleeve_corr": {
+    "sleeve_energy": {
+      "sleeve_energy": 1.0,
+      "sleeve_industrial": -0.1451,
+      "sleeve_precious_non_gold": 0.1956,
+      "sleeve_agri": 0.2836
+    },
+    "sleeve_industrial": {
+      "sleeve_energy": -0.1451,
+      "sleeve_industrial": 1.0,
+      "sleeve_precious_non_gold": 0.7558,
+      "sleeve_agri": 0.2463
+    },
+    "sleeve_precious_non_gold": {
+      "sleeve_energy": 0.1956,
+      "sleeve_industrial": 0.7558,
+      "sleeve_precious_non_gold": 1.0,
+      "sleeve_agri": 0.4088
+    },
+    "sleeve_agri": {
+      "sleeve_energy": 0.2836,
+      "sleeve_industrial": 0.2463,
+      "sleeve_precious_non_gold": 0.4088,
+      "sleeve_agri": 1.0
+    }
+  },
+  "rate_up_down": {
+    "sleeve_energy": {
+      "up": 0.0606539705880585,
+      "down": -0.1873564923973364
+    },
+    "sleeve_industrial": {
+      "up": -0.02627023465772191,
+      "down": 0.04667005711821163
+    },
+    "sleeve_precious_non_gold": {
+      "up": -0.01601194659823124,
+      "down": -0.018974380603172483
+    },
+    "sleeve_agri": {
+      "up": -0.034467932007141405,
+      "down": 0.0018020102647106947
+    }
+  },
+  "dxy_corr": {
+    "sleeve_energy": {
+      "pearson": 0.4896324869934725,
+      "spearman": 0.4895104895104896
+    },
+    "sleeve_industrial": {
+      "pearson": -0.6430225246981089,
+      "spearman": -0.6573426573426573
+    },
+    "sleeve_precious_non_gold": {
+      "pearson": -0.43161692672645646,
+      "spearman": -0.41958041958041964
+    },
+    "sleeve_agri": {
+      "pearson": -0.19890174163161198,
+      "spearman": -0.41958041958041964
+    }
+  },
+  "oil_corr": {
+    "sleeve_industrial": {
+      "pearson": 0.06382009142834437,
+      "spearman": 0.006993006993006993
+    },
+    "sleeve_precious_non_gold": {
+      "pearson": 0.05988138943314812,
+      "spearman": 0.027972027972027972
+    },
+    "sleeve_agri": {
+      "pearson": 0.1272898968786273,
+      "spearman": -0.06993006993006995
+    }
+  }
+}

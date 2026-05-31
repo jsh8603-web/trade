@@ -1,0 +1,129 @@
+========================================================================================
+M3 commodity sleeve 거시연관 분석 (M1 timeline.md §4 가이드)
+========================================================================================
+raw px 기간 2021-12-01~2024-12-30 | n=775 거래일
+sleeve = ['energy', 'industrial', 'precious_non_gold', 'agri'], driver = ['us10y', 'dxy', 'oil']
+⛔ 합성無, yfinance 실 일별. PIT (분기말 close). regime = M1 timeline proxy 그대로.
+
+--- within-sleeve [energy] daily logret corr (n=3 ticker) ---
+  CL=F ↔ BZ=F: +0.951
+  CL=F ↔ NG=F: +0.089
+  BZ=F ↔ NG=F: +0.085
+--- within-sleeve [precious_non_gold] daily logret corr (n=3 ticker) ---
+  SI=F ↔ PL=F: +0.611
+  SI=F ↔ PA=F: +0.481
+  PL=F ↔ PA=F: +0.606
+--- within-sleeve [agri] daily logret corr (n=3 ticker) ---
+  ZC=F ↔ ZW=F: +0.487
+  ZC=F ↔ ZS=F: +0.485
+  ZW=F ↔ ZS=F: +0.254
+
+분기 panel n=12 | columns=['sleeve_energy', 'sleeve_industrial', 'sleeve_precious_non_gold', 'sleeve_agri', 'd_us10y', 'dxy_r', 'oil_r', 'regime', 'epoch']
+
+========================================================================================
+1. Regime 별 sleeve 평균 분기수익률 (mean ± std, n)
+========================================================================================
+
+  [sleeve_energy]
+    Recovery   n= 4  mean= -0.26%  std=11.20%  min=-14.2% max=+12.5%
+    Reflation  n= 4  mean=-11.08%  std=17.30%  min=-27.9% max=+11.9%
+    긴축         n= 4  mean=+10.93%  std=19.56%  min=-11.0% max=+34.3%
+
+  [sleeve_industrial]
+    Recovery   n= 4  mean= -1.67%  std= 9.95%  min=-10.6% max=+10.0%
+    Reflation  n= 4  mean= +5.81%  std= 3.14%  min=+2.4% max=+9.2%
+    긴축         n= 4  mean= -6.55%  std=13.21%  min=-24.4% max=+6.3%
+
+  [sleeve_precious_non_gold]
+    Recovery   n= 4  mean= -4.12%  std= 8.64%  min=-11.3% max=+8.2%
+    Reflation  n= 4  mean= +0.51%  std= 6.92%  min=-8.9% max=+7.7%
+    긴축         n= 4  mean= -1.41%  std=10.50%  min=-16.0% max=+9.0%
+
+  [sleeve_agri]
+    Recovery   n= 4  mean= -5.02%  std= 3.61%  min=-8.7% max=-1.4%
+    Reflation  n= 4  mean= -1.15%  std= 5.17%  min=-5.7% max=+5.0%
+    긴축         n= 4  mean= -1.45%  std=17.33%  min=-17.1% max=+23.2%
+
+========================================================================================
+2. Epoch 별 sleeve 누적수익 (log → 단순)
+========================================================================================
+
+  [E1_긴축충격] 분기 3 개
+    sleeve_energy                누적  +29.43%
+    sleeve_industrial            누적  -22.74%
+    sleeve_precious_non_gold     누적   -5.83%
+    sleeve_agri                  누적  +11.93%
+
+  [E2_전환반등] 분기 3 개
+    sleeve_energy                누적  -32.11%
+    sleeve_industrial            누적   +8.69%
+    sleeve_precious_non_gold     누적  -11.28%
+    sleeve_agri                  누적  -13.61%
+
+  [E3_금리재상승] 분기 1 개
+    sleeve_energy                누적  +19.63%
+    sleeve_industrial            누적   -0.40%
+    sleeve_precious_non_gold     누적   +0.36%
+    sleeve_agri                  누적  -15.70%
+
+  [E4_pivot인하] 분기 5 개
+    sleeve_energy                누적   -6.40%
+    sleeve_industrial            누적   +8.57%
+    sleeve_precious_non_gold     누적   -2.46%
+    sleeve_agri                  누적   -9.56%
+
+========================================================================================
+3. Driver loading 회귀 — sleeve ~ [Δus10y(bp), dxy_r, oil_r]
+========================================================================================
+  ⚠️ energy sleeve 는 oil 과 collinear (CL=F 자기) — energy 만 oil 제외 회귀 추가 비교
+
+  [sleeve_energy]  n=12
+    β_rate(per bp) = +1.3014%/bp  β_dxy = +0.092  β_oil = +0.492   R²=0.659
+    rate-UP  n= 9: β_rate=+0.8494%/bp  β_dxy=+0.692  β_oil=+0.603
+    rate-DOWN n= 3: β_rate=+18.2652%/bp  β_dxy=-2.117  β_oil=-3.306
+    [oil 제외] β_rate=+2.6925%/bp β_dxy=-0.655  R²=0.496
+
+  [sleeve_industrial]  n=12
+    β_rate(per bp) = -0.3570%/bp  β_dxy = -1.222  β_oil = +0.189   R²=0.487
+    rate-UP  n= 9: β_rate=-0.2935%/bp  β_dxy=-1.373  β_oil=+0.157
+    rate-DOWN n= 3: β_rate=-3.4825%/bp  β_dxy=+0.466  β_oil=+0.731
+
+  [sleeve_precious_non_gold]  n=12
+    β_rate(per bp) = +1.0292%/bp  β_dxy = -1.629  β_oil = -0.018   R²=0.342
+    rate-UP  n= 9: β_rate=+1.2786%/bp  β_dxy=-1.617  β_oil=+0.012
+    rate-DOWN n= 3: β_rate=+4.8543%/bp  β_dxy=-0.813  β_oil=-1.276
+
+  [sleeve_agri]  n=12
+    β_rate(per bp) = +0.0257%/bp  β_dxy = -0.530  β_oil = +0.106   R²=0.076
+    rate-UP  n= 9: β_rate=+1.7948%/bp  β_dxy=-1.048  β_oil=+0.146
+    rate-DOWN n= 3: β_rate=-1.1077%/bp  β_dxy=-0.219  β_oil=-0.357
+
+========================================================================================
+4. Cross-sleeve 분기수익 pairwise corr (자산군*간*, 거시 named factor 정합)
+========================================================================================
+                          sleeve_energy  sleeve_industrial  sleeve_precious_non_gold  sleeve_agri
+sleeve_energy                     1.000             -0.145                     0.196        0.284
+sleeve_industrial                -0.145              1.000                     0.756        0.246
+sleeve_precious_non_gold          0.196              0.756                     1.000        0.409
+sleeve_agri                       0.284              0.246                     0.409        1.000
+
+========================================================================================
+5. 핵심상관 (main 회신용 1-pager)
+========================================================================================
+  sleeve_energy                 rate-UP  +6.07%  vs  rate-DOWN -18.74%   Δ=+24.80%p
+  sleeve_industrial             rate-UP  -2.63%  vs  rate-DOWN  +4.67%   Δ=-7.29%p
+  sleeve_precious_non_gold      rate-UP  -1.60%  vs  rate-DOWN  -1.90%   Δ=+0.30%p
+  sleeve_agri                   rate-UP  -3.45%  vs  rate-DOWN  +0.18%   Δ=-3.63%p
+
+  sleeve ↔ DXY 분기수익 corr (pearson, spearman):
+    sleeve_energy                 pearson=+0.490  spearman=+0.490
+    sleeve_industrial             pearson=-0.643  spearman=-0.657
+    sleeve_precious_non_gold      pearson=-0.432  spearman=-0.420
+    sleeve_agri                   pearson=-0.199  spearman=-0.420
+
+  sleeve ↔ oil 분기수익 corr:
+    sleeve_industrial             pearson=+0.064  spearman=+0.007
+    sleeve_precious_non_gold      pearson=+0.060  spearman=+0.028
+    sleeve_agri                   pearson=+0.127  spearman=-0.070
+
+결과 저장: D:/projects/Inv/study-research/commodity/raw/m3-commodity-linkage-results.json

@@ -1,0 +1,360 @@
+{
+  "data_caveat": "BIS credit-to-GDP(분기 stock 비율) = TSF flow/GDP(gold standard)의 accessible 실 proxy. TSF 직접 시리즈 공개 API 부재 → BIS 비율로 impulse 구성. spec/code 1:1 라벨 박제.",
+  "series": {
+    "credit_to_gdp": {
+      "n": 157,
+      "start": "1985-10-01",
+      "end": "2024-10-01"
+    },
+    "bis_credit_gap": {
+      "n": 117,
+      "start": "1995-10-01",
+      "end": "2024-10-01"
+    },
+    "copper": {
+      "n": 426,
+      "start": "1990-01-01",
+      "end": "2025-06-01"
+    }
+  },
+  "tests": [
+    {
+      "impulse": "flow4_creditgrowth",
+      "fwd_q": 1,
+      "n": 140,
+      "spearman_rho": 0.031,
+      "spearman_p_raw": 0.71644,
+      "nw_beta": 0.00138,
+      "nw_t_hac": 0.849,
+      "nw_p_hac": 0.39603,
+      "nw_ci95": [
+        -0.00181,
+        0.00458
+      ],
+      "boot_rho_ci95": [
+        -0.1756,
+        0.2322
+      ]
+    },
+    {
+      "impulse": "flow4_creditgrowth",
+      "fwd_q": 2,
+      "n": 140,
+      "spearman_rho": 0.0486,
+      "spearman_p_raw": 0.5683,
+      "nw_beta": 0.00257,
+      "nw_t_hac": 0.838,
+      "nw_p_hac": 0.40203,
+      "nw_ci95": [
+        -0.00344,
+        0.00858
+      ],
+      "boot_rho_ci95": [
+        -0.1943,
+        0.2768
+      ]
+    },
+    {
+      "impulse": "flow4_creditgrowth",
+      "fwd_q": 3,
+      "n": 139,
+      "spearman_rho": 0.1112,
+      "spearman_p_raw": 0.19258,
+      "nw_beta": 0.00374,
+      "nw_t_hac": 0.828,
+      "nw_p_hac": 0.40749,
+      "nw_ci95": [
+        -0.0051,
+        0.01258
+      ],
+      "boot_rho_ci95": [
+        -0.1643,
+        0.3612
+      ]
+    },
+    {
+      "impulse": "flow4_creditgrowth",
+      "fwd_q": 4,
+      "n": 138,
+      "spearman_rho": 0.14,
+      "spearman_p_raw": 0.10152,
+      "nw_beta": 0.00465,
+      "nw_t_hac": 0.773,
+      "nw_p_hac": 0.43946,
+      "nw_ci95": [
+        -0.00714,
+        0.01644
+      ],
+      "boot_rho_ci95": [
+        -0.1527,
+        0.4064
+      ]
+    },
+    {
+      "impulse": "flow4_creditgrowth",
+      "fwd_q": 5,
+      "n": 137,
+      "spearman_rho": 0.1459,
+      "spearman_p_raw": 0.08895,
+      "nw_beta": 0.00565,
+      "nw_t_hac": 0.744,
+      "nw_p_hac": 0.45663,
+      "nw_ci95": [
+        -0.00922,
+        0.02052
+      ],
+      "boot_rho_ci95": [
+        -0.16,
+        0.4384
+      ]
+    },
+    {
+      "impulse": "flow4_creditgrowth",
+      "fwd_q": 6,
+      "n": 136,
+      "spearman_rho": 0.1211,
+      "spearman_p_raw": 0.16021,
+      "nw_beta": 0.00636,
+      "nw_t_hac": 0.73,
+      "nw_p_hac": 0.46526,
+      "nw_ci95": [
+        -0.01072,
+        0.02344
+      ],
+      "boot_rho_ci95": [
+        -0.1913,
+        0.4304
+      ]
+    },
+    {
+      "impulse": "biggs_accel",
+      "fwd_q": 1,
+      "n": 140,
+      "spearman_rho": -0.0246,
+      "spearman_p_raw": 0.77333,
+      "nw_beta": 0.00045,
+      "nw_t_hac": 0.405,
+      "nw_p_hac": 0.68529,
+      "nw_ci95": [
+        -0.00174,
+        0.00265
+      ],
+      "boot_rho_ci95": [
+        -0.2179,
+        0.1707
+      ]
+    },
+    {
+      "impulse": "biggs_accel",
+      "fwd_q": 2,
+      "n": 140,
+      "spearman_rho": -0.0024,
+      "spearman_p_raw": 0.97766,
+      "nw_beta": 0.00114,
+      "nw_t_hac": 0.613,
+      "nw_p_hac": 0.53995,
+      "nw_ci95": [
+        -0.00251,
+        0.0048
+      ],
+      "boot_rho_ci95": [
+        -0.2157,
+        0.2061
+      ]
+    },
+    {
+      "impulse": "biggs_accel",
+      "fwd_q": 3,
+      "n": 139,
+      "spearman_rho": 0.0611,
+      "spearman_p_raw": 0.47508,
+      "nw_beta": 0.00215,
+      "nw_t_hac": 0.885,
+      "nw_p_hac": 0.37613,
+      "nw_ci95": [
+        -0.00262,
+        0.00693
+      ],
+      "boot_rho_ci95": [
+        -0.1645,
+        0.2746
+      ]
+    },
+    {
+      "impulse": "biggs_accel",
+      "fwd_q": 4,
+      "n": 138,
+      "spearman_rho": 0.1196,
+      "spearman_p_raw": 0.16232,
+      "nw_beta": 0.00358,
+      "nw_t_hac": 1.122,
+      "nw_p_hac": 0.26167,
+      "nw_ci95": [
+        -0.00267,
+        0.00982
+      ],
+      "boot_rho_ci95": [
+        -0.1237,
+        0.3392
+      ]
+    },
+    {
+      "impulse": "biggs_accel",
+      "fwd_q": 5,
+      "n": 137,
+      "spearman_rho": 0.1601,
+      "spearman_p_raw": 0.06157,
+      "nw_beta": 0.00533,
+      "nw_t_hac": 1.178,
+      "nw_p_hac": 0.23899,
+      "nw_ci95": [
+        -0.00354,
+        0.01421
+      ],
+      "boot_rho_ci95": [
+        -0.1051,
+        0.4096
+      ]
+    },
+    {
+      "impulse": "biggs_accel",
+      "fwd_q": 6,
+      "n": 136,
+      "spearman_rho": 0.1758,
+      "spearman_p_raw": 0.04061,
+      "nw_beta": 0.00644,
+      "nw_t_hac": 1.127,
+      "nw_p_hac": 0.25983,
+      "nw_ci95": [
+        -0.00476,
+        0.01765
+      ],
+      "boot_rho_ci95": [
+        -0.1265,
+        0.4309
+      ]
+    },
+    {
+      "impulse": "bis_gap_level",
+      "fwd_q": 1,
+      "n": 117,
+      "spearman_rho": 0.0239,
+      "spearman_p_raw": 0.79787,
+      "nw_beta": 0.00062,
+      "nw_t_hac": 0.51,
+      "nw_p_hac": 0.61028,
+      "nw_ci95": [
+        -0.00176,
+        0.003
+      ],
+      "boot_rho_ci95": [
+        -0.1585,
+        0.1813
+      ]
+    },
+    {
+      "impulse": "bis_gap_level",
+      "fwd_q": 2,
+      "n": 117,
+      "spearman_rho": 0.0314,
+      "spearman_p_raw": 0.73687,
+      "nw_beta": 0.00088,
+      "nw_t_hac": 0.382,
+      "nw_p_hac": 0.70219,
+      "nw_ci95": [
+        -0.00362,
+        0.00537
+      ],
+      "boot_rho_ci95": [
+        -0.1899,
+        0.2285
+      ]
+    },
+    {
+      "impulse": "bis_gap_level",
+      "fwd_q": 3,
+      "n": 116,
+      "spearman_rho": 0.0695,
+      "spearman_p_raw": 0.45845,
+      "nw_beta": 0.00107,
+      "nw_t_hac": 0.323,
+      "nw_p_hac": 0.74637,
+      "nw_ci95": [
+        -0.00541,
+        0.00755
+      ],
+      "boot_rho_ci95": [
+        -0.2133,
+        0.3405
+      ]
+    },
+    {
+      "impulse": "bis_gap_level",
+      "fwd_q": 4,
+      "n": 115,
+      "spearman_rho": 0.0793,
+      "spearman_p_raw": 0.3993,
+      "nw_beta": 0.00102,
+      "nw_t_hac": 0.239,
+      "nw_p_hac": 0.81094,
+      "nw_ci95": [
+        -0.00734,
+        0.00938
+      ],
+      "boot_rho_ci95": [
+        -0.218,
+        0.3719
+      ]
+    },
+    {
+      "impulse": "bis_gap_level",
+      "fwd_q": 5,
+      "n": 114,
+      "spearman_rho": 0.0529,
+      "spearman_p_raw": 0.5759,
+      "nw_beta": 0.00098,
+      "nw_t_hac": 0.194,
+      "nw_p_hac": 0.84614,
+      "nw_ci95": [
+        -0.00896,
+        0.01093
+      ],
+      "boot_rho_ci95": [
+        -0.2624,
+        0.3548
+      ]
+    },
+    {
+      "impulse": "bis_gap_level",
+      "fwd_q": 6,
+      "n": 113,
+      "spearman_rho": 0.0252,
+      "spearman_p_raw": 0.7913,
+      "nw_beta": 0.00153,
+      "nw_t_hac": 0.258,
+      "nw_p_hac": 0.79605,
+      "nw_ci95": [
+        -0.01005,
+        0.0131
+      ],
+      "boot_rho_ci95": [
+        -0.3142,
+        0.3488
+      ]
+    }
+  ],
+  "meta": {
+    "multiple_comparison": {
+      "n_tests": 18,
+      "bonferroni_alpha": 0.002778,
+      "survive_bonferroni_rawp": [],
+      "survive_newey_west_hac_p05": [],
+      "survive_bh_fdr05": []
+    },
+    "note": "분기+forward overlap → 자기상관 강함. raw Spearman-p 는 IID 과대평가. 실질 유의 = Newey-West HAC p_hac AND block bootstrap CI 0 미포함 동시."
+  },
+  "verdict": {
+    "status": "MEASURED",
+    "note": "verdict 라벨(CONFIRMED/STRUCTURAL/REJECT)은 main 이 small-N rigor 로 판정. n<30 + HAC 미생존이면 structural_prior(저신뢰) 격하."
+  }
+}

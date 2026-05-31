@@ -1,0 +1,71 @@
+{
+  "H5_financialization_outcome": {
+    "n_total_obs_days": 6310,
+    "mean_corr_pre2004": 0.04522027235042905,
+    "mean_corr_2004_2010": 0.2963463999268787,
+    "mean_corr_2011_2020": 0.17158877340170992,
+    "mean_corr_2021_now": 0.18149321970508558,
+    "mean_corr_2008_crisis": 0.3711721806366401,
+    "vix_gt_30_days": 607,
+    "mean_corr_when_vix_gt_30": 0.23504498897824833,
+    "welch_t_pre_vs_2004_2010": -66.73728681990967,
+    "welch_p_pre_vs_2004_2010": 0.0
+  },
+  "H7_raw_oil_NOI": {
+    "n_wti_obs": 341,
+    "n_cfnai_obs": 340,
+    "n_noi_shock_30pct": 1,
+    "fwd_12m_cfnai_after_shock_mean": null,
+    "fwd_12m_cfnai_after_shock_std": null,
+    "fwd_12m_cfnai_normal_mean": -0.11527472527472528,
+    "fwd_12m_cfnai_normal_std": 0.3470288522189918,
+    "regression_slope_noi_to_cfnai_t12": -1.5311567358352325,
+    "regression_r": -0.0378144733384934,
+    "regression_p": 0.5029977333654443,
+    "interpretation": "shock_mean << normal_mean \u2192 Hamilton NOI \uac00\uc124 \uc131\ub9bd (NOI \ud6c4 12m CFNAI \uc74c\uc218)"
+  },
+  "H4_china_copper_indpro_proxy": {
+    "n_aligned_obs": 0,
+    "n_expand_indpro_gt_3pct": 0,
+    "n_contract_indpro_lt_neg1pct": 0,
+    "expand_cu_ret_3m_mean": null,
+    "contract_cu_ret_3m_mean": null,
+    "welch_t_expand_vs_contract": null,
+    "welch_p_expand_vs_contract": null,
+    "regression_slope_indpro_yoy_to_cu_ret_3m": null,
+    "pearson_r": null,
+    "pearson_p": null,
+    "spearman_r": null,
+    "spearman_p": null,
+    "caveat": "INDPRO \uac00 Caixin proxy. \uc2e4\uc81c Caixin \uac80\uc99d\uc740 Phase 1.5 (\ubcc4\ub3c4 collector)"
+  },
+  "H3_proxy_roll_drag_DBC_WTI": {
+    "n_obs_252d_overlap": 4862,
+    "mean_dbc_minus_wti_12m": -0.035871899412697146,
+    "std_dbc_minus_wti_12m": 0.24234901302181253,
+    "fraction_dbc_lt_wti": 0.5024681201151789,
+    "annual_means_drag": {
+      "2007": -0.017243868278893522,
+      "2008": -0.10145290656411521,
+      "2009": -0.03701935243474323,
+      "2010": -0.2680283359119196,
+      "2011": 0.024907066436027865,
+      "2012": -0.03426147642441009,
+      "2013": -0.09469513650562883,
+      "2014": -0.02299195876155957,
+      "2015": 0.14027520463949167,
+      "2016": -0.028306187860999768,
+      "2017": -0.1314857969210097,
+      "2018": -0.17479211949606954,
+      "2019": 0.039358496521669235,
+      "2020": 0.1526130051025421,
+      "2021": -0.42788274542134186,
+      "2022": -0.027452998093506403,
+      "2023": 0.10812135360375673,
+      "2024": 0.009331465172626738,
+      "2025": 0.17781687557849807,
+      "2026": 0.04588997610291175
+    },
+    "interpretation": "mean(DBC-WTI) < 0 + fraction_lt > 0.6 \u2192 \uc7a5\uae30 roll drag \uc874\uc7ac (contango dominant). DBC = optimized contango-resistant index \uc774\ubbc0\ub85c \ub2e8\uc21c SPGSCI \ubcf4\ub2e4 \uc57d\ud558\uac8c \ub098\ud0c0\ub0a0 \uc218 \uc788\uc74c."
+  }
+}

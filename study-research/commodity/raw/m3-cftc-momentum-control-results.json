@@ -1,0 +1,28 @@
+{
+  "n": 382,
+  "univariate": {
+    "z_beta": 0.00947,
+    "z_t_hac": 2.887,
+    "z_p_hac": 0.00388
+  },
+  "momentum_controlled": {
+    "z_beta": 0.00962,
+    "z_t_hac": 2.758,
+    "z_p_hac": 0.00582,
+    "mom_beta": -0.00287,
+    "mom_t_hac": -0.204,
+    "mom_p_hac": 0.83817
+  },
+  "partial_spearman_z_fwd_given_mom": {
+    "rho": 0.2103,
+    "p": 3e-05
+  },
+  "corr_z_momentum": {
+    "rho": 0.2929,
+    "p": 0.0
+  },
+  "verdict": {
+    "z_survives_momentum_control_HAC_p05": true,
+    "interpretation": "독립 alpha — momentum 통제 후 net_spec_z 유의 유지 → validated_alpha=true 승격 적격"
+  }
+}
