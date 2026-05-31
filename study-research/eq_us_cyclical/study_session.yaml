@@ -1,7 +1,7 @@
 study_id: eq_us_cyclical
 asset_scope: [equity.us]
-as_of: "2026-05-31"
-version: v4
+as_of: "2026-06-01"
+version: v5
 basis_raw:
   - raw/round-{1,2,3}-{question,gemini,claude}.md  # 자문 다회 (Gemini + Claude, 3R 수렴)
   - raw/theory-notes.md                            # 이론 학습 (Damodaran/Chancellor/GZ/Grinold/Hamilton 6 최상위)
@@ -15,7 +15,13 @@ basis_raw:
   - raw/pit-vintage-prescan.md + long-frame-prescan.md  # ALFRED + 장기 frame 사전조사
   # ★v4 신규 — main Verify stage 산출 (격하 reference)
   - raw/verify_delta.py + verify-delta-metrics.json  # G2 stationary bootstrap + G4 LOEO + K Bonferroni/FDR + 산업 자체 vol
+  # ★v5 신규 — merit 선행변수 무료 탐구 (ISM 유료 대체) + 독립 12축 audit
+  - raw/validation-merit-cyclical-leading.{md,py,json} + merit-pit-probe.json + fetch_merit_leading.py  # DGORDER→XLE live-PIT forward, NAIVE vs LIVE 착시 정량, Bonferroni 0/96
 note: |
+  ★v5 = merit 선행변수 무료 탐구(ISM 유료 대체) 통합 + 독립 12축 audit 충실(hard0, opus subagent 2026-06-01).
+    핵심: DGORDER_yoy→XLE forward = live PIT 생존 최상위 후보(단 Bonferroni 0/96 → 단정 금지, sign(+) prior 만, magnitude freeze, tier=structural_low).
+    NEWORDER_yoy→XLE = live 정렬 시 붕괴(p=0.10 CI cross0) = lookahead 착시 실증(eq_intl credit 재발 방지 D축 모범 — naive→live 양측 보고로 자가 적발).
+    ACOGNO_yoy→SOXX/XLB/XLI = 음(-) forward live 생존(OOS MATCH), structural_low. curve/PERMIT/copper-forward = REJECTED. 상세 = merit_leading_vars 블록.
   ★v4 = v3 격하 보수 (main Verify stage PARTIAL 회신 2026-05-31, btn-Codlearn).
   v3 → v4 격하 의무 5건:
     (1) δ_regime ±0.15 magnitude 박제 금지 → regime_tag 부호 prior 만 유효, magnitude freeze
@@ -116,7 +122,7 @@ indicators:
   - {id: operating_leverage_nm, family: quality, is_core: false, in_our_system: false,
      source_or_collector: "Novy-Marx 2011 = fixed_costs/book_assets (gross_margin proxy IC +0.084 약함 → 정밀 측정 필요). ★블록6", transform: own_history_z, vintage_policy: point_in_time, lag: 1}
   - {id: ism_pmi_proxy, family: macro_driver, is_core: false, in_our_system: true,
-     source_or_collector: "★실검증 lead-lag IC<0.10 약함. AMTMNO/CFNAI SOI/AMTMNO-BUSINV 적재됨. 종속 재정의(섹터 단독·revision breadth) 후 재검증", transform: own_history_z, vintage_policy: point_in_time, lag: 1}
+     source_or_collector: "★실검증 lead-lag IC<0.10 약함. AMTMNO/CFNAI SOI/AMTMNO-BUSINV 적재됨. 종속 재정의(섹터 단독·revision breadth) 후 재검증. ★v5: DGORDER_yoy→XLE forward(live-PIT 생존, structural_low) = 본 proxy 의 XLE-한정 sector 정밀화 child (L축 중복 계상 X, base 0.04 cap 유지)", transform: own_history_z, vintage_policy: point_in_time, lag: 1}
 
 # ============================================================================
 # 블록3: RELATIONSHIPS (관계 가설 — glasso prior, partial-corr)
@@ -541,6 +547,91 @@ industry_regime_delta:
     - "regime-conditional β transferability (시나리오 D, regime tag group 분류) — Verify stage 후속"
 
 # ============================================================================
+# 블록9: MERIT_LEADING_VARS — ★v5 신규 (M6 자문 cyclical 누락 = ISM 신규주문·PMI·fwd EPS revision breadth)
+# 무료 FRED 대체 선행변수의 forward 예측력 탐구. 독립 12축 audit 충실(hard0, opus subagent 2026-06-01).
+# 산출 = raw/validation-merit-cyclical-leading.{md,py,json} + merit-pit-probe.json
+# ============================================================================
+merit_leading_vars:
+  intent: "M6 자문 'cyclical 누락 critical = ISM 신규주문·PMI 선행·fwd EPS revision breadth'. ISM/estimate 유료 → 무료 FRED 신규주문류 대체로 forward 예측력 탐구. 대상 = SOXX/XLB/XLI/XLE 월간 log-return."
+  data_coverage:
+    target: "SOXX/XLB/XLI/XLE 월간 log-return (yfinance), 2000-01-31 ~ 2026-05-31, n=317 month (SOXX inception 2001-07 → join ~298)"
+    candidates_fred: "NEWORDER/AMTMNO/DGORDER/ACOGNO (신규주문류 yoy, 발표시차 56~64d) + PERMIT(48d) + T10Y2Y/T10Y3M(시장가) + COPPER_GOLD(시장가)"
+    integrity: "합성·시뮬 無. FRED API + yfinance 실측. fetch 실패 raise. ADF 8/8 후보 I(0) stationary (yoy/level 변환)."
+
+  pit_method:
+    naive: "signal 을 observation 기간 정렬 (revised, 발표 전 시점 사용 = lookahead-prone)"
+    live: "signal index = (period_end + median pub_lag).MonthEnd shift, forward return 그 이후만 매칭"
+    pub_lag_source: "ALFRED first-release probe (merit-pit-probe.json) median 48~64d 실측 (하드코딩 아님, audit 재현 확인)"
+    caveat: "median 시차만 적용 (개별 vintage revision magnitude 미반영) → 보수적으로 라이브 부호/크기 더 약해질 여지 잔존"
+
+  trust_tier:
+    label: structural_prior_low_confidence
+    validated_alpha: false
+    rationale: |
+      ★다중비교 보정 후 생존 0: m=96 forward predictive 비교(8후보×4섹터×3horizon, LIVE k>0).
+      Bonferroni α=0.05/96=0.00052 → 0/96 생존. BH-FDR q=0.05 → 0/96 생존.
+      최소 forward p = DGORDER→XLE k=6 p=0.0016 > Bonferroni 임계 0.00052 미달.
+      → 어느 cell 도 단정 금지. sign/direction prior 만 유효, magnitude 박제 금지. lens/conditioning prior 수준 (weight 가산 아님).
+
+  sign_prior:
+    # ★sign(+1/-1) prior 만, magnitude freeze (점추정 IC 박제 금지)
+    DGORDER_yoy_to_XLE:
+      sign: +1
+      verdict: "TENTATIVE DIRECTIONAL (생존 후보 중 최상위, 비유의)"
+      evidence: "live k=0 IC+0.20(p=0.0009,n=317) / k=3 +0.23(p=0.0048) / k=6 +0.31(p=0.0016). half-split OOS k=3 h1+0.12/h2+0.33 MATCH. lookahead 착시 미미(naive k=3 +0.296→live +0.230 소폭). 단 Bonferroni 0/96."
+      domain_fit: "내구재 신규주문 yoy↑ → XLE 향후 강세. XLE anti-cyclical hedge 본성(M3 E1/E3 sleeve 역행)과 수요모멘텀 도메인 정합."
+      routing: "lens prior + ism_pmi_proxy XLE-한정 sector 정밀화 child. weight base 가산 X (structural_low)."
+    ACOGNO_yoy_to_cyclical_core:
+      sign: -1
+      verdict: "TENTATIVE DIRECTIONAL"
+      evidence: "live SOXX k=3 IC-0.214(p=0.019) / k=6 -0.250(p=0.026). ACOGNO→XLB(h1-0.19/h2-0.17)·XLI(-0.14/-0.14) 음부호 OOS MATCH. naive 와 부호·크기 유사(착시 적음). 단 Bonferroni 0/96."
+      domain_fit: "소비재 신규주문 yoy↑ → cyclical-core 향후 약세 = late-cycle 과열 reverse 가설 (regime-conditional split 후속 확인)."
+      routing: "lens prior only (음방향). weight 가산 X."
+    AMTMNO_yoy_to_XLE:
+      sign: +1
+      verdict: "TENTATIVE DIRECTIONAL (동월 한정)"
+      evidence: "동월만 live 생존(naive +0.178 t3.2 → live +0.124 t2.3), forward 약. 발표시차가 forward 신호 잠식."
+
+  rejected:
+    # ★F축 반증 — live PIT 정렬 또는 전 horizon 비유의로 REJECT
+    NEWORDER_yoy_to_XLE_forward:
+      verdict: "★REJECTED (live)"
+      mechanism: "naive k=3 +0.206(p=0.011) → live +0.137(t=1.65, p=0.0999, CI[-0.032,+0.291] cross0=YES). 발표시차 56d 가 forward 3m 신호 절반 잠식 = lookahead 착시."
+      lesson: "M6 자문이 ISM 신규주문 대체로 가장 기대한 capex 선행 후보인데 live 붕괴. eq_intl credit-impulse 동월 +0.41→라이브 붕괴 패턴 재현. ★D축 PIT 검증이 동시/예측 신호 정당성 가름 (naive→live 양측 보고 = 자가 적발 모범)."
+    yield_curve_to_4sector: "REJECTED — T10Y2Y/T10Y3M → 4섹터 전부 |IC|<0.11, 전 horizon 비유의 (curve 는 침체 12-18M 선행이나 섹터 월수익 rank엔 약함)"
+    permit_to_4sector: "REJECTED — PERMIT_yoy → 4섹터 전부 비유의 (주택 선행 채널 무전달)"
+    copper_gold_forward: "co-move only — COPPER_GOLD_yoy→XLE 동월 +0.151(t2.64) 유의이나 forward(k≥1) 미생존. 시장가격 동조이지 선행 아님."
+
+  l_axis_dedup:
+    statement: "DGORDER_yoy 와 기존 ism_pmi_proxy(AMTMNO/CFNAI 계열) = 동일 new-orders family. 중복 계상 회피."
+    disposition: "DGORDER→XLE 만 forward 생존, AMTMNO 동월 한정 → DGORDER 를 ism_pmi_proxy 의 XLE-한정 sector 정밀화 child 로 통합(별도 노드 신설 X). ism_pmi_proxy base 0.04 cap(H3 REJECT) 유지 → 실제 가중 중복 risk 낮음."
+    curve_credit: "T10Y2Y(curve) ↔ credit_beta(IG spread) 둘 다 risk 채널이나 curve 비유의 → 중복 베팅 미발생."
+
+  audit_12_axis_status:
+    # ★독립 opus subagent 12축 audit (2026-06-01), self-certify 회피. raw 재실행 기반.
+    auditor: "독립 opus subagent (캐시 데이터 완전 재실행, md/json 수치 bit-level 재현)"
+    A_theory:          PASS    # capex/신규주문=ISM 무료대체, Estrella-Mishkin curve, copper/gold 성장게이지
+    B_real_data:       PASS    # FRED+yfinance 실측 n>300, 합성無, ADF 8/8 I(0) 재현
+    C_yaml_trace:      PASS    # md↔json↔py 독립 재실행 일치, 본 v5 박제
+    D_PIT:             PASS    # ★live-shift 독립 검증 통과, ALFRED 실측 lag, NEWORDER live 붕괴 자가 실증
+    E_consult:         PASS    # M6 'ISM 신규주문 선행' 무비판 채택 X (NEWORDER live 붕괴 보고)
+    F_falsifier:       PASS    # REJECTED 4건 기록
+    G_effective_N:     PASS    # n>300, NW HAC+block-boot, tier=structural_low
+    H_unresolved:      PASS    # 미해결 4건 솔직 기재
+    I_data_integrity:  PASS    # ETF level(survivorship 비대상), SOXX holdings drift caveat 잔존
+    J_economic:        DEFERRED # turnover/비용 미차감 (월간 rank-IC=lens/prior 용도)
+    K_multiple:        PASS    # ★m=96 공시, Bonferroni 0/96 + BH-FDR 0/96 독립 재현
+    L_corr_integrity:  PASS    # DGORDER↔ism_pmi_proxy 중복 식별 + 정밀화 통합 권고 (위 l_axis_dedup)
+    hard_fail_check:   "B/C/D/I 4 코어 전부 독립 재현 통과 = hard-fail 0 (충실)"
+    over_claim:        "없음(hard). soft nit: '최강' = forbidden 어휘이나 '비유의 후보 중 상대 최상위' 의미로 일관 hedge → verdict 무결성 영향 X"
+
+  unresolved:
+    - "NEWORDER live 붕괴 = 발표시차 56d 잠식인가 본질적 무신호인가 (ALFRED 개별 vintage revision magnitude 반영 시 재확인)"
+    - "DGORDER→XLE = anti-cyclical hedge(수요모멘텀)인가 단순 commodity-cycle co-trend인가 (EDGAR energy 펀더 적재 후 분리)"
+    - "ACOGNO→SOXX 음부호 late-cycle reverse 가설 = regime-conditional split 확인 (현 full-sample pooling)"
+    - "4섹터 Bonferroni 미생존 = 무료 데이터 한계. 유료 fwd EPS revision breadth(FINNHUB/IBES) 가 진짜 신호일 가능성 (블록6 priority 3/4)"
+
+# ============================================================================
 # STATUS (v3 진행 추적)
 # ============================================================================
 status:
@@ -561,6 +652,10 @@ status:
     - "★v4 main Verify stage 완료 회신 수신 (verdict PARTIAL): G2 14/16 CI cross-zero / Bonferroni 0/16 / BH 0/16 / G4 LOEO R²_OOS 4/4 산업 음수 / 부호일치 4/16 < chance"
     - "★v4 격하 5건 반영: magnitude freeze + structural_prior_low_confidence + validated_alpha=false / B 안 부호 prior 만 / heuristic CI 폐기 + 산업 자체 vol / live regime 분류기 OOS 선행 / XLE 부호근거 지지 magnitude 미지지"
     - "★v4 verify_delta.py + verify-delta-metrics.json basis_raw 추가, sign_prior_matrix +1/-1 만 박제 (magnitude 제거)"
+    # ★v5 신규 (merit 선행변수 탐구 + 독립 audit)
+    - "★v5 merit 선행변수 무료 탐구 (raw/validation-merit-cyclical-leading.*): NAIVE vs LIVE PIT, m=96 Bonferroni/BH-FDR 0/96, ADF 8/8 I(0)"
+    - "★v5 독립 opus subagent 12축 audit 충실(hard0, 2026-06-01): B/C/D/I 4 코어 raw 재실행 재현, over-claim 없음 (D축 NEWORDER live 붕괴 자가 실증 모범)"
+    - "★v5 merit_leading_vars 블록 박제 (블록9): DGORDER→XLE sign+ structural_low + ACOGNO→cyclical-core sign- + NEWORDER/curve/PERMIT REJECTED + L축 dedup(ism_pmi_proxy XLE 정밀화 통합)"
   todo:
     - "★main 측 live regime 분류기 OOS 검증 (Rank-IC ≥ 0.03 + t-stat ≥ 2.0 HAC) — δ_regime live 적용 선행 조건"
     - "★main 측 EDGAR 분기 펀더 + Damodaran implied ERP 적재 (블록6 우선순위 1) — H1·H6 backbone 재검증 + δ_arch 14종 deferred 활성"
