@@ -1,0 +1,62 @@
+{
+  "alpha_q_fdr": 0.1,
+  "n_effective_components_95pct": 4,
+  "sub_clusters": {
+    "tsy_long": {
+      "etf": "TLT",
+      "n": 4580,
+      "fdr_pass_count": 0,
+      "sign_prior_robust": 0,
+      "tier": "structural_prior_low_confidence",
+      "validated_alpha": false
+    },
+    "tsy_mid": {
+      "etf": "IEF",
+      "n": 4580,
+      "fdr_pass_count": 0,
+      "sign_prior_robust": 0,
+      "tier": "structural_prior_low_confidence",
+      "validated_alpha": false
+    },
+    "tsy_short": {
+      "etf": "SHY",
+      "n": 4580,
+      "fdr_pass_count": 0,
+      "sign_prior_robust": 0,
+      "tier": "structural_prior_low_confidence",
+      "validated_alpha": false
+    },
+    "ig_credit": {
+      "etf": "LQD",
+      "n": 4580,
+      "fdr_pass_count": 0,
+      "sign_prior_robust": 0,
+      "tier": "structural_prior_low_confidence",
+      "validated_alpha": false
+    },
+    "hy_credit": {
+      "etf": "HYG",
+      "n": 4580,
+      "fdr_pass_count": 0,
+      "sign_prior_robust": 0,
+      "tier": "structural_prior_low_confidence",
+      "validated_alpha": false
+    },
+    "cash_tbill": {
+      "etf": "BIL",
+      "n": 4580,
+      "fdr_pass_count": 0,
+      "sign_prior_robust": 0,
+      "tier": "structural_prior_low_confidence",
+      "validated_alpha": false
+    },
+    "tips": {
+      "etf": "TIP",
+      "n": 4580,
+      "fdr_pass_count": 0,
+      "sign_prior_robust": 0,
+      "tier": "structural_prior_low_confidence",
+      "validated_alpha": false
+    }
+  }
+}

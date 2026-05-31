@@ -1,0 +1,48 @@
+{
+  "adf": {
+    "MOVE_Z": {
+      "adf_stat": -7.361457066390429,
+      "p": 9.476422946893811e-11,
+      "stationary_5pct": true
+    },
+    "ACM_TP10_d20": {
+      "adf_stat": -10.258134573445277,
+      "p": 4.306936841276415e-18,
+      "stationary_5pct": true
+    },
+    "DGS10_chg20": {
+      "adf_stat": -9.580528119852662,
+      "p": 2.1646095517420657e-16,
+      "stationary_5pct": true
+    },
+    "T10Y2Y_d20": {
+      "adf_stat": -9.371077097424715,
+      "p": 7.374729921223576e-16,
+      "stationary_5pct": true
+    },
+    "BAA10Y_chg20": {
+      "adf_stat": -6.6672712365999125,
+      "p": 4.683263053938893e-09,
+      "stationary_5pct": true
+    }
+  },
+  "pca": {
+    "eigenvalues": [
+      2.4625,
+      1.3605,
+      0.7853,
+      0.3303,
+      0.0625
+    ],
+    "cumulative_variance": [
+      0.4924,
+      0.7644,
+      0.9215,
+      0.9875,
+      1.0
+    ],
+    "n_effective_components_95pct": 4,
+    "n_effective_components_99pct": 5,
+    "effective_tests_nominal_105": 84
+  }
+}

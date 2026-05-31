@@ -35,7 +35,7 @@
 
 | 축 | 본 작업방 sub-cluster 단위 적용 |
 |---|---|
-| **A 이론 실재성** | 채권 cycle 이론 (Fabozzi *Fixed Income Analysis* / Adrian-Crump-Moench (ACM) term premium 원전 NY Fed Staff Report / ICE BofA HY OAS 정의 / MOVE methodology CBOE) 실재 정독 — 자문 복붙 금지. 날조 인용 = **hard** |
+| **A 이론 실재성** | 채권 cycle 이론 (Fabozzi *Fixed Income Analysis* / Adrian-Crump-Moench (ACM) term premium 원전 NY Fed Staff Report / ICE BofA HY OAS 정의 / **MOVE methodology ICE BofA** (★ 2026-05-31 main 12축 audit 정정: 본 spec 의 'CBOE' = 오류, MOVE = ICE BofA swaption basket, CBOE 는 VIX. supervisor 가 ICE 로 올바로 식별)) 실재 정독 — 자문 복붙 금지. 날조 인용 = **hard** |
 | **B 실데이터 검증 ★** | sub-cluster universe (TLT/IEF/SHY/BIL/HYG/LQD/TIP PIT) × FRED 실측. OOS Rank-IC > 0.03 AND t-stat > 2.0 (Newey-West SE). 합성·시뮬 발견 = **hard-fail** |
 | **C yaml 도출 추적성 ★** | summary.yaml 의 base_weight·prior_strength·corr_prior 가 validation-*.md 실측 IC 와 ±5% 매칭. flag→weight·corr·lens 경로 (§4.5 affects_indicator/affects_edge) 명시 = **hard** |
 | **D PIT / lookahead ★** | FRED first-release vintage / ETF 익일시가 / FOMC 발표 직후 시점 / 600bps event after-spike. 발표 전 시점 사용 = **hard-fail** |

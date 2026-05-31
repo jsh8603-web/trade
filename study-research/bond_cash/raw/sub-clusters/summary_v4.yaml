@@ -1,0 +1,212 @@
+# bond_cash v4 통합 summary (2026-05-31, btn-powerbi, main 12축 audit 격하 5건 반영)
+# v3 = audit verdict 격하 라벨 (사용)
+# v4 = 차분 driver + BH-FDR + half-split OOS + magnitude freeze 재검정 산출
+# ★ 본 yaml = audit 격하 5건 전부 반영. Phase 7 통합 진입 가능 상태.
+
+study_id: bond_cash
+phase: 7_yaml_v4_audit_remediated
+session: btn-powerbi
+date: 2026-05-31
+audit_verdict_addressed: raw/evaluation-bond_cash-20260531.md  # main 12축 audit subagent (opus-1m) PARTIAL
+remediation_summary: |
+  (1) validated_alpha 0개 — 전 7 sub-cluster structural_prior_low_confidence 격하 ✅
+  (2) B축 stationary 차분 (T10Y2Y → T10Y2Y_d20, ACM_TP10 → ACM_TP10_d20) — ADF p<0.001 PASS ✅
+  (3) C축 hy_credit regime in-sample IC bonferroni_pass=true 박제 ★취소★ — descriptive only 격하 ✅
+  (4) D축 ACM revised series PIT 한계 명시 (Kim-Wright 대체는 R3 후속) ✅
+  (5) K축 BH-FDR q=0.10 on effective ~84 (PCA 4 comp 98.75%) — Bonferroni α/420 → BH-FDR 전환 ✅
+  (부수) evaluation-axes.md §2 'MOVE=CBOE' → 'ICE BofA' 정정 ✅
+
+# ---- ★ v4 핵심 결과 (★ 정직 보고)
+v4_finding:
+  bh_fdr_pass_global: "0 / 105 명목 tests"  # 전부 reject 못함
+  sign_prior_robust_per_sub: "0 / 15"        # 전 7 sub-cluster 동일
+  interpretation: |
+    v1 의 ★CONFIRMED 강력 / Bonferroni-pass 신호 (cash_tbill T10Y2Y t=-25, HYG regime IC=-0.151 등) 는
+    전부 비정상 level co-trend artifact (audit 진단 완전 입증). stationary 차분 적용 시 magnitude 소멸.
+    bond_cash study 의 산출 = 전 7 sub-cluster sign/direction prior 만 도출 가능, magnitude alpha 박제 ⛔.
+
+# ---- coverage / provenance (D축)
+coverage:
+  common_period: {start: 2007-12-18, end: 2026-05-29}
+  n_panel_per_sub_cluster: 4814  # v2 차분 driver panel (v1 4580 보다 약간 김 = forward dropna 분 차이)
+  provenance_json: study-research/bond_cash/raw/_v2_analysis/_provenance.json
+  data_excluded_from_commit: true  # fetch_p0.py 재실행 복원 (18MB binary)
+
+# ---- v4 driver (전부 stationary 차분형, ADF 5pct PASS)
+drivers:
+  - {id: MOVE_Z,        source: "yfinance ^MOVE rolling 252 Z", adf_p: 9.5e-11, stationary: true,
+     role: "vol regime (사용자 prior '사이징 직결' — regime-conditional 만, sign-prior 형식)"}
+  - {id: ACM_TP10_d20,  source: "NY Fed ACMTP10 daily 20d Δ", adf_p: 4.3e-18, stationary: true,
+     role: "term premium 변화, ★ PIT 한계: revised series",
+     pit_caveat: "NY Fed Adrian-Crump-Moench full-history revised series. published xlsx = latest revision = lookahead 잔존 가능. Kim-Wright real-time 대체는 R3 후속."}
+  - {id: DGS10_chg20,   source: "FRED DGS10 20d Δ", adf_p: 2.2e-16, stationary: true, role: "rate level Δ"}
+  - {id: T10Y2Y_d20,    source: "FRED (DGS10-DGS2) 20d Δ", adf_p: 7.4e-16, stationary: true,
+     role: "curve slope Δ (★ level T10Y2Y 는 unit-root, v1 spurious 근원)"}
+  - {id: BAA10Y_chg20,  source: "FRED BAA10Y 20d Δ", adf_p: 4.7e-9, stationary: true,
+     role: "credit spread Δ proxy",
+     credit_grade_mismatch: "BAA = IG. hy_credit (HYG = B+/BB HY) 와 등급 mismatch. BAMLH 1996-2023 historical 부재 (ICE 라이센스) 대체 (DA eq_us_defensive H3 검증 경로)."}
+
+# ---- K축 v4 effective tests (★ audit 격하 5 반영)
+multiple_comparison:
+  procedure: "BH-FDR q=0.10 (★ Bonferroni α/420 → BH-FDR 전환, audit 격하 5)"
+  q_target: 0.10
+  nominal_tests: 105    # 7 sub-cluster × 5 driver × 3 forward
+  pca_n_eff_95pct: 4    # 5 driver PCA (eigenvalues [2.46,1.36,0.79,0.33,0.06], cumvar [0.49,0.76,0.92,0.99,1.00])
+  pca_cumvar_4_comp: 0.9875
+  effective_tests_estimate: 84   # 105 * 4/5 (audit 추정 ~42-52 보다 약간 높음, 실측 박제)
+  bh_fdr_global_reject: 0        # ★ 전 105 명목 tests 중 BH-FDR 통과 = 0
+
+# ---- driver pairwise corr (v4 차분형)
+driver_pairwise_corr_v4:
+  # (실측 값은 _driver_pca_v2.json + validation-*-v2.md inline 참조. 주요 cell:)
+  notable_high: "ACM_TP10_d20 ↔ T10Y2Y_d20 = high positive (PCA 1st component 흡수)"
+  effective_tests_lt_nominal: true
+
+# ---- sub-cluster v4 (★ 전부 structural_prior_low_confidence, magnitude freeze)
+sub_clusters:
+  tsy_long:
+    etf: TLT
+    duration: 17
+    credit: AAA
+    tier: structural_prior_low_confidence
+    validated_alpha: false
+    fdr_pass_v4: 0           # / 15
+    sign_prior_robust: 0     # / 15
+    sign_prior_direction:    # ★ magnitude 박제 ⛔, sign/direction 만 보존
+      MOVE_Z: "unconditional 약 → regime-conditional risk gate 가능성 (walk-forward OOS 후 확정)"
+      ACM_TP10_d20: "weak sign, half-split 불안정"
+      DGS10_chg20: "negative sign weak (rate↑ → bond price↓ 자명 prior)"
+      T10Y2Y_d20: "weak sign"
+      BAA10Y_chg20: "weak sign"
+    audit_remediation_applied: ["D ACM PIT 한계 명시", "B 차분 driver 재검정"]
+  tsy_mid:
+    etf: IEF
+    duration: 8
+    credit: AAA
+    tier: structural_prior_low_confidence
+    validated_alpha: false
+    fdr_pass_v4: 0
+    sign_prior_robust: 0
+    sign_prior_direction:
+      DGS10_chg20: "negative sign (rate sensitivity, mid-duration)"
+      나머지: "weak / unstable"
+    audit_remediation_applied: ["D ACM PIT", "B 차분 driver"]
+  tsy_short:
+    etf: SHY
+    duration: 2
+    credit: AAA
+    tier: structural_prior_low_confidence
+    validated_alpha: false
+    fdr_pass_v4: 0
+    sign_prior_robust: 0
+    sign_prior_direction:
+      DGS10_chg20: "very weak (low-duration → low rate sensitivity 자명)"
+      나머지: "no signal"
+    audit_remediation_applied: ["D ACM PIT", "전 driver TENTATIVE 통일 (audit 권고)"]
+  ig_credit:
+    etf: LQD
+    duration: 8
+    credit: "A-/BBB+"
+    tier: structural_prior_low_confidence
+    validated_alpha: false
+    fdr_pass_v4: 0
+    sign_prior_robust: 0
+    sign_prior_direction:
+      BAA10Y_chg20: "negative sign weak (credit spread ↑ → IG bond ↓)"
+      DGS10_chg20: "negative sign weak"
+      나머지: "weak"
+    audit_remediation_applied: ["D ACM PIT", "B 차분", "L credit driver eq_us_defensive 와 중복 점검 (통합 phase)"]
+  hy_credit:
+    etf: HYG
+    duration: 4
+    credit: "B+/BB"
+    tier: structural_prior_low_confidence
+    validated_alpha: false
+    fdr_pass_v4: 0
+    sign_prior_robust: 0
+    regime_cell_descriptive_only: true   # ★ audit C축 격하: walk-forward OOS 부재 = pass 박제 X
+    regime_cell_v1_finding_status: "★ 취소 (★ in-sample only, half-split IS+0.077 / OOS-0.331 부호 반전 audit 확인)"
+    sign_prior_direction:
+      DGS10_chg20: "negative sign weak (HYG rate sensitivity)"
+      BAA10Y_chg20: "negative sign weak — ★ credit_grade_mismatch confidence_hook 박제"
+      MOVE_Z: "unconditional no signal — regime-conditional 가설은 walk-forward OOS 후에만 진입"
+      ACM_TP10_d20: "weak / unstable"
+      T10Y2Y_d20: "weak"
+    confidence_hooks:
+      - {hook: credit_grade_mismatch, affects_indicator: BAA10Y_chg20, severity: medium,
+         note: "BAA=IG vs HYG=HY. BAMLH 1996-2023 부재로 proxy. R3 / Phase 7 시 정합 강화 필요"}
+      - {hook: regime_walk_forward_pending, affects_indicator: MOVE_Z, severity: high,
+         note: "regime-conditional IC = in-sample artifact, walk-forward OOS expanding-window classifier 신설 후만 corr_prior 진입"}
+    audit_remediation_applied: ["C regime in-sample 박제 취소", "D ACM PIT", "BAA proxy 등급 mismatch 명시"]
+  cash_tbill:
+    etf: BIL
+    duration: 0.1
+    credit: AAA
+    tier: structural_prior_low_confidence  # ★ NOT validated_alpha (audit B축 spurious 격하)
+    validated_alpha: false
+    fdr_pass_v4: 0
+    sign_prior_robust: 0
+    v1_bonferroni_6_15_status: "★ 무효 (spurious level-on-level regression. T10Y2Y level IC=-0.735 → 차분 IC=+0.033 소멸. half-split 부호 반전 -0.22/-0.77 불안정. lag=1000 t=-25→-4 lag 민감)"
+    sign_prior_direction:
+      DGS10_chg20: "negative weak (cash 의 rate level 동조, 자명)"
+      나머지: "no significant signal after stationary 차분"
+    audit_remediation_applied: ["B T10Y2Y/ACM_TP10 level → 차분 후 신호 소멸 확인", "C expected_tier 'validated_alpha' → structural_prior_low 정정", "D ACM PIT"]
+  tips:
+    etf: TIP
+    duration: 7
+    credit: "AAA(TIPS)"
+    tier: structural_prior_low_confidence
+    validated_alpha: false
+    fdr_pass_v4: 0
+    sign_prior_robust: 0
+    sign_prior_direction:
+      DGS10_chg20: "negative weak"
+      나머지: "weak"
+    audit_remediation_applied: ["D ACM PIT", "H: DFII10(실질금리)·breakeven driver 미포함 = TIPS 핵심 driver 결락 (R3 / Phase 7 보강)", "B 차분"]
+    h_axis_missing_drivers: ["DFII10 (10Y TIPS real rate)", "T5YIE (5Y breakeven inflation expectation)"]
+
+# ---- 사용자 prior 검증 v4 (★ 정직 결과 박제)
+user_prior_validation_v4:
+  - prior: "★ MOVE 사이징 직결 (사용자 메시지 #3 최우선)"
+    unconditional_v4: "★ no signal (전 sub-cluster sign_robust 0/15 BH-FDR reject 0)"
+    regime_conditional_v4: "in-sample IS+0.077 / OOS-0.331 부호 반전 (audit half-split) → ★ walk-forward OOS expanding-window classifier 신설 후 재검증 의무"
+    actionable_v4: "현 v4 산출만으로 weight_rules block4 MOVE_Z 진입 ⛔ 금지. walk-forward OOS 통과 후 sign-prior only 진입 가능."
+  - prior: "ACM TP 분해 (사용자 메시지 #3 누락 critical)"
+    finding_v4: "차분 후 unconditional weak. regime-conditional in-sample = audit C축 격하. ACM revised series PIT 한계 박제 후 정직 보고."
+
+# ---- ★ supervisor 직접 결정 ⛔ 금지 항목 (audit subagent + main 게이트)
+supervisor_direct_decisions_forbidden:
+  - "validated_alpha 라벨 (★ audit 격하 = 전부 false 확정)"
+  - "regime cell walk-forward OOS 정당화 (R3 후속 또는 Phase 7 module 신설)"
+  - "Kim-Wright vs ACM 대체 의사결정 (R3 후속)"
+
+# ---- 미해결 (H축, Phase 7 진입 전 우선순위)
+unresolved_priorities:
+  - {priority: P0, item: "regime cell walk-forward OOS expanding-window classifier 모듈 신설", rationale: "audit C축 격하 핵심"}
+  - {priority: P0, item: "ACM Kim-Wright real-time 대체 (R3 query)", rationale: "audit D축 핵심"}
+  - {priority: P1, item: "TIPS sub-cluster DFII10 + T5YIE driver 추가", rationale: "audit H축 driver 결락"}
+  - {priority: P1, item: "BAMLH0A0HYM2 1996-2023 historical ICE 라이센스 의사결정", rationale: "HYG credit driver 정합 강화"}
+  - {priority: P2, item: "J축 ETF spread 차감 후 alpha 검증 (alpha 주장 시점)", rationale: "현 v4 = sign-prior only, alpha 미주장이라 hard 아님"}
+  - {priority: P2, item: "통합 PSD eigh-floor + 공통인자 1회계상 (L축)", rationale: "Phase 7 통합 단계 의무"}
+
+# ---- K축 tries 누적
+tries:
+  consult_rounds: 9
+  websearch_native: 5
+  webfetch_native: 2  # 둘 다 403
+  validation_tests_nominal: 105
+  effective_tests_v4: 84   # PCA 4 component 98.75%
+  bh_fdr_global_reject: 0  # ★
+  audit_round: 1  # main 12축 audit subagent dispatch 1회
+
+# ---- 시스템 정합 (audit §4: 다운그레이드 ⛔)
+system_fit_v4:
+  current_skeleton_fits: false
+  pipeline_upgrade_needed: true
+  upgrade_plan:
+    - "stationary 변환층(차분/z-score) 의무화 — driver 전처리 시 자동 적용 (★ 본 v4 에서 적용 완료)"
+    - "walk-forward regime classifier 모듈 신설 (expanding window) — in-sample regime IC over-fit 차단"
+    - "ACM Kim-Wright real-time 대체 또는 monthly publish lag 1-month forward-shift"
+    - "sign-prior corr_prior 주입 (magnitude 박제 ⛔) — small-N / 비정상 rigor 준수"
+  downgrade_forbidden: true
+  add_only_opt_in_sacred: true
