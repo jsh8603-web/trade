@@ -122,7 +122,7 @@ async def test_e2e():
     # 6. DB 테스트
     print("\n[Phase 6] DB 테스트")
     db = KimchirangDB(config.db)
-    print(f"  Supabase enabled: {db._enabled}")
+    print(f"  DB backend: {type(__import__('core.db', fromlist=['db']).db).__name__}")
     print("  [OK] DB initialization passed")
 
     # 7. 5초 KP 추적 루프

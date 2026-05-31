@@ -695,33 +695,27 @@ class TestLockFile:
 
 class TestDbInsert:
     def test_db_insert_with_credentials(self, monkeypatch):
-        mock_session = _patch_http_session()
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "https://test.supabase.co")
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "test_key")
-        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session), \
+        # core.db 어댑터 전환: db.insert 호출 확인
+        with patch("scripts.short_term_trader.db.insert") as mock_insert, \
              patch("utils.machine.skip_trade_db", return_value=False):
             db_insert("scalp_trades", {"strategy": "news", "side": "bid"})
-        mock_session.post.assert_called_once()
-        args, kwargs = mock_session.post.call_args
-        assert "scalp_trades" in args[0]
-        assert kwargs["json"]["strategy"] == "news"
+        mock_insert.assert_called_once()
+        args, _kwargs = mock_insert.call_args
+        assert args[0] == "scalp_trades"
+        assert args[1]["strategy"] == "news"
 
-    def test_db_insert_without_credentials_skips(self, monkeypatch):
-        mock_session = _patch_http_session()
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "")
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "")
-        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+    def test_db_insert_skip_trade_db_skips(self, monkeypatch):
+        # skip_trade_db=True 면 어댑터 insert 미호출 (로컬 백업만)
+        with patch("scripts.short_term_trader.db.insert") as mock_insert, \
+             patch("utils.machine.skip_trade_db", return_value=True):
             db_insert("scalp_trades", {"strategy": "news"})
-        mock_session.post.assert_not_called()
+        mock_insert.assert_not_called()
 
     def test_db_insert_failure_does_not_raise(self, monkeypatch):
-        mock_session = _patch_http_session()
-        mock_session.post.side_effect = Exception("network error")
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "https://test.supabase.co")
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "test_key")
-        # Should not raise
-        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
-            db_insert("scalp_trades", {"strategy": "news"})
+        # 어댑터 예외가 발생해도 db_insert 는 예외를 삼킨다
+        with patch("scripts.short_term_trader.db.insert", side_effect=Exception("db error")), \
+             patch("utils.machine.skip_trade_db", return_value=False):
+            db_insert("scalp_trades", {"strategy": "news"})  # Should not raise
 
 
 # ===========================================================================
@@ -2508,40 +2502,42 @@ class TestExecuteEntryAmountEdgeCasesExtra:
 # ===========================================================================
 
 class TestDbInsertEdgeCasesExtra:
-    def test_missing_supabase_url_only_skips(self, monkeypatch):
-        """SUPABASE_URL empty but key present -> early return."""
-        mock_session = _patch_http_session()
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "")
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "some_key")
-        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+    def test_adapter_insert_called_when_not_skipped(self, monkeypatch):
+        """skip_trade_db=False -> 어댑터 insert 호출."""
+        with patch("scripts.short_term_trader.db.insert") as mock_insert, \
+             patch("utils.machine.skip_trade_db", return_value=False):
             db_insert("scalp_trades", {"foo": "bar"})
-        mock_session.post.assert_not_called()
+        mock_insert.assert_called_once()
 
-    def test_missing_supabase_key_only_skips(self, monkeypatch):
-        """SUPABASE_KEY empty but URL present -> early return."""
-        mock_session = _patch_http_session()
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "https://x.supabase.co")
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "")
-        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
-            db_insert("scalp_trades", {"foo": "bar"})
-        mock_session.post.assert_not_called()
+    def test_machine_name_column_missing_retries(self, monkeypatch):
+        """machine_name 컬럼 미존재 예외 -> 제거 후 재시도."""
+        calls = []
+
+        def _insert(table, row, **kw):
+            calls.append(dict(row))
+            if "machine_name" in row:
+                raise Exception("column machine_name does not exist")
+            return None
+
+        with patch("scripts.short_term_trader.db.insert", side_effect=_insert), \
+             patch("utils.machine.skip_trade_db", return_value=False):
+            db_insert("scalp_trades", {"strategy": "news"})
+        # 1차(machine_name 포함) 실패 -> 2차(제거) 재시도
+        assert len(calls) == 2
+        assert "machine_name" not in calls[1]
 
     def test_timeout_exception_silently_caught(self, monkeypatch):
-        """_get_http_session().post raises Timeout -> silently caught."""
-        mock_session = _patch_http_session()
-        mock_session.post.side_effect = requests.exceptions.Timeout("timeout")
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "https://x.supabase.co")
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "key123")
-        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+        """어댑터 insert Timeout -> 조용히 무시."""
+        with patch("scripts.short_term_trader.db.insert",
+                   side_effect=requests.exceptions.Timeout("timeout")), \
+             patch("utils.machine.skip_trade_db", return_value=False):
             db_insert("scalp_trades", {"strategy": "news"})  # should not raise
 
     def test_generic_exception_silently_caught(self, monkeypatch):
-        """Any exception from _get_http_session().post -> silently caught."""
-        mock_session = _patch_http_session()
-        mock_session.post.side_effect = RuntimeError("unexpected")
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_URL", "https://x.supabase.co")
-        monkeypatch.setattr("scripts.short_term_trader.SUPABASE_KEY", "key123")
-        with patch("scripts.short_term_trader._get_http_session", return_value=mock_session):
+        """어댑터 insert 일반 예외 -> 조용히 무시."""
+        with patch("scripts.short_term_trader.db.insert",
+                   side_effect=RuntimeError("unexpected")), \
+             patch("utils.machine.skip_trade_db", return_value=False):
             db_insert("scalp_trades", {"strategy": "spike"})  # should not raise
 
 

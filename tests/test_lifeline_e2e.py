@@ -729,11 +729,11 @@ class TestScenario10_DBFailure:
         assert result["healed_count"] == 1
 
     def test_health_db_sync_log_check_catches_exception(self):
-        """HealthDBSync.log_check: 네트워크 예외를 삼키고 False 반환."""
+        """HealthDBSync.log_check: DB 예외를 삼키고 False 반환."""
         sync = HealthDBSync()
-        sync.supabase_url = "https://invalid.example.com"
 
-        with patch.object(sync.session, "post", side_effect=ConnectionError("no network")):
+        with patch("scripts.lifeline.health_db_sync.db") as mock_db:
+            mock_db.insert.side_effect = Exception("db error")
             ok = sync.log_check(
                 _make_check("test", "ERROR", "test error"),
             )

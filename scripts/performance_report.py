@@ -22,14 +22,14 @@ import time
 from datetime import datetime, timezone, timedelta
 from scripts.hide_console import subprocess_kwargs  # noqa: F401 — side-effect: hides console
 
-import requests
+import requests  # noqa: F401 — Telegram API (비-DB)
 import numpy as np
 from dotenv import load_dotenv
 
+from core.db import db
+
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 KST = timezone(timedelta(hours=9))
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 PYTHON = str(PROJECT_DIR / ".venv" / "Scripts" / "python.exe")
@@ -37,29 +37,25 @@ if not os.path.exists(PYTHON):
     PYTHON = str(PROJECT_DIR / ".venv" / "bin" / "python")
 
 
-def supabase_headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-
-
 def supabase_get(table, params=None):
-    r = requests.get(
-        f"{SUPABASE_URL}/rest/v1/{table}",
-        headers={**supabase_headers(), "Prefer": "count=exact"},
-        params=params or {},
-        timeout=15,
-    )
-    count = 0
-    cr = r.headers.get("content-range", "")
-    if "/" in cr:
+    """레거시 시그니처 유지 (rows, count). count = len(rows).
+    params(PostgREST) -> db.select 인자로 변환."""
+    params = params or {}
+    select = params.pop("select", "*")
+    order = params.pop("order", None)
+    limit = params.pop("limit", None)
+    if limit is not None:
         try:
-            count = int(cr.split("/")[1])
-        except (ValueError, IndexError):
-            pass
-    return r.json() if r.ok else [], count
+            limit = int(limit)
+        except (ValueError, TypeError):
+            limit = None
+    # 나머지 키는 모두 PostgREST 필터
+    filters = {k: v for k, v in params.items()} or None
+    try:
+        rows = db.select(table, filters=filters, order=order, limit=limit, select=select)
+        return rows, len(rows)
+    except Exception:
+        return [], 0
 
 
 def send_telegram(message: str, parse_mode="MarkdownV2"):

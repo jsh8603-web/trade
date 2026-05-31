@@ -13,8 +13,6 @@
 import os
 import sys
 import time
-import base64
-import subprocess as sp
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -22,44 +20,25 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import requests
-
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-PROJECT_REF = os.getenv("SUPABASE_PROJECT_REF", "")
+from core.db import db
 
 # 실매매 소스만 (훈련 데이터 제외)
 REAL_TRADE_SOURCES = ["agent", "short_term", "llm", "manual", "agent+rl"]
 
 
-def _get_mgmt_token() -> str:
-    try:
-        raw = sp.check_output(
-            ["security", "find-generic-password", "-s", "Supabase CLI", "-a", "supabase", "-w"],
-            text=True, stderr=sp.DEVNULL,
-        ).strip()
-        if raw.startswith("go-keyring-base64:"):
-            return base64.b64decode(raw.split(":", 1)[1]).decode()
-        return raw
-    except Exception:
-        return ""
-
-
 def get_decisions_without_embedding(include_all: bool = False) -> list[dict]:
     """임베딩 없는 decisions 조회."""
-    headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
-    params = {
-        "select": "id,decision,created_at,source,current_price,rsi_value,fear_greed_value,sma20_price,embedding_text,reason,profit_loss",
-        "state_embedding": "is.null",
-        "order": "created_at.asc",
-        "limit": "2000",
-    }
+    filters = {"state_embedding": "is.null"}
     if not include_all:
-        params["source"] = f"in.({','.join(REAL_TRADE_SOURCES)})"
+        filters["source"] = f"in.({','.join(REAL_TRADE_SOURCES)})"
 
-    r = requests.get(f"{SUPABASE_URL}/rest/v1/decisions", headers=headers, params=params, timeout=30)
-    r.raise_for_status()
-    return r.json()
+    return db.select(
+        "decisions",
+        select="id,decision,created_at,source,current_price,rsi_value,fear_greed_value,sma20_price,embedding_text,reason,profit_loss",
+        filters=filters,
+        order="created_at.asc",
+        limit=2000,
+    )
 
 
 def build_embedding_text_from_row(row: dict) -> str:
@@ -126,20 +105,14 @@ def generate_gemini_embedding(text: str) -> list[float] | None:
         return None
 
 
-def update_embedding_mgmt(token: str, decision_id: str, embedding: list[float], emb_text: str) -> bool:
-    vec_str = "[" + ",".join(str(v) for v in embedding) + "]"
-    safe_text = emb_text.replace("'", "''")
-    sql = (
-        f"UPDATE decisions SET state_embedding = '{vec_str}'::vector, "
-        f"embedding_text = '{safe_text}' WHERE id = '{decision_id}'"
+def update_embedding(decision_id: str, embedding: list[float], emb_text: str) -> bool:
+    """decisions.state_embedding (벡터) + embedding_text 갱신."""
+    n = db.update(
+        "decisions",
+        {"id": f"eq.{decision_id}"},
+        {"state_embedding": embedding, "embedding_text": emb_text},
     )
-    r = requests.post(
-        f"https://api.supabase.com/v1/projects/{PROJECT_REF}/database/query",
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-        json={"query": sql},
-        timeout=30,
-    )
-    return r.ok
+    return n > 0
 
 
 def main():
@@ -150,11 +123,6 @@ def main():
     print("임베딩 일괄 생성: Gemini embedding-001 (3072d)")
     print(f"대상: {'전체' if include_all else '실매매만 (agent/short_term/llm/manual)'}")
     print("=" * 60)
-
-    token = _get_mgmt_token()
-    if not token and not dry_run:
-        print("[ERROR] Management API 토큰 없음", file=sys.stderr)
-        sys.exit(1)
 
     decisions = get_decisions_without_embedding(include_all)
     print(f"\n임베딩 대상: {len(decisions)}건")
@@ -200,7 +168,7 @@ def main():
         if dry_run:
             success += 1
         else:
-            if update_embedding_mgmt(token, did, embedding, emb_text):
+            if update_embedding(did, embedding, emb_text):
                 success += 1
             else:
                 failed += 1

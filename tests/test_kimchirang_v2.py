@@ -344,18 +344,13 @@ class TestKimchirangDBRLModel:
 
     def test_rl_model_supabase_attempted(self, local_data_dir):
         async def _run():
-            with patch.dict(os.environ, {
-                "SUPABASE_URL": "https://test.supabase.co",
-                "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-            }, clear=False), patch("utils.machine.skip_trade_db", return_value=False):
+            with patch("utils.machine.skip_trade_db", return_value=False), \
+                 patch("kimchirang.db.db.insert") as mock_insert:
                 db = KimchirangDB(DBConfig())
                 with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
-                    mock_resp = MagicMock(status_code=201, text="")
-                    db._session.post = MagicMock(return_value=mock_resp)
                     await db.record_rl_model({"model_type": "DQN", "steps": 50000})
-                    db._session.post.assert_called_once()
-                    call_args = db._session.post.call_args
-                    assert "kimchirang_rl_models" in str(call_args)
+                    mock_insert.assert_called_once()
+                    assert mock_insert.call_args[0][0] == "kimchirang_rl_models"
         asyncio.run(_run())
 
 
@@ -364,54 +359,42 @@ class TestKimchirangDBSupabaseFallback:
 
     def test_supabase_fail_local_still_saved(self, snapshot, local_data_dir):
         async def _run():
-            with patch.dict(os.environ, {
-                "SUPABASE_URL": "https://test.supabase.co",
-                "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-            }, clear=False):
-                db = KimchirangDB(DBConfig())
-                with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
-                    db._session.post = MagicMock(return_value=MagicMock(status_code=500, text="Internal Server Error"))
-                    stats = {"kp_ma_1m": 1.0, "kp_ma_5m": 1.2}
-                    await db.record_kp_snapshot(snapshot, stats)
+            db = KimchirangDB(DBConfig())
+            with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir), \
+                 patch("kimchirang.db.db.insert", side_effect=RuntimeError("DB error")):
+                stats = {"kp_ma_1m": 1.0, "kp_ma_5m": 1.2}
+                await db.record_kp_snapshot(snapshot, stats)
 
-                    path = os.path.join(local_data_dir, "kp_history.jsonl")
-                    assert os.path.exists(path)
-                    with open(path, "r", encoding="utf-8") as f:
-                        row = json.loads(f.readline())
-                    assert row["mid_kp"] == 1.9
+                path = os.path.join(local_data_dir, "kp_history.jsonl")
+                assert os.path.exists(path)
+                with open(path, "r", encoding="utf-8") as f:
+                    row = json.loads(f.readline())
+                assert row["mid_kp"] == 1.9
         asyncio.run(_run())
 
     def test_supabase_exception_local_still_saved(self, snapshot, local_data_dir):
         async def _run():
-            with patch.dict(os.environ, {
-                "SUPABASE_URL": "https://test.supabase.co",
-                "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-            }, clear=False):
-                db = KimchirangDB(DBConfig())
-                with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
-                    db._session.post = MagicMock(side_effect=ConnectionError("Network unreachable"))
-                    stats = {"kp_ma_1m": 1.0}
-                    await db.record_kp_snapshot(snapshot, stats)
+            db = KimchirangDB(DBConfig())
+            with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir), \
+                 patch("kimchirang.db.db.insert", side_effect=ConnectionError("Network unreachable")):
+                stats = {"kp_ma_1m": 1.0}
+                await db.record_kp_snapshot(snapshot, stats)
 
-                    path = os.path.join(local_data_dir, "kp_history.jsonl")
-                    assert os.path.exists(path)
+                path = os.path.join(local_data_dir, "kp_history.jsonl")
+                assert os.path.exists(path)
         asyncio.run(_run())
 
     def test_supabase_disabled_local_only(self, snapshot, local_data_dir):
-        """Supabase 미설정 시 로컬만 저장"""
+        """DB skip 시 로컬만 저장"""
         async def _run():
-            with patch.dict(os.environ, {
-                "SUPABASE_URL": "",
-                "SUPABASE_SERVICE_ROLE_KEY": "",
-            }, clear=False):
-                db = KimchirangDB(DBConfig())
-                assert db._enabled is False
-                with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir):
-                    result = ExecutionResult(action="enter", kp_at_execution=3.5)
-                    await db.record_trade(result, snapshot)
+            db = KimchirangDB(DBConfig())
+            with patch("kimchirang.db.LOCAL_DATA_DIR", local_data_dir), \
+                 patch("utils.machine.skip_trade_db", return_value=True):
+                result = ExecutionResult(action="enter", kp_at_execution=3.5)
+                await db.record_trade(result, snapshot)
 
-                    path = os.path.join(local_data_dir, "trades.jsonl")
-                    assert os.path.exists(path)
+                path = os.path.join(local_data_dir, "trades.jsonl")
+                assert os.path.exists(path)
         asyncio.run(_run())
 
 

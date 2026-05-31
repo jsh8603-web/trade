@@ -16,11 +16,12 @@
 
 import json
 import logging
-import os
+import sys
 import time
 from pathlib import Path
 
-import requests
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from core.db import db
 
 logger = logging.getLogger(__name__)
 
@@ -78,34 +79,22 @@ def get_newsrang_signal(max_age_min: int = 120) -> dict:
 
 
 def _fetch_from_db() -> dict | None:
-    """Supabase에서 최신 newsrang_signals 1행을 조회한다."""
-    url = os.getenv("SUPABASE_URL", "")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not url or not key:
-        return None
-
+    """core.db 어댑터로 최신 newsrang_signals 1행을 조회한다."""
     try:
-        resp = requests.get(
-            f"{url}/rest/v1/newsrang_signals",
-            params={
-                "select": "created_at,rss_combined_score,rss_crypto_score,rss_macro_score,"
-                          "x_score,x_signal,x_whale_summary,"
-                          "social_score,social_signal,"
-                          "fusion_total_score,fusion_rss_adj,fusion_x_adj,fusion_social_adj,"
-                          "rss_top_signals",
-                "order": "created_at.desc",
-                "limit": "1",
-            },
-            headers={
-                "apikey": key,
-                "Authorization": f"Bearer {key}",
-            },
-            timeout=5,
+        rows = db.select(
+            "newsrang_signals",
+            select="created_at,rss_combined_score,rss_crypto_score,rss_macro_score,"
+                   "x_score,x_signal,x_whale_summary,"
+                   "social_score,social_signal,"
+                   "fusion_total_score,fusion_rss_adj,fusion_x_adj,fusion_social_adj,"
+                   "rss_top_signals",
+            order="created_at.desc",
+            limit=1,
         )
-        if resp.status_code != 200 or not resp.json():
+        if not rows:
             return None
 
-        row = resp.json()[0]
+        row = rows[0]
         created = row.get("created_at", "")
 
         # 나이 계산

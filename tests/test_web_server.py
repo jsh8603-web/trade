@@ -38,9 +38,9 @@ with patch("dotenv.load_dotenv"):
             _update_strategy,
             api_decisions,
             api_status,
+            db_get,
             get_local_ip,
             read_env,
-            supabase_get,
             update_env_value,
         )
 
@@ -56,7 +56,7 @@ def _reload_web_server():
 
     # Re-bind all module-level names used by tests to the freshly reloaded module.
     global DashboardHandler, _get_active_strategy, _update_strategy
-    global api_decisions, api_status, get_local_ip, read_env, supabase_get
+    global api_decisions, api_status, get_local_ip, read_env, db_get
     global update_env_value
     DashboardHandler = _web_server_module.DashboardHandler
     _get_active_strategy = _web_server_module._get_active_strategy
@@ -65,7 +65,7 @@ def _reload_web_server():
     api_status = _web_server_module.api_status
     get_local_ip = _web_server_module.get_local_ip
     read_env = _web_server_module.read_env
-    supabase_get = _web_server_module.supabase_get
+    db_get = _web_server_module.db_get
     update_env_value = _web_server_module.update_env_value
 
 
@@ -271,59 +271,44 @@ class TestUpdateEnvValue:
 
 
 # ---------------------------------------------------------------------------
-# Tests: supabase_get
+# Tests: db_get (PostgREST 쿼리스트링 → db.select 변환)
 # ---------------------------------------------------------------------------
 
-class TestSupabaseGet:
-    def test_returns_empty_without_credentials(self):
-        with patch.dict(os.environ, {"SUPABASE_URL": "", "SUPABASE_SERVICE_ROLE_KEY": ""}, clear=False):
-            result = supabase_get("decisions")
-            assert result == []
-
+class TestDbGet:
     def test_returns_data_on_success(self):
         mock_data = [{"id": 1, "decision": "buy"}]
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "https://test.supabase.co",
-            "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-        }, clear=False):
-            with patch("scripts.web_server.requests.get") as mock_get:
-                mock_resp = MagicMock()
-                mock_resp.json.return_value = mock_data
-                mock_resp.raise_for_status = MagicMock()
-                mock_get.return_value = mock_resp
+        with patch("scripts.web_server.db.select", return_value=mock_data) as mock_sel:
+            result = db_get("decisions", "select=*&limit=5")
+            assert result == mock_data
+            mock_sel.assert_called_once()
+            kwargs = mock_sel.call_args[1]
+            assert mock_sel.call_args[0][0] == "decisions"
+            assert kwargs["select"] == "*"
+            assert kwargs["limit"] == 5
 
-                result = supabase_get("decisions", "select=*&limit=5")
-                assert result == mock_data
-                mock_get.assert_called_once()
-                call_url = mock_get.call_args[0][0]
-                assert "decisions" in call_url
-                assert "select=*&limit=5" in call_url
+    def test_parses_order_and_filters(self):
+        with patch("scripts.web_server.db.select", return_value=[]) as mock_sel:
+            db_get("decisions", "select=id&order=created_at.desc&limit=10&decision=eq.매수")
+            kwargs = mock_sel.call_args[1]
+            assert kwargs["select"] == "id"
+            assert kwargs["order"] == "created_at.desc"
+            assert kwargs["limit"] == 10
+            assert kwargs["filters"] == {"decision": "eq.매수"}
+
+    def test_no_params_defaults(self):
+        with patch("scripts.web_server.db.select", return_value=[]) as mock_sel:
+            db_get("decisions")
+            kwargs = mock_sel.call_args[1]
+            assert kwargs["select"] == "*"
+            assert kwargs["order"] is None
+            assert kwargs["limit"] is None
+            assert kwargs["filters"] is None
 
     def test_returns_error_on_exception(self):
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "https://test.supabase.co",
-            "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-        }, clear=False):
-            with patch("scripts.web_server.requests.get", side_effect=Exception("timeout")):
-                result = supabase_get("decisions")
-                assert "error" in result
-                assert "timeout" in result["error"]
-
-    def test_sends_auth_headers(self):
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "https://test.supabase.co",
-            "SUPABASE_SERVICE_ROLE_KEY": "my-secret-key",
-        }, clear=False):
-            with patch("scripts.web_server.requests.get") as mock_get:
-                mock_resp = MagicMock()
-                mock_resp.json.return_value = []
-                mock_resp.raise_for_status = MagicMock()
-                mock_get.return_value = mock_resp
-
-                supabase_get("table")
-                headers = mock_get.call_args[1]["headers"]
-                assert headers["apikey"] == "my-secret-key"
-                assert headers["Authorization"] == "Bearer my-secret-key"
+        with patch("scripts.web_server.db.select", side_effect=Exception("boom")):
+            result = db_get("decisions")
+            assert "error" in result
+            assert "boom" in result["error"]
 
 
 # ---------------------------------------------------------------------------
@@ -431,12 +416,12 @@ class TestApiStatus:
 # ---------------------------------------------------------------------------
 
 class TestApiDecisions:
-    def test_calls_supabase_with_correct_params(self):
+    def test_calls_db_with_correct_params(self):
         mock_data = [{"id": 1}]
-        with patch("scripts.web_server.supabase_get", return_value=mock_data) as mock_sb:
+        with patch("scripts.web_server.db_get", return_value=mock_data) as mock_db:
             result = api_decisions()
             assert result == mock_data
-            mock_sb.assert_called_once_with(
+            mock_db.assert_called_once_with(
                 "decisions", "select=*&order=created_at.desc&limit=10"
             )
 
@@ -466,7 +451,7 @@ class TestHandlerAPIGet:
 
     def test_api_decisions(self):
         mock_decisions = [{"id": 1, "decision": "hold"}]
-        with patch("scripts.web_server.supabase_get", return_value=mock_decisions):
+        with patch("scripts.web_server.db_get", return_value=mock_decisions):
             code, data = call_get("/api/decisions")
             assert code == 200
             assert data == mock_decisions

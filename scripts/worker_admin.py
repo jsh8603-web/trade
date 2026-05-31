@@ -57,16 +57,13 @@ import requests
 from dotenv import load_dotenv
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
+from core.db import db
+
 KST = timezone(timedelta(hours=9))
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json",
-}
 
 # 이메일 발송 설정 (선택사항)
 SMTP_HOST = os.getenv("SMTP_HOST", "")
@@ -139,14 +136,11 @@ def generate_invite_code(length: int = 8) -> str:
 
 def cmd_list(args):
     """전체 워커 목록"""
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/compute_workers",
-        params={"select": "worker_id,worker_name,tier,status,is_main_brain,ram_gb,gpu_info,telegram_chat_id,email,last_heartbeat",
-                "order": "tier.asc,worker_id.asc"},
-        headers=HEADERS,
-        timeout=15,
+    workers = db.select(
+        "compute_workers",
+        select="worker_id,worker_name,tier,status,is_main_brain,ram_gb,gpu_info,telegram_chat_id,email,last_heartbeat",
+        order="tier.asc,worker_id.asc",
     )
-    workers = resp.json() if resp.ok else []
 
     if not workers:
         print("등록된 워커가 없습니다")
@@ -175,20 +169,20 @@ def cmd_invite(args):
     name = args.name or ""
     email = args.email or ""
 
-    resp = requests.post(
-        f"{SUPABASE_URL}/rest/v1/worker_invites",
-        json={
+    try:
+        db.insert("worker_invites", {
             "invite_code": code,
             "tier": args.tier,
             "worker_name": name,
             "email": email,
             "expires_at": expires.isoformat(),
-        },
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=15,
-    )
+        }, returning=False)
+        ok = True
+    except Exception as e:
+        ok = False
+        err = e
 
-    if resp.status_code < 300:
+    if ok:
         print("초대코드 생성 완료")
         print(f"  코드: {code}")
         print(f"  티어: {args.tier}")
@@ -224,7 +218,7 @@ def cmd_invite(args):
         print(f"  초대코드 만료: {expires.strftime('%Y-%m-%d %H:%M')} KST")
         print("=== 끝 ===")
     else:
-        print(f"초대 생성 실패: {resp.text}")
+        print(f"초대 생성 실패: {err}")
 
 
 def cmd_direct_send(args):
@@ -243,9 +237,8 @@ def cmd_direct_send(args):
     is_main = args.tier == "owner"
 
     # DB에 워커 직접 등록
-    resp = requests.post(
-        f"{SUPABASE_URL}/rest/v1/compute_workers",
-        json={
+    try:
+        db.insert("compute_workers", {
             "worker_id": worker_id,
             "worker_name": name,
             "tier": args.tier,
@@ -255,13 +248,9 @@ def cmd_direct_send(args):
             "telegram_chat_id": args.telegram or None,
             "email": args.email or None,
             "notes": f"직접 등록: {datetime.now(KST).strftime('%Y-%m-%d %H:%M')}",
-        },
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=15,
-    )
-
-    if resp.status_code >= 300:
-        print(f"워커 등록 실패: {resp.text}")
+        }, returning=False)
+    except Exception as e:
+        print(f"워커 등록 실패: {e}")
         return
 
     print("워커 등록 완료")
@@ -332,13 +321,7 @@ def cmd_direct_send(args):
 
 def cmd_invites(args):
     """초대 현황 조회"""
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/worker_invites",
-        params={"select": "*", "order": "created_at.desc"},
-        headers=HEADERS,
-        timeout=15,
-    )
-    invites = resp.json() if resp.ok else []
+    invites = db.select("worker_invites", select="*", order="created_at.desc")
 
     if not invites:
         print("발급된 초대가 없습니다")
@@ -363,88 +346,61 @@ def cmd_invites(args):
 
 def cmd_revoke_invite(args):
     """초대코드 취소 (만료 처리)"""
-    resp = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/worker_invites",
-        params={"invite_code": f"eq.{args.code}"},
-        json={"expires_at": datetime.now(KST).isoformat()},
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=15,
-    )
-    if resp.status_code < 300:
+    try:
+        db.update("worker_invites", {"invite_code": f"eq.{args.code}"},
+                  {"expires_at": datetime.now(KST).isoformat()})
         print(f"초대코드 취소됨: {args.code}")
-    else:
-        print(f"실패: {resp.text}")
+    except Exception as e:
+        print(f"실패: {e}")
 
 
 def cmd_suspend(args):
     """워커 일시 정지 (RLS 토큰도 차단됨 — status=suspended 체크)"""
-    resp = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/compute_workers",
-        params={"worker_id": f"eq.{args.id}"},
-        json={"status": "suspended",
-              "notes": f"정지: {datetime.now(KST).strftime('%Y-%m-%d %H:%M')}"},
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=15,
-    )
-    if resp.status_code < 300:
+    try:
+        db.update("compute_workers", {"worker_id": f"eq.{args.id}"},
+                  {"status": "suspended",
+                   "notes": f"정지: {datetime.now(KST).strftime('%Y-%m-%d %H:%M')}"})
         print(f"워커 정지: {args.id} (RLS 접근도 차단됨)")
-    else:
-        print(f"실패: {resp.text}")
+    except Exception as e:
+        print(f"실패: {e}")
 
 
 def cmd_unsuspend(args):
     """워커 정지 해제"""
-    resp = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/compute_workers",
-        params={"worker_id": f"eq.{args.id}"},
-        json={"status": "offline",
-              "notes": f"정지 해제: {datetime.now(KST).strftime('%Y-%m-%d %H:%M')}"},
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=15,
-    )
-    if resp.status_code < 300:
+    try:
+        db.update("compute_workers", {"worker_id": f"eq.{args.id}"},
+                  {"status": "offline",
+                   "notes": f"정지 해제: {datetime.now(KST).strftime('%Y-%m-%d %H:%M')}"})
         print(f"정지 해제: {args.id}")
-    else:
-        print(f"실패: {resp.text}")
+    except Exception as e:
+        print(f"실패: {e}")
 
 
 def cmd_remove(args):
     """워커 완전 삭제"""
-    requests.delete(
-        f"{SUPABASE_URL}/rest/v1/worker_heartbeats",
-        params={"worker_id": f"eq.{args.id}"},
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=15,
-    )
-    resp = requests.delete(
-        f"{SUPABASE_URL}/rest/v1/compute_workers",
-        params={"worker_id": f"eq.{args.id}"},
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=15,
-    )
-    if resp.status_code < 300:
+    try:
+        db.delete("worker_heartbeats", {"worker_id": f"eq.{args.id}"})
+    except Exception:
+        pass
+    try:
+        db.delete("compute_workers", {"worker_id": f"eq.{args.id}"})
         print(f"워커 삭제: {args.id}")
-    else:
-        print(f"실패: {resp.text}")
+    except Exception as e:
+        print(f"실패: {e}")
 
 
 def cmd_invalidate(args):
     """워커 토큰 무효화 (재등록 필요 — 관리자는 새 토큰을 모름)"""
     # 랜덤 토큰으로 교체하여 기존 토큰 무효화
-    resp = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/compute_workers",
-        params={"worker_id": f"eq.{args.id}"},
-        json={"api_token": str(uuid.uuid4()), "status": "suspended",
-              "notes": f"토큰 무효화: {datetime.now(KST).strftime('%Y-%m-%d %H:%M')}"},
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=15,
-    )
-    if resp.status_code < 300:
+    try:
+        db.update("compute_workers", {"worker_id": f"eq.{args.id}"},
+                  {"api_token": str(uuid.uuid4()), "status": "suspended",
+                   "notes": f"토큰 무효화: {datetime.now(KST).strftime('%Y-%m-%d %H:%M')}"})
         print(f"토큰 무효화: {args.id}")
         print("  워커는 새 초대코드로 재등록해야 합니다.")
         print("  관리자는 새 토큰을 알 수 없습니다.")
-    else:
-        print(f"실패: {resp.text}")
+    except Exception as e:
+        print(f"실패: {e}")
 
 
 def cmd_msg(args):
@@ -471,14 +427,11 @@ def cmd_msg(args):
 
 def cmd_msg_all(args):
     """전체 연락처에게 텔레그램 공지 발송 (워커 + 친구)"""
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "chat_id,name,role,worker_id",
-                "is_active": "eq.true"},
-        headers=HEADERS,
-        timeout=15,
+    contacts = db.select(
+        "telegram_contacts",
+        select="chat_id,name,role,worker_id",
+        filters={"is_active": "eq.true"},
     )
-    contacts = resp.json() if resp.ok else []
 
     if not contacts:
         print("등록된 연락처가 없습니다.")
@@ -496,61 +449,47 @@ def cmd_msg_all(args):
 
 def _lookup_contact_by_chat_id(chat_id: str) -> dict | None:
     """chat_id로 연락처 조회 (워커 + 친구 통합)"""
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "chat_id,name,role,worker_id,email",
-                "chat_id": f"eq.{chat_id}", "is_active": "eq.true"},
-        headers=HEADERS, timeout=10,
+    rows = db.select(
+        "telegram_contacts",
+        select="chat_id,name,role,worker_id,email",
+        filters={"chat_id": f"eq.{chat_id}", "is_active": "eq.true"},
     )
-    if resp.ok and resp.json():
-        c = resp.json()[0]
+    if rows:
+        c = rows[0]
         return {"worker_id": c.get("worker_id") or c["chat_id"],
                 "worker_name": c["name"], "tier": c["role"]}
     # fallback: compute_workers
-    resp2 = requests.get(
-        f"{SUPABASE_URL}/rest/v1/compute_workers",
-        params={"select": "worker_id,worker_name,tier",
-                "telegram_chat_id": f"eq.{chat_id}"},
-        headers=HEADERS, timeout=10,
+    rows2 = db.select(
+        "compute_workers",
+        select="worker_id,worker_name,tier",
+        filters={"telegram_chat_id": f"eq.{chat_id}"},
     )
-    if resp2.ok and resp2.json():
-        return resp2.json()[0]
+    if rows2:
+        return rows2[0]
     return None
 
 
 def _lookup_contact_by_name(name_or_id: str) -> dict | None:
     """이름/별명/워커ID로 연락처 조회 → chat_id 반환"""
-    # 이름 또는 워커 ID로 시도
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "chat_id,name,role,worker_id,aliases",
-                "or": f"(worker_id.eq.{name_or_id},name.eq.{name_or_id})",
-                "is_active": "eq.true"},
-        headers=HEADERS, timeout=10,
-    )
-    if resp.ok and resp.json():
-        return resp.json()[0]
+    # 이름 또는 워커 ID로 시도 (PostgREST or= 미지원 → worker_id/name 각각 조회 후 머지)
+    sel = "chat_id,name,role,worker_id,aliases"
+    for col in ("worker_id", "name"):
+        rows = db.select("telegram_contacts", select=sel,
+                         filters={col: f"eq.{name_or_id}", "is_active": "eq.true"})
+        if rows:
+            return rows[0]
 
     # 별명 검색 (aliases array contains)
-    resp2 = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "chat_id,name,role,worker_id,aliases",
-                "aliases": f"cs.{{{name_or_id}}}",
-                "is_active": "eq.true"},
-        headers=HEADERS, timeout=10,
-    )
-    if resp2.ok and resp2.json():
-        return resp2.json()[0]
+    rows2 = db.select("telegram_contacts", select=sel,
+                      filters={"aliases": f"cs.{{{name_or_id}}}", "is_active": "eq.true"})
+    if rows2:
+        return rows2[0]
 
     # compute_workers fallback
-    resp3 = requests.get(
-        f"{SUPABASE_URL}/rest/v1/compute_workers",
-        params={"select": "worker_id,worker_name,telegram_chat_id",
-                "worker_id": f"eq.{name_or_id}"},
-        headers=HEADERS, timeout=10,
-    )
-    if resp3.ok and resp3.json():
-        w = resp3.json()[0]
+    rows3 = db.select("compute_workers", select="worker_id,worker_name,telegram_chat_id",
+                      filters={"worker_id": f"eq.{name_or_id}"})
+    if rows3:
+        w = rows3[0]
         return {"chat_id": w.get("telegram_chat_id"), "name": w.get("worker_name"),
                 "role": "worker", "worker_id": w["worker_id"]}
     return None
@@ -558,13 +497,11 @@ def _lookup_contact_by_name(name_or_id: str) -> dict | None:
 
 def cmd_contacts(args):
     """전체 연락처 목록 (워커 + 친구)"""
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "chat_id,name,role,worker_id,email,aliases,is_active",
-                "order": "role.asc,name.asc"},
-        headers=HEADERS, timeout=15,
+    contacts = db.select(
+        "telegram_contacts",
+        select="chat_id,name,role,worker_id,email,aliases,is_active",
+        order="role.asc,name.asc",
     )
-    contacts = resp.json() if resp.ok else []
 
     if not contacts:
         print("등록된 연락처가 없습니다")
@@ -589,71 +526,66 @@ def cmd_contact_add(args):
 
     aliases = [a.strip() for a in args.aliases.split(",")] if args.aliases else []
 
-    resp = requests.post(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        json={
+    try:
+        db.insert("telegram_contacts", {
             "chat_id": args.chat_id,
             "name": args.name,
             "role": role,
             "aliases": aliases,
             "email": args.email or None,
             "notes": args.notes or None,
-        },
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=15,
-    )
-    if resp.status_code < 300:
+        }, returning=False)
         print(f"연락처 추가: {args.name} ({role}) chat_id={args.chat_id}")
         # 등록 인사 메시지
         send_telegram(args.chat_id,
             f"안녕하세요 {args.name}님! CoinTrading 봇에 연락처로 등록되었습니다.\n"
             f"이 채팅으로 관리자와 메시지를 주고받을 수 있습니다.")
-    else:
-        print(f"실패: {resp.text}")
+    except Exception as e:
+        print(f"실패: {e}")
 
 
 def cmd_contact_remove(args):
     """연락처 비활성화"""
-    resp = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"or": f"(chat_id.eq.{args.target},name.eq.{args.target})"},
-        json={"is_active": False},
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=15,
-    )
-    if resp.status_code < 300:
+    try:
+        # PostgREST or= 미지원 → chat_id/name 각각 갱신 (둘 중 매칭되는 쪽)
+        n = db.update("telegram_contacts", {"chat_id": f"eq.{args.target}"},
+                      {"is_active": False})
+        n += db.update("telegram_contacts", {"name": f"eq.{args.target}"},
+                       {"is_active": False})
         print(f"연락처 비활성화: {args.target}")
-    else:
-        print(f"실패: {resp.text}")
+    except Exception as e:
+        print(f"실패: {e}")
 
 
 def cmd_sync_contacts(args):
     """compute_workers의 텔레그램 ID를 연락처에 동기화"""
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/compute_workers",
-        params={"select": "worker_id,worker_name,tier,telegram_chat_id,email",
-                "telegram_chat_id": "not.is.null"},
-        headers=HEADERS, timeout=15,
+    workers = db.select(
+        "compute_workers",
+        select="worker_id,worker_name,tier,telegram_chat_id,email",
+        filters={"telegram_chat_id": "not.is.null"},
     )
-    workers = resp.json() if resp.ok else []
 
     synced = 0
     for w in workers:
-        # upsert (chat_id unique)
-        r = requests.post(
-            f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-            json={
-                "chat_id": w["telegram_chat_id"],
-                "name": w.get("worker_name") or w["worker_id"],
-                "role": w["tier"],
-                "worker_id": w["worker_id"],
-                "email": w.get("email"),
-            },
-            headers={**HEADERS, "Prefer": "return=minimal,resolution=merge-duplicates"},
-            timeout=15,
-        )
-        if r.status_code < 300:
+        row = {
+            "chat_id": w["telegram_chat_id"],
+            "name": w.get("worker_name") or w["worker_id"],
+            "role": w["tier"],
+            "worker_id": w["worker_id"],
+            "email": w.get("email"),
+        }
+        try:
+            # upsert (chat_id unique) — 어댑터 merge-duplicates 미지원 → select 후 update/insert
+            existing = db.select("telegram_contacts", select="chat_id",
+                                 filters={"chat_id": f"eq.{w['telegram_chat_id']}"}, limit=1)
+            if existing:
+                db.update("telegram_contacts",
+                          {"chat_id": f"eq.{w['telegram_chat_id']}"}, row)
+            else:
+                db.insert("telegram_contacts", row, returning=False)
             synced += 1
+        except Exception:
+            pass
     print(f"워커 → 연락처 동기화: {synced}명")
 
 
@@ -662,9 +594,8 @@ def _save_message(chat_id: str, direction: str, message: str,
                   tg_msg_id: int = None, tg_username: str = None,
                   tg_first_name: str = None):
     """메시지를 DB에 저장"""
-    requests.post(
-        f"{SUPABASE_URL}/rest/v1/telegram_messages",
-        json={
+    try:
+        db.insert("telegram_messages", {
             "chat_id": chat_id,
             "direction": direction,
             "message": message,
@@ -673,10 +604,9 @@ def _save_message(chat_id: str, direction: str, message: str,
             "telegram_message_id": tg_msg_id,
             "telegram_username": tg_username,
             "telegram_first_name": tg_first_name,
-        },
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=10,
-    )
+        }, returning=False)
+    except Exception:
+        pass
 
 
 def cmd_listen(args):
@@ -759,17 +689,13 @@ def cmd_inbox(args):
     """수신 메시지 목록 (읽지 않은 것 먼저)"""
     limit = args.limit or 20
 
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_messages",
-        params={
-            "select": "id,chat_id,worker_id,worker_name,telegram_username,message,is_read,created_at",
-            "direction": "eq.incoming",
-            "order": "is_read.asc,created_at.desc",
-            "limit": str(limit),
-        },
-        headers=HEADERS, timeout=15,
+    messages = db.select(
+        "telegram_messages",
+        select="id,chat_id,worker_id,worker_name,telegram_username,message,is_read,created_at",
+        filters={"direction": "eq.incoming"},
+        order="is_read.asc,created_at.desc",
+        limit=limit,
     )
-    messages = resp.json() if resp.ok else []
 
     if not messages:
         print("수신된 메시지가 없습니다")
@@ -791,13 +717,10 @@ def cmd_inbox(args):
     unread_ids = [m["id"] for m in messages if not m.get("is_read")]
     if unread_ids:
         for uid in unread_ids:
-            requests.patch(
-                f"{SUPABASE_URL}/rest/v1/telegram_messages",
-                params={"id": f"eq.{uid}"},
-                json={"is_read": True},
-                headers={**HEADERS, "Prefer": "return=minimal"},
-                timeout=10,
-            )
+            try:
+                db.update("telegram_messages", {"id": f"eq.{uid}"}, {"is_read": True})
+            except Exception:
+                pass
         print(f"\n{len(unread_ids)}건 읽음 처리 완료")
 
 
@@ -919,18 +842,13 @@ def cmd_promote(args):
         return
 
     is_main = args.tier == "owner"
-    resp = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/compute_workers",
-        params={"worker_id": f"eq.{args.id}"},
-        json={"tier": args.tier, "is_main_brain": is_main,
-              "notes": f"티어 변경 {args.tier}: {datetime.now(KST).strftime('%Y-%m-%d %H:%M')}"},
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=15,
-    )
-    if resp.status_code < 300:
+    try:
+        db.update("compute_workers", {"worker_id": f"eq.{args.id}"},
+                  {"tier": args.tier, "is_main_brain": is_main,
+                   "notes": f"티어 변경 {args.tier}: {datetime.now(KST).strftime('%Y-%m-%d %H:%M')}"})
         print(f"티어 변경: {args.id} -> {args.tier}")
-    else:
-        print(f"실패: {resp.text}")
+    except Exception as e:
+        print(f"실패: {e}")
 
 
 def main():
@@ -1010,10 +928,6 @@ def main():
     p_promote.add_argument("--tier", required=True)
 
     args = parser.parse_args()
-
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        print("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 미설정")
-        sys.exit(1)
 
     cmds = {
         "list": cmd_list,

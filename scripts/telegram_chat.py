@@ -24,7 +24,7 @@ if sys.stdout and hasattr(sys.stdout, 'buffer'):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace', line_buffering=True)
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace', line_buffering=True)
 
-import requests
+import requests  # Telegram Bot API 호출용 (Supabase REST 아님)
 from dotenv import load_dotenv
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
@@ -32,17 +32,11 @@ if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
+from core.db import db
+
 KST = timezone(timedelta(hours=9))
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 TG_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 OWNER_CHAT_ID = os.getenv("TELEGRAM_USER_ID", "")
-
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json",
-}
 
 POLL_INTERVAL = 2
 _running = True
@@ -80,26 +74,22 @@ def get_color_for(chat_id: str) -> str:
 
 # ── DB 연락처 ──────────────────────────────────
 def get_all_contacts() -> list:
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "chat_id,name,role,aliases",
-                "is_active": "eq.true",
-                "order": "role.asc,name.asc"},
-        headers=HEADERS, timeout=10,
-    )
-    return resp.json() if resp.ok else []
+    try:
+        return db.select(
+            "telegram_contacts",
+            filters={"is_active": "eq.true"},
+            order="role.asc,name.asc",
+            select="chat_id,name,role,aliases",
+        )
+    except Exception:
+        return []
 
 
 def save_message(chat_id, direction, message, **kwargs):
     data = {"chat_id": chat_id, "direction": direction, "message": message}
     data.update({k: v for k, v in kwargs.items() if v is not None})
     try:
-        requests.post(
-            f"{SUPABASE_URL}/rest/v1/telegram_messages",
-            json=data,
-            headers={**HEADERS, "Prefer": "return=minimal"},
-            timeout=10,
-        )
+        db.insert("telegram_messages", data)
     except Exception:
         pass
 
@@ -124,14 +114,16 @@ def lookup_by_chat_id(chat_id: str) -> dict | None:
         if c["chat_id"] == chat_id:
             return c
     # 캐시 미스 → DB 조회
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "chat_id,name,role,aliases",
-                "chat_id": f"eq.{chat_id}", "is_active": "eq.true"},
-        headers=HEADERS, timeout=10,
-    )
-    if resp.ok and resp.json():
-        return resp.json()[0]
+    try:
+        rows = db.select(
+            "telegram_contacts",
+            filters={"chat_id": f"eq.{chat_id}", "is_active": "eq.true"},
+            select="chat_id,name,role,aliases",
+        )
+    except Exception:
+        rows = []
+    if rows:
+        return rows[0]
     return None
 
 
@@ -337,20 +329,17 @@ def handle_bot_command(chat_id: str, text: str, sender: dict | None):
 def load_recent_all(limit: int = 20):
     """모든 연락처의 최근 대화를 통합 표시"""
     try:
-        resp = requests.get(
-            f"{SUPABASE_URL}/rest/v1/telegram_messages",
-            params={
-                "select": "chat_id,direction,message,created_at,worker_name",
-                "order": "created_at.desc",
-                "limit": str(limit),
-            },
-            headers=HEADERS, timeout=10,
+        rows = db.select(
+            "telegram_messages",
+            order="created_at.desc",
+            limit=limit,
+            select="chat_id,direction,message,created_at,worker_name",
         )
-        if not resp.ok or not resp.json():
+        if not rows:
             print(f" {DIM}(이전 대화 없음){RESET}\n", flush=True)
             return
 
-        messages = list(reversed(resp.json()))
+        messages = list(reversed(rows))
         print(f" {DIM}── 최근 대화 {len(messages)}건 ──{RESET}")
         for m in messages:
             try:
@@ -380,21 +369,18 @@ def load_recent_all(limit: int = 20):
 def load_recent_for(chat_id: str, limit: int = 10):
     """특정 상대와의 최근 대화"""
     try:
-        resp = requests.get(
-            f"{SUPABASE_URL}/rest/v1/telegram_messages",
-            params={
-                "select": "direction,message,created_at,worker_name",
-                "chat_id": f"eq.{chat_id}",
-                "order": "created_at.desc",
-                "limit": str(limit),
-            },
-            headers=HEADERS, timeout=10,
+        rows = db.select(
+            "telegram_messages",
+            filters={"chat_id": f"eq.{chat_id}"},
+            order="created_at.desc",
+            limit=limit,
+            select="direction,message,created_at,worker_name",
         )
-        if not resp.ok or not resp.json():
+        if not rows:
             print(f" {DIM}(이전 대화 없음){RESET}\n", flush=True)
             return
 
-        messages = list(reversed(resp.json()))
+        messages = list(reversed(rows))
         contact = lookup_by_chat_id(chat_id)
         cname = contact["name"] if contact else chat_id
         color = get_color_for(chat_id)

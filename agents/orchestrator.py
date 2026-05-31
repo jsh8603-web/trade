@@ -28,6 +28,11 @@ from agents.base_agent import BaseStrategyAgent, Decision
 
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+
+# DB 어댑터 (Supabase REST → sqlite/supabase 백엔드 추상화)
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
+from core.db import db
 STATE_FILE = PROJECT_DIR / "data" / "agent_state.json"
 AUTO_EMERGENCY_FILE = PROJECT_DIR / "data" / "auto_emergency.json"
 
@@ -988,46 +993,27 @@ class Orchestrator:
         if _learning_cache is not None and (now - _learning_cache_ts) < _LEARNING_CACHE_TTL:
             return _learning_cache
 
-        url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-        if not url or not key:
-            return None
-
+        # 전환 성과 요약 뷰 조회 (없으면 raw 테이블 집계로 폴백)
         try:
-            import requests
-            # 전환 성과 요약 조회
-            resp = requests.get(
-                f"{url}/rest/v1/agent_switch_performance",
-                headers={
-                    "apikey": key,
-                    "Authorization": f"Bearer {key}",
-                },
-                timeout=5,
-            )
-            if resp.status_code == 200:
-                rows = resp.json()
+            rows = db.select("agent_switch_performance")
+            if rows:
                 result = {(r["from_agent"], r["to_agent"]): r for r in rows}
                 _learning_cache = result
                 _learning_cache_ts = now
                 return result
+        except Exception:
+            pass
 
-            # 뷰가 아직 없으면 (테이블만 있는 경우) 직접 조회
-            resp2 = requests.get(
-                f"{url}/rest/v1/agent_switches",
-                params={
-                    "select": "from_agent,to_agent,outcome,profit_after_24h",
-                    "outcome": "not.is.null",
-                    "order": "created_at.desc",
-                    "limit": "50",
-                },
-                headers={
-                    "apikey": key,
-                    "Authorization": f"Bearer {key}",
-                },
-                timeout=5,
+        # 뷰가 없거나 비어 있으면 raw agent_switches 직접 집계
+        try:
+            rows = db.select(
+                "agent_switches",
+                filters={"outcome": "not.is.null"},
+                order="created_at.desc",
+                limit=50,
+                select="from_agent,to_agent,outcome,profit_after_24h",
             )
-            if resp2.status_code == 200:
-                rows = resp2.json()
+            if rows:
                 result = self._aggregate_learning(rows)
                 _learning_cache = result
                 _learning_cache_ts = now
@@ -1099,13 +1085,8 @@ class Orchestrator:
         from utils.machine import skip_trade_db
         if skip_trade_db("agent_switches"):
             return
-        url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-        if not url or not key:
-            return
 
         try:
-            import requests
             # cycle_id 생성
             try:
                 import sys as _sys
@@ -1120,6 +1101,7 @@ class Orchestrator:
             # run()에서 전달받은 가격 사용 (중복 API 호출 제거)
             if not btc_price:
                 try:
+                    import requests  # Upbit 시세 조회 (외부 API, DB 어댑터 대상 아님)
                     price_resp = requests.get(
                         "https://api.upbit.com/v1/ticker",
                         params={"markets": "KRW-BTC"},
@@ -1140,25 +1122,18 @@ class Orchestrator:
             # 중복 방지: 같은 cycle_id + from→to + machine_name 이 이미 있으면 스킵
             # machine_name까지 포함해서 전역 유일성 확보 (멀티머신 환경 대응)
             try:
-                _dup_params = {
-                    "select": "id",
+                _dup_filters = {
                     "cycle_id": f"eq.{_cycle_id}",
                     "from_agent": f"eq.{switch_info['from']}",
                     "to_agent": f"eq.{switch_info['to']}",
-                    "limit": "1",
                 }
                 if _machine:
-                    _dup_params["machine_name"] = f"eq.{_machine}"
-                dup_check = requests.get(
-                    f"{url}/rest/v1/agent_switches",
-                    params=_dup_params,
-                    headers={
-                        "apikey": key,
-                        "Authorization": f"Bearer {key}",
-                    },
-                    timeout=5,
+                    _dup_filters["machine_name"] = f"eq.{_machine}"
+                dup_rows = db.select(
+                    "agent_switches", filters=_dup_filters,
+                    limit=1, select="id",
                 )
-                if dup_check.ok and dup_check.json():
+                if dup_rows:
                     return  # 이미 기록됨
             except Exception:
                 pass  # 중복 체크 실패해도 계속 진행
@@ -1180,17 +1155,7 @@ class Orchestrator:
             if _machine:
                 row["machine_name"] = _machine
 
-            requests.post(
-                f"{url}/rest/v1/agent_switches",
-                json=row,
-                headers={
-                    "apikey": key,
-                    "Authorization": f"Bearer {key}",
-                    "Content-Type": "application/json",
-                    "Prefer": "return=minimal",
-                },
-                timeout=5,
-            )
+            db.insert("agent_switches", row, returning=False)
         except Exception:
             pass  # DB 기록 실패는 매매에 영향 없음
 

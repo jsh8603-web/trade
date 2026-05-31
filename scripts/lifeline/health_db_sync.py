@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HealthDBSync — Lifeline 헬스체크 결과를 Supabase에 동기화
+HealthDBSync — Lifeline 헬스체크 결과를 로컬 DB(core.db)에 동기화
 
 system_health_logs 테이블에 점검 결과, AI 진단, 자가치유 이력을 기록한다.
 DB 동기화 실패가 모니터링 시스템을 중단시키지 않도록 모든 메서드는 예외를 삼킨다.
@@ -11,13 +11,15 @@ DB 동기화 실패가 모니터링 시스템을 중단시키지 않도록 모�
 from __future__ import annotations
 
 import json
-import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
-import requests
+
+# scripts/lifeline/ -> 프로젝트 루트는 parent.parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from core.db import db
 
 load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 
@@ -33,18 +35,10 @@ _SEVERITY_MAP = {
 
 
 class HealthDBSync:
-    """Supabase system_health_logs 테이블에 헬스체크 결과를 기록한다."""
+    """system_health_logs 테이블에 헬스체크 결과를 기록한다 (로컬 DB 어댑터)."""
 
     def __init__(self):
-        self.supabase_url = os.environ.get("SUPABASE_URL", "")
-        self.supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-        self.session = requests.Session()
-        self.session.headers.update({
-            "apikey": self.supabase_key,
-            "Authorization": f"Bearer {self.supabase_key}",
-            "Content-Type": "application/json",
-            "Prefer": "return=minimal",
-        })
+        pass
 
     # ── 단건 기록 ────────────────────────────────────────
 
@@ -96,9 +90,8 @@ class HealthDBSync:
                     if healing_result.get("healing_action"):
                         payload["healing_action"] = healing_result["healing_action"]
 
-            url = f"{self.supabase_url}/rest/v1/system_health_logs"
-            resp = self.session.post(url, json=payload, timeout=10)
-            return resp.ok
+            db.insert("system_health_logs", payload, returning=False)
+            return True
 
         except Exception as e:
             print(f"[health_db_sync] log_check 실패: {e}", file=sys.stderr)
@@ -146,21 +139,15 @@ class HealthDBSync:
             since = (
                 datetime.now(timezone.utc) - timedelta(hours=hours)
             ).isoformat()
-            url = f"{self.supabase_url}/rest/v1/system_health_logs"
-            params = {
-                "severity": "neq.INFO",
-                "timestamp": f"gte.{since}",
-                "order": "timestamp.desc",
-                "limit": str(limit),
-            }
-            resp = self.session.get(url, params=params, timeout=10)
-            if resp.ok:
-                return resp.json()
-            print(
-                f"[health_db_sync] get_recent_incidents 실패: {resp.status_code}",
-                file=sys.stderr,
+            return db.select(
+                "system_health_logs",
+                filters={
+                    "severity": "neq.INFO",
+                    "timestamp": f"gte.{since}",
+                },
+                order="timestamp.desc",
+                limit=limit,
             )
-            return []
         except Exception as e:
             print(f"[health_db_sync] get_recent_incidents 예외: {e}", file=sys.stderr)
             return []
@@ -177,24 +164,16 @@ class HealthDBSync:
             컴포넌트별 통계 딕셔너리
         """
         try:
-            url = f"{self.supabase_url}/rest/v1/v_system_health_summary"
-            resp = self.session.get(url, timeout=10)
-            if resp.ok:
-                rows = resp.json()
-                return {
-                    "components": rows,
-                    "total_components": len(rows),
-                    "unhealthy": [
-                        r for r in rows
-                        if (r.get("critical_count", 0) or 0) > 0
-                        or (r.get("error_count", 0) or 0) > 0
-                    ],
-                }
-            print(
-                f"[health_db_sync] get_component_stats 실패: {resp.status_code}",
-                file=sys.stderr,
-            )
-            return {}
+            rows = db.select("v_system_health_summary")
+            return {
+                "components": rows,
+                "total_components": len(rows),
+                "unhealthy": [
+                    r for r in rows
+                    if (r.get("critical_count", 0) or 0) > 0
+                    or (r.get("error_count", 0) or 0) > 0
+                ],
+            }
         except Exception as e:
             print(f"[health_db_sync] get_component_stats 예외: {e}", file=sys.stderr)
             return {}

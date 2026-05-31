@@ -51,6 +51,9 @@ except ImportError:
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_DIR))
+from core.db import db
+
 LOG_DIR = PROJECT_DIR / "logs" / "short_term"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -393,13 +396,10 @@ def sound_alert(message: str, urgent: bool = False):
     return
 
 
-# ── Supabase REST API 기록 ────────────────────────────
-
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+# ── DB 기록 (core.db 어댑터) ────────────────────────────
 
 def db_insert(table: str, data: dict):
-    """Supabase REST API로 데이터 삽입 + decisions이면 임베딩 자동 생성"""
+    """core.db 어댑터로 데이터 삽입 + decisions이면 임베딩 자동 생성"""
     _log = logging.getLogger("short_term")
     from utils.machine import skip_trade_db, get_machine_name
     if skip_trade_db(table):
@@ -407,44 +407,20 @@ def db_insert(table: str, data: dict):
         return
     # 머신 태그 자동 추가 (중복 방지 + 머신별 성과 비교)
     data.setdefault("machine_name", get_machine_name())
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        _log.warning(f"[DB] {table} 삽입 스킵 — SUPABASE 환경변수 미설정")
-        return
     try:
-        resp = _get_http_session().post(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            json=data,
-            headers={
-                "apikey": SUPABASE_KEY,
-                "Authorization": f"Bearer {SUPABASE_KEY}",
-                "Content-Type": "application/json",
-                "Prefer": "return=representation",
-            },
-            timeout=5,
-        )
-        if resp.status_code == 400 and "machine_name" in resp.text:
-            # 테이블에 machine_name 컬럼 없음 — 제거 후 재시도
-            data.pop("machine_name", None)
-            resp = requests.post(
-                f"{SUPABASE_URL}/rest/v1/{table}",
-                json=data,
-                headers={
-                    "apikey": SUPABASE_KEY,
-                    "Authorization": f"Bearer {SUPABASE_KEY}",
-                    "Content-Type": "application/json",
-                    "Prefer": "return=minimal",
-                },
-                timeout=5,
-            )
-        if resp.status_code >= 300:
-            _log.warning(
-                f"[DB] {table} 삽입 실패 ({resp.status_code}): {resp.text[:300]}"
-            )
-        elif table == "decisions":
+        try:
+            row = db.insert(table, data, returning=(table == "decisions"))
+        except Exception as ie:
+            # machine_name 컬럼 미존재 등 스키마 불일치 — 제거 후 재시도
+            if "machine_name" in str(ie):
+                data.pop("machine_name", None)
+                row = db.insert(table, data, returning=(table == "decisions"))
+            else:
+                raise
+        if table == "decisions":
             # 임베딩 자동 생성
             try:
-                rows = resp.json()
-                decision_id = rows[0]["id"] if rows else None
+                decision_id = row["id"] if row else None
                 if decision_id:
                     _generate_and_save_embedding(decision_id, data, _log)
             except Exception as emb_err:

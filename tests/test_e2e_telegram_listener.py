@@ -66,13 +66,11 @@ class TestRegisteredUserAccepted:
     def test_plain_message_routes_to_target(self, tl):
         """등록 발신자가 '이름>메시지' 형식으로 보낼 때 수신자로 전달."""
         sender = {"chat_id": "100", "name": "Jay", "role": "owner"}
-        target_hit = [{"chat_id": "200", "name": "Son", "role": "collaborator"}]
+        son = {"chat_id": "200", "name": "Son", "role": "collaborator"}
 
-        get_responses = [_resp(True, target_hit)]
-        with patch("scripts.telegram_listener.requests.get",
-                   side_effect=get_responses), \
-             patch("scripts.telegram_listener.requests.post",
-                   return_value=_resp(True, {"ok": True})), \
+        with patch("scripts.telegram_listener.lookup_by_name",
+                   return_value=son), \
+             patch("scripts.telegram_listener.save_message"), \
              patch("scripts.telegram_listener.send_telegram",
                    return_value=True) as mock_send:
             tl.handle_plain_message("100", "Son>안녕", sender)
@@ -91,8 +89,8 @@ class TestRegisteredUserAccepted:
             {"chat_id": "100", "name": "Jay", "role": "owner", "aliases": []},
             {"chat_id": "200", "name": "Son", "role": "collaborator", "aliases": ["아들"]},
         ]
-        with patch("scripts.telegram_listener.requests.get",
-                   return_value=_resp(True, contacts)), \
+        with patch("scripts.telegram_listener.db.select",
+                   return_value=contacts), \
              patch("scripts.telegram_listener.send_telegram",
                    return_value=True) as mock_send:
             handled = tl.handle_command("100", "/list", sender)
@@ -288,9 +286,8 @@ class TestE2EMultichatFlow:
         assert "Jay" in mock_send.call_args.args[1]
 
         # 2. /list 는 등록된 연락처 반환
-        with patch("scripts.telegram_listener.requests.get",
-                   return_value=_resp(True, [
-                       {**c, "aliases": []} for c in contacts])), \
+        with patch("scripts.telegram_listener.db.select",
+                   return_value=[{**c, "aliases": []} for c in contacts]), \
              patch("scripts.telegram_listener.send_telegram",
                    return_value=True) as mock_send:
             tl.handle_command("100", "/list", jay)

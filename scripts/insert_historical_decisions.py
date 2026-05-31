@@ -20,24 +20,17 @@ import time
 from datetime import timedelta, timezone
 from pathlib import Path
 
-import requests
 from dotenv import load_dotenv
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(PROJECT_DIR / ".env")
+sys.path.insert(0, str(PROJECT_DIR))
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+from core.db import db
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 KST = timezone(timedelta(hours=9))
-
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json",
-    "Prefer": "return=minimal",
-}
 
 # Gemini rate limit
 GEMINI_RPM = 10
@@ -77,18 +70,13 @@ def generate_embedding(text: str) -> list[float] | None:
 def check_existing(year: int) -> set[str]:
     """이미 삽입된 cycle_id 확인."""
     try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/decisions",
-            headers={**HEADERS, "Prefer": ""},
-            params={
-                "select": "cycle_id",
-                "source": f"eq.historical_{year}",
-                "limit": 5000,
-            },
-            timeout=15,
+        rows = db.select(
+            "decisions",
+            select="cycle_id",
+            filters={"source": f"eq.historical_{year}"},
+            limit=5000,
         )
-        if r.ok:
-            return {row["cycle_id"] for row in r.json() if row.get("cycle_id")}
+        return {row["cycle_id"] for row in rows if row.get("cycle_id")}
     except Exception:
         pass
     return set()
@@ -151,16 +139,11 @@ def insert_decision(dp: dict, year: int, embedding: list[float] | None) -> bool:
     }
 
     if embedding:
-        payload["state_embedding"] = str(embedding)
+        payload["state_embedding"] = embedding
 
     try:
-        r = requests.post(
-            f"{SUPABASE_URL}/rest/v1/decisions",
-            headers=HEADERS,
-            json=payload,
-            timeout=15,
-        )
-        return r.status_code in (200, 201)
+        db.insert("decisions", payload, returning=False)
+        return True
     except Exception:
         return False
 
@@ -231,10 +214,6 @@ def process_year(year: int, dry_run: bool = False):
 
 
 def main():
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        print("ERROR: SUPABASE 환경변수 필요")
-        sys.exit(1)
-
     args = sys.argv[1:]
     dry_run = "--dry" in args
     args = [a for a in args if a != "--dry"]

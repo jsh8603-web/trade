@@ -48,16 +48,16 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env", override=True)
 
+from core.db import db
+
 KST = timezone(timedelta(hours=9))
 UTC = timezone.utc
 
-# ── Gemini / Supabase 설정 ──
+# ── Gemini / DB 설정 ──
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
 EMBEDDING_ENABLED = bool(GEMINI_API_KEY)
-SUPABASE_ENABLED = bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
+DB_ENABLED = True  # 로컬 SQLite 백엔드 — 항상 가용
 
 # Gemini rate limit (임베딩 API는 1500 RPM 가능, 안전하게 300 RPM)
 GEMINI_RPM = 300
@@ -670,15 +670,9 @@ def generate_gemini_embedding(text: str) -> list[float] | None:
         return None
 
 
-def store_to_supabase(cycle_id: str, analysis_text: str, analysis_json: dict,
-                      embedding: list[float], market_regime: str) -> bool:
-    """Supabase rag_analysis_vectors에 저장."""
-    headers = {
-        "apikey": SUPABASE_SERVICE_ROLE_KEY,
-        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }
+def store_to_db(cycle_id: str, analysis_text: str, analysis_json: dict,
+                embedding: list[float], market_regime: str) -> bool:
+    """rag_analysis_vectors에 저장."""
     payload = {
         "cycle_id": cycle_id,
         "analysis_text": analysis_text,
@@ -687,13 +681,8 @@ def store_to_supabase(cycle_id: str, analysis_text: str, analysis_json: dict,
         "embedding": embedding,
     }
     try:
-        resp = requests.post(
-            f"{SUPABASE_URL}/rest/v1/rag_analysis_vectors",
-            headers=headers,
-            json=payload,
-            timeout=15,
-        )
-        return resp.status_code in (200, 201)
+        db.insert("rag_analysis_vectors", payload, returning=False)
+        return True
     except Exception:
         return False
 
@@ -878,10 +867,10 @@ def collect_year(year: int):
                     "datetime": dt.isoformat(),
                     "embedding": vec,
                 })
-                # Supabase 저장
-                if SUPABASE_ENABLED:
+                # DB 저장
+                if DB_ENABLED:
                     cycle_id = f"hist_{year}_{seq:04d}_{dt.strftime('%Y%m%d_%H%M')}"
-                    ok = store_to_supabase(cycle_id, emb_text, data_point, vec, market_regime)
+                    ok = store_to_db(cycle_id, emb_text, data_point, vec, market_regime)
                     if ok:
                         supa_ok += 1
                     else:
@@ -892,7 +881,7 @@ def collect_year(year: int):
         # 500개마다 진행 상황 보고
         if (seq + 1) % 500 == 0:
             emb_status = f", 임베딩 {emb_ok}/{emb_ok + emb_fail}" if EMBEDDING_ENABLED else ""
-            supa_status = f", Supabase {supa_ok}" if SUPABASE_ENABLED else ""
+            supa_status = f", DB {supa_ok}" if DB_ENABLED else ""
             print(f"  ... {seq + 1}/{len(sim_points)} 완료 "
                   f"(가격: {price:,.0f}원, 날짜: {date_str}{emb_status}{supa_status})")
 
@@ -916,8 +905,8 @@ def collect_year(year: int):
         print(f"  저장: {vec_path} ({len(embedding_vectors)}개 벡터)")
     if EMBEDDING_ENABLED:
         print(f"  임베딩: 성공 {emb_ok}개, 실패 {emb_fail}개")
-    if SUPABASE_ENABLED:
-        print(f"  Supabase: 저장 {supa_ok}개, 실패 {supa_fail}개")
+    if DB_ENABLED:
+        print(f"  DB: 저장 {supa_ok}개, 실패 {supa_fail}개")
 
     # ── 6) 요약 통계 ──
     print("[6/6] 요약 통계 생성 중...")

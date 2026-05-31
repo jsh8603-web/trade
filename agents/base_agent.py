@@ -16,10 +16,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-import requests
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+# DB 어댑터 (Supabase REST → sqlite/supabase 백엔드 추상화)
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+from core.db import db
 
 
 def _acquire_lock(lock_path: str, retries: int = 10, wait: float = 0.02):
@@ -578,10 +583,6 @@ class BaseStrategyAgent(ABC):
             from utils.machine import skip_trade_db
             if skip_trade_db("buy_score_detail"):
                 return None
-            supabase_url = os.getenv("SUPABASE_URL", "")
-            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-            if not supabase_url or not supabase_key:
-                return None
 
             bs = decision.buy_score or {}
             fgi_obj = bs.get("fgi", {}) if isinstance(bs.get("fgi"), dict) else {}
@@ -673,34 +674,10 @@ class BaseStrategyAgent(ABC):
                 "original_action": getattr(decision, '_original_action', None),
             }
 
-            headers = {
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-                "Content-Type": "application/json",
-                "Prefer": "return=representation",
-            }
-
-            r = requests.post(
-                f"{supabase_url}/rest/v1/buy_score_detail",
-                headers=headers,
-                json=row,
-                timeout=10,
-            )
-            if r.ok:
-                # 저장된 레코드의 ID를 반환하여 decisions와 연결
-                try:
-                    resp_data = r.json()
-                    if isinstance(resp_data, list) and resp_data:
-                        return resp_data[0].get("id")
-                    elif isinstance(resp_data, dict):
-                        return resp_data.get("id")
-                except Exception:
-                    pass
-            else:
-                print(
-                    f"[base_agent] buy_score_detail INSERT 실패 ({r.status_code}): {r.text[:300]}",
-                    file=sys.stderr,
-                )
+            saved = db.insert("buy_score_detail", row, returning=True)
+            # 저장된 레코드의 ID를 반환하여 decisions와 연결
+            if isinstance(saved, dict):
+                return saved.get("id")
         except Exception as e:
             print(f"[base_agent] buy_score_detail 저장 예외: {e}", file=sys.stderr)
         return None
@@ -711,36 +688,22 @@ class BaseStrategyAgent(ABC):
         데이터 부족 시 보수적 기본값 0.5를 반환한다.
         """
         try:
-            supabase_url = os.getenv("SUPABASE_URL", "")
-            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-            if not supabase_url or not supabase_key:
-                return 0.5
-
             from datetime import datetime, timezone, timedelta
             cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
-            resp = requests.get(
-                f"{supabase_url}/rest/v1/decisions",
-                params={
-                    "select": "profit_loss",
+            rows = db.select(
+                "decisions",
+                filters={
                     "created_at": f"gte.{cutoff}",
-                    "decision": "in.(매수,매도,buy,sell)",
+                    "decision": "in.(매수,매도)",
                     "profit_loss": "not.is.null",
-                    "order": "created_at.desc",
-                    "limit": "100",
                 },
-                headers={
-                    "apikey": supabase_key,
-                    "Authorization": f"Bearer {supabase_key}",
-                },
-                timeout=5,
+                order="created_at.desc",
+                limit=100,
+                select="profit_loss",
             )
             # Minor: weekend timing edge case (fewer trades on weekends) — not worth caching
-            if resp.status_code != 200:
-                return 0.5
-
-            rows = resp.json()
-            if len(rows) < 3:
+            if not rows or len(rows) < 3:
                 return 0.5  # 데이터 부족
 
             wins = sum(1 for r in rows if (r.get("profit_loss") or 0) > 0)

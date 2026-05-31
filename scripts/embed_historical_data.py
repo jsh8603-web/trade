@@ -21,17 +21,16 @@ import sys
 import time
 from pathlib import Path
 
-import requests
 from dotenv import load_dotenv
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
+from core.db import db
+
 # ── 설정 ──
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 GEMINI_RPM = 10
 _last_call = 0.0
 
@@ -63,15 +62,9 @@ def generate_embedding(text: str) -> list[float] | None:
         return None
 
 
-def store_to_supabase(cycle_id: str, analysis_text: str, analysis_json: dict,
-                      embedding: list[float], market_regime: str) -> bool:
-    """Supabase rag_analysis_vectors에 저장."""
-    headers = {
-        "apikey": SUPABASE_SERVICE_ROLE_KEY,
-        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }
+def store_to_db(cycle_id: str, analysis_text: str, analysis_json: dict,
+                embedding: list[float], market_regime: str) -> bool:
+    """rag_analysis_vectors에 저장."""
     payload = {
         "cycle_id": cycle_id,
         "analysis_text": analysis_text,
@@ -80,37 +73,22 @@ def store_to_supabase(cycle_id: str, analysis_text: str, analysis_json: dict,
         "embedding": embedding,
     }
     try:
-        resp = requests.post(
-            f"{SUPABASE_URL}/rest/v1/rag_analysis_vectors",
-            headers=headers,
-            json=payload,
-            timeout=15,
-        )
-        return resp.status_code in (200, 201)
+        db.insert("rag_analysis_vectors", payload, returning=False)
+        return True
     except Exception:
         return False
 
 
-def check_existing_in_supabase(year: int) -> set[str]:
+def check_existing_in_db(year: int) -> set[str]:
     """이미 저장된 cycle_id를 조회하여 중복 방지."""
-    headers = {
-        "apikey": SUPABASE_SERVICE_ROLE_KEY,
-        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-        "Content-Type": "application/json",
-    }
     try:
-        resp = requests.get(
-            f"{SUPABASE_URL}/rest/v1/rag_analysis_vectors",
-            headers=headers,
-            params={
-                "select": "cycle_id",
-                "cycle_id": f"like.hist_{year}_*",
-                "limit": 5000,
-            },
-            timeout=15,
+        rows = db.select(
+            "rag_analysis_vectors",
+            select="cycle_id",
+            filters={"cycle_id": f"like.hist_{year}_*"},
+            limit=5000,
         )
-        if resp.status_code == 200:
-            return {r["cycle_id"] for r in resp.json()}
+        return {r["cycle_id"] for r in rows if r.get("cycle_id")}
     except Exception:
         pass
     return set()
@@ -162,12 +140,10 @@ def process_year(year: int):
                 existing_vectors[item["seq"]] = item["vector"]
         print(f"  기존 벡터: {len(existing_vectors)}개 로드 (재사용)")
 
-    # Supabase 중복 체크
-    existing_ids = set()
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
-        existing_ids = check_existing_in_supabase(year)
-        if existing_ids:
-            print(f"  Supabase 기존: {len(existing_ids)}건 (중복 스킵)")
+    # DB 중복 체크
+    existing_ids = check_existing_in_db(year)
+    if existing_ids:
+        print(f"  DB 기존: {len(existing_ids)}건 (중복 스킵)")
 
     # 임베딩 생성
     t0 = time.time()
@@ -214,13 +190,13 @@ def process_year(year: int):
     embed_total = embed_ok + embed_reuse
     print(f"\n  임베딩 완료: 총 {embed_total}건 (신규 {embed_ok}, 재사용 {embed_reuse}, 실패 {embed_fail})")
 
-    # Supabase 저장
+    # DB 저장
     sb_ok = 0
     sb_fail = 0
     sb_skip = 0
 
-    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY and all_vectors:
-        print("\n  [Phase 2] Supabase 벡터 저장...")
+    if all_vectors:
+        print("\n  [Phase 2] DB 벡터 저장...")
         for i, dp in enumerate(data_points):
             seq = dp["seq"]
             if seq not in all_vectors:
@@ -250,7 +226,7 @@ def process_year(year: int):
                 },
             }
 
-            ok = store_to_supabase(
+            ok = store_to_db(
                 cycle_id=cycle_id,
                 analysis_text=dp.get("embedding_text", ""),
                 analysis_json=analysis_json,
@@ -266,13 +242,13 @@ def process_year(year: int):
             if total_sb % 100 == 0 and total_sb > 0:
                 print(f"    {total_sb}/{len(data_points)} (저장: {sb_ok}, 스킵: {sb_skip}, 실패: {sb_fail})")
 
-        print(f"\n  Supabase 완료: {sb_ok}건 저장, {sb_skip}건 스킵(중복), {sb_fail}건 실패")
+        print(f"\n  DB 완료: {sb_ok}건 저장, {sb_skip}건 스킵(중복), {sb_fail}건 실패")
     else:
-        print("\n  Supabase 저장 스킵 (키 없음 또는 벡터 없음)")
+        print("\n  DB 저장 스킵 (벡터 없음)")
 
     elapsed = time.time() - t0
     print(f"\n  {year}년 처리 완료 ({elapsed:.0f}초)")
-    print(f"  임베딩: {embed_total}건 | Supabase: {sb_ok}건 저장")
+    print(f"  임베딩: {embed_total}건 | DB: {sb_ok}건 저장")
 
 
 def main():
@@ -299,7 +275,7 @@ def main():
         years = [int(a) for a in args]
 
     print(f"처리 대상: {years}")
-    print(f"Gemini: [ON] | Supabase: {'[ON]' if SUPABASE_URL else '[OFF]'}")
+    print("Gemini: [ON] | DB: [ON]")
 
     for year in years:
         process_year(year)

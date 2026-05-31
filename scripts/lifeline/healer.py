@@ -31,6 +31,10 @@ load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 
 import requests
 
+# scripts/lifeline/ -> 프로젝트 루트는 parent.parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from core.db import db
+
 # ── KST 타임존 ────────────────────────────────────────
 KST = timezone(timedelta(hours=9))
 
@@ -48,7 +52,6 @@ RETRY_BACKOFF_BASE = 2  # 2^attempt 초
 
 # 테스트 엔드포인트
 UPBIT_TEST_URL = "https://api.upbit.com/v1/market/all"
-SUPABASE_HEALTH_PATH = "/rest/v1/"
 
 # requests.Session 재사용
 _session: requests.Session | None = None
@@ -180,24 +183,33 @@ class Healer:
             )
             return True
 
-        session = _get_session()
-
         if component == "upbit_api":
             url = UPBIT_TEST_URL
         elif component == "supabase":
-            supabase_url = os.getenv("SUPABASE_URL", "")
-            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-            if not supabase_url:
-                print("[healer] SUPABASE_URL 미설정", file=sys.stderr)
-                return False
-            url = supabase_url.rstrip("/") + SUPABASE_HEALTH_PATH
-            session.headers.update({
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-            })
+            # 로컬 DB 백엔드 가용성 프로브 (REST 호출 대신 trivial SELECT, backoff 재시도)
+            for attempt in range(RETRY_MAX_ATTEMPTS):
+                try:
+                    db.select("system_health_logs", limit=1)
+                    print(
+                        f"[healer] {component}(DB 백엔드) 연결 성공 (시도 {attempt + 1})",
+                        file=sys.stderr,
+                    )
+                    return True
+                except Exception as e:
+                    print(
+                        f"[healer] {component}(DB 백엔드) 연결 실패 (시도 {attempt + 1}): {e}",
+                        file=sys.stderr,
+                    )
+                wait = RETRY_BACKOFF_BASE ** (attempt + 1)
+                print(f"[healer] {wait}초 후 재시도...", file=sys.stderr)
+                time.sleep(wait)
+            print(f"[healer] {component} 연결 {RETRY_MAX_ATTEMPTS}회 모두 실패", file=sys.stderr)
+            return False
         else:
             print(f"[healer] {component}에 대한 연결 테스트 미지원", file=sys.stderr)
             return False
+
+        session = _get_session()
 
         for attempt in range(RETRY_MAX_ATTEMPTS):
             try:

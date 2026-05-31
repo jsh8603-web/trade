@@ -20,13 +20,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import time
 from datetime import timedelta, timezone
 from pathlib import Path
 
-import requests
 from dotenv import load_dotenv
 
 # ── UTF-8 출력 설정 ──
@@ -40,10 +38,9 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env", override=True)
 
-KST = timezone(timedelta(hours=9))
+from core.db import db
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+KST = timezone(timedelta(hours=9))
 
 VALID_YEARS = [2017, 2018, 2019, 2020, 2021]
 
@@ -278,17 +275,7 @@ def calc_was_correct(decision: str, outcome_pct: float | None) -> bool | None:
 
 
 def store_decisions_batch(decisions_batch: list[dict]) -> tuple[int, int]:
-    """Supabase decisions 테이블에 배치 저장한다."""
-    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-        return 0, len(decisions_batch)
-
-    headers = {
-        "apikey": SUPABASE_SERVICE_ROLE_KEY,
-        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }
-
+    """decisions 테이블에 배치 저장한다."""
     ok = 0
     fail = 0
 
@@ -297,19 +284,10 @@ def store_decisions_batch(decisions_batch: list[dict]) -> tuple[int, int]:
     for start in range(0, len(decisions_batch), batch_size):
         batch = decisions_batch[start:start + batch_size]
         try:
-            resp = requests.post(
-                f"{SUPABASE_URL}/rest/v1/decisions",
-                headers=headers,
-                json=batch,
-                timeout=30,
-            )
-            if resp.status_code in (200, 201):
-                ok += len(batch)
-            else:
-                print(f"  ! Supabase 배치 실패 (HTTP {resp.status_code}): {resp.text[:200]}")
-                fail += len(batch)
+            n = db.insert_many("decisions", batch)
+            ok += n
         except Exception as e:
-            print(f"  ! Supabase 배치 오류: {e}")
+            print(f"  ! DB 배치 오류: {e}")
             fail += len(batch)
 
     return ok, fail
@@ -405,10 +383,10 @@ def backfill_year(year: int, dry_run: bool = False):
             "embedding_text": dp.get("embedding_text", ""),
         }
 
-        # 임베딩 벡터 (있으면)
+        # 임베딩 벡터 (있으면) — 어댑터가 직렬화
         seq = dp["seq"]
         if seq in embedding_map:
-            record["state_embedding"] = json.dumps(embedding_map[seq])
+            record["state_embedding"] = embedding_map[seq]
 
         # market_data_snapshot (축약 JSON)
         snapshot = {

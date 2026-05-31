@@ -26,14 +26,18 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from dotenv import load_dotenv
-import requests
+import requests  # Alternative.me FGI 직접 호출용 (Supabase REST 아님)
 
 # Windows 인코딩
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
+
+from core.db import db
 
 WEB_DIR = PROJECT_DIR / "web"
 PORT = 5555
@@ -83,25 +87,31 @@ def update_env_value(key, value):
     os.environ[key] = value
 
 
-def supabase_get(table, params=""):
-    """Supabase REST API GET 요청."""
-    url = os.environ.get("SUPABASE_URL", "")
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not url or not key:
-        return []
+def db_get(table, params=""):
+    """로컬 DB 조회. PostgREST 쿼리스트링(params)을 db.select 인자로 변환한다.
+
+    예) params="select=*&order=created_at.desc&limit=10"
+        → db.select(table, select="*", order="created_at.desc", limit=10)
+    그 외 'col=op.val' 형태는 filters 로 전달.
+    """
     try:
-        r = requests.get(
-            f"{url}/rest/v1/{table}?{params}",
-            headers={
-                "apikey": key,
-                "Authorization": f"Bearer {key}",
-            },
-            timeout=10,
-        )
-        r.raise_for_status()
-        return r.json()
+        qs = parse_qs(params, keep_blank_values=True)
+        select = qs.pop("select", ["*"])[0] or "*"
+        order = qs.pop("order", [None])[0]
+        limit_raw = qs.pop("limit", [None])[0]
+        offset_raw = qs.pop("offset", [None])[0]
+        limit = int(limit_raw) if limit_raw not in (None, "") else None
+        offset = int(offset_raw) if offset_raw not in (None, "") else 0
+        # 남은 항목은 PostgREST 필터 (col=op.val)
+        filters = {k: v[0] for k, v in qs.items()} or None
+        return db.select(table, filters=filters, order=order,
+                         limit=limit, select=select, offset=offset)
     except Exception as e:
         return {"error": str(e)}
+
+
+# 하위 호환 별칭 (기존 테스트/호출자 대비)
+supabase_get = db_get
 
 
 def api_portfolio():
@@ -158,7 +168,7 @@ def api_fgi():
 
 def api_decisions():
     """최근 의사결정 10건."""
-    return supabase_get("decisions", "select=*&order=created_at.desc&limit=10")
+    return db_get("decisions", "select=*&order=created_at.desc&limit=10")
 
 
 def api_status():

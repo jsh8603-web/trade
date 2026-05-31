@@ -32,6 +32,8 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
+from core.db import db
+
 KST = timezone(timedelta(hours=9))
 UTC = timezone.utc
 
@@ -55,13 +57,11 @@ YAHOO_SYMBOLS = {
     "us10y": "^TNX",
 }
 
-# Gemini / Supabase 설정
+# Gemini / DB 설정
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
 EMBEDDING_ENABLED = bool(GEMINI_API_KEY)
-SUPABASE_ENABLED = bool(SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)
+DB_ENABLED = True  # 로컬 SQLite 백엔드 — 항상 가용
 
 # Gemini rate limit (10 RPM 기본)
 GEMINI_RPM = 10
@@ -528,15 +528,9 @@ def generate_gemini_embedding(text: str) -> list[float] | None:
         return None
 
 
-def store_to_supabase(cycle_id: str, analysis_text: str, analysis_json: dict,
-                      embedding: list[float], market_regime: str) -> bool:
-    """Supabase rag_analysis_vectors에 저장."""
-    headers = {
-        "apikey": SUPABASE_SERVICE_ROLE_KEY,
-        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }
+def store_to_db(cycle_id: str, analysis_text: str, analysis_json: dict,
+                embedding: list[float], market_regime: str) -> bool:
+    """rag_analysis_vectors에 저장."""
     payload = {
         "cycle_id": cycle_id,
         "analysis_text": analysis_text,
@@ -545,13 +539,8 @@ def store_to_supabase(cycle_id: str, analysis_text: str, analysis_json: dict,
         "embedding": embedding,
     }
     try:
-        resp = requests.post(
-            f"{SUPABASE_URL}/rest/v1/rag_analysis_vectors",
-            headers=headers,
-            json=payload,
-            timeout=15,
-        )
-        return resp.status_code in (200, 201)
+        db.insert("rag_analysis_vectors", payload, returning=False)
+        return True
     except Exception:
         return False
 
@@ -585,7 +574,7 @@ def main():
     t0 = time.time()
 
     print(f"  Gemini 임베딩: {'[ON]' if EMBEDDING_ENABLED else '[OFF] (GEMINI_API_KEY 없음)'}")
-    print(f"  Supabase 저장: {'[ON]' if SUPABASE_ENABLED else '[OFF] (SUPABASE 키 없음)'}")
+    print(f"  DB 저장: {'[ON]' if DB_ENABLED else '[OFF]'}")
     print()
 
     # 1) Upbit 캔들
@@ -763,12 +752,12 @@ def main():
     else:
         print("[6/7] Gemini 임베딩 스킵 (API 키 없음)")
 
-    # 7) Supabase 저장
+    # 7) DB 저장
     supabase_stored = 0
     supabase_failed = 0
 
-    if SUPABASE_ENABLED and all_embeddings:
-        print(f"[7/7] Supabase 벡터 저장 중... ({len(all_embeddings)}건)")
+    if DB_ENABLED and all_embeddings:
+        print(f"[7/7] DB 벡터 저장 중... ({len(all_embeddings)}건)")
         emb_map = {seq: emb for seq, emb in all_embeddings}
 
         for i, dp in enumerate(all_data_points):
@@ -791,7 +780,7 @@ def main():
                 },
             }
 
-            ok = store_to_supabase(
+            ok = store_to_db(
                 cycle_id=cycle_id,
                 analysis_text=dp["embedding_text"],
                 analysis_json=analysis_json,
@@ -806,11 +795,11 @@ def main():
             if (i + 1) % 100 == 0:
                 print(f"  ... {supabase_stored}건 저장, {supabase_failed}건 실패")
 
-        print(f"  Supabase 완료: {supabase_stored}건 저장, {supabase_failed}건 실패")
-    elif not SUPABASE_ENABLED:
-        print("[7/7] Supabase 저장 스킵 (키 없음)")
+        print(f"  DB 완료: {supabase_stored}건 저장, {supabase_failed}건 실패")
+    elif not DB_ENABLED:
+        print("[7/7] DB 저장 스킵")
     else:
-        print("[7/7] Supabase 저장 스킵 (임베딩 없음)")
+        print("[7/7] DB 저장 스킵 (임베딩 없음)")
 
     # 요약 통계
     prices = [p["indicators"]["current_price"] for p in all_data_points]

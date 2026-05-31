@@ -34,7 +34,7 @@ if sys.stdout and hasattr(sys.stdout, 'buffer'):
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace', line_buffering=True)
 
 import threading
-import requests
+import requests  # Telegram Bot API 호출용 (Supabase REST 아님)
 from dotenv import load_dotenv
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
@@ -42,16 +42,10 @@ if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
-KST = timezone(timedelta(hours=9))
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-TG_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+from core.db import db
 
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json",
-}
+KST = timezone(timedelta(hours=9))
+TG_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 from scripts.nl_feedback import extract_feedback, save_feedback_to_db
 
@@ -66,63 +60,65 @@ _running = True  # 메인 루프 제어
 
 def lookup_by_chat_id(chat_id: str) -> dict | None:
     """chat_id로 연락처 조회"""
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "chat_id,name,role,worker_id,aliases",
-                "chat_id": f"eq.{chat_id}", "is_active": "eq.true"},
-        headers=HEADERS, timeout=10,
-    )
-    if resp.ok and resp.json():
-        return resp.json()[0]
+    try:
+        rows = db.select(
+            "telegram_contacts",
+            filters={"chat_id": f"eq.{chat_id}", "is_active": "eq.true"},
+            select="chat_id,name,role,worker_id,aliases",
+        )
+    except Exception:
+        rows = []
+    if rows:
+        return rows[0]
     return None
 
 
 def lookup_by_name(name: str) -> dict | None:
     """이름 또는 별명으로 연락처 조회"""
     # 이름 exact match
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "chat_id,name,role,worker_id,aliases",
-                "name": f"eq.{name}", "is_active": "eq.true"},
-        headers=HEADERS, timeout=10,
-    )
-    if resp.ok and resp.json():
-        return resp.json()[0]
+    try:
+        rows = db.select(
+            "telegram_contacts",
+            filters={"name": f"eq.{name}", "is_active": "eq.true"},
+            select="chat_id,name,role,worker_id,aliases",
+        )
+        if rows:
+            return rows[0]
 
-    # worker_id match
-    resp2 = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "chat_id,name,role,worker_id,aliases",
-                "worker_id": f"eq.{name}", "is_active": "eq.true"},
-        headers=HEADERS, timeout=10,
-    )
-    if resp2.ok and resp2.json():
-        return resp2.json()[0]
+        # worker_id match
+        rows = db.select(
+            "telegram_contacts",
+            filters={"worker_id": f"eq.{name}", "is_active": "eq.true"},
+            select="chat_id,name,role,worker_id,aliases",
+        )
+        if rows:
+            return rows[0]
 
-    # 별명 검색 (aliases array contains)
-    resp3 = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "chat_id,name,role,worker_id,aliases",
-                "aliases": f"cs.{{{name}}}",
-                "is_active": "eq.true"},
-        headers=HEADERS, timeout=10,
-    )
-    if resp3.ok and resp3.json():
-        return resp3.json()[0]
+        # 별명 검색 (aliases array contains)
+        rows = db.select(
+            "telegram_contacts",
+            filters={"aliases": f"cs.{{{name}}}", "is_active": "eq.true"},
+            select="chat_id,name,role,worker_id,aliases",
+        )
+        if rows:
+            return rows[0]
+    except Exception:
+        pass
 
     return None
 
 
 def get_all_contacts() -> list:
     """활성 연락처 전체 조회"""
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "chat_id,name,role,aliases",
-                "is_active": "eq.true",
-                "order": "role.asc,name.asc"},
-        headers=HEADERS, timeout=10,
-    )
-    return resp.json() if resp.ok else []
+    try:
+        return db.select(
+            "telegram_contacts",
+            filters={"is_active": "eq.true"},
+            order="role.asc,name.asc",
+            select="chat_id,name,role,aliases",
+        )
+    except Exception:
+        return []
 
 
 # ── 메시지 저장/발송 ──────────────────────────────
@@ -131,12 +127,7 @@ def save_message(chat_id, direction, message, **kwargs):
     """메시지 DB 저장"""
     data = {"chat_id": chat_id, "direction": direction, "message": message}
     data.update({k: v for k, v in kwargs.items() if v is not None})
-    requests.post(
-        f"{SUPABASE_URL}/rest/v1/telegram_messages",
-        json=data,
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=10,
-    )
+    db.insert("telegram_messages", data)
 
 
 def send_telegram(chat_id: str, text: str) -> bool:
@@ -514,12 +505,7 @@ def main():
             return
         _last_cleanup = now
         cutoff = (datetime.now(KST) - timedelta(days=7)).isoformat()
-        requests.delete(
-            f"{SUPABASE_URL}/rest/v1/telegram_messages",
-            params={"created_at": f"lt.{cutoff}"},
-            headers={**HEADERS, "Prefer": "return=minimal"},
-            timeout=15,
-        )
+        db.delete("telegram_messages", {"created_at": f"lt.{cutoff}"})
 
     # 키보드 입력 스레드 시작
     input_thread = threading.Thread(target=input_loop, daemon=True)

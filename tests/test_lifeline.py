@@ -91,12 +91,8 @@ def healer_live():
 
 @pytest.fixture
 def db_sync():
-    """HealthDBSync 인스턴스."""
-    with patch.dict(os.environ, {
-        "SUPABASE_URL": "https://test.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-    }):
-        return HealthDBSync()
+    """HealthDBSync 인스턴스 (로컬 DB 어댑터)."""
+    return HealthDBSync()
 
 
 # ============================================================
@@ -154,33 +150,22 @@ class TestSentinel:
         assert "500" in result["message"]
 
     def test_check_supabase_success(self):
-        """Supabase 200 응답 시 OK를 반환한다."""
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-
-        with patch.dict(os.environ, {
-            "SUPABASE_URL": "https://test.supabase.co",
-            "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-        }):
-            with patch("scripts.lifeline.sentinel._get_session") as mock_get:
-                mock_session = MagicMock()
-                mock_session.get.return_value = mock_resp
-                mock_get.return_value = mock_session
-
-                result = check_supabase()
+        """DB 백엔드 SELECT 성공 시 OK를 반환한다 (component='supabase' 유지)."""
+        with patch("scripts.lifeline.sentinel.db") as mock_db:
+            mock_db.select.return_value = []
+            result = check_supabase()
 
         assert result["status"] == "OK"
         assert result["component"] == "supabase"
 
-    def test_check_supabase_no_env(self):
-        """SUPABASE_URL 미설정 시 WARNING을 반환한다."""
-        with patch.dict(os.environ, {}, clear=True):
-            # dotenv에서 로드될 수 있으므로 getenv도 패치
-            with patch("os.getenv", side_effect=lambda k, d="": d):
-                result = check_supabase()
+    def test_check_supabase_db_error(self):
+        """DB 백엔드 SELECT 예외 시 ERROR를 반환한다."""
+        with patch("scripts.lifeline.sentinel.db") as mock_db:
+            mock_db.select.side_effect = Exception("db down")
+            result = check_supabase()
 
-        assert result["status"] == "WARNING"
-        assert "미설정" in result["message"]
+        assert result["status"] == "ERROR"
+        assert result["component"] == "supabase"
 
     def test_check_disk_space_ok(self):
         """디스크 여유 공간 충분 시 OK를 반환한다."""
@@ -648,127 +633,110 @@ class TestHealthDBSync:
     """HealthDBSync 테스트."""
 
     def test_log_check_success(self, db_sync):
-        """POST 성공 시 True를 반환한다."""
-        mock_resp = MagicMock()
-        mock_resp.ok = True
-        mock_resp.status_code = 201
-        db_sync.session.post = MagicMock(return_value=mock_resp)
+        """db.insert 성공 시 True를 반환한다."""
+        with patch("scripts.lifeline.health_db_sync.db") as mock_db:
+            mock_db.insert.return_value = None
+            check = {"component": "upbit_api", "status": "OK", "message": "정상", "details": {}}
+            result = db_sync.log_check(check)
 
-        check = {"component": "upbit_api", "status": "OK", "message": "정상", "details": {}}
-        result = db_sync.log_check(check)
-
-        assert result is True
-        db_sync.session.post.assert_called_once()
+            assert result is True
+            mock_db.insert.assert_called_once()
+            args, kwargs = mock_db.insert.call_args
+            assert args[0] == "system_health_logs"
 
     def test_log_check_with_diagnosis(self, db_sync):
         """진단 정보가 포함된 로그를 기록한다."""
-        mock_resp = MagicMock()
-        mock_resp.ok = True
-        db_sync.session.post = MagicMock(return_value=mock_resp)
+        with patch("scripts.lifeline.health_db_sync.db") as mock_db:
+            check = {"component": "upbit_api", "status": "ERROR", "message": "연결 실패"}
+            diagnosis = {
+                "ai_diagnosis": "Upbit API 연결 실패",
+                "healing_action": "retry_connection",
+            }
+            result = db_sync.log_check(check, diagnosis=diagnosis)
 
-        check = {"component": "upbit_api", "status": "ERROR", "message": "연결 실패"}
-        diagnosis = {
-            "ai_diagnosis": "Upbit API 연결 실패",
-            "healing_action": "retry_connection",
-        }
-        result = db_sync.log_check(check, diagnosis=diagnosis)
-
-        assert result is True
-        call_kwargs = db_sync.session.post.call_args
-        payload = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
-        assert payload["ai_diagnosis"] == "Upbit API 연결 실패"
-        assert payload["resolution_status"] == "DIAGNOSING"
+            assert result is True
+            args, kwargs = mock_db.insert.call_args
+            payload = args[1]
+            assert payload["ai_diagnosis"] == "Upbit API 연결 실패"
+            assert payload["resolution_status"] == "DIAGNOSING"
 
     def test_log_check_with_healing(self, db_sync):
         """치유 결과가 포함된 로그를 기록한다."""
-        mock_resp = MagicMock()
-        mock_resp.ok = True
-        db_sync.session.post = MagicMock(return_value=mock_resp)
+        with patch("scripts.lifeline.health_db_sync.db") as mock_db:
+            check = {"component": "upbit_api", "status": "ERROR", "message": "실패"}
+            healing = {
+                "resolution_status": "HEALED",
+                "healing_duration_ms": 150,
+                "ai_diagnosis": "자동 복구",
+                "healing_action": "retry",
+            }
+            result = db_sync.log_check(check, healing_result=healing)
 
-        check = {"component": "upbit_api", "status": "ERROR", "message": "실패"}
-        healing = {
-            "resolution_status": "HEALED",
-            "healing_duration_ms": 150,
-            "ai_diagnosis": "자동 복구",
-            "healing_action": "retry",
-        }
-        result = db_sync.log_check(check, healing_result=healing)
-
-        assert result is True
-        call_kwargs = db_sync.session.post.call_args
-        payload = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
-        assert payload["resolution_status"] == "HEALED"
-        assert payload["healing_duration_ms"] == 150
+            assert result is True
+            args, kwargs = mock_db.insert.call_args
+            payload = args[1]
+            assert payload["resolution_status"] == "HEALED"
+            assert payload["healing_duration_ms"] == 150
 
     def test_log_check_failure_no_raise(self, db_sync):
-        """POST 실패 시 예외를 삼키고 False를 반환한다."""
-        db_sync.session.post = MagicMock(side_effect=Exception("network error"))
+        """db.insert 예외 시 예외를 삼키고 False를 반환한다."""
+        with patch("scripts.lifeline.health_db_sync.db") as mock_db:
+            mock_db.insert.side_effect = Exception("db error")
+            check = {"component": "test", "status": "ERROR", "message": "fail"}
+            result = db_sync.log_check(check)
 
-        check = {"component": "test", "status": "ERROR", "message": "fail"}
-        result = db_sync.log_check(check)
-
-        assert result is False
-
-    def test_log_check_no_supabase_env(self):
-        """SUPABASE_URL 미설정 시에도 예외 없이 False를 반환한다."""
-        with patch.dict(os.environ, {}, clear=True):
-            sync = HealthDBSync()
-
-        # supabase_url이 빈 문자열이면 POST 시 URL이 잘못되어 실패
-        sync.session.post = MagicMock(side_effect=Exception("Invalid URL"))
-
-        check = {"component": "test", "status": "OK", "message": "ok"}
-        result = sync.log_check(check)
-
-        assert result is False
+            assert result is False
 
     def test_log_batch_count(self, db_sync):
         """log_batch는 성공 건수를 반환한다."""
-        mock_resp = MagicMock()
-        mock_resp.ok = True
-        db_sync.session.post = MagicMock(return_value=mock_resp)
+        with patch("scripts.lifeline.health_db_sync.db") as mock_db:
+            mock_db.insert.return_value = None
+            batch = [
+                {"check": {"component": "a", "status": "OK", "message": "ok"}},
+                {"check": {"component": "b", "status": "ERROR", "message": "fail"},
+                 "diagnosis": {"ai_diagnosis": "test"}},
+                {"component": "c", "status": "WARNING", "message": "warn"},
+            ]
+            count = db_sync.log_batch(batch)
 
-        batch = [
-            {"check": {"component": "a", "status": "OK", "message": "ok"}},
-            {"check": {"component": "b", "status": "ERROR", "message": "fail"},
-             "diagnosis": {"ai_diagnosis": "test"}},
-            {"component": "c", "status": "WARNING", "message": "warn"},
-        ]
-        count = db_sync.log_batch(batch)
-
-        assert count == 3
-        assert db_sync.session.post.call_count == 3
+            assert count == 3
+            assert mock_db.insert.call_count == 3
 
     def test_get_recent_incidents(self, db_sync):
         """최근 인시던트 조회."""
-        mock_resp = MagicMock()
-        mock_resp.ok = True
-        mock_resp.json.return_value = [
-            {"component": "upbit_api", "severity": "ERROR"},
-            {"component": "disk", "severity": "WARNING"},
-        ]
-        db_sync.session.get = MagicMock(return_value=mock_resp)
+        with patch("scripts.lifeline.health_db_sync.db") as mock_db:
+            mock_db.select.return_value = [
+                {"component": "upbit_api", "severity": "ERROR"},
+                {"component": "disk", "severity": "WARNING"},
+            ]
+            result = db_sync.get_recent_incidents(hours=24)
 
-        result = db_sync.get_recent_incidents(hours=24)
-
-        assert len(result) == 2
-        db_sync.session.get.assert_called_once()
+            assert len(result) == 2
+            mock_db.select.assert_called_once()
+            args, kwargs = mock_db.select.call_args
+            assert args[0] == "system_health_logs"
+            assert kwargs["filters"]["severity"] == "neq.INFO"
 
     def test_get_component_stats(self, db_sync):
-        """컴포넌트별 통계 조회."""
-        mock_resp = MagicMock()
-        mock_resp.ok = True
-        mock_resp.json.return_value = [
-            {"component": "upbit_api", "critical_count": 0, "error_count": 1},
-            {"component": "disk", "critical_count": 0, "error_count": 0},
-        ]
-        db_sync.session.get = MagicMock(return_value=mock_resp)
+        """컴포넌트별 통계 조회 (v_system_health_summary 뷰)."""
+        with patch("scripts.lifeline.health_db_sync.db") as mock_db:
+            mock_db.select.return_value = [
+                {"component": "upbit_api", "critical_count": 0, "error_count": 1},
+                {"component": "disk", "critical_count": 0, "error_count": 0},
+            ]
+            result = db_sync.get_component_stats()
 
-        result = db_sync.get_component_stats()
+            assert result["total_components"] == 2
+            assert len(result["unhealthy"]) == 1
+            assert result["unhealthy"][0]["component"] == "upbit_api"
 
-        assert result["total_components"] == 2
-        assert len(result["unhealthy"]) == 1
-        assert result["unhealthy"][0]["component"] == "upbit_api"
+    def test_get_component_stats_view_missing(self, db_sync):
+        """뷰 부재(SQLite) 시 예외를 삼키고 빈 dict를 반환한다."""
+        with patch("scripts.lifeline.health_db_sync.db") as mock_db:
+            mock_db.select.side_effect = Exception("no such table: v_system_health_summary")
+            result = db_sync.get_component_stats()
+
+            assert result == {}
 
 
 # ============================================================

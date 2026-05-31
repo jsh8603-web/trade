@@ -33,6 +33,10 @@ load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 
 import requests
 
+# scripts/lifeline/ -> 프로젝트 루트는 parent.parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from core.db import db
+
 # ── 상수 ────────────────────────────────────────────────
 KST = timezone(timedelta(hours=9))
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -82,33 +86,20 @@ def check_upbit_api() -> dict:
 
 
 def check_supabase() -> dict:
-    """Supabase DB 연결 상태를 점검한다."""
+    """DB 백엔드(로컬 SQLite) 연결 상태를 점검한다.
+
+    component 키는 하위 호환을 위해 "supabase"를 유지한다 (진단/복구 매핑·DB severity 매핑 호환).
+    실제로는 core.db 백엔드에 trivial SELECT 1건을 던져 가용성을 확인한다.
+    """
     component = "supabase"
-    supabase_url = os.getenv("SUPABASE_URL", "")
-    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "") or os.getenv("SUPABASE_KEY", "")
-
-    if not supabase_url:
-        return _result(component, "WARNING", "SUPABASE_URL 미설정", {"configured": False})
-    if not supabase_key:
-        return _result(component, "WARNING", "SUPABASE_KEY 미설정", {"configured": False})
-
     try:
-        session = _get_session()
-        resp = session.get(
-            f"{supabase_url.rstrip('/')}/rest/v1/",
-            headers={
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-            },
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            return _result(component, "OK", "Supabase 연결 정상", {"status_code": 200})
-        return _result(component, "ERROR", f"Supabase 비정상 응답: {resp.status_code}", {"status_code": resp.status_code})
-    except requests.exceptions.Timeout:
-        return _result(component, "ERROR", "Supabase 타임아웃 (10s)", {"error": "timeout"})
+        # 가벼운 가용성 프로브: system_health_logs 1건 조회 (테이블 존재·연결 확인)
+        db.select("system_health_logs", limit=1)
+        from core.db import get_backend
+        backend = type(get_backend()).__name__
+        return _result(component, "OK", "DB 백엔드 연결 정상", {"backend": backend})
     except Exception as e:
-        return _result(component, "ERROR", f"Supabase 연결 실패: {e}", {"error": str(e)})
+        return _result(component, "ERROR", f"DB 백엔드 연결 실패: {e}", {"error": str(e)})
 
 
 def check_disk_space() -> dict:

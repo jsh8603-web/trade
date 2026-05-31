@@ -29,7 +29,6 @@ severity 등급:
 
 import io
 import sys
-import os
 import json
 import argparse
 from pathlib import Path
@@ -40,6 +39,8 @@ if sys.stdout.encoding != "utf-8":
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_DIR))
+from core.db import db
 VERSION_FILE = PROJECT_DIR / "VERSION"
 KST = timezone(timedelta(hours=9))
 
@@ -107,16 +108,6 @@ def log_change(
     changed_by: str = "claude_session",
 ) -> dict:
     """변경사항을 DB에 기록하고, VERSION을 자동 범프한다."""
-    import requests
-    from dotenv import load_dotenv
-    load_dotenv(PROJECT_DIR / ".env")
-
-    url = os.getenv("SUPABASE_URL", "")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not url or not key:
-        print("[ERROR] SUPABASE 환경변수 미설정", file=sys.stderr)
-        return {"error": "no_supabase"}
-
     # 버전은 DB 기록 성공 후 범프
     old_version = get_version()
     if auto_bump:
@@ -137,32 +128,10 @@ def log_change(
         "changed_by": changed_by,
     }
 
-    headers = {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        "Prefer": "return=representation",
-    }
-
     try:
-        resp = requests.post(
-            f"{url}/rest/v1/app_changelog",
-            json=row,
-            headers=headers,
-            timeout=10,
-        )
-        if resp.status_code in (200, 201):
-            result = resp.json()
-            if isinstance(result, list):
-                result = result[0]
-            print(f"[OK] v{version} ({severity}/{category}): {summary}")
-            return result
-        else:
-            # DB 기록 실패 — VERSION 롤백
-            if auto_bump:
-                set_version(old_version)
-            print(f"[ERROR] DB 기록 실패: {resp.status_code} {resp.text[:200]}", file=sys.stderr)
-            return {"error": resp.text}
+        result = db.insert("app_changelog", row, returning=True)
+        print(f"[OK] v{version} ({severity}/{category}): {summary}")
+        return result or {}
     except Exception as e:
         # DB 기록 실패 — VERSION 롤백
         if auto_bump:
@@ -173,32 +142,13 @@ def log_change(
 
 def get_history(limit: int = 10) -> list[dict]:
     """최근 변경이력을 조회한다."""
-    import requests
-    from dotenv import load_dotenv
-    load_dotenv(PROJECT_DIR / ".env")
-
-    url = os.getenv("SUPABASE_URL", "")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not url or not key:
-        return []
-
-    headers = {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-    }
-
     try:
-        resp = requests.get(
-            f"{url}/rest/v1/app_changelog",
-            params={
-                "select": "version,severity,category,summary,files_modified,verified,created_at",
-                "order": "created_at.desc",
-                "limit": str(limit),
-            },
-            headers=headers,
-            timeout=10,
+        return db.select(
+            "app_changelog",
+            select="version,severity,category,summary,files_modified,verified,created_at",
+            order="created_at.desc",
+            limit=limit,
         )
-        return resp.json() if resp.status_code == 200 else []
     except Exception:
         return []
 

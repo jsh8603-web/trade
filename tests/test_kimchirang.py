@@ -313,18 +313,18 @@ class TestNotifier:
 # ============================================================
 
 class TestDB:
-    def test_db_disabled_without_config(self):
+    def test_db_constructs(self):
+        # core.db 어댑터 전환: _enabled/_session 제거, 생성만 확인
         from kimchirang.db import KimchirangDB
         from kimchirang.config import DBConfig
-        with patch.dict(os.environ, {"SUPABASE_URL": "", "SUPABASE_SERVICE_ROLE_KEY": ""}, clear=False):
-            db = KimchirangDB(DBConfig())
-            assert db._enabled is False
+        db = KimchirangDB(DBConfig())
+        assert db is not None
 
     def test_record_trade_disabled_skips(self, snapshot):
         from kimchirang.db import KimchirangDB
         from kimchirang.config import DBConfig
         async def _run():
-            with patch.dict(os.environ, {"SUPABASE_URL": "", "SUPABASE_SERVICE_ROLE_KEY": ""}, clear=False):
+            with patch("utils.machine.skip_trade_db", return_value=True):
                 db = KimchirangDB(DBConfig())
                 result = ExecutionResult(action="enter")
                 await db.record_trade(result, snapshot)
@@ -334,16 +334,14 @@ class TestDB:
         from kimchirang.db import KimchirangDB
         from kimchirang.config import DBConfig
         async def _run():
-            with patch.dict(os.environ, {
-                "SUPABASE_URL": "https://test.supabase.co",
-                "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-            }, clear=False), patch("utils.machine.skip_trade_db", return_value=False):
+            with patch("utils.machine.skip_trade_db", return_value=False), \
+                 patch("kimchirang.db.db.insert") as mock_insert:
                 db = KimchirangDB(DBConfig())
-                mock_resp = MagicMock(status_code=201, text="")
-                db._session.post = MagicMock(return_value=mock_resp)
                 result = ExecutionResult(action="enter", kp_at_execution=3.5)
                 await db.record_trade(result, snapshot, stats={"mid_kp": 1.9})
-                db._session.post.assert_called_once()
+                mock_insert.assert_called_once()
+                # 첫 인자 = 테이블명
+                assert mock_insert.call_args[0][0] == "kimchirang_trades"
         asyncio.run(_run())
 
 
@@ -546,12 +544,10 @@ class TestDBKPSnapshot:
     """record_kp_snapshot 이중 기록 테스트"""
 
     def test_record_kp_snapshot_supabase_and_local(self, snapshot, tmp_path):
-        """Supabase POST + 로컬 JSONL 이중 기록"""
+        """어댑터 insert + 로컬 JSONL 이중 기록"""
         async def _run():
-            with patch.dict(os.environ, {
-                "SUPABASE_URL": "https://test.supabase.co",
-                "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-            }, clear=False), patch("utils.machine.skip_trade_db", return_value=False):
+            with patch("utils.machine.skip_trade_db", return_value=False), \
+                 patch("kimchirang.db.db.insert") as mock_insert:
                 db = KimchirangDB(DBConfig())
                 import kimchirang.db as db_mod
                 original_dir = db_mod.LOCAL_DATA_DIR
@@ -565,14 +561,12 @@ class TestDBKPSnapshot:
                         "spread_cost": 0.2,
                         "funding_rate": 0.0001,
                     }
-                    mock_resp = MagicMock(status_code=201, text="")
-                    db._session.post = MagicMock(return_value=mock_resp)
                     await db.record_kp_snapshot(snapshot, stats)
 
-                    db._session.post.assert_called_once()
-                    call_args = db._session.post.call_args
-                    assert "kimchirang_kp_history" in str(call_args)
-                    posted_row = call_args[1]["json"] if "json" in call_args[1] else call_args[0][0]
+                    mock_insert.assert_called_once()
+                    call_args = mock_insert.call_args
+                    assert call_args[0][0] == "kimchirang_kp_history"
+                    posted_row = call_args[0][1]
                     assert posted_row["mid_kp"] == snapshot.mid_kp
 
                     local_file = os.path.join(str(tmp_path), "kp_history.jsonl")
@@ -587,12 +581,9 @@ class TestDBKPSnapshot:
         asyncio.run(_run())
 
     def test_record_kp_snapshot_disabled_local_only(self, snapshot, tmp_path):
-        """Supabase 미설정 시 로컬만 기록"""
+        """DB skip 시 로컬만 기록"""
         async def _run():
-            with patch.dict(os.environ, {
-                "SUPABASE_URL": "",
-                "SUPABASE_SERVICE_ROLE_KEY": "",
-            }, clear=False):
+            with patch("utils.machine.skip_trade_db", return_value=True):
                 db = KimchirangDB(DBConfig())
                 import kimchirang.db as db_mod
                 original_dir = db_mod.LOCAL_DATA_DIR
@@ -617,10 +608,8 @@ class TestDBRLModel:
     def test_record_rl_model_supabase_and_local(self, tmp_path):
         """RL 모델 성과 기록 (이중 저장)"""
         async def _run():
-            with patch.dict(os.environ, {
-                "SUPABASE_URL": "https://test.supabase.co",
-                "SUPABASE_SERVICE_ROLE_KEY": "test_key",
-            }, clear=False), patch("utils.machine.skip_trade_db", return_value=False):
+            with patch("utils.machine.skip_trade_db", return_value=False), \
+                 patch("kimchirang.db.db.insert") as mock_insert:
                 db = KimchirangDB(DBConfig())
                 import kimchirang.db as db_mod
                 original_dir = db_mod.LOCAL_DATA_DIR
@@ -634,13 +623,10 @@ class TestDBRLModel:
                         "max_drawdown": -3.2,
                         "train_steps": 500000,
                     }
-                    mock_resp = MagicMock(status_code=201, text="")
-                    db._session.post = MagicMock(return_value=mock_resp)
                     await db.record_rl_model(model_info)
 
-                    db._session.post.assert_called_once()
-                    call_args = db._session.post.call_args
-                    assert "kimchirang_rl_models" in str(call_args)
+                    mock_insert.assert_called_once()
+                    assert mock_insert.call_args[0][0] == "kimchirang_rl_models"
 
                     local_file = os.path.join(str(tmp_path), "rl_models.jsonl")
                     assert os.path.exists(local_file)

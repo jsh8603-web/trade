@@ -2,14 +2,15 @@
 Orchestrator._record_switch_to_db 유닛 테스트
 
 v1.32.1에서 추가된 중복 방지 + machine_name 태그 로직 검증.
+(SQLite 어댑터 이관 후: requests mock → core.db.db mock)
 
 Coverage:
-  - test_skip_when_duplicate_exists: dup_check GET이 non-empty → POST 호출 안됨
-  - test_post_when_no_duplicate: dup_check = [] → POST 수행
-  - test_dup_check_network_failure_continues: dup_check 예외 → POST는 수행
+  - test_skip_when_duplicate_exists: dup select가 non-empty → insert 호출 안됨
+  - test_post_when_no_duplicate: dup select = [] → insert 수행
+  - test_dup_check_network_failure_continues: dup select 예외 → insert는 수행
   - test_machine_name_included_in_row: get_machine_name="pc128" → row에 machine_name 포함
   - test_machine_name_missing_not_included: get_machine_name 예외 → row에 machine_name 없음
-  - test_worker_skips_entirely: skip_trade_db=True → 어떤 HTTP 호출도 없음
+  - test_worker_skips_entirely: skip_trade_db=True → 어떤 DB 호출도 없음
 """
 
 from __future__ import annotations
@@ -56,97 +57,88 @@ def _market_state() -> dict:
     }
 
 
-def _make_dup_response(rows: list) -> MagicMock:
-    """Supabase dup_check 응답을 흉내낸다."""
-    resp = MagicMock()
-    resp.ok = True
-    resp.json.return_value = rows
-    return resp
+def _make_db_mock(dup_rows: list | None = None, select_raises: bool = False) -> MagicMock:
+    """core.db.db 어댑터 mock. select → dup 조회, insert → 기록.
+
+    db.select 는 _record_switch_to_db 안에서 dup 체크에만 쓰인다.
+    """
+    db = MagicMock()
+    if select_raises:
+        db.select.side_effect = Exception("network down")
+    else:
+        db.select.return_value = dup_rows if dup_rows is not None else []
+    db.insert.return_value = None
+    return db
 
 
-# ── 공통 env 패치 (SUPABASE_URL / KEY 필요) ───────
-
-ENV_PATCH = {
-    "SUPABASE_URL": "https://fake.supabase.co",
-    "SUPABASE_SERVICE_ROLE_KEY": "fake_key",
-}
-
-
-# ── 1. 중복 존재 시 POST 스킵 ─────────────────────
+# ── 1. 중복 존재 시 insert 스킵 ─────────────────────
 
 def test_skip_when_duplicate_exists():
     orch = _make_orch()
-    dup_resp = _make_dup_response([{"id": 123}])  # non-empty → 중복
+    db = _make_db_mock(dup_rows=[{"id": 123}])  # non-empty → 중복
 
-    with patch.dict("os.environ", ENV_PATCH, clear=False), \
-         patch("utils.machine.skip_trade_db", return_value=False), \
+    with patch("utils.machine.skip_trade_db", return_value=False), \
          patch("utils.machine.get_machine_name", return_value="pc128"), \
          patch("scripts.cycle_id.get_or_create_cycle_id", return_value="20260421-1200-agent"), \
-         patch("requests.get", return_value=dup_resp) as mock_get, \
-         patch("requests.post") as mock_post:
+         patch("agents.orchestrator.db", db):
         orch._record_switch_to_db(_switch_info(), _market_state(), btc_price=150_000_000)
 
-    # dup_check GET은 호출됨 (btc_price가 주어졌으므로 ticker GET은 없음)
-    assert mock_get.call_count == 1
-    # POST는 호출 안됨
-    mock_post.assert_not_called()
+    # dup select는 호출됨
+    assert db.select.call_count == 1
+    # insert는 호출 안됨
+    db.insert.assert_not_called()
 
 
-# ── 2. 중복 없을 때 POST 수행 ─────────────────────
+# ── 2. 중복 없을 때 insert 수행 ─────────────────────
 
 def test_post_when_no_duplicate():
     orch = _make_orch()
-    dup_resp = _make_dup_response([])  # 빈 결과 → 중복 없음
+    db = _make_db_mock(dup_rows=[])  # 빈 결과 → 중복 없음
 
-    with patch.dict("os.environ", ENV_PATCH, clear=False), \
-         patch("utils.machine.skip_trade_db", return_value=False), \
+    with patch("utils.machine.skip_trade_db", return_value=False), \
          patch("utils.machine.get_machine_name", return_value="pc128"), \
          patch("scripts.cycle_id.get_or_create_cycle_id", return_value="20260421-1200-agent"), \
-         patch("requests.get", return_value=dup_resp), \
-         patch("requests.post") as mock_post:
+         patch("agents.orchestrator.db", db):
         orch._record_switch_to_db(_switch_info(), _market_state(), btc_price=150_000_000)
 
-    mock_post.assert_called_once()
-    # POST URL 및 row 내용 확인
-    call = mock_post.call_args
-    assert "/rest/v1/agent_switches" in call.args[0]
-    sent_row = call.kwargs["json"]
+    db.insert.assert_called_once()
+    # insert 대상 테이블 및 row 내용 확인
+    call = db.insert.call_args
+    assert call.args[0] == "agent_switches"
+    sent_row = call.args[1]
     assert sent_row["from_agent"] == "conservative"
     assert sent_row["to_agent"] == "aggressive"
     assert sent_row["cycle_id"] == "20260421-1200-agent"
 
 
-# ── 3. dup_check 네트워크 실패여도 POST는 수행 ───
+# ── 3. dup select 실패여도 insert는 수행 ───
 
 def test_dup_check_network_failure_continues():
     orch = _make_orch()
+    db = _make_db_mock(select_raises=True)
 
-    with patch.dict("os.environ", ENV_PATCH, clear=False), \
-         patch("utils.machine.skip_trade_db", return_value=False), \
+    with patch("utils.machine.skip_trade_db", return_value=False), \
          patch("utils.machine.get_machine_name", return_value="pc128"), \
          patch("scripts.cycle_id.get_or_create_cycle_id", return_value="20260421-1200-agent"), \
-         patch("requests.get", side_effect=Exception("network down")), \
-         patch("requests.post") as mock_post:
+         patch("agents.orchestrator.db", db):
         orch._record_switch_to_db(_switch_info(), _market_state(), btc_price=150_000_000)
 
-    mock_post.assert_called_once()
+    db.insert.assert_called_once()
 
 
 # ── 4. machine_name 있으면 row에 포함 ────────────
 
 def test_machine_name_included_in_row():
     orch = _make_orch()
-    dup_resp = _make_dup_response([])
+    db = _make_db_mock(dup_rows=[])
 
-    with patch.dict("os.environ", ENV_PATCH, clear=False), \
-         patch("utils.machine.skip_trade_db", return_value=False), \
+    with patch("utils.machine.skip_trade_db", return_value=False), \
          patch("utils.machine.get_machine_name", return_value="pc128"), \
          patch("scripts.cycle_id.get_or_create_cycle_id", return_value="20260421-1200-agent"), \
-         patch("requests.get", return_value=dup_resp), \
-         patch("requests.post") as mock_post:
+         patch("agents.orchestrator.db", db):
         orch._record_switch_to_db(_switch_info(), _market_state(), btc_price=150_000_000)
 
-    sent_row = mock_post.call_args.kwargs["json"]
+    sent_row = db.insert.call_args.args[1]
     assert "machine_name" in sent_row
     assert sent_row["machine_name"] == "pc128"
 
@@ -155,17 +147,15 @@ def test_machine_name_included_in_row():
 
 def test_machine_name_missing_not_included():
     orch = _make_orch()
-    dup_resp = _make_dup_response([])
+    db = _make_db_mock(dup_rows=[])
 
-    with patch.dict("os.environ", ENV_PATCH, clear=False), \
-         patch("utils.machine.skip_trade_db", return_value=False), \
+    with patch("utils.machine.skip_trade_db", return_value=False), \
          patch("utils.machine.get_machine_name", side_effect=Exception("no hostname")), \
          patch("scripts.cycle_id.get_or_create_cycle_id", return_value="20260421-1200-agent"), \
-         patch("requests.get", return_value=dup_resp), \
-         patch("requests.post") as mock_post:
+         patch("agents.orchestrator.db", db):
         orch._record_switch_to_db(_switch_info(), _market_state(), btc_price=150_000_000)
 
-    sent_row = mock_post.call_args.kwargs["json"]
+    sent_row = db.insert.call_args.args[1]
     assert "machine_name" not in sent_row
 
 
@@ -173,18 +163,17 @@ def test_machine_name_missing_not_included():
 
 def test_worker_skips_entirely():
     orch = _make_orch()
+    db = _make_db_mock(dup_rows=[])
 
-    with patch.dict("os.environ", ENV_PATCH, clear=False), \
-         patch("utils.machine.skip_trade_db", return_value=True), \
+    with patch("utils.machine.skip_trade_db", return_value=True), \
          patch("utils.machine.get_machine_name", return_value="pc128"), \
          patch("scripts.cycle_id.get_or_create_cycle_id", return_value="20260421-1200-agent"), \
-         patch("requests.get") as mock_get, \
-         patch("requests.post") as mock_post:
+         patch("agents.orchestrator.db", db):
         orch._record_switch_to_db(_switch_info(), _market_state(), btc_price=150_000_000)
 
-    # skip_trade_db=True면 HTTP 호출 전혀 없어야 함
-    mock_get.assert_not_called()
-    mock_post.assert_not_called()
+    # skip_trade_db=True면 DB 호출 전혀 없어야 함
+    db.select.assert_not_called()
+    db.insert.assert_not_called()
 
 
 if __name__ == "__main__":

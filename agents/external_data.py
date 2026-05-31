@@ -47,6 +47,11 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = PROJECT_DIR / "scripts"
 PYTHON = sys.executable
 
+# DB 어댑터 (Supabase REST → sqlite/supabase 백엔드 추상화)
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
+from core.db import db
+
 
 def _fetch_nvt_signal(timeout: int = 10) -> dict:
     """blockchain.com API에서 NVT Signal 계산 (market_cap / tx_volume)"""
@@ -226,27 +231,23 @@ def _compress_news(news_data: dict) -> dict:
 # ── Supabase 조회 ──────────────────────────────────
 
 def _load_supabase(endpoint: str, params: dict) -> list[dict] | dict:
-    """Supabase REST API를 조회한다."""
-    url = os.getenv("SUPABASE_URL", "")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not url or not key:
-        return []
-
+    """로컬 DB 어댑터로 조회한다 (PostgREST params → db.select 변환)."""
+    params = dict(params)
+    select = params.pop("select", "*")
+    order = params.pop("order", None)
+    limit = params.pop("limit", None)
+    if limit is not None:
+        try:
+            limit = int(limit)
+        except (TypeError, ValueError):
+            limit = None
+    # 나머지 키는 모두 PostgREST 필터 (예: "applied": "eq.false")
+    filters = params or None
     try:
-        resp = requests.get(
-            f"{url}/rest/v1/{endpoint}",
-            params=params,
-            headers={
-                "apikey": key,
-                "Authorization": f"Bearer {key}",
-            },
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            return resp.json()
+        return db.select(endpoint, filters=filters, order=order,
+                         limit=limit, select=select)
     except Exception:
-        pass
-    return []
+        return []
 
 
 def load_user_feedback() -> list[dict]:
@@ -335,20 +336,6 @@ class ExternalDataAgent:
     def __init__(self, snapshot_dir: Path | None = None):
         self.snapshot_dir = snapshot_dir
         self._saved_signal_id: str | None = None
-        # Supabase HTTP 세션 (connection reuse + keep-alive)
-        self._supa_session: requests.Session | None = None
-
-    def _get_supa_session(self) -> requests.Session:
-        """Supabase 전용 requests.Session을 반환한다 (재사용으로 TCP 핸드셰이크 절약)."""
-        if self._supa_session is None:
-            key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-            self._supa_session = requests.Session()
-            self._supa_session.headers.update({
-                "apikey": key,
-                "Authorization": f"Bearer {key}",
-                "Content-Type": "application/json",
-            })
-        return self._supa_session
 
     @property
     def saved_signal_id(self) -> str | None:
@@ -800,11 +787,6 @@ class ExternalDataAgent:
         from utils.machine import skip_trade_db
         if skip_trade_db("external_signal_log"):
             return
-        url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-        if not url or not key:
-            logging.warning("Supabase 환경변수 미설정 -- external_signal_log 저장 건너뜀")
-            return
 
         sources = results.get("sources", {})
         ext_sig = external_signal
@@ -913,36 +895,17 @@ class ExternalDataAgent:
         row = {k: v for k, v in row.items() if v is not None}
 
         try:
-            sess = self._get_supa_session()
-            resp = sess.post(
-                f"{url}/rest/v1/external_signal_log",
-                json=row,
-                headers={"Prefer": "return=representation"},
-                timeout=10,
-            )
-            if resp.status_code in (200, 201):
-                logging.info("external_signal_log 저장 완료")
-                # 저장된 레코드의 ID를 반환하여 decisions와 연결
-                try:
-                    resp_data = resp.json()
-                    if isinstance(resp_data, list) and resp_data:
-                        self._saved_signal_id = resp_data[0].get("id")
-                    elif isinstance(resp_data, dict):
-                        self._saved_signal_id = resp_data.get("id")
-                except Exception:
-                    pass
-            else:
-                logging.warning(f"external_signal_log 저장 실패: {resp.status_code} {resp.text[:200]}")
+            saved = db.insert("external_signal_log", row, returning=True)
+            logging.info("external_signal_log 저장 완료")
+            # 저장된 레코드의 ID를 반환하여 decisions와 연결
+            if isinstance(saved, dict):
+                self._saved_signal_id = saved.get("id")
         except Exception as e:
             logging.warning(f"external_signal_log 저장 오류: {e}")
 
     def _save_newsrang_to_db(self, results: dict, external_signal: dict) -> None:
         """뉴스랑(NewsRang) 수집 결과를 newsrang_signals 테이블에 저장한다."""
         from utils.machine import get_machine_name
-        url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-        if not url or not key:
-            return
 
         sources = results.get("sources", {})
         extra = external_signal.get("extra_components", {})
@@ -1003,17 +966,8 @@ class ExternalDataAgent:
         row = {k: v for k, v in row.items() if v is not None}
 
         try:
-            sess = self._get_supa_session()
-            resp = sess.post(
-                f"{url}/rest/v1/newsrang_signals",
-                json=row,
-                headers={"Prefer": "return=minimal"},
-                timeout=10,
-            )
-            if resp.status_code in (200, 201):
-                logging.info("newsrang_signals 저장 완료")
-            else:
-                logging.warning(f"newsrang_signals 저장 실패: {resp.status_code} {resp.text[:200]}")
+            db.insert("newsrang_signals", row, returning=False)
+            logging.info("newsrang_signals 저장 완료")
         except Exception as e:
             logging.warning(f"newsrang_signals 저장 오류: {e}")
 

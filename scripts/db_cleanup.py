@@ -20,14 +20,15 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-import requests
+import requests  # noqa: F401 — Telegram API (비-DB)
 from dotenv import load_dotenv
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from core.db import db
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 KST = timezone(timedelta(hours=9))
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("db_cleanup")
@@ -62,64 +63,42 @@ CLEANUP_RULES = [
 ]
 
 
-def supabase_headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }
+def _condition_to_filters(condition: str) -> dict:
+    """'col=op.val&col2=op.val2' PostgREST 조건 문자열 -> db.select/delete filters dict.
+    같은 컬럼 다중 조건은 list 로 묶는다 (build_where AND 처리)."""
+    filters: dict = {}
+    for part in condition.split("&"):
+        if "=" not in part:
+            continue
+        key, val = part.split("=", 1)
+        if key in filters:
+            existing = filters[key]
+            if isinstance(existing, list):
+                existing.append(val)
+            else:
+                filters[key] = [existing, val]
+        else:
+            filters[key] = val
+    return filters
 
 
 def count_rows(table: str, condition: str) -> int:
     """조건에 맞는 행 수 조회"""
-    params = {"select": "id", "limit": "0"}
-    # condition 파싱
-    for part in condition.split("&"):
-        key, val = part.split("=", 1)
-        params[key] = val
-    params["Prefer"] = "count=exact"
-
     try:
-        resp = requests.get(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            params=params,
-            headers={
-                "apikey": SUPABASE_KEY,
-                "Authorization": f"Bearer {SUPABASE_KEY}",
-                "Prefer": "count=exact",
-            },
-            timeout=10,
-        )
-        content_range = resp.headers.get("content-range", "")
-        if "/" in content_range:
-            total = content_range.split("/")[1]
-            return int(total) if total != "*" else 0
+        rows = db.select(table, filters=_condition_to_filters(condition), select="id")
+        return len(rows)
     except Exception:
-        pass
-    return 0
+        return 0
 
 
 def delete_rows(table: str, condition: str) -> int:
-    """조건에 맞는 행 삭제"""
-    params = {}
-    for part in condition.split("&"):
-        key, val = part.split("=", 1)
-        params[key] = val
-
+    """조건에 맞는 행 삭제. 삭제 행 수(>0) 또는 0(실패)."""
     try:
-        resp = requests.delete(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            params=params,
-            headers=supabase_headers(),
-            timeout=30,
-        )
-        if resp.status_code < 300:
-            return -1  # 성공 (정확한 삭제 수 모름)
-        log.warning(f"삭제 실패 ({resp.status_code}): {resp.text[:200]}")
+        deleted = db.delete(table, filters=_condition_to_filters(condition))
+        return deleted if deleted else -1  # -1 = 성공했으나 0건
     except Exception as e:
         log.warning(f"삭제 예외: {e}")
-    return 0
+        return 0
 
 
 def show_status():
@@ -216,10 +195,6 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="미리보기만")
     parser.add_argument("--status", action="store_true", help="DB 용량 현황")
     args = parser.parse_args()
-
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        log.error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 미설정")
-        sys.exit(1)
 
     if args.status:
         show_status()

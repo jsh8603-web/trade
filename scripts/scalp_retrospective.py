@@ -14,13 +14,15 @@ signal_attempt_log에 기록된 시그널의 1m/5m/15m/30m 후 가격을 추적�
 from __future__ import annotations
 
 import logging
-import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-import requests
+import requests  # noqa: F401 — Upbit API (비-DB)
 from dotenv import load_dotenv
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from core.db import db
 
 # ── 환경 설정 ──
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -28,8 +30,6 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 KST = timezone(timedelta(hours=9))
 MARKET = "KRW-BTC"
 UPBIT_API = "https://api.upbit.com/v1"
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,46 +50,30 @@ WIN_THRESHOLD_PCT = 0.15
 
 
 def supabase_get(table: str, params: dict) -> list[dict]:
-    """Supabase REST API GET"""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return []
+    """core.db 어댑터 조회 (레거시 시그니처 유지). params(PostgREST) -> db.select."""
+    params = dict(params)
+    select = params.pop("select", "*")
+    order = params.pop("order", None)
+    limit = params.pop("limit", None)
+    if limit is not None:
+        try:
+            limit = int(limit)
+        except (ValueError, TypeError):
+            limit = None
+    filters = {k: v for k, v in params.items()} or None
     try:
-        resp = requests.get(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            params=params,
-            headers={
-                "apikey": SUPABASE_KEY,
-                "Authorization": f"Bearer {SUPABASE_KEY}",
-            },
-            timeout=10,
-        )
-        if resp.ok:
-            return resp.json()
-        log.warning(f"GET {table} 실패 ({resp.status_code}): {resp.text[:200]}")
+        return db.select(table, filters=filters, order=order, limit=limit, select=select)
     except Exception as e:
         log.warning(f"GET {table} 예외: {e}")
-    return []
+        return []
 
 
 def supabase_patch(table: str, filters: dict, data: dict) -> bool:
-    """Supabase REST API PATCH (조건부 업데이트)"""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return False
+    """core.db 어댑터 조건부 업데이트 (레거시 시그니처 유지). filters {col: val} -> eq."""
     try:
-        params = {f"{k}": f"eq.{v}" for k, v in filters.items()}
-        resp = requests.patch(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            params=params,
-            json=data,
-            headers={
-                "apikey": SUPABASE_KEY,
-                "Authorization": f"Bearer {SUPABASE_KEY}",
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal",
-            },
-            timeout=10,
-        )
-        return resp.status_code < 300
+        eq_filters = {k: f"eq.{v}" for k, v in filters.items()}
+        db.update(table, eq_filters, data)
+        return True
     except Exception as e:
         log.warning(f"PATCH {table} 예외: {e}")
         return False
@@ -237,9 +221,6 @@ def main():
     if skip_trade_db("scalp_trade_log"):
         print("[scalp_retrospective] worker 머신 — 사후추적 스킵")
         return
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        log.error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 미설정")
-        sys.exit(1)
 
     now = datetime.now(KST)
     current_price = get_current_price()

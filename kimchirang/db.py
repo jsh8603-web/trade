@@ -4,11 +4,13 @@ import asyncio
 import json
 import logging
 import os
+import sys
 import time
 from datetime import datetime, timezone
 from typing import Optional
 
-import requests
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from core.db import db
 
 from kimchirang.config import DBConfig
 from kimchirang.execution import ExecutionResult
@@ -21,50 +23,34 @@ LOCAL_DATA_DIR = os.path.join(PROJECT_DIR, "data", "kimchirang")
 
 
 class KimchirangDB:
-    """Supabase PostgREST + 로컬 JSONL 이중 기록
+    """core.db 어댑터 + 로컬 JSONL 이중 기록
 
-    Supabase 테이블이 없거나 연결 실패해도 로컬 JSONL에 항상 저장한다.
+    DB 테이블이 없거나 연결 실패해도 로컬 JSONL에 항상 저장한다.
     """
 
     def __init__(self, config: DBConfig):
-        self._url = config.supabase_url
-        self._key = config.supabase_key
-        self._enabled = bool(self._url and self._key)
         os.makedirs(LOCAL_DATA_DIR, exist_ok=True)
 
-        # requests.Session 재사용 (TCP 연결 풀링 + 헤더 재사용)
-        self._session: Optional[requests.Session] = None
-        if self._enabled:
-            self._session = requests.Session()
-            self._session.headers.update({
-                "apikey": self._key,
-                "Authorization": f"Bearer {self._key}",
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal",
-            })
-        else:
-            logger.warning("Supabase 미설정 -- 로컬 JSONL만 기록")
-
     def _post(self, table: str, row: dict) -> bool:
-        """동기 POST (asyncio.to_thread에서 호출)"""
+        """동기 INSERT (asyncio.to_thread에서 호출)"""
         from utils.machine import skip_trade_db, get_machine_name
         if skip_trade_db(table):
             return False
         # 머신 태그 자동 추가
         row.setdefault("machine_name", get_machine_name())
-        if not self._enabled or self._session is None:
-            return False
         try:
-            resp = self._session.post(
-                f"{self._url}/rest/v1/{table}",
-                json=row,
-                timeout=10,
-            )
-            if resp.status_code in (200, 201):
-                return True
-            logger.error(f"DB 기록 실패 ({table}): {resp.status_code} {resp.text[:200]}")
-            return False
+            db.insert(table, row, returning=False)
+            return True
         except Exception as e:
+            # machine_name 컬럼 미존재 등 스키마 불일치 — 제거 후 재시도
+            if "machine_name" in str(e):
+                row.pop("machine_name", None)
+                try:
+                    db.insert(table, row, returning=False)
+                    return True
+                except Exception as e2:
+                    logger.error(f"DB 기록 오류 ({table}): {e2}")
+                    return False
             logger.error(f"DB 기록 오류 ({table}): {e}")
             return False
 
