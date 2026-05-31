@@ -158,7 +158,7 @@ indicators:
       ★단 lead(예측) 전부 비유의(Bonferroni 0) → 동시 효과는 mechanical(unhedged 가격=현지지수×환율 동시반영),
       forward 예측 신호 아님. japan 은 약(엔약세 수출주 수혜 상쇄, 헤지/언헤지 분기 정합).
       ★PIT-safe(가격·환율 = 개정 없음) → credit 과 달리 동시 노출 정당. dollar-orthogonalized 잔차 entry 권장
-      (L축 fx_carry↔β_dollar 중복은 별도 L축 블록서 처리, monthly R² 8.7%). ★점추정 magnitude 박제 금지.
+      (L축 fx_carry↔β_dollar 중복은 별도 L축 블록서 처리). ★L축 DTWEXBGS full-sample 재검 2026-06-01: DXY n=59 caveat 해소 — broad-dollar full-sample(n=171~244)에서 dollar 통제 후 ETF↔fx partial −0.258(부분 중복·대체로 독립·korea 예외 robust 재현, Bonferroni 11/12). ★점추정 magnitude 박제 금지.
   - id: real_exchange_rate_valuation   # 환 밸류(REER 갭) — 장기 평균회귀. ★merit audit 2026-06-01: structural prior (단기 forward 신호 아님)
     family: valuation
     is_core: false
@@ -275,7 +275,7 @@ relationships:
     lag_routing: contemporaneous   # ★coincident exposure (predictive 아님)
     prior_sign: pos
     prior_strength: 0.50
-    theory_basis: "환carry/모멘텀과 달러베타는 같은 환 채널(동시 노출) — 금리차 고정 후 잔차는 환추세 공유. ★merit audit 2026-06-01: fx 는 PIT-safe coincident exposure 로 수용(동시 robust, 예측 alpha 아님). ★L축 fx_carry↔β_dollar 중복 = 같은 베팅(monthly R² 8.7%) → dollar-orthogonalized 잔차 entry 로 이중계상 회피(별 L축 블록 처리)."
+    theory_basis: "환carry/모멘텀과 달러베타는 같은 환 채널(동시 노출) — 금리차 고정 후 잔차는 환추세 공유. ★merit audit 2026-06-01: fx 는 PIT-safe coincident exposure 로 수용(동시 robust, 예측 alpha 아님). ★L축 fx_carry↔β_dollar 중복 → dollar-orthogonalized 잔차 entry 로 이중계상 회피(별 L축 블록 처리). ★L축 DTWEXBGS full-sample 재검 2026-06-01 (raw/validation-L-axis-dtwexbgs-fullsample.{py,md}): 직전 DXY window n=59(overlap R² 8.7%, dollar 통제 후 ETF↔fx partial −0.315) caveat 를 broad-dollar DTWEXBGS full-sample(n=171~244, 2006~)로 재측정 → ★CAVEAT 해소. full-sample overlap R² 15.7% / common share 31.2% / dollar 통제 후 ETF↔fx partial −0.258 (부호·크기대 n=59 일치, CI 겹침, Bonferroni 11/12 생존). 핵심 결론(부분 중복·대체로 독립·korea 예외=KRW broad$ 강중첩 partial 비유의) robust 재현 → dollar-orthogonalized 잔차 entry 유지. broad>narrow overlap(8.7→15.7%)은 DTWEXBGS 가 EM 통화 직접 포함한 방향 효과(spurious 아님). ★DTWEXBGS observation_start=2006 (handoff '1996~/n=309~362' 추정 정정). ★점추정 magnitude 박제 금지(n<300 + 단일 epoch 2006~ hedge)."
   - node_a: terms_of_trade
     node_b: oil_beta_country
     edge_type: common_cause   # 원자재가격이 terms-of-trade 와 oil-beta 의 공통 driver(수출국)
