@@ -37,6 +37,7 @@ class SQLiteBackend(DBBackend):
         self.db_path = db_path or os.environ.get("INV_DB_PATH", _DEFAULT_DB)
         self.schema_path = schema_path or _SCHEMA
         self._lock = threading.RLock()
+        self._pk_cache = {}
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._conn.execute("PRAGMA journal_mode=WAL;")
@@ -61,8 +62,28 @@ class SQLiteBackend(DBBackend):
             self._conn.commit()
 
     # ---------- 쓰기 ----------
+    def _text_pk(self, table):
+        """default 없는 TEXT PRIMARY KEY 컬럼명. 없으면 None. (PG gen_random_uuid() 대체용). 캐싱."""
+        if table in self._pk_cache:
+            return self._pk_cache[table]
+        found = None
+        try:
+            cur = self._conn.execute("PRAGMA table_info(%s)" % table)
+            for _cid, name, ctype, _nn, dflt, pk in cur.fetchall():
+                if pk and (ctype or "").upper().startswith("TEXT") and dflt is None:
+                    found = name
+                    break
+        except sqlite3.Error:
+            found = None
+        self._pk_cache[table] = found
+        return found
+
     def insert(self, table, row, *, returning=True):
         row = {k: _jsonify(v) for k, v in row.items()}
+        pk = self._text_pk(table)
+        if pk and pk not in row:
+            import uuid
+            row[pk] = str(uuid.uuid4())
         cols = list(row.keys())
         ph = ",".join("?" * len(cols))
         sql = "INSERT INTO %s (%s) VALUES (%s)" % (table, ",".join(cols), ph)
@@ -81,9 +102,13 @@ class SQLiteBackend(DBBackend):
         if not rows:
             return 0
         n = 0
+        pk = self._text_pk(table)
         with self._lock:
             for r in rows:
                 r = {k: _jsonify(v) for k, v in r.items()}
+                if pk and pk not in r:
+                    import uuid
+                    r[pk] = str(uuid.uuid4())
                 cols = list(r.keys())
                 ph = ",".join("?" * len(cols))
                 sql = "INSERT INTO %s (%s) VALUES (%s)" % (table, ",".join(cols), ph)

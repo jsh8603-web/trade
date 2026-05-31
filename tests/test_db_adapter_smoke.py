@@ -21,8 +21,23 @@ def be(tmp_path):
 # ---------- 필터 변환 ----------
 def test_filter_operators():
     w, p = F.build_where({"created_at": "gte.2026-05-01", "status": "eq.done"})
-    assert "created_at >= ?" in w and "status = ?" in w
+    # 시간 컬럼은 datetime() 정규화 (PG timestamptz -> SQLite TEXT 비교 깨짐 방지)
+    assert "datetime(created_at) >= datetime(?)" in w and "status = ?" in w
     assert p == ["2026-05-01", "done"]
+
+    # 비-시간 컬럼은 정규화 안 함
+    w, _ = F.build_where({"confidence": "gte.0.5"})
+    assert w == " WHERE confidence >= ?"
+
+    # PG boolean: eq.true/eq.false -> SQLite 1/0
+    _, p = F.build_where({"applied": "eq.false"})
+    assert p == [0]
+    _, p = F.build_where({"applied": "eq.true"})
+    assert p == [1]
+
+    # neq (PostgREST 표준) 지원
+    w, _ = F.build_where({"x": "neq.y"})
+    assert "x != ?" in w
 
     w, p = F.build_where({"id": "in.(1,2,3)"})
     assert "id IN (?,?,?)" in w and p == ["1", "2", "3"]
@@ -51,25 +66,25 @@ def test_schema_applied(be):
 
 # ---------- CRUD ----------
 def test_insert_select_update_delete(be):
-    be.insert("decisions", {"market": "KRW-BTC", "decision": "buy",
+    be.insert("decisions", {"market": "KRW-BTC", "decision": "매수",
                             "reason": "test", "confidence": 0.7})
-    got = be.select("decisions", filters={"decision": "eq.buy"}, limit=10)
+    got = be.select("decisions", filters={"decision": "eq.매수"}, limit=10)
     assert len(got) == 1 and got[0]["reason"] == "test"
 
-    n = be.update("decisions", {"decision": "eq.buy"}, {"confidence": 0.9})
+    n = be.update("decisions", {"decision": "eq.매수"}, {"confidence": 0.9})
     assert n == 1
-    got = be.select("decisions", filters={"decision": "eq.buy"})
+    got = be.select("decisions", filters={"decision": "eq.매수"})
     assert abs(got[0]["confidence"] - 0.9) < 1e-9
 
-    n = be.delete("decisions", {"decision": "eq.buy"})
+    n = be.delete("decisions", {"decision": "eq.매수"})
     assert n == 1
-    assert be.select("decisions", filters={"decision": "eq.buy"}) == []
+    assert be.select("decisions", filters={"decision": "eq.매수"}) == []
 
 
 def test_json_column_roundtrip(be):
-    be.insert("decisions", {"market": "KRW-BTC", "decision": "hold", "reason": "j",
+    be.insert("decisions", {"market": "KRW-BTC", "decision": "관망", "reason": "j",
                             "market_data_snapshot": {"rsi": 55, "sma": [1, 2]}})
-    got = be.select("decisions", filters={"decision": "eq.hold"})
+    got = be.select("decisions", filters={"decision": "eq.관망"})
     # JSONB->TEXT 저장이라 문자열로 반환 (호출자가 json.loads)
     assert '"rsi": 55' in got[0]["market_data_snapshot"]
 

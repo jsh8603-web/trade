@@ -15,8 +15,21 @@ from __future__ import annotations
 from typing import Optional
 
 _OPS = {
-    "eq": "=", "ne": "!=", "gt": ">", "gte": ">=", "lt": "<", "lte": "<=",
+    "eq": "=", "ne": "!=", "neq": "!=", "gt": ">", "gte": ">=", "lt": "<", "lte": "<=",
 }
+
+# PG timestamptz 컬럼 — SQLite 는 TEXT 문자열 비교라 'YYYY-MM-DD HH:MM:SS'(공백) vs
+# ISO 'T'/타임존 포맷이 어긋나면 비교가 깨진다. 시간 컬럼은 datetime() 으로 정규화 비교.
+_TIME_COLS = {
+    "created_at", "updated_at", "evaluated_at", "last_checked", "last_updated",
+    "last_accessed", "entry_time", "exit_time", "trade_date", "applied_at",
+    "ts", "time", "datetime",
+}
+
+
+def _is_time_col(col: str) -> bool:
+    c = col.lower()
+    return c.endswith("_at") or c.endswith("_time") or "timestamp" in c or c in _TIME_COLS
 
 
 def _one(col: str, expr: str):
@@ -34,8 +47,17 @@ def _one(col: str, expr: str):
         op = op2.lower()
 
     if op in _OPS:
-        frag = "%s %s ?" % (col, _OPS[op])
-        params = [val]
+        if op in ("eq", "ne", "neq") and val.lower() in ("true", "false"):
+            # PG boolean 컬럼: eq.true/eq.false -> SQLite 1/0 (TEXT 'false' 비교 깨짐 방지)
+            frag = "%s %s ?" % (col, _OPS[op])
+            params = [1 if val.lower() == "true" else 0]
+        elif op in ("gt", "gte", "lt", "lte") and _is_time_col(col):
+            # PG timestamptz -> SQLite TEXT 비교 깨짐 방지: 양변 datetime() 정규화
+            frag = "datetime(%s) %s datetime(?)" % (col, _OPS[op])
+            params = [val]
+        else:
+            frag = "%s %s ?" % (col, _OPS[op])
+            params = [val]
     elif op == "like":
         frag = "%s LIKE ?" % col
         params = [val.replace("*", "%")]
