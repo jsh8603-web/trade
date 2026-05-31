@@ -44,7 +44,7 @@ def _fetch_recent_decisions(days: int = 7) -> list[dict]:
     try:
         return db.select(
             "decisions",
-            filters={"created_at": f"gte.{since}", "decision": "in.(buy,sell)"},
+            filters={"created_at": f"gte.{since}", "decision": "in.(매수,매도)"},
             order="created_at.desc",
             select=(
                 "decision,confidence,outcome_4h_pct,outcome_24h_pct,"

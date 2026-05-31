@@ -75,7 +75,7 @@ def prefetch_decisions(max_days: int = 30) -> bool:
             ),
         ) or []
         # buy/sell만 필터 (dynamic_risk, strategy_health에서 사용)
-        buy_sell = [d for d in all_rows if d.get("decision") in ("buy", "sell")]
+        buy_sell = [d for d in all_rows if d.get("decision") in ("매수", "매도")]
         _cache["decisions"] = buy_sell
         _cache["decisions_all"] = all_rows
         _cache["fetched_at"] = time.monotonic()

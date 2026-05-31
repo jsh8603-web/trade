@@ -32,7 +32,6 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
-import requests
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -44,9 +43,6 @@ from core.db import db  # 로컬 DB 어댑터 (Supabase REST 대체)
 STATE_FILE = PROJECT_DIR / "data" / "dynamic_risk.json"
 KST = timezone(timedelta(hours=9))
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-
 # 기본 MAX_TRADE_AMOUNT
 DEFAULT_MAX_AMOUNT = int(os.environ.get("MAX_TRADE_AMOUNT", "100000"))
 
@@ -54,25 +50,14 @@ DEFAULT_MAX_AMOUNT = int(os.environ.get("MAX_TRADE_AMOUNT", "100000"))
 MIN_SAMPLES = 3
 
 
-def _headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-
-
 def _fetch_recent_decisions(days: int = 7) -> list[dict]:
-    """최근 N일간 buy/sell 결정을 Supabase에서 조회한다."""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return []
-
+    """최근 N일간 매수/매도 결정을 로컬 DB에서 조회한다."""
     cutoff = (datetime.now(KST) - timedelta(days=days)).isoformat()
 
     try:
         return db.select(
             "decisions",
-            filters={"created_at": f"gte.{cutoff}", "decision": "in.(buy,sell)"},
+            filters={"created_at": f"gte.{cutoff}", "decision": "in.(매수,매도)"},
             order="created_at.asc",
             select="outcome_4h_pct,outcome_24h_pct,created_at,decision",
         )
