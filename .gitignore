@@ -72,3 +72,5 @@ data/inv.db
 data/inv.db-*
 .l0-*.txt
 study-research/bond_cash/raw/_v2_analysis/data/
+study-research/eq_us_defensive/raw/fred/BAMLH0A0HYM2.csv.v2-backup
+study-research/reit/study_session.yaml.v2.bak
