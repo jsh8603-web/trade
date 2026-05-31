@@ -1,0 +1,29 @@
+{
+  "n_obs": 5990,
+  "gamma_proxy_rolling_eg_adf": {
+    "pre_2022_mean_adf_stat": -3.112824970469711,
+    "post_2022_mean_adf_stat": -2.25791575138465,
+    "delta_adf": 0.8549092190850609,
+    "gamma_decline_or_break": true,
+    "interpretation": "ADF \uc74c\uc758 \uc808\ub313\uac12 \uc791\uc544\uc9d0 = cointegration \uc57d\ud654 = \u03b3 \ubd95\uad34 \uc2e0\ud638. H2 \uc758 Johansen rank=0 (\u03b3 \uadf9\ud55c 0) \uacfc \uc815\ud569."
+  },
+  "ols_gpr": {
+    "beta": 4.736413490045326e-06,
+    "se": 2.161537311633114e-06,
+    "t_stat": 2.1912244884946293,
+    "p_value": 0.028473965407688526,
+    "force_include_justified": true
+  },
+  "qr_gpr_q90": {
+    "beta_q90": 2.7994474170317377e-05,
+    "beta_ols": 4.736413490045326e-06,
+    "ratio_q90_to_ols": 5.9104793593621565,
+    "gap": 2.3258060680272052e-05,
+    "gap_sigma": 10.759962622481778,
+    "tail_amplified_at_95pct": true
+  },
+  "qr_gpr_q10": {
+    "beta_q10": -1.8463496297021467e-05
+  },
+  "H7_supported": true
+}

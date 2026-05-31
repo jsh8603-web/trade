@@ -1,0 +1,95 @@
+{
+  "merged_rows": 4280,
+  "date_range": [
+    "2010-01-04",
+    "2026-05-29"
+  ],
+  "periods": {
+    "all_2010_2026": {
+      "n_days": 4279,
+      "pearson": {
+        "real_rate_vs_gold": -0.31804705489940144,
+        "dollar_vs_gold": -0.33078217505530816,
+        "breakeven_vs_gold": 0.03861925868465925,
+        "real_vs_dollar": 0.15109503906983962
+      },
+      "spearman_rank_ic": {
+        "real_rate_vs_gold": -0.31058382873739065,
+        "dollar_vs_gold": -0.3496934668328613,
+        "breakeven_vs_gold": -0.002088322681968522
+      },
+      "gold_annualized_vol": 0.16294240804451907,
+      "gold_annualized_ret": 0.07877347743184526
+    },
+    "pre_2020": {
+      "n_days": 2606,
+      "pearson": {
+        "real_rate_vs_gold": -0.30977694919228627,
+        "dollar_vs_gold": -0.30982062239007574,
+        "breakeven_vs_gold": 0.014744554952427437,
+        "real_vs_dollar": 0.06240543226238583
+      },
+      "spearman_rank_ic": {
+        "real_rate_vs_gold": -0.2848382831968277,
+        "dollar_vs_gold": -0.3287312840660052,
+        "breakeven_vs_gold": -0.014775672428448858
+      },
+      "gold_annualized_vol": 0.15253604330601725,
+      "gold_annualized_ret": 0.025478929512437302
+    },
+    "covid_2020_21": {
+      "n_days": 523,
+      "pearson": {
+        "real_rate_vs_gold": -0.4059089428261123,
+        "dollar_vs_gold": -0.315773860693151,
+        "breakeven_vs_gold": 0.20557768701459522,
+        "real_vs_dollar": 0.156406756505897
+      },
+      "spearman_rank_ic": {
+        "real_rate_vs_gold": -0.44399304985343574,
+        "dollar_vs_gold": -0.31375016451941756,
+        "breakeven_vs_gold": 0.14598380097269795
+      },
+      "gold_annualized_vol": 0.16592818493633327,
+      "gold_annualized_ret": 0.08638570024995282
+    },
+    "decoup_2022_26": {
+      "n_days": 1150,
+      "pearson": {
+        "real_rate_vs_gold": -0.30379222537227657,
+        "dollar_vs_gold": -0.3768200771329288,
+        "breakeven_vs_gold": -0.005225973864092856,
+        "real_vs_dollar": 0.29192940320003186
+      },
+      "spearman_rank_ic": {
+        "real_rate_vs_gold": -0.31633387408393304,
+        "dollar_vs_gold": -0.407569483896442,
+        "breakeven_vs_gold": -0.04745163592026469
+      },
+      "gold_annualized_vol": 0.18306600705536338,
+      "gold_annualized_ret": 0.1960816507745469
+    }
+  },
+  "rolling_real_gold_252d": {
+    "median": -0.34899693440564983,
+    "min": -0.6741165165961875,
+    "max": -0.0093501023377164,
+    "first_positive_date": null,
+    "last_positive_date": null,
+    "positive_days_pct": 0.0
+  },
+  "sys_prior_check": {
+    "real_rate": {
+      "sys": -0.5,
+      "emp_all": -0.31804705489940144,
+      "emp_pre2020": -0.30977694919228627,
+      "emp_2022_26": -0.30379222537227657
+    },
+    "dollar": {
+      "sys": -0.8,
+      "emp_all": -0.33078217505530816,
+      "emp_pre2020": -0.30982062239007574,
+      "emp_2022_26": -0.3768200771329288
+    }
+  }
+}

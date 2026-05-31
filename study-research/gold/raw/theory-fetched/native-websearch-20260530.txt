@@ -1,0 +1,59 @@
+# Gold Theory Foundations — Native WebSearch raw (2026-05-30)
+# Source: WebSearch 2 queries — Barsky-Summers 1988 + WGC GRAM
+# Context: D:/projects/Inv/study-research/gold §2-2 이론 학습 단계, study v2 absent direct fetch (gold.org 404, JSTOR 403)
+
+==============================================================
+## QUERY 1: Barsky Summers 1988 "Gibson's Paradox and the Gold Standard" summary gold relative price real interest rate level relation
+==============================================================
+
+### Sources (links)
+- NBER w1680: https://www.nber.org/papers/w1680
+- ResearchGate (PDF): https://www.researchgate.net/publication/24108581_Gibson's_Paradox_and_the_Gold_Standard
+- IDEAS/RePEc: https://ideas.repec.org/a/ucp/jpolec/v96y1988i3p528-50.html
+- SSRN abstract: https://www.ssrn.com/abstract=283338
+- Semantic Scholar: https://www.semanticscholar.org/paper/Gibson's-Paradox-and-the-Gold-Standard-Barsky-Summers/cd28a1be3fb55653aa2579eee5741ecd32c07dfa
+- Gold Eagle commentary: https://www.gold-eagle.com/article/gibsons-paradox-revisited-professor-summers-analyzes-gold-prices
+- DeLong "Gibson's Paradox and the Gold Boom": https://delong.typepad.com/sdj/2011/09/gibsons-paradox-and-the-gold-boom.html
+- Martins SSRN "Resolution of Gibson Paradox": https://papers.ssrn.com/sol3/papers.cfm?abstract_id=647742
+
+### Key Mechanism
+- 실질수익률 상승 충격 → 금의 균형 *상대가격* 하락. 명목 금가격을 당국이 pegged → 가격수준이 반드시 상승.
+- 메커니즘 = 금의 화폐적(monetary) vs 비화폐적(non-monetary) 사용 간 배분.
+
+### Theoretical Framework
+- 금본위제 하 가격수준 = 금의 실질가격의 역수.
+- 금은 내구재 자산 → 그 상대가격이 자본의 *실질 생산성* 변동에 체계적으로 영향. 동일 요인이 *실질금리*를 결정 → 금-금리 link.
+
+### Resolution of the Paradox
+- Barsky-Summers 는 "opportunity cost effect" 프레임워크 개척.
+- 실질금리 상승 → 투자자가 금→이자자산으로 자본 재배분 → 금 가격 억압.
+
+### Publication
+- Journal of Political Economy, vol. 96, June 1988, pp. 528-550.
+
+==============================================================
+## QUERY 2: WGC "Gold Return Attribution Model" GRAM methodology 4 categories
+==============================================================
+
+### Sources (links)
+- WGC GRAM tool page: https://www.gold.org/goldhub/tools/gold-return-attribution-model
+- WGC Gold Outlook 2026: https://www.gold.org/goldhub/research/gold-outlook-2026
+- WGC October 2024 commentary: https://www.gold.org/goldhub/research/gold-market-commentary-october-2024
+- WGC January 2026 commentary: https://www.gold.org/goldhub/research/gold-market-commentary-january-2026
+- WMM 8 Dec 2025 (PDF, 2026 outlook): https://www.gold.org/download/file/20334/WMM_8_December_2025_The_2026_Gold_Outlook.pdf
+- Sprott mirror Gold Outlook 2026 (PDF): https://sprott.com/media/ydnkwpq4/gold_outlook_2026.pdf
+- Heera Zhaveraat analysis: https://heerazhaveraat.com/gold-return-attribution-model-analysis/
+
+### Model Overview
+- Multiple regression model of monthly gold price returns.
+- 4 thematic driver categories: **economic expansion, risk & uncertainty, opportunity cost, momentum**.
+- 4 카테고리는 금 수요 동기를 포착 — 특히 *투자수요* 가 단기에서 marginal driver.
+
+### Methodology
+- 월별 데이터, 5y 추정창 (rolling).
+- 각 driver 가 월별/주별 금 가격에 기여하는 비중 attribution.
+
+### Model Functions
+- driver 와 금의 관계가 시간에 따라 어떻게 이동하는지 추적.
+- 기존 driver 가 금 return 을 충분히 설명 못 하는 시기 식별 → *one-off circumstances · evolving dynamics · new effects* 진단.
+- WGC 정기 commentary·research 에 활용.

@@ -1,0 +1,42 @@
+{
+  "n_obs": 4279,
+  "date_range": [
+    "2010-01-05",
+    "2026-05-29"
+  ],
+  "layer1_pearson": {
+    "n_windows": 4028,
+    "median": -0.34899693440564983,
+    "min": -0.6741165165961875,
+    "max": -0.0093501023377164,
+    "positive_days": 0,
+    "positive_pct": 0.0,
+    "weak_days": 135,
+    "weak_pct": 3.3515392254220457,
+    "baseline_weak_pct": 3.1,
+    "pass": true,
+    "weak_pass": true
+  },
+  "layer2_rolling_beta": {
+    "n_windows": 4028,
+    "b_real_mean": -0.0006592556203512914,
+    "b_real_std": 0.00031066651133093427,
+    "b_real_range": [
+      -0.0015092426839856043,
+      0.00016395871579708568
+    ],
+    "b_real_sign_flips": 75,
+    "b_real_sign_flips_pct": 1.861966236345581,
+    "b_real_pre_vs_post_change_pct": 86.77005246136905,
+    "sign_flip_pass": true
+  },
+  "qlr_sup_f": {
+    "sup_f": 15.256593798968428,
+    "sup_break_date": "2023-12-13",
+    "cv_5pct_andrews1993_k3_trim015": 16.45,
+    "cv_1pct_andrews1993_k3_trim015": 20.0,
+    "pass_5pct": true,
+    "pass_1pct": true
+  },
+  "H1_supported": true
+}

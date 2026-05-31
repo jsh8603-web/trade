@@ -1,0 +1,71 @@
+{
+  "wgc_data": {
+    "years": [
+      2010,
+      2011,
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "tonnes": [
+      77.4,
+      480.8,
+      569.3,
+      408.2,
+      587.6,
+      579.8,
+      386.8,
+      378.5,
+      656.3,
+      668.5,
+      254.9,
+      463.1,
+      1135.7,
+      1037.4,
+      1044.6
+    ],
+    "cumulative_2024": 8728.900000000001
+  },
+  "annual_merged": {
+    "n": 15,
+    "pearson_corr_cb_stock_vs_unexpl": 0.7843279064625984,
+    "spearman_corr": 0.5928571428571429
+  },
+  "unit_root_adf": {
+    "cum_tonnes": {
+      "stat": 2.5245535221974778,
+      "p": 0.9990573427269258
+    },
+    "unexpl_ln_gold": {
+      "stat": 0.4990360710021561,
+      "p": 0.98484376899571
+    }
+  },
+  "johansen_annual": {
+    "estimated_rank": 0
+  },
+  "engle_granger_annual": {
+    "ols_intercept": -0.2550351213773768,
+    "ols_slope_per_tonne": 0.00010761285568478323,
+    "r2": 0.6151702648560028,
+    "residual_adf_stat": -1.1572166124520866,
+    "residual_adf_p": 0.22527881588350174,
+    "coint_support_p_lt_020": false
+  },
+  "break_timing": {
+    "cb_accel_year": 2022,
+    "unexpl_accel_year": 2022,
+    "cb_lead_le_2quarter": true
+  },
+  "H3_supported": false
+}

@@ -1,0 +1,50 @@
+{
+  "n_obs": 4279,
+  "identity_check": {
+    "diff_d_nom_minus_d_real_plus_d_be_mean_bp": -0.000701098387473713,
+    "diff_std_bp": 0.04586169602643541,
+    "max_abs_diff_bp": 3.000000000000025,
+    "approx_identity_holds": false
+  },
+  "basis_A_partial_corr": {
+    "gold_real_rate": -0.29133183004158963,
+    "gold_breakeven": -0.05373343251437709,
+    "gold_dollar": -0.30597066558855773,
+    "real_breakeven": -0.12081399472032238,
+    "real_dollar": 0.030484459930052134,
+    "breakeven_dollar": -0.1634463696702091
+  },
+  "basis_B_collinearity_gate": {
+    "cov_condition_number": 5331689.716301712,
+    "gate_fail_condition_gt_1e10": false
+  },
+  "vif_comparison": {
+    "basis_A_regs": [
+      "d_real_bp",
+      "d_be_bp",
+      "r_dollar"
+    ],
+    "vifs_A": [
+      1.0359175749327052,
+      1.0429855070558465,
+      1.0484329730814543
+    ],
+    "basis_B_regs": [
+      "d_nom_bp",
+      "d_real_bp",
+      "d_be_bp",
+      "r_dollar"
+    ],
+    "vifs_B": [
+      12996.500477052716,
+      10460.049866507612,
+      4329.061825499645,
+      1.0484330615476949
+    ]
+  },
+  "H6_verdict": {
+    "gold_BE_partial_weak": true,
+    "gold_real_partial_strong": true,
+    "supported": true
+  }
+}

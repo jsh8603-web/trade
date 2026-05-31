@@ -1,0 +1,108 @@
+{
+  "panel_2x2": {
+    "daily__gold_USD": {
+      "n": 4279,
+      "alpha_z": -9.134403303190375e-18,
+      "beta_std": {
+        "d_real_bp": -0.27433039277516674,
+        "r_dollar": -0.28933221364089956
+      },
+      "se_std": {
+        "d_real_bp": 0.013983592856658714,
+        "r_dollar": 0.013983592856658693
+      },
+      "marginal_pearson": {
+        "d_real_bp": -0.3180470548994015,
+        "r_dollar": -0.33078217505530827
+      },
+      "vif": {
+        "d_real_bp": 1.023363083266626,
+        "r_dollar": 1.0233630832666265
+      },
+      "r2": 0.18295591243324183
+    },
+    "daily__gold_SDR": {
+      "n": 4279,
+      "alpha_z": 7.914675859144182e-18,
+      "beta_std": {
+        "d_real_bp": -0.2919096602167727,
+        "r_dollar": -0.09617312839218582
+      },
+      "se_std": {
+        "d_real_bp": 0.014652298675675678,
+        "r_dollar": 0.014652298675675655
+      },
+      "marginal_pearson": {
+        "d_real_bp": -0.3064409428086582,
+        "r_dollar": -0.14027922990750266
+      },
+      "vif": {
+        "d_real_bp": 1.023363083266626,
+        "r_dollar": 1.0233630832666265
+      },
+      "r2": 0.10294416388043404
+    },
+    "monthly__gold_USD": {
+      "n": 196,
+      "alpha_z": -3.469446951953614e-17,
+      "beta_std": {
+        "d_real_bp": -0.3399312568044932,
+        "r_dollar": -0.2920051847482068
+      },
+      "se_std": {
+        "d_real_bp": 0.06584534743919544,
+        "r_dollar": 0.06584534743919548
+      },
+      "marginal_pearson": {
+        "d_real_bp": -0.44549676217880907,
+        "r_dollar": -0.41489688938706765
+      },
+      "vif": {
+        "d_real_bp": 1.150345819007607,
+        "r_dollar": 1.1503458190076068
+      },
+      "r2": 0.2725903171067021
+    },
+    "monthly__gold_SDR": {
+      "n": 196,
+      "alpha_z": -3.469446951953614e-17,
+      "beta_std": {
+        "d_real_bp": -0.3821658686702983,
+        "r_dollar": -0.06893457583199929
+      },
+      "se_std": {
+        "d_real_bp": 0.07034182603664169,
+        "r_dollar": 0.07034182603664173
+      },
+      "marginal_pearson": {
+        "d_real_bp": -0.40708704718205635,
+        "r_dollar": -0.20709490712126144
+      },
+      "vif": {
+        "d_real_bp": 1.150345819007607,
+        "r_dollar": 1.1503458190076068
+      },
+      "r2": 0.1698507745901291
+    }
+  },
+  "sys_priors_gate": {
+    "abs_beta_rate_daily_USD": 0.27433039277516674,
+    "abs_beta_dollar_daily_USD": 0.28933221364089956,
+    "gate_rate_pass": true,
+    "gate_dollar_pass": true,
+    "gate_overall_pass": true,
+    "decision": "\uae30\uac01\u00b7shrink"
+  },
+  "numeraire_trap_daily": {
+    "abs_beta_dollar_USD": 0.28933221364089956,
+    "abs_beta_dollar_SDR": 0.09617312839218582,
+    "attenuation_pct": 66.76031086135825,
+    "expected_30_50_pct": false
+  },
+  "closest_case_to_sys_priors": "case2_daily_univar",
+  "case_distances": {
+    "case1_daily_std_multi": 0.7363373935839337,
+    "case2_daily_univar": 0.6511707700452902,
+    "case4_monthly_std_multi": 0.6680635584473
+  }
+}

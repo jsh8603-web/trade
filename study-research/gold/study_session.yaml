@@ -1,0 +1,179 @@
+study_id: gold
+asset_scope: [gold]          # study_register._domain_of → "commodity" 도메인. regime_to_weights 에 이미 sleeve 존재(SLEEVE_BLOC[gold]=USD, BASE_WEIGHTS 0.08)
+as_of: "2026-05-30"
+
+# ───────────────────────────────────────────────────────────────────────────
+# 블록1: LENS (정성 렌즈 — judge LLM 주입용. ★가변: 블록5 flag→신뢰도→이 필드+블록4 가중치 미세변동)
+# ───────────────────────────────────────────────────────────────────────────
+lens:
+  pricing_principle: >
+    금은 현금흐름·쿠폰·배당이 없는 자산 → 내재가치 평가 불가. 가격은 *보유 기회비용*과 *대체 화폐
+    수요*로 결정된다. 핵심 방정식: ΔlnGold ≈ -β_r·Δ(실질금리) - β_$·Δ(달러) + β_c·(리스크오프)
+    + β_i·Δ(기대인플레, 단 명목금리 동반상승분 상쇄) + structural(중앙은행·탈달러 수요).
+    실질금리(=명목 - 기대인플레)가 음수일수록·하락할수록 무수익 자산 금의 상대매력↑. = "anti-real-rate
+    bond." 우리 시스템 system_priors.py 의 gold factor loading [-0.5 rate, -0.8 dollar, 0.0 oil,
+    -0.2 credit] 이 이 노출구조의 실증 추정치(rate·dollar 음, oil 무관, credit 음=safe-haven).
+  report_relations:
+    - "실질금리(10Y TIPS=DFII10) ↔ 금: 강한 음. 단일 최강 driver (보유 기회비용). 명목금리 단독 아님 — real rate"
+    - "달러지수(DXY/DTWEXBGS) ↔ 금: 음. 금은 USD 표시 → 달러 강세 시 타통화 구매력↓. rate 와 공통(Fed)으로 얽혀 partial-corr 필요"
+    - "기대인플레(breakeven T10YIE) ↔ 금: 양(인플레 헤지). 단 명목금리 동반상승하면 real rate 로 상쇄 → 純효과는 real rate 가 흡수(common_cause)"
+    - "HY OAS/리스크오프 ↔ 금: 양(safe-haven). 단 유동성위기 초기엔 금도 현금화 동반매도 후 반등 → 부호 국면의존(undetermined)"
+    - "중앙은행 순매수·탈달러·ETF 플로우 ↔ 금: 구조적 수요. 일별 변화율 베타는 16y 안정(real-gold 상관 pre2020 -0.310 vs 2022-26 -0.304, 거의 동일)이나 *level intercept shift* (real rate 상승에도 금 신고가) 가 cb_demand 의 실제 자취"
+  regime_reading: >
+    Investment Clock(regime_to_weights REGIME_DIRECTION) 기준 금 방향 — Reflation:up / Recovery:down
+    / Overheat:up / Stagflation:up. 본질 키는 *실질금리 regime*: real rate 하락국면=금 강세,
+    상승국면=약세. Stagflation(성장↓인플레↑)=실질금리 압착+위기프리미엄=금 최강. Recovery(성장↑
+    실질금리↑위험선호)=금 약세. ★단 2022-2024 는 real rate 상승에도 금 신고가 — 실측은 **변화율 베타
+    유지(decoup 구간 -0.304) + level intercept shift** 가 실체. 중앙은행수요 regime 이 *수준* anchor 만
+    끌어올려 전통 모델 잔차를 양(+)으로 박은 것 — regime 키에 "cb_demand" 보조축 필요.
+  estimation_note: >
+    실데이터 대조(2010-01~2026-05, n=4279일, FRED DFII10/T10YIE/DTWEXBGS + GLD):
+    real_rate↔gold 일별 변화 Pearson 전체 -0.318, pre2020 -0.310, 2022-26 -0.304 (사실상 불변).
+    rolling 252d 부호반전 0회(median -0.349, max -0.009). dollar↔gold 도 -0.310→-0.377 로 오히려 강화.
+    breakeven↔gold 직접 +0.04 로 매우 약함(common_cause 분해 가설 부합). ★결론: **변화율 단위에서
+    decoupling 미관측** — "2024-2026 사상최고 랠리" 의 정체는 EM 중앙은행 매수·지정학·탈달러 구조수요가
+    level intercept 를 끌어올린 *수준* shift 이지, 베타 약화가 아니다. 따라서 (a) real_rate 가중은
+    기존 prior 유지, (b) cb_demand_proxy 신규 driver 로 *level residual* 의 추세 흡수, (c) sys_priors
+    gold loading 절댓값(real=-0.5, dollar=-0.8) 은 일별 corr(-0.32/-0.33) 대비 ~2배 — production 단계
+    factor-model 정합성 별도 검증. 확신도 中상 — 블록5 두 flag 가 OOS 로 이 결론을 끊임없이 갱신한다.
+
+# ───────────────────────────────────────────────────────────────────────────
+# 블록2: INDICATORS (gold=단일자산 → 종목 아닌 macro driver 단위. family=macro_driver/momentum/risk)
+# ───────────────────────────────────────────────────────────────────────────
+indicators:
+  - {id: real_rate_10y, family: macro_driver, is_core: false, in_our_system: false,
+     source_or_collector: "FRED DFII10 (★fred_adapter.FRED_SERIES 에 없음 → 블록7 learn 에서 추가). 금 최강 driver",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: dollar_index, family: macro_driver, is_core: false, in_our_system: false,
+     source_or_collector: "main 선구축 FxStore(DXY/USDKRW) 또는 FRED DTWEXBGS(broad dollar)",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  - {id: breakeven_10y, family: macro_driver, is_core: false, in_our_system: false,
+     source_or_collector: "FRED T10YIE (현 fred_adapter 는 T5YIE breakeven_5y 만 보유 → 10Y 추가)",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: credit_spread_hy_oas, family: macro_driver, is_core: false, in_our_system: true,
+     source_or_collector: "fred_adapter[BAMLH0A0HYM2] credit_spread_hy_oas (이미 보유). 금 safe-haven 채널",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  - {id: gold_mom_12_1, family: momentum, is_core: false, in_our_system: false,
+     source_or_collector: "Yahoo GC=F/GLD (core/data/macro_market collect_macro_fx 확장) 또는 FRED GOLDAMGBD228NLBM. 12-1 가격모멘텀",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  - {id: gold_realized_vol, family: risk, is_core: false, in_our_system: false,
+     source_or_collector: "gold 일수익률 realized vol(자체계산) 또는 CBOE GVZ. 리스크/포지션 스케일",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  - {id: cb_demand_proxy, family: macro_driver, is_core: false, in_our_system: false,
+     source_or_collector: "World Gold Council 중앙은행 분기 순매수(공개치) + GLD ETF holdings. ★블록6 수집 요청. real-rate decoupling 설명축",
+     transform: yoy, vintage_policy: point_in_time, lag: 1}
+
+# ───────────────────────────────────────────────────────────────────────────
+# 블록3: RELATIONSHIPS (partial-corr glasso prior. conditioning_set 필수. force_include ≤4)
+# ───────────────────────────────────────────────────────────────────────────
+relationships:
+  - {node_a: real_rate_10y, node_b: gold_mom_12_1, edge_type: direct,
+     conditioning_set: [dollar_index], lag_routing: contemporaneous, prior_sign: neg, prior_strength: 0.6,
+     theory_basis: "실질금리=무수익자산 보유 기회비용. dollar 고정해야 Fed 공통경로 제거한 순 real-rate beta", force_include: true}
+  - {node_a: dollar_index, node_b: gold_mom_12_1, edge_type: direct,
+     conditioning_set: [real_rate_10y], lag_routing: contemporaneous, prior_sign: neg, prior_strength: 0.5,
+     theory_basis: "금은 USD numeraire — 달러 강세=타통화 표시가격↑→수요↓. real_rate 조건화로 통화정책 공통원인 분리", force_include: true}
+  - {node_a: breakeven_10y, node_b: gold_mom_12_1, edge_type: common_cause,
+     conditioning_set: [real_rate_10y], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.3,
+     theory_basis: "명목금리=real+breakeven 항등식. breakeven↔금은 real_rate 로 매개 → real 조건화하면 직접엣지 약화(분해)", force_include: false}
+  - {node_a: credit_spread_hy_oas, node_b: gold_mom_12_1, edge_type: undetermined,
+     conditioning_set: [real_rate_10y], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.25,
+     theory_basis: "리스크오프 safe-haven(양)이나 유동성위기 초기 동반매도(음) — 국면의존 부호불안정 → undetermined", force_include: false}
+  - {node_a: cb_demand_proxy, node_b: gold_mom_12_1, edge_type: direct,
+     conditioning_set: [real_rate_10y, dollar_index], lag_routing: lagged, prior_sign: pos, prior_strength: 0.4,
+     theory_basis: "중앙은행 구조수요 = real_rate/dollar 로 설명 안 되는 잔차의 driver(2022~ decoupling). 둘 조건화 후 잔차 엣지", force_include: false}
+
+# ───────────────────────────────────────────────────────────────────────────
+# 블록4: WEIGHT_RULES (★최종 산출. gold=단일 sleeve → granularity:sleeve. 종목 단위 없음)
+# ───────────────────────────────────────────────────────────────────────────
+weight_rules:
+  - {indicator_id: real_rate_10y, base_weight: 0.35, modulate_by: [regime],
+     direction: "real-rate 하락 국면(완화/Stagflation)→real_rate beta 가중↑. ★cb_demand decoupling regime 감지 시 가중↓(전통모델 신뢰도 하락)", granularity: sleeve}
+  - {indicator_id: dollar_index, base_weight: 0.20, modulate_by: [regime],
+     direction: "달러 약세 사이클→가중↑. Fed 완화 + 쌍둥이적자 확대 국면에서 real_rate 와 동조 강화", granularity: sleeve}
+  - {indicator_id: credit_spread_hy_oas, base_weight: 0.12, modulate_by: [regime],
+     direction: "리스크오프/Stagflation 국면→safe-haven 가중↑. 단 유동성위기 초기 부호불안정 → flag 로 down-weight", granularity: sleeve}
+  - {indicator_id: breakeven_10y, base_weight: 0.10, modulate_by: [regime],
+     direction: "Overheat/Stagflation 인플레 국면→인플레헤지 가중↑. Recovery 에선 명목금리 상쇄로 가중↓", granularity: sleeve}
+  - {indicator_id: cb_demand_proxy, base_weight: 0.15, modulate_by: [regime],
+     direction: "real-rate decoupling regime(잔차 양 지속)→구조수요 가중↑. 전통 driver 가 설명 못 하는 랠리 보정", granularity: sleeve}
+  - {indicator_id: gold_mom_12_1, base_weight: 0.08, modulate_by: [regime],
+     direction: "추세지속 국면→모멘텀 보조가중. cap 낮게(반사성 위험) — 가격기반이라 is_core=false 준해 약가중", granularity: sleeve}
+
+# ───────────────────────────────────────────────────────────────────────────
+# 블록5: CONFIDENCE_HOOKS (★매 거래 확신/거부 flag→신뢰도 누적→렌즈·가중치 미세변동. affects_indicator=G6 tilt 연결)
+# ───────────────────────────────────────────────────────────────────────────
+confidence_hooks:
+  - hypothesis_id: real_rate_beta_holds
+    affects_indicator: real_rate_10y
+    confirm_signal: "real_rate 하락 시 금 매수 outcome 의 OOS Rank-IC 양(+) 유지 — 전통 anti-real-rate 가설 성립"
+    reject_signal: "real_rate↔금 합성 score Rank-IC e-CUSUM 단측 붕괴 — 임계: rolling 252d Pearson 의 부호반전(≥0) 또는 절댓값 0.10 미만 일수 비율 직전 16y 베이스라인(3.1%) 의 3배 초과(★실측 historic 음전환 0회·median -0.349 기준)"
+    emit_where: "backtest engine SELL outcome + 라이브 judge 사후평가(FlagRouter.on_trade)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess → core/study/flag_router.FlagRouter.emit_from_ic"
+    confidence_metric: "e-value anytime-valid(eprocess_backbone.e_cusum) + FlagAccumulator Beta(α,β) posterior"
+    store: "FlagRouter FlagAccumulator(confidence) + registry 카드 confidence_now(weight.gold.{regime})"
+    action_threshold: "e-value>1/alpha(=20) → real_rate 가중 강화 / 붕괴 → real_rate 가중↓ + cb_demand 로 질량 이전(SECONDARY refit, kill 아님)"
+    feeds_weight: "FlagRouter.tilt_weights(base_weight, series_ids) → study_register._build_card 재적합 → derive_weights"
+  - hypothesis_id: cb_demand_regime
+    affects_indicator: cb_demand_proxy
+    confirm_signal: "★*레벨* 회귀(ln_gold ~ a + b*real_rate + c*ln_dollar) 잔차 추세성분이 cb_demand_proxy 누적순매수와 양의 상관 지속 = level-shift regime 실재(변화율 단위 decoupling 미관측, 16y 안정 — 본 anchor 는 *수준* 잔차에서만 작동)"
+    reject_signal: "중앙은행 순매수 둔화 후 잔차 설명력 소멸 → cb_demand 가중 회수, real_rate 로 복귀"
+    emit_where: "backtest outcome 배치 + 분기 WGC 데이터 갱신 시 judge 사후평가"
+    accumulate_in: "core/study/flag_router.FlagRouter.emit_from_ic(cb_demand_regime)"
+    confidence_metric: "e-value 누적 + 잔차-cb 부분상관 anytime-valid"
+    store: "FlagRouter FlagAccumulator + registry confidence_now"
+    action_threshold: "확신↑ → cb_demand 가중↑ & estimation_note 의 decoupling anchor 강화 / 거부 → real_rate beta 복원"
+    feeds_weight: "tilt_weights → cb_demand_proxy 동적 가중 + lens.estimation_note 갱신 경로"
+  - hypothesis_id: safe_haven_holds
+    affects_indicator: credit_spread_hy_oas
+    confirm_signal: "리스크오프(HY OAS 확대) 시 금 방어 outcome Rank-IC 양 — safe-haven 채널 성립"
+    reject_signal: "유동성위기 동반매도로 HY OAS↔금 Rank-IC 음전환/붕괴 → safe-haven 가정 부분기각"
+    emit_where: "backtest SELL outcome(위기 구간) + 라이브 judge"
+    accumulate_in: "core/study/flag_router.FlagRouter.emit_from_ic(safe_haven_holds)"
+    confidence_metric: "e-value anytime-valid(단측 붕괴)"
+    store: "FlagRouter FlagAccumulator + registry confidence_now"
+    action_threshold: "붕괴 → credit_spread_hy_oas 가중↓(위기초기 band 보수) / 유지 → safe-haven 가중 유지"
+    feeds_weight: "tilt_weights → credit_spread_hy_oas 가중 변조"
+
+# ───────────────────────────────────────────────────────────────────────────
+# 블록6: COLLECTOR_PLAN (없는 자료 → main 요청. 단 가용분으로 분석 진행, 멈추지 않음)
+# ───────────────────────────────────────────────────────────────────────────
+collector_plan:
+  - {missing: "10Y 실질금리 real_rate_10y (금 최강 driver)", source: "FRED DFII10", interface: VintageProvider, credential: none}
+  - {missing: "10Y 기대인플레 breakeven_10y", source: "FRED T10YIE", interface: VintageProvider, credential: none}
+  - {missing: "broad dollar index", source: "FRED DTWEXBGS 또는 main FxStore", interface: FxStore, credential: none}
+  - {missing: "금 현물가 시계열", source: "Yahoo GC=F/GLD(collect_macro_fx 확장) 또는 FRED GOLDAMGBD228NLBM", interface: VintageProvider, credential: none}
+  - {missing: "중앙은행 분기 순매수 cb_demand_proxy(decoupling 핵심)", source: "World Gold Council 공개 분기데이터 + GLD ETF holdings", interface: new, credential: "WGC 일부 공개·전체는 유료 — main 협의"}
+
+# ───────────────────────────────────────────────────────────────────────────
+# 블록7: CODE_CHANGE_PLAN (§4 4단계 — 실제 Read 한 파일·심볼 기준)
+# ───────────────────────────────────────────────────────────────────────────
+code_change_plan:
+  - {stage: learn, file: core/brain/fred_adapter.py, symbol: FRED_SERIES,
+     current: "17 시리즈 보유, 실질금리(DFII10)·10Y breakeven(T10YIE)·dollar 부재 — 금 핵심 driver 누락",
+     change: "FRED_SERIES 에 DFII10:real_rate_10y, T10YIE:breakeven_10y, DTWEXBGS:dollar_index 추가(dict 항목). 금 driver 패널 완성",
+     risk: "dict 추가만 = 무회귀(기존 분류기 입력 불변, 신규 키만 노출). SACRED 무저촉"}
+  - {stage: learn, file: core/data/weight_panel.py, symbol: "build_indicator_matrix / assert_no_reflexive_series",
+     current: "series_ids → 시점×지표 PIT 행렬. _REFLEXIVE_WORDS 반사성 게이트(포지션/체결/PnL 차단)",
+     change: "gold 블록2 id(real_rate_10y/dollar_index/breakeven_10y/credit_spread_hy_oas/cb_demand_proxy) 를 series_ids 로 등록. 반사성 단어 미포함 확인됨(gold_mom 은 가격기반이나 own_history 라 통과) → 게이트 통과",
+     risk: "series_ids 추가만. is_reflexive 사전검증으로 lookahead 무회귀. cb_demand lag=1 PIT 준수"}
+  - {stage: card, file: core/assume/weight_card.py, symbol: "WeightAssumptionCard / derive_weights / composed_weights",
+     current: "regime별 정량 비중 카드 w∝Ω·IC+1/N+cap. delta_regime/delta_arch 계층풀링",
+     change: "gold 카드 scope=commodity(study_register._domain_of), granularity=sleeve(종목없음). real-rate decoupling 은 delta_regime 으로 cb_demand regime 가중이전. lens.report_relations 를 judge 주입 statement 로 박제",
+     risk: "필드 추가·신규 카드 id(weight.gold.{regime}). 미제공 시 기존 L1 경로 무회귀(opt-in INV_R15_WEIGHTS)"}
+  - {stage: inject, file: core/assume/judge.py, symbol: "judge(weight_card, indicator_z, lens_prompt) / synthesize_l1 호출부 / assert_ceiling_invariant",
+     current: "weight_card+indicator_z 제공 시 S_L1=synthesize_l1(z,w). lens_prompt+qwen_hook lens 파라미터 시 LLM 컨텍스트 주입. 천장 불변식 down-only",
+     change: "gold 은 종목 아닌 sleeve → stock_track 보다 regime_to_weights 1차. 단 R15 카드의 driver z 합성으로 sleeve 비중 미세조정. judge 에 gold lens_prompt 주입(real_rate/dollar/decoupling 읽기). down-only 보존",
+     risk: "opt-in(lens_prompt 없으면 무회귀). 천장 불변식 불변 — lens 는 attenuator 입력 컨텍스트일 뿐"}
+  - {stage: inject, file: core/brain/regime_to_weights.py, symbol: "SLEEVES / REGIME_DIRECTION / SLEEVE_BLOC",
+     current: "gold 이미 sleeve(BASE_WEIGHTS 0.08, Bloc.USD). REGIME_DIRECTION 정적(Reflation/Overheat/Stagflation:up, Recovery:down)",
+     change: "정적 REGIME_DIRECTION[*][gold] 을 study 카드의 driver-합성 동적 비중으로 보강(belief 조건부). cb_demand decoupling regime 시 gold up-grade 유지·강화",
+     risk: "기존 정적표 fallback 보존(study 카드 부재 시). belief 경로 opt-in 무회귀"}
+  - {stage: falsify, file: core/assume/weight_falsification.py, symbol: "score_ic_breakdown_eprocess / omega_drift / evaluate_weight_card",
+     current: "PRIMARY=score IC e-CUSUM 단측 붕괴 kill / SECONDARY=Ω drift re-fit. update_controller RETIRE/TRANSITION 라우팅",
+     change: "블록5 3 flag(real_rate_beta_holds/cb_demand_regime/safe_haven_holds)를 emit_from_ic 로 연결. ★real_rate decoupling 은 PRIMARY kill 아닌 SECONDARY refit(real_rate→cb_demand 질량이전)로 라우팅 — 금 특유: driver 교체지 가정 폐기 아님",
+     risk: "flag emit 추가만 self-test. decoupling=refit 분기로 과민 kill 방지(유동성위기 일시 음전환에 카드 죽이지 않음)"}
+  - {stage: falsify, file: core/assume/update_controller.py, symbol: "UpdateController.step / retract_now",
+     current: "retract=빠름(disjunctive) / adopt=느림(5조건 AND, dwell·K-window)",
+     change: "gold 가정 adopt dwell 길게(regime 전환 느림·구조수요 천천히). decoupling regime 채택은 K-window 확대(잔차 지속성 요구)로 노이즈 방지",
+     risk: "파라미터 조정만(dwell/K). 기본값 미변경 자산은 무영향"}
