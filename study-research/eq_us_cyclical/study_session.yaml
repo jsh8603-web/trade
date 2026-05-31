@@ -1,28 +1,39 @@
 study_id: eq_us_cyclical
 asset_scope: [equity.us]
 as_of: "2026-05-31"
-version: v3
+version: v4
 basis_raw:
   - raw/round-{1,2,3}-{question,gemini,claude}.md  # 자문 다회 (Gemini + Claude, 3R 수렴)
   - raw/theory-notes.md                            # 이론 학습 (Damodaran/Chancellor/GZ/Grinold/Hamilton 6 최상위)
   - raw/validation-H{3,4,5}.md + validation-H1-H6-deferred.md  # 실데이터 검증 (v2)
   - raw/validation-metrics.json + run_validation.py + fred/*.csv + yfinance/sector_etf_close.csv
-  # ★v3 신규
+  # v3 신규
   - raw/m3-findings.md + m3-metrics.json + m3_analysis.py    # M3 거시연관 분석 (4 epoch × 산업 driver loading)
   - raw/industry-{semi,materials,industrials,energy}-delta.md  # 4 산업 δ_regime/δ_arch 산출
   - raw/industry-delta-synthesis.md + industry-delta-metrics.json  # 12축 audit-ready synthesis
   - raw/long-frame-scenarioA.md + scenarioA_metrics.json + long_frame_scenarioA.py  # 24.8년 시나리오 A (Newey-West HAC + Bonferroni)
   - raw/pit-vintage-prescan.md + long-frame-prescan.md  # ALFRED + 장기 frame 사전조사
+  # ★v4 신규 — main Verify stage 산출 (격하 reference)
+  - raw/verify_delta.py + verify-delta-metrics.json  # G2 stationary bootstrap + G4 LOEO + K Bonferroni/FDR + 산업 자체 vol
 note: |
-  ★v3 = v2 핵심 보존 + main 합의 5건 반영 (2026-05-31 btn-Codlearn 회신).
-  - v2 (2026-05-30) = 17 indicators + 9 relationships + 12 weight_rules + 4단계 code_change_plan 보존.
-  - v3 신규 = industry × regime δ matrix (4 산업 × 4 epoch) + scenarioA long-frame β 비교 + collector 우선순위 갱신.
-  main 합의 5건 (synthesis §7 R15.1~R15.8 → yaml v3):
-    (1) 공식 의도 = direction-aware (B 안). XLE anti-cyclical 본성에서 A 안 (sign×Sharpe) 폐기.
-    (2) clip = 옵션 C 확정. cyclical_core (XLB/XLI) 만 R15 cap [-0.15, +0.15]. XLE/SOXX outlier = composed_weights 외 별도 sleeve allocation key.
-    (3) XLE/SOXX 별도 key = 점진 (코드폭 큼). v3 round = cyclical_core (XLB/XLI) δ_regime 만 활성, XLE/SOXX 별도 sleeve key = 후속 round (deferred).
-    (4) δ_arch 23종 등록 OK. collector 우선순위 = energy 4종 (즉시 가용) → materials → EDGAR → industrials 최후.
-    (5) Verify stage 주체 = main (G2 stationary bootstrap + G4 LOEO OOS + K Bonferroni + 산업 vol). 12축 audit subagent.
+  ★v4 = v3 격하 보수 (main Verify stage PARTIAL 회신 2026-05-31, btn-Codlearn).
+  v3 → v4 격하 의무 5건:
+    (1) δ_regime ±0.15 magnitude 박제 금지 → regime_tag 부호 prior 만 유효, magnitude freeze
+        - prior_tier = structural_prior_low_confidence, validated_alpha = false
+        - 근거: G2 stationary bootstrap = 14/16 CI cross-zero (heuristic Gaussian CI 가 10-30배 underestimate)
+        - 근거: K Bonferroni α/16=0.003125 = 0/16 생존, BH = 0/16 생존
+    (2) direction-aware B 안 공식 유효하나 부호 prior 까지만 (magnitude 미지지)
+        - clip [-0.15, +0.15] 박제 폐기, James-Stein λ 적용 보류 (magnitude 박제 X)
+    (3) heuristic sleeve-proxy CI 폐기 → 산업 자체 vol 기반 SE 사용
+        - 실측 산업 vol vs sleeve_vol: SOXX 1.5~1.7배, XLE 1.3~1.5배, XLB/XLI ≈ 1배
+        - heuristic 이 SOXX 1.6배 / XLE 1.3배 underestimate 확정
+    (4) δ_regime live 적용 = live regime 분류기 OOS 검증 선행 조건
+        - 근거: G4 leave-one-epoch-out OOS = 부호일치 4/16 < chance (8/16), R²_OOS 4/4 산업 음수
+        - 함의: 현 epoch 라벨은 사후 (post-hoc) 분류, live trading 적용 시 regime tag 자체의 predictive 검증 필요
+        - 결론: δ_regime = descriptive (epoch 사후 평균), NOT predictive
+    (5) XLE 별도 sub-sleeve = 부호근거 지지, magnitude 미지지 (E1/E3 sleeve 부호 반대 outperform 본성 보존)
+  v3 (2026-05-31) = main 합의 5건 반영 + industry × regime δ matrix + scenarioA long-frame β + collector 우선순위.
+  v2 (2026-05-30) = 17 indicators + 9 relationships + 12 weight_rules + 4단계 code_change_plan 보존.
   v2 H1/H6 DEFERRED + H3/H5 REJECT + H4 PARTIAL 보존. EDGAR 적재 후 재검증 의무.
 
 # ============================================================================
@@ -327,74 +338,70 @@ code_change_plan:
 # 추가 input = scenarioA long-frame 비교 (raw/long-frame-scenarioA.md)
 # ============================================================================
 industry_regime_delta:
+  # ★v4 격하 — magnitude 박제 폐기, 부호 prior 만 유효
+  trust_tier:
+    label: structural_prior_low_confidence
+    validated_alpha: false
+    rationale: |
+      ★v4 격하 근거 (main Verify stage PARTIAL 회신):
+      - G2 stationary bootstrap: 14/16 cell CI cross-zero (E2 SOXX / E4 XLI 만 cross-zero=false)
+      - K Bonferroni α/16=0.003125: 0/16 cell 생존
+      - K BH FDR: 0/16 cell 생존
+      - G4 LOEO OOS: 부호일치 4/16 (chance 8/16 미만), R²_OOS 4/4 산업 음수
+      → δ_regime = descriptive (epoch 사후 평균), NOT predictive
+
   formula:
-    intent: "direction-aware (B 안)"
-    formula: "point = epoch_ann_return / 100, clipped to clip_range"
+    intent: "direction-aware (B 안) — 부호 prior 까지만 유효, magnitude 미지지"
+    formula_sign_only: "regime_tag → sign(δ_regime) ∈ {+1, 0, -1}, magnitude freeze"
     deprecated_A: "ann_ret × sign(Sharpe_cyc) / 100 — XLE anti-cyclical 본성 정 반대 표현으로 폐기"
-    rationale: "synthesis §1.2 + scenarioA frame-conditional bias 비교. XLE β_dxy 부호 (-0.70 long-frame robust) sleeve 와 일치, direction-aware 적합"
+    deprecated_v3_magnitude: "★v4 폐기 — clip [-0.15, +0.15] 매트릭스 직접 박제 금지. Verify 사후 14/16 CI cross-zero / 0/16 Bonferroni / R²_OOS 음수 = magnitude predictive 신호 부재"
+    rationale: |
+      B 안 부호 prior 의 도메인 정합 = XLE anti-cyclical 본성 (E1/E3 sleeve 부호 반대 outperform) 보존,
+      4 산업 부호 prior 도메인 정합 (synthesis §1.2). 단 magnitude (±0.15 clip 값) = Verify 검증 사후 데이터 미지지.
 
-  clip_strategy:
-    main_decision: "옵션 C 확정"
-    cyclical_core:
-      members: [XLB, XLI]
-      clip_range: [-0.15, 0.15]
-      shrinkage: james_stein
-      status: "★v3 활성"
-    cyclical_amplifier:
-      members: [SOXX]
-      clip_range: [-0.30, 0.30]
-      shrinkage: none
-      status: "deferred (코드폭 큼) — 별도 sleeve allocation key 신설 후속 round"
-      rationale: "cycle amplifier (β_to_sleeve ~1.5), shrinkage 적용 시 신호 손실"
-    cyclical_oil_hedge:
-      members: [XLE]
-      clip_range: [-0.30, 0.30]
-      shrinkage: none
-      status: "deferred (코드폭 큼) — 별도 sleeve allocation key 신설 후속 round"
-      rationale: "anti-cyclical hedge (E1/E3 sleeve 부호 반대 outperform), sleeve_mean shrinkage 시 신호 손실"
-
-  delta_regime_matrix:
-    note: "★v3 round 활성 = cyclical_core (XLB/XLI) 만 R15 cap 반영. SOXX/XLE = deferred (별도 sleeve key)"
-    # B 안 (direction-aware), clip [-0.15, +0.15]
+  sign_prior_matrix:
+    # ★v4 = 부호 (+1/-1/0) prior 만, magnitude freeze
+    note: "Verify PARTIAL 회신 후 magnitude 박제 폐기. live 적용 = live regime 분류기 OOS 검증 선행 조건 (G4 R²_OOS 음수 실증)"
     cyclical_core:
       XLB:
-        E1_tightening_shock: -0.150  # unclipped -0.304, clip floor
-        E2_transition_rally: +0.150  # unclipped +0.333, clip ceiling
-        E3_rate_re_rise:     -0.150  # unclipped -0.213, clip floor
-        E4_pivot_cuts:       +0.114  # unclipped +0.114, magnitude 보존 ★
+        E1_tightening_shock: -1  # 긴축 epoch sleeve 약세 동행
+        E2_transition_rally: +1  # 전환 epoch sleeve 강세 동행
+        E3_rate_re_rise:     -1  # rate 재상승 epoch 동행
+        E4_pivot_cuts:       +1  # pivot epoch 강세 동행 (단 magnitude 약 +0.114 unclipped, 부호만 유효)
       XLI:
-        E1_tightening_shock: -0.150  # unclipped -0.268, clip floor
-        E2_transition_rally: +0.150  # unclipped +0.442, clip ceiling
-        E3_rate_re_rise:     -0.150  # unclipped -0.218, clip floor
-        E4_pivot_cuts:       +0.150  # unclipped +0.308, clip ceiling
-    # deferred (별도 sleeve key 신설 후속 round)
-    deferred_separate_sleeve_key:
+        E1_tightening_shock: -1
+        E2_transition_rally: +1
+        E3_rate_re_rise:     -1
+        E4_pivot_cuts:       +1
+    cyclical_amplifier_deferred:
       SOXX:
-        unclipped: {E1: -0.504, E2: +0.887, E3: -0.326, E4: +0.396}
-        proposed_clip: [-0.30, 0.30]
-        proposed_clipped: {E1: -0.300, E2: +0.300, E3: -0.300, E4: +0.300}
+        E1_tightening_shock: -1
+        E2_transition_rally: +1
+        E3_rate_re_rise:     -1
+        E4_pivot_cuts:       +1
+        note: "cycle amplifier 본성 (부호 동행 + magnitude 큼) — 별도 sleeve key 신설 후속 round, magnitude 미지지"
+    cyclical_oil_hedge_deferred:
       XLE:
-        unclipped: {E1: +0.479, E2: +0.222, E3: +0.180, E4: +0.042}
-        proposed_clip: [-0.30, 0.30]
-        proposed_clipped: {E1: +0.300, E2: +0.222, E3: +0.180, E4: +0.042}
-        anti_cyclical_note: "E1/E3 sleeve 부호 반대 outperform 보존 (B 안 direction-aware)"
+        E1_tightening_shock: +1  # ★ anti-cyclical, sleeve 부호 반대 outperform (긴축 epoch 에 XLE 강세)
+        E2_transition_rally: +1
+        E3_rate_re_rise:     +1  # ★ anti-cyclical, sleeve 부호 반대 outperform
+        E4_pivot_cuts:       +1
+        note: "anti-cyclical hedge 본성 (E1/E3 sleeve 부호 반대) — 별도 sleeve key 신설 후속 round, magnitude 미지지"
 
-  james_stein_shrinkage:
-    cyclical_core:
-      method: james_stein
-      formula: "shrunk = λ × cell + (1-λ) × cyclical_core_mean"
-      lambda_by_epoch:
-        E1: 0.97
-        E2: 1.00
-        E3: 0.93
-        E4: 0.99
-      note: "λ ≈ 1.0 (산업 간 이질성 큼) → cell 추정 거의 그대로. shrinkage 효과 미미하나 graceful degradation 의무 보존"
-    cyclical_amplifier:
-      method: none
-      rationale: "1 산업 단독 (SOXX), deferred"
-    cyclical_oil_hedge:
-      method: none
-      rationale: "1 산업 단독 (XLE), anti-cyclical 본성으로 shrinkage 시 신호 손실, deferred"
+  # ★v4 = magnitude 박제 매트릭스 + clip_strategy + james_stein_shrinkage 폐기
+  # (Verify 사후 magnitude predictive 신호 부재로 live 적용 차단)
+  magnitude_freeze_reason:
+    bootstrap_ci_cross_zero: "14/16 cells (E2|SOXX + E4|XLI 만 cross-zero=false)"
+    bonferroni_survivors: "0/16 (α=0.003125)"
+    bh_fdr_survivors: "0/16"
+    oos_sign_match: "4/16 < chance 8/16"
+    r2_oos: "4/4 산업 음수 (SOXX -0.0067, XLB -0.0053, XLI -0.0092, XLE -0.0016)"
+
+  live_application_prerequisite:
+    statement: "δ_regime live 적용 = live regime 분류기 OOS 검증 선행 조건"
+    rationale: "현 epoch 라벨은 사후 (post-hoc) 분류. G4 LOEO R²_OOS 음수 = 사후 epoch 평균이 holdout epoch 예측에 무효 = sleeve 사후라벨 의존 실증"
+    required_validation: "live regime 분류기 (M1 timeline layer) 의 walk-forward OOS Rank-IC ≥ 0.03 + t-stat ≥ 2.0 (HAC 보정) 통과 필수"
+    until_then: "δ_regime 부호 prior = 사후 평균 ground truth 로만 사용 (backtest reference), live trading 가산 미적용"
 
   delta_arch_candidates:
     total: 23
@@ -480,22 +487,58 @@ industry_regime_delta:
       - "ΔR² XLE = -0.231 (M3 0.406 → long 0.175, 절반 frame-specific) = XLE 별도 sub-sleeve motivation reinforce"
     trust_tier: "structural_prior_low_confidence — raw β prior 박제 X, frame-conditional bias 비교 reference only"
 
-  verify_stage_handoff:
+  verify_stage_completed:
+    # ★v4 = main Verify stage 완료 (2026-05-31 PARTIAL 회신)
     owner: "main (12축 audit subagent)"
-    tasks:
-      - "G2 stationary bootstrap (Politis-Romano block √n) 정확 CI"
-      - "G4 leave-one-epoch-out OOS (R²_OOS vs R²_IS)"
-      - "K Bonferroni / FDR 16 cell 보정"
-      - "산업 자체 epoch vol 산출 (현재 sleeve vol proxy)"
-      - "Chow / Bai-Perron break detection (시나리오 E)"
-      - "regime-conditional β transferability (시나리오 D, regime tag group 분류)"
+    verdict: PARTIAL
+    completed_tasks:
+      G2_stationary_bootstrap:
+        method: "Politis-Romano stationary block bootstrap"
+        result_summary: "14/16 cells CI cross-zero (E2|SOXX + E4|XLI 만 비 cross-zero)"
+        heuristic_vs_bootstrap: "heuristic Gaussian CI (synthesis §3) 가 10-30배 underestimate (SOXX 1.6배 / XLE 1.3배 vol underestimate)"
+        sleeve_vol_proxy_status: "★폐기 — 산업 자체 vol 기반 SE 사용 의무"
+      G4_leave_one_epoch_out_OOS:
+        method: "leave-one-epoch-out cross-validation"
+        oos_sign_match: "4/16 cells (chance level = 8/16, < chance)"
+        r2_is_vs_r2_oos:
+          SOXX: {r2_is: 0.00826, r2_oos: -0.00668}
+          XLB:  {r2_is: 0.00679, r2_oos: -0.00530}
+          XLI:  {r2_is: 0.01120, r2_oos: -0.00919}
+          XLE:  {r2_is: 0.00141, r2_oos: -0.00160}
+        interpretation: "R²_OOS 4/4 산업 음수 → sleeve 사후라벨 epoch δ_regime = descriptive (post-hoc), NOT predictive"
+      K_multiple_comparison:
+        bonferroni_alpha: 0.003125
+        bonferroni_survivors: "0/16 cells"
+        bh_fdr_survivors: "0/16 cells"
+        rationale: "16 cell 동시 비교 보정 후 통계적 유의 cell 0건"
+      industry_specific_vol:
+        sleeve_vol_E1: 0.2555
+        sleeve_vol_E2: 0.2125
+        sleeve_vol_E3: 0.1296
+        sleeve_vol_E4: 0.1413
+        SOXX_vol_ratio_to_sleeve:  {E1: 1.68, E2: 1.71, E3: 1.97, E4: 2.37, mean: 1.6}
+        XLE_vol_ratio_to_sleeve:   {E1: 1.42, E2: 1.33, E3: 1.54, E4: 1.27, mean: 1.3}
+        XLB_vol_ratio_to_sleeve:   {E1: 0.95, E2: 1.04, E3: 1.13, E4: 0.98, mean: 1.0}
+        XLI_vol_ratio_to_sleeve:   {E1: 0.84, E2: 0.89, E3: 0.97, E4: 0.95, mean: 0.9}
+    deferred_tasks:
+      - "Chow / Bai-Perron break detection (시나리오 E) — 후속 round"
+      - "regime-conditional β transferability (시나리오 D, regime tag group 분류) — 후속 round"
+    hard_fail_invalidation: false
+    conditional_demotion: |
+      ±0.15 clip 값 yaml 박제 금지 = ★v4 핵심.
+      magnitude freeze + 부호 prior 만 유효.
+      live 적용 = live regime 분류기 OOS 검증 선행 조건.
 
   unresolved_for_followup_round:
-    - "XLE/SOXX 별도 sleeve allocation key 신설 (composed_weights 외) — 코드폭 큼"
-    - "long-frame rolling 60M window (시나리오 B) — Verify stage"
+    - "★live regime 분류기 OOS 검증 (Rank-IC ≥ 0.03 + t-stat ≥ 2.0 HAC 보정) — δ_regime live 적용 선행 조건 (M1 layer)"
+    - "★δ_regime magnitude 회복 path = live regime 분류기 OOS 통과 + Bonferroni 16 cell 보정 후 ≥1 cell 생존 (현재 0/16)"
+    - "XLE/SOXX 별도 sleeve allocation key 신설 (composed_weights 외) — 부호근거 지지, magnitude 미지지로 코드폭 보류"
+    - "long-frame rolling 60M window (시나리오 B) — Verify stage 후속"
     - "장기 frame 확장 시 M1 timeline epoch 14개 확장 — M1 layer 별도"
     - "ETF holdings drift caveat (SOXX NVDA dominant post-2023 / XLE shale-pure-play post-2014)"
     - "individual stock cohort analysis (EDGAR 적재 후 sub-archetype 별 종목 cohort 추적)"
+    - "Chow / Bai-Perron break detection (시나리오 E) — Verify stage 후속"
+    - "regime-conditional β transferability (시나리오 D, regime tag group 분류) — Verify stage 후속"
 
 # ============================================================================
 # STATUS (v3 진행 추적)
@@ -514,8 +557,12 @@ status:
     - "★v3 scenarioA long-frame 24.8년 단일회귀 (Newey-West HAC lag=9 + Bonferroni α/12, n=5937): M3 frame β magnitude frame-specific bias 정량 확인"
     - "★v3 사전조사 2종 (raw/pit-vintage-prescan.md + long-frame-prescan.md): ALFRED scope + 장기 frame robustness 시나리오 5종 인벤토리"
     - "★v3 main 합의 5건 반영: 공식 direction-aware / clip 옵션 C / cyclical_core 활성 + XLE-SOXX 후속 / δ_arch 23종 + energy collector 우선 / Verify main 위임"
+    # ★v4 신규 (격하 반영)
+    - "★v4 main Verify stage 완료 회신 수신 (verdict PARTIAL): G2 14/16 CI cross-zero / Bonferroni 0/16 / BH 0/16 / G4 LOEO R²_OOS 4/4 산업 음수 / 부호일치 4/16 < chance"
+    - "★v4 격하 5건 반영: magnitude freeze + structural_prior_low_confidence + validated_alpha=false / B 안 부호 prior 만 / heuristic CI 폐기 + 산업 자체 vol / live regime 분류기 OOS 선행 / XLE 부호근거 지지 magnitude 미지지"
+    - "★v4 verify_delta.py + verify-delta-metrics.json basis_raw 추가, sign_prior_matrix +1/-1 만 박제 (magnitude 제거)"
   todo:
-    - "★main Verify stage 착수 trigger 대기 (yaml v3 commit 후)"
+    - "★main 측 live regime 분류기 OOS 검증 (Rank-IC ≥ 0.03 + t-stat ≥ 2.0 HAC) — δ_regime live 적용 선행 조건"
     - "★main 측 EDGAR 분기 펀더 + Damodaran implied ERP 적재 (블록6 우선순위 1) — H1·H6 backbone 재검증 + δ_arch 14종 deferred 활성"
     - "★main 측 energy collector priority 0 적재 (FRED BKR + EIA shale + IEA OPEC + CME crack spread) — energy δ_arch 즉시 활성"
     - "★ALFRED CFNAI 적재 (priority 1.5) — H3 PIT 재검증"
