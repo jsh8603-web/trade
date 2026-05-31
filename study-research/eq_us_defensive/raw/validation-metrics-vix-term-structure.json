@@ -1,0 +1,201 @@
+{
+  "date": "2026-06-01",
+  "hypothesis": "H-VIXTS VIX term structure (VIX3M/VIX) → 방어주 상대강세",
+  "spec": {
+    "signal": "ratio_3m_vix = VIX3M / VIX (own-history 252d z-score)",
+    "prior_sign": "backwardation(ratio<1) → def_excess↑ ⇒ corr(ratio_z, def_excess) 음",
+    "def_pure_sleeve": [
+      "XLP",
+      "XLU",
+      "XLV"
+    ],
+    "fin_sleeve": [
+      "XLF"
+    ],
+    "portfolio_label": "미국 방어주 + 금융주 sleeve"
+  },
+  "data": {
+    "VIX_30d": {
+      "source": "FRED VIXCLS",
+      "n": 9196,
+      "range": "1990-01-02~2026-05-28"
+    },
+    "VIX3M": {
+      "source": "yfinance ^VIX3M",
+      "n": 4651,
+      "range": "2007-12-03~2026-05-29",
+      "note": "★binding window — term ratio 2007-12~"
+    },
+    "VIX9D": {
+      "source": "yfinance ^VIX9D",
+      "n": 3874,
+      "range": "2011-01-03~2026-05-29"
+    },
+    "term_ratio_panel": {
+      "n": 4650,
+      "range": "2007-12-03~2026-05-28"
+    }
+  },
+  "adf_pretest": {
+    "ratio_3m_vix_level": {
+      "adf_stat": -8.2733,
+      "p_adf": 0.0,
+      "n": 4650,
+      "class": "I(0) stationary"
+    },
+    "ratio_vix_9d_level": {
+      "adf_stat": -6.8772,
+      "p_adf": 0.0,
+      "n": 3873,
+      "class": "I(0) stationary"
+    },
+    "VIX_level": {
+      "adf_stat": -5.5306,
+      "p_adf": 0.0,
+      "n": 4650,
+      "class": "I(0) stationary"
+    },
+    "ratio_z_252d": {
+      "adf_stat": -10.368,
+      "p_adf": 0.0,
+      "n": 4399,
+      "class": "I(0) stationary"
+    }
+  },
+  "b_rank_ic_contemp_vs_forward": {
+    "ratio_z::DEF_PURE::contemp": {
+      "rank_ic": -0.1407,
+      "nw_hac_t": -9.597,
+      "p": 0.0,
+      "n": 4398,
+      "raw_sig": true,
+      "bonferroni_sig": true
+    },
+    "ratio_z::DEF_PURE::fwd_5d": {
+      "rank_ic": 0.0232,
+      "nw_hac_t": 0.816,
+      "p": 0.41423,
+      "n": 4391,
+      "raw_sig": false,
+      "bonferroni_sig": false
+    },
+    "ratio_z::DEF_PURE::fwd_20d": {
+      "rank_ic": -0.0105,
+      "nw_hac_t": -0.233,
+      "p": 0.81614,
+      "n": 4376,
+      "raw_sig": false,
+      "bonferroni_sig": false
+    },
+    "ratio_z::FIN::contemp": {
+      "rank_ic": 0.0337,
+      "nw_hac_t": 2.386,
+      "p": 0.01705,
+      "n": 4398,
+      "raw_sig": true,
+      "bonferroni_sig": false
+    },
+    "ratio_z::FIN::fwd_5d": {
+      "rank_ic": 0.0207,
+      "nw_hac_t": 0.741,
+      "p": 0.45883,
+      "n": 4391,
+      "raw_sig": false,
+      "bonferroni_sig": false
+    },
+    "ratio_z::FIN::fwd_20d": {
+      "rank_ic": 0.0692,
+      "nw_hac_t": 1.486,
+      "p": 0.13716,
+      "n": 4376,
+      "raw_sig": false,
+      "bonferroni_sig": false
+    }
+  },
+  "multiple_comparison": {
+    "m": 6,
+    "alpha_bonferroni": 0.00833
+  },
+  "c_regime_split_welch": {
+    "DEF_PURE": {
+      "backwardation": {
+        "n": 478,
+        "mean_daily": 0.002456,
+        "ci95": [
+          0.001504,
+          0.003276
+        ],
+        "p_block": 0.0
+      },
+      "contango": {
+        "n": 4171,
+        "mean_daily": -0.000375,
+        "ci95": [
+          -0.000557,
+          -0.000198
+        ],
+        "p_block": 0.0
+      },
+      "welch_t": 4.93,
+      "welch_p": 0.0,
+      "gap_bw_minus_co_daily": 0.002831
+    },
+    "FIN": {
+      "backwardation": {
+        "n": 478,
+        "mean_daily": -0.002305,
+        "ci95": [
+          -0.004142,
+          -0.000678
+        ],
+        "p_block": 0.0072
+      },
+      "contango": {
+        "n": 4171,
+        "mean_daily": 5.2e-05,
+        "ci95": [
+          -0.00017,
+          0.000291
+        ],
+        "p_block": 0.6324
+      },
+      "welch_t": -2.253,
+      "welch_p": 0.02472,
+      "gap_bw_minus_co_daily": -0.002357
+    }
+  },
+  "d_overlap_with_existing_factors": {
+    "d_DFII10": {
+      "corr_ratio": 0.0206,
+      "p": 0.17396,
+      "corr_ratio_z": 0.0028,
+      "p_z": 0.8514,
+      "n": 4365
+    },
+    "d_BAA10Y": {
+      "corr_ratio": -0.1143,
+      "p": 0.0,
+      "corr_ratio_z": -0.1471,
+      "p_z": 0.0,
+      "n": 4365
+    },
+    "VIX_level": {
+      "corr_ratio_vs_VIX": -0.6556,
+      "p": 0.0
+    }
+  },
+  "oos_half_split": {
+    "first_half": {
+      "rank_ic_def_excess": -0.1344,
+      "n": 2199,
+      "period": "2008-12-01~2017-08-24"
+    },
+    "second_half": {
+      "rank_ic_def_excess": -0.1504,
+      "n": 2200,
+      "period": "2017-08-25~2026-05-28"
+    }
+  },
+  "oos_sign_consistent": true,
+  "seed": 20260601
+}
