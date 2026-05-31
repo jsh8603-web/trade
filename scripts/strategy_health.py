@@ -23,55 +23,36 @@ from __future__ import annotations
 
 import json
 import math
-import os
 import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
-import requests
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
+from core.db import db
+
 STATE_FILE = PROJECT_DIR / "data" / "strategy_health.json"
 KST = timezone(timedelta(hours=9))
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-
-
-def _headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-
-
 def _fetch_recent_decisions(days: int = 7) -> list[dict]:
-    """Supabase에서 최근 N일간 매매 결정을 조회한다."""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return []
-
+    """로컬 DB에서 최근 N일간 매매 결정을 조회한다."""
     since = (datetime.now(KST) - timedelta(days=days)).isoformat()
-    url = (
-        f"{SUPABASE_URL}/rest/v1/decisions"
-        f"?select=decision,confidence,outcome_4h_pct,outcome_24h_pct,"
-        f"was_correct_4h,created_at,agent_name"
-        f"&created_at=gte.{since}"
-        f"&decision=in.(buy,sell)"
-        f"&order=created_at.desc"
-    )
-
     try:
-        resp = requests.get(url, headers=_headers(), timeout=15)
-        if resp.status_code == 200:
-            return resp.json()
+        return db.select(
+            "decisions",
+            filters={"created_at": f"gte.{since}", "decision": "in.(buy,sell)"},
+            order="created_at.desc",
+            select=(
+                "decision,confidence,outcome_4h_pct,outcome_24h_pct,"
+                "was_correct_4h,created_at,agent_name"
+            ),
+        )
     except Exception:
-        pass
-    return []
+        return []
 
 
 def _calc_win_rate(decisions: list[dict]) -> float:

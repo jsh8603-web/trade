@@ -21,20 +21,19 @@ Phase 7-12 (feedback_hub, dynamic_risk, strategy_health, regime_learner)가
 
 from __future__ import annotations
 
-import os
+import sys
 import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
-import requests
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from core.db import db
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 KST = timezone(timedelta(hours=9))
-
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 # 캐시 TTL (초) — 같은 프로세스 내에서 10분간 유효
 _CACHE_TTL = 600
@@ -47,16 +46,8 @@ _cache: dict = {
 }
 
 
-def _headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-
-
 def prefetch_decisions(max_days: int = 30) -> bool:
-    """Supabase decisions 테이블을 1회 조회하여 캐시에 저장한다.
+    """decisions 테이블을 1회 조회하여 캐시에 저장한다.
 
     Phase 7-12에서 사용하는 모든 컬럼을 포함한다:
       - feedback_hub: confidence, was_correct_4h, outcome_4h_pct, source, market_data_snapshot
@@ -68,38 +59,27 @@ def prefetch_decisions(max_days: int = 30) -> bool:
     Returns:
         True if fetch succeeded
     """
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return False
-
     cutoff = (datetime.now(timezone.utc) - timedelta(days=max_days)).isoformat()
 
     try:
         # 통합 SELECT: 모든 Phase에서 필요한 컬럼 합집합
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/decisions",
-            headers=_headers(),
-            params={
-                "select": (
-                    "id,decision,confidence,outcome_4h_pct,outcome_24h_pct,"
-                    "was_correct_4h,created_at,agent_name,source,"
-                    "market_data_snapshot"
-                ),
-                "created_at": f"gte.{cutoff}",
-                "order": "created_at.desc",
-                "limit": "500",
-            },
-            timeout=15,
-        )
-        if r.status_code == 200:
-            all_rows = r.json() or []
-            # buy/sell만 필터 (dynamic_risk, strategy_health에서 사용)
-            buy_sell = [d for d in all_rows if d.get("decision") in ("buy", "sell")]
-            _cache["decisions"] = buy_sell
-            _cache["decisions_all"] = all_rows
-            _cache["fetched_at"] = time.monotonic()
-            return True
-        else:
-            return False
+        all_rows = db.select(
+            "decisions",
+            filters={"created_at": f"gte.{cutoff}"},
+            order="created_at.desc",
+            limit=500,
+            select=(
+                "id,decision,confidence,outcome_4h_pct,outcome_24h_pct,"
+                "was_correct_4h,created_at,agent_name,source,"
+                "market_data_snapshot"
+            ),
+        ) or []
+        # buy/sell만 필터 (dynamic_risk, strategy_health에서 사용)
+        buy_sell = [d for d in all_rows if d.get("decision") in ("buy", "sell")]
+        _cache["decisions"] = buy_sell
+        _cache["decisions_all"] = all_rows
+        _cache["fetched_at"] = time.monotonic()
+        return True
     except Exception:
         return False
 
