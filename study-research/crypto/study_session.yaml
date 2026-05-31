@@ -1,6 +1,6 @@
 study_id: crypto
 asset_scope: [coin]
-as_of: "2026-05-30"
+as_of: "2026-06-01"  # ★cycle2 12축 audit verdict 반영 (H11/H9). 본체 indicators/relationships = cycle1 v2 채택분 불변.
 
 # ============================================================================
 # 메타 — 2-3 실데이터 검증 후 v2 yaml. v1 은 raw/study_session.v1.yaml.deprecated.
@@ -27,6 +27,31 @@ as_of: "2026-05-30"
 #  - prior ladder ★실측 정정: on-chain (sharpe 1.27) > micro (sharpe 0.97) — ladder 역방향
 #
 # coin §4③ 예외 박제: weight_panel 학습 진입 X (SACRED coin_consensus_lens 불침범).
+# ============================================================================
+#
+# ★cycle2 12축 audit verdict 반영 (2026-06-01, opus subagent a8a0931a /
+#  evaluation-crypto-cycle2-audit-20260601.md). 본체 indicators/relationships
+#  블록 = cycle1 v2 채택 8지표 불변 — 아래 H11/H9 는 cycle2 신규 가설로 ★미채택 보류
+#  (probation). cycle3 yaml v3 통합 시 아래 tier 강제.
+#
+#  - H11 attention (Google Trends 'bitcoin' monthly attn_z → fwd_1m_ret):
+#    ★TENTATIVE DIRECTIONAL (이전 PARTIAL CONFIRMED 격하). prior 0.20 →
+#    0.05~0.10 observe-only(probation). n=94 (N_eff=61), raw Spearman p=0.2837
+#    (무보정도 비유의), block-boot CI95%=[-0.137,+0.302] 0 포함, Bonferroni
+#    α/16=0.00313. U-shape (+1σ/-1σ 양 꼬리 모두 양 fwd) = 변동성 효과지
+#    방향성 attention 신호 아님. ★점추정 IC magnitude 박제 금지 —
+#    weekly base(LTW 2021 직접 비교) 재검증 전 보류. yaml 본체 indicators 미투입.
+#    근거: raw/validation-h11-attention.md + candidate-ledger.md §cycle2.
+#
+#  - H9 BTC-Nasdaq regime: 조건부 — per-hyp ANOVA p=0.0006 (K=36 생존)이나
+#    full-family K=174 미생존 (KW p=0.0002 경계만). regime 전이 6.55/yr 불안정.
+#    prior 0.15 유지 가능하되 ★walk-forward strict OOS PASS 를 통합 게이트로.
+#    cycle3 통합 전 보류. yaml 본체 미투입.
+#
+#  - H7 network value / H8 tx utility / H10 BTC-gold / H12 defi utility:
+#    ledger 탈락 (REJECTED/INSUFFICIENT) 동의 → 미투입 (no-op).
+#  - prior ladder: on-chain sharpe 1.27 의 effective_n~16 신뢰 낮음 (mvrv 0.55
+#    가중 근거 약). cycle3 통합 전 Deflated Sharpe(K=174 full-family) 적용 의무.
 # ============================================================================
 
 # 블록1: LENS (정성 — LLM 주입용. ★가변: 블록5 flag → estimation_note·가중 미세변동)
