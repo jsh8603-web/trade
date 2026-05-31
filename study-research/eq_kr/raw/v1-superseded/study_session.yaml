@@ -1,0 +1,310 @@
+study_id: eq_kr
+asset_scope: [equity.kr]
+as_of: "2026-05-30"
+
+# ============================================================================
+# 블록1: LENS (정성 렌즈 — LLM 주입용. 일반론+리포트+OSS 의 정제 결과)
+# ★가변: 블록5 flag 누적(확신/거부)→신뢰도→이 필드(특히 estimation_note·regime_reading)와
+#   블록4 가중치가 미세 변동. lens=초안, flag=갱신 경로.
+# ============================================================================
+lens:
+  pricing_principle: >
+    한국 상장주식 가격 = 멀티플 M × 이익 E.
+    P = M(real_rate, credit_spread, USDKRW, governance_discount, 정책_re-rating) ×
+        E(반도체/자동차/조선/화학 글로벌 cycle · 수출비중 × FX · 내수경기).
+    핵심 1: 만성 **Korea discount** — 거버넌스(지배주주 agency · 낮은 payout · 순환출자) 와
+            시클리컬 수출 의존도가 M 을 글로벌 평균 아래로 고정. 2024 FSC **밸류업 프로그램** 이
+            이 고정점을 흔드는 정책 anchor — 저PBR + 자본효율(ROE) 개선 종목 re-rating 채널.
+    핵심 2: **이익 E 의 글로벌 cycle 의존** — KOSPI 지수이익의 큰 부분이 반도체(메모리 cycle,
+            DRAM/NAND 가격), 자동차(글로벌 수요), 조선·화학(중국 수요·유가). 따라서 같은 종목·
+            지표라도 **글로벌 cycle 국면 + 한국 환율 국면** 에 따라 신호 의미·가중이 갈린다(R15).
+    핵심 3: **외국인 수급이 가격 형성을 주도** — 대형 KOSPI 자유유통 외국인 비중 30~50%대,
+            순매수 flow 가 단기 가격 압력의 1차 동인. 외국인 = 정보우위 + 글로벌 risk-on/off
+            전이 채널 = "한국에서 잘 작동하는 alpha 의 절반" 가설.
+    핵심 4: **KOSPI(대형·외국인주도) vs KOSDAQ(소형·개인주도)** 분절 — 시장 미시구조가 달라
+            팩터 작동 양상이 갈린다. KOSDAQ 은 모멘텀·반전·테마 효과 강함 + 외국인 신호 약함.
+    GICS 대신 **WICS**(FnGuide) 업종 분류, KrxSectorProvider 적재 사용.
+  report_relations:
+    - "외국인 순매수 ↑ → 대형 KOSPI 종목 단기 outperform 선행(특히 반도체·금융). KrxForeignFlowProvider 일별 flow."
+    - "USDKRW ↑(원화 약세) → 수출주(반도체·자동차·조선) 이익 증폭 / 내수·항공·외화부채 종목 압박. name_specific 부호."
+    - "미국 10Y 실질금리 ↑ → 한국 long-duration 성장주(2차전지·바이오·플랫폼) 멀티플 압박. 가치주(은행·통신)는 상대수혜. fwd_ep × rate_beta 교호."
+    - "ISM PMI/중국 PMI ↑ → 반도체·소재·화학 fwd EPS 모멘텀 상향(글로벌 산업 cycle 선행). semi_cycle_beta·china_revenue_share 채널."
+    - "HY OAS 확대(리스크오프) → 외국인 매도 + 대형주 디레이팅 + KRW 약세 동반(rho<0 한국 위험). credit beta."
+    - "DRAM 현물가·재고 cycle → 반도체 fwd EPS revision 의 가장 강한 단일 driver(SK하이닉스·삼성전자 합산 KOSPI 이익의 ~25%)."
+    - "밸류업(2024) 정책 트랙: 저PBR + ROE 개선 + 배당·자사주 가이던스 공시 종목 = re-rating 후보. 정책 모멘텀 fade 시 mean-reversion."
+    - "Investment Clock: Reflation→KOSDAQ 성장주(바이오·2차전지) / Recovery→반도체·금융 / Overheat→소재·정유·조선 / Slowdown→통신·필수소비 방어."
+  regime_reading: >
+    Reflation(글로벌 성장↑인플레↓): KOSDAQ 성장주 + 반도체 early-cycle 가중↑, foreign_net_buy 가중↑, value 약세.
+    Recovery(반도체 cycle turn): semi_cycle_beta·fwd_eps_momentum·foreign_net_buy 가중↑, low_pbr_valueup 동반.
+    Overheat(원자재·인플레↑): 화학·정유·조선·해운(수출 cyclical late) 가중↑, oil_beta·china_exposure 채널, growth 축소.
+    Slowdown/Stagflation: 통신·필수소비·고배당 방어주, realized_vol·credit_beta·dividend_yield 가중↑, 외국인 매도 압력 = foreign_net_buy 음신호.
+    Korea-specific overlay: USDKRW 국면(약세/강세 × 수출/내수) 이 모든 regime 위에 곱해진다 — modulate_by=[regime, name_specific(KRW 노출)].
+  estimation_note: >
+    2026-05 추정: 2024 밸류업 이후 저PBR 대형(금융·자동차) 부분 re-rating 진행 + 반도체 cycle
+    바닥 통과 가설(SK하이닉스 메모리 가격 회복). USDKRW 1,350~1,400 박스, 외국인 순매수 회복 진행.
+    Recovery 초입 추정(확신도 중) — semi_cycle_beta·foreign_net_buy·low_pbr 동시 가중 anchor.
+    ⚠️ 본 estimation 은 실데이터 IC 미측정. krx_flow_snapshots / dart 적재 후 블록5 hook 가
+    라이브 검증(confirm/reject) — 실측치로 갱신될 anchor.
+
+# ============================================================================
+# 블록2: INDICATORS (정량 지표 — 우리 시스템 자료로 귀결)
+# §6 주식 통일 하드룰 코어셋 = is_core:true (us/kr/intl/reit 비교가능성 보장)
+# ============================================================================
+indicators:
+  # --- §6 코어셋 (통일 하드룰 — us/intl/reit 와 동일 family·is_core) ---
+  - {id: fwd_ep, family: valuation, is_core: true, in_our_system: true,
+     source_or_collector: "stock/data/dart_provider DartXbrlProvider (EPS, ifrs-full_ProfitLoss) + 가격 → forward E/P. DART_API_KEY 부재시 graceful empty → 블록6 D1",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 1}
+  - {id: roe_margin_trend, family: quality, is_core: true, in_our_system: true,
+     source_or_collector: "dart_provider Fundamentals(net_income/shareholders_equity, operating_income/revenue) yoy trend",
+     transform: yoy, vintage_policy: point_in_time, lag: 1}
+  - {id: earnings_revision_breadth, family: revision, is_core: true, in_our_system: false,
+     source_or_collector: "한국 컨센서스(FnGuide/WiseFn 유료) 부재 → Naver Finance 무료 스크랩 또는 DART 8-K 한국 대응(잠정실적공시) 파싱. 블록6 D3",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  - {id: fwd_eps_momentum, family: revision, is_core: true, in_our_system: true,
+     source_or_collector: "dart_provider 분기 EPS yoy 변화율(컨센서스 부재 시 실적 yoy 대체)",
+     transform: yoy, vintage_policy: point_in_time, lag: 1}
+  - {id: price_mom_12_1, family: momentum, is_core: true, in_our_system: true,
+     source_or_collector: "FDR 가격 시계열(12M-1M 모멘텀, 한국 반전 강함 → 1M skip 필수)",
+     transform: rank, vintage_policy: point_in_time, lag: 0}
+  - {id: rate_beta, family: macro_sensitivity, is_core: true, in_our_system: true,
+     source_or_collector: "종목수익률 vs FRED DGS10/실질금리 회귀 beta(글로벌 금리 전이)",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: dollar_beta, family: macro_sensitivity, is_core: true, in_our_system: true,
+     source_or_collector: "★한국 핵심: 종목수익률 vs USDKRW(macro_market.py FxStore PIT) 회귀 beta. 수출주는 양(원화 약세 호재), 내수·외화부채는 음",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: oil_beta, family: macro_sensitivity, is_core: true, in_our_system: true,
+     source_or_collector: "종목수익률 vs WTI(Yahoo collect_macro) 회귀 beta. 정유·해운 양, 항공·운송 음",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: credit_beta, family: macro_sensitivity, is_core: true, in_our_system: true,
+     source_or_collector: "종목수익률 vs HY OAS(FRED BAMLH0A0HYM2 선구축) 회귀 beta — 글로벌 risk-off 전이",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: realized_vol, family: risk, is_core: true, in_our_system: true,
+     source_or_collector: "FDR 가격 시계열 실현변동성(60D). 한국은 KOSDAQ 변동성 KOSPI 대비 평균 1.5~2배",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  # --- 한국 특화 (is_core:false + weight cap) ---
+  - {id: foreign_net_buy, family: flow, is_core: false, in_our_system: true,
+     source_or_collector: "★한국 1순위 alpha: krx_flows.KrxForeignFlowProvider 외국인 순매수(일별, 종목별). data/krx_flow_snapshots.jsonl PIT 적재",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  - {id: low_pbr_valueup, family: valuation, is_core: false, in_our_system: true,
+     source_or_collector: "dart_provider shareholders_equity ÷ 시가총액 = 1/PBR. 밸류업 대상(저PBR + ROE 개선 가이던스) flag 부착",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 1}
+  - {id: usdkrw_export_exposure, family: macro_sensitivity, is_core: false, in_our_system: false,
+     source_or_collector: "수출비중 = DART 사업의 내용 '지역별 매출' 파싱(국내/해외 비중) × USDKRW beta. 파싱 모듈 부재 → 블록6 D2",
+     transform: level, vintage_policy: point_in_time, lag: 1}
+  - {id: semi_cycle_beta, family: macro_sensitivity, is_core: false, in_our_system: false,
+     source_or_collector: "반도체 cycle proxy(DRAM 현물가 시계열 Yahoo $MU 등 적재) vs 종목수익률 beta. 반도체 sub-sector 한정 강신호",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: china_revenue_share, family: macro_sensitivity, is_core: false, in_our_system: false,
+     source_or_collector: "DART 사업의 내용 '중국' 키워드 + 지역별 매출 비중 파싱. 화학·소재·디스플레이·화장품 sub-sector 한정. 블록6 D2",
+     transform: level, vintage_policy: point_in_time, lag: 1}
+  - {id: dividend_yield_payout, family: quality, is_core: false, in_our_system: true,
+     source_or_collector: "dart_provider 배당총액 ÷ 시가총액 + 배당성향. 밸류업 주주환원 신호 + Slowdown 방어",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 1}
+  - {id: kosdaq_retail_beta, family: macro_sensitivity, is_core: false, in_our_system: true,
+     source_or_collector: "krx_flows 개인 순매수 vs 종목수익률 beta(KOSDAQ 한정). 양(+) = 개인 주도 모멘텀/테마 종목 = 단기 alpha + 반전 위험",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: governance_score, family: quality, is_core: false, in_our_system: false,
+     source_or_collector: "KCGS(한국기업지배구조원) ESG/G 등급 + 밸류업 공시 ratio. 무료 인덱스 부재 → 블록6 D4(KCGS 또는 KCGI 데이터 라이센스)",
+     transform: level, vintage_policy: point_in_time, lag: 1}
+
+# ============================================================================
+# 블록3: RELATIONSHIPS (관계 가설 — glasso prior. partial-corr 기준!)
+# §8: 공통원인 매개 A-B 는 edge=0, C→A·C→B 분해. conditioning_set 필수.
+# ============================================================================
+relationships:
+  - {node_a: foreign_net_buy, node_b: price_mom_12_1, edge_type: direct,
+     conditioning_set: [credit_beta], lag_routing: lagged, prior_sign: pos, prior_strength: 0.55,
+     theory_basis: "외국인 순매수가 대형 KOSPI 단기 가격 모멘텀을 선행. 글로벌 risk-on/off(credit_beta) 고정 후 직접효과 — 한국 핵심 가설"}
+  - {node_a: dollar_beta, node_b: fwd_eps_momentum, edge_type: direct,
+     conditioning_set: [usdkrw_export_exposure], lag_routing: lagged, prior_sign: pos, prior_strength: 0.5,
+     theory_basis: "USDKRW 약세 시 수출주 EPS 모멘텀 증폭. 수출비중 고정 후 직접효과 — name_specific 가중의 근거"}
+  - {node_a: semi_cycle_beta, node_b: fwd_eps_momentum, edge_type: direct,
+     conditioning_set: [dollar_beta], lag_routing: lagged, prior_sign: pos, prior_strength: 0.6,
+     theory_basis: "DRAM/NAND cycle turn → 반도체 sub-sector EPS revision 선행. KRW 효과 분리"}
+  - {node_a: low_pbr_valueup, node_b: fwd_ep, edge_type: common_cause,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.7,
+     theory_basis: "PBR·E/P 모두 valuation 정의에서 파생 → 직접엣지보다 공통원인(저평가 latent). 카테고리 내 1개로 직교화 후보"}
+  - {node_a: credit_beta, node_b: foreign_net_buy, edge_type: direct,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: neg, prior_strength: 0.5,
+     theory_basis: "글로벌 risk-off(HY OAS↑) → 한국 외국인 매도 압력 — 음의 직접효과(전이 채널)"}
+  - {node_a: kosdaq_retail_beta, node_b: realized_vol, edge_type: direct,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.45,
+     theory_basis: "개인 주도 KOSDAQ 종목은 변동성·반전 위험 동반 → 단기 alpha 와 vol 의 양의 직접효과"}
+  - {node_a: china_revenue_share, node_b: oil_beta, edge_type: common_cause,
+     conditioning_set: [credit_beta], lag_routing: contemporaneous, prior_sign: unsigned, prior_strength: 0.3,
+     theory_basis: "중국 수요·원자재·글로벌 risk 는 공통원인 매개 — 직접엣지 약함, 거시 driver(global cycle) 로 분해"}
+
+# ============================================================================
+# 블록4: WEIGHT_RULES (★최종 산출 — 종목별 가중치 동적 변경)
+# 부록B: granularity:ticker = 독립학습 아님 = 산업 prior 에서 종목 shrink(composed_weights pi)
+# ============================================================================
+weight_rules:
+  # ★한국 1순위 — 외국인 수급
+  - {indicator_id: foreign_net_buy, base_weight: 0.18, modulate_by: [regime, size],
+     direction: "대형 KOSPI(시총상위) 가중↑(외국인 비중 30~50% 종목 한정). Recovery·Reflation 가중 추가↑. Slowdown 음신호. KOSDAQ 소형주는 cap 0.05(외국인 영향 작음)", granularity: ticker}
+  # ★밸류업 + 코어 valuation
+  - {indicator_id: fwd_ep, base_weight: 0.18, modulate_by: [regime, industry],
+     direction: "Recovery 국면 → valuation 가중↑(저평가 재평가). Overheat → 금융·소재 값(이익) 우위. peak → 진입 자제. low_pbr_valueup 과 직교화(common_cause prior 0.7) — 대표 1개 채택 또는 0.5씩 분배", granularity: industry}
+  - {indicator_id: low_pbr_valueup, base_weight: 0.10, modulate_by: [regime, name_specific],
+     direction: "Recovery + 밸류업 공시 가이던스 종목 가중↑(re-rating 채널). 정책 fade 신호 시 mean-reversion 패널티(역부호 옵션)", granularity: ticker}
+  # 모멘텀·리비전
+  - {indicator_id: price_mom_12_1, base_weight: 0.08, modulate_by: [regime],
+     direction: "한국 모멘텀 약효 → base 낮음. Reflation/Recovery early 에만 가중↑ / Slowdown 축소. KOSDAQ 단기 반전 위험 = 12-1 skip 필수", granularity: sleeve}
+  - {indicator_id: earnings_revision_breadth, base_weight: 0.12, modulate_by: [regime, industry],
+     direction: "Recovery 초입(국면전환점) 가중↑. 반도체·자동차 sub-sector turning point alpha. 컨센서스 부재 시 잠정실적 yoy 대체 데이터 fallback", granularity: industry}
+  - {indicator_id: fwd_eps_momentum, base_weight: 0.10, modulate_by: [regime, industry],
+     direction: "반도체 cycle turn 시 가중↑(semi_cycle_beta 와 lagged 결합). 화학·정유는 oil cycle 동반", granularity: industry}
+  # 거시 sensitivity (한국 특수 dollar = USDKRW)
+  - {indicator_id: dollar_beta, base_weight: 0.10, modulate_by: [regime, name_specific],
+     direction: "★한국 특화: KRW 약세 국면 → 수출주(usdkrw_export_exposure 높은) 가중↑, 내수·항공 음부호 적용. name_specific 핵심", granularity: ticker}
+  - {indicator_id: rate_beta, base_weight: 0.07, modulate_by: [regime, name_specific],
+     direction: "미국 rate-shock + long-duration(2차전지·바이오·플랫폼) 종목 가중↑(부호 음 = 압박). 가치주(은행)는 양", granularity: ticker}
+  - {indicator_id: credit_beta, base_weight: 0.08, modulate_by: [regime],
+     direction: "Slowdown/리스크오프 → credit beta 가중↑(방어), 고leverage 종목 패널티. foreign_net_buy 와 음상관 동반 검증", granularity: industry}
+  # 반도체/중국 특화
+  - {indicator_id: semi_cycle_beta, base_weight: 0.08, modulate_by: [regime, industry],
+     direction: "반도체 sub-sector(전기전자/IT부품) 한정 가중↑. cycle bottom(Recovery 초입) 가중 최대. cycle peak 진입 차단", granularity: industry}
+  - {indicator_id: china_revenue_share, base_weight: 0.05, modulate_by: [regime, industry],
+     direction: "중국 PMI/소비 회복 국면 → 화학·화장품·디스플레이 sub-sector 가중↑. 미중 디커플링 심화 시 역부호 옵션", granularity: industry}
+  # 방어·KOSDAQ
+  - {indicator_id: dividend_yield_payout, base_weight: 0.05, modulate_by: [regime],
+     direction: "Slowdown → 고배당 가중↑. 밸류업 정책 모멘텀 지속 시 base 상향. cap 0.08", granularity: sleeve}
+  - {indicator_id: kosdaq_retail_beta, base_weight: 0.03, modulate_by: [regime, industry],
+     direction: "KOSDAQ 한정 가중. Reflation 가중↑(테마 모멘텀 수혜) / Slowdown 차단(반전 위험). cap 0.05", granularity: industry}
+  - {indicator_id: realized_vol, base_weight: 0.05, modulate_by: [regime],
+     direction: "Slowdown → realized_vol 가중↑(저변동 선호 방어). KOSDAQ 평균 vol 이 KOSPI 1.5~2배 = sleeve 별 baseline 분리", granularity: sleeve}
+
+# ============================================================================
+# 블록5: CONFIDENCE_HOOKS (신뢰도 누적 — 확신/거부 flag를 *코드로 구현*할 계획)
+# ★매 거래마다 (확신)/(거부) flag → 가정 신뢰도 누적 → 렌즈 미세변화 → 동적 가중치.
+# ============================================================================
+confidence_hooks:
+  - hypothesis_id: foreign_flow_alpha   # 블록3 edge(foreign_net_buy→price_mom_12_1)
+    confirm_signal: "외국인 순매수 상위 종목으로 진입한 대형 KOSPI outcome 의 Rank-IC ≥ +0.1 유지(t+5d~t+20d forward return)"
+    reject_signal: "foreign_net_buy 신호 Rank-IC e-CUSUM 단측 붕괴(baseline +0.05 하회) — 외국인 정보우위 가설 무효화"
+    emit_where: "backtest engine SELL outcome + 라이브 judge 사후평가(대형주 sleeve 한정)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    confidence_metric: "e-value anytime-valid 누적(e_cusum, Ville P(거짓kill)≤alpha)"
+    store: "registry WeightAssumptionCard.confidence_now + RulePerformance"
+    action_threshold: "e-value ≥ 1/alpha(=20) → adopt 강화 / 붕괴 reject → retract(라이브 차단)"
+    feeds_weight: "route_lifecycle SECONDARY(Ω drift) → derive_weights 재적합 → base_weight 0.18 측정 IC 비례 재조정"
+  - hypothesis_id: valueup_low_pbr_rerating   # 블록3 edge(low_pbr_valueup→fwd_ep common_cause + 정책 anchor)
+    confirm_signal: "Recovery 국면 + 밸류업 가이던스 공시 종목의 fwd_ep·low_pbr 합성 score 가 OOS Rank-IC ≥ +0.15 유지. valuation→Δmultiple 재평가 mean-reversion 채널 작동"
+    reject_signal: "정책 fade(밸류업 공시 시점 +12M 후 Rank-IC 평탄화) — 재평가 모멘텀 무효 → 가치함정 회귀"
+    emit_where: "backtest engine SELL outcome regime 분해 + judge 사후평가(밸류업 공시 flag 단위)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (밸류업 flag 서브패밀리)"
+    confidence_metric: "regime별 Rank-IC e-process + valuation→Δmultiple mean-reversion 강도"
+    store: "registry WeightAssumptionCard.confidence_now + 밸류업 flag 시계열"
+    action_threshold: "Rank-IC 붕괴 → low_pbr_valueup base 0.10 하향 + fwd_ep 단독 가중으로 회귀. mean-reversion 깨지면 valuation 가설 자체 재검토"
+    feeds_weight: "derive_weights 재적합 + lens.estimation_note 자동 갱신(re-rating anchor 폐기)"
+  - hypothesis_id: usdkrw_exporter_beta_namespecific   # 블록3 edge(dollar_beta→fwd_eps_momentum)
+    confirm_signal: "USDKRW 약세 국면에 수출비중 ≥50% 종목 가중↑가 outcome 손실 방어 + 내수·항공(usdkrw_export_exposure 음) 종목 패널티 적중"
+    reject_signal: "dollar_beta 신호의 종목별 Rank-IC 분산이 무신호(name_specific 무효 → industry 평균만 작동)"
+    emit_where: "judge 사후평가 종목 단위 + backtest 국면별·수출비중 quintile 분해"
+    accumulate_in: "core/assume/weight_falsification.omega_drift + score_ic_breakdown_eprocess"
+    confidence_metric: "regime별 Rank-IC e-process + Ω drift Frobenius(dollar_beta 행)"
+    store: "registry 카드 confidence_now + composed_weights pi(ticker membership)"
+    action_threshold: "name_specific IC 붕괴 → granularity ticker→industry 강등(shrink↑, 부모 산업 비중 회귀)"
+    feeds_weight: "composed_weights delta_inter(교호항) 수축 → 부모(industry) 비중 회귀"
+  - hypothesis_id: semi_cycle_turn_predictive   # 블록3 edge(semi_cycle_beta→fwd_eps_momentum)
+    confirm_signal: "반도체 cycle bottom(DRAM 현물가 yoy 음→양 전환) 진입 시 semi sub-sector 가중↑가 outcome ≥ 시장 평균 +5%"
+    reject_signal: "cycle turn proxy 와 fwd_eps_momentum lagged corr 가 baseline 아래로 e-CUSUM 붕괴 — proxy 가설 무효"
+    emit_where: "backtest engine cycle phase 라벨링 + judge 사후평가(전기전자/IT부품 sub-sector)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (semi sub-sector 서브패밀리)"
+    confidence_metric: "Rank-IC e-process + cycle phase별 outcome 평균/분산"
+    store: "registry 카드 confidence_now + lens.regime_reading 의 Recovery 항"
+    action_threshold: "cycle turn 예측력 붕괴 → semi_cycle_beta base 0.08 하향 + lens.estimation_note 의 'cycle bottom' anchor 폐기"
+    feeds_weight: "derive_weights 재적합 + composed_weights pi(semi archetype) 수축"
+
+# ============================================================================
+# 블록6: COLLECTOR_PLAN (부족 자료 수집기 추가 계획)
+# ============================================================================
+collector_plan:
+  - {id: D1, missing: "DART_API_KEY 발급 + dart_provider 라이브 fetch 실행", source: "opendart.fss.or.kr 개인 무료 키", interface: FundamentalsProvider, credential: DART_API_KEY,
+     why: "현재 dart_provider 는 API 키 부재로 빈 결과 graceful → fwd_ep·roe·배당·dividend_yield 등 모든 펀더멘털 지표 검증 불가. P0"}
+  - {id: D2, missing: "DART 사업의 내용 '지역별 매출' + '주요 제품군' 파싱 (수출비중 + 중국 매출 비중)", source: "OpenDartReader 사업보고서(011000) XBRL 텍스트", interface: FundamentalsProvider, credential: DART_API_KEY,
+     why: "usdkrw_export_exposure·china_revenue_share = 한국 특화 가중 규칙의 name_specific 입력. 미파싱 시 두 지표 모두 결측 → name_specific 가중 무효"}
+  - {id: D3, missing: "한국 컨센서스 earnings revision breadth", source: "Naver Finance 무료 스크랩(증권사 추정치 추이) 또는 DART 잠정실적공시 surprise yoy 대체", interface: FundamentalsProvider, credential: none,
+     why: "FnGuide/WiseFn 유료 → 무료 대체. earnings_revision_breadth(§6 코어셋) 검증 의무"}
+  - {id: D4, missing: "한국기업지배구조원(KCGS) ESG-G 등급 + KCGI 가버넌스 데이터", source: "KCGS 공시 ratings 또는 학술 데이터셋", interface: new, credential: "KCGS 라이센스(유료 가능성)",
+     why: "Korea discount 핵심 channel = governance. governance_score 검증 — 라이센스 협의 필요(P2)"}
+  - {id: D5, missing: "공매도 잔고 일별 + 공매도 규제 레짐(2020-2021/2023-2024 부분 금지 기간)", source: "KRX 공매도 통계 (krx.co.kr/contents/SRT)", interface: VintageProvider, credential: none,
+     why: "공매도 잔고 = late-cycle/peak 신호, 규제 레짐 = 백테스트 구간 분할 필수. realized_vol·credit_beta 보조"}
+  - {id: D6, missing: "DRAM/NAND 현물가 시계열(yoy)", source: "DRAMeXchange/TrendForce 무료 인덱스 또는 Yahoo 반도체 ETF($SMH·$SOXX) proxy", interface: VintageProvider, credential: none,
+     why: "semi_cycle_beta 의 driver — proxy 라도 yoy 부호·turning point 검출 가능. P1"}
+
+# ============================================================================
+# 블록7: CODE_CHANGE_PLAN (★§4 4단계 코드 — 파일:함수:변경)
+# ★발견: kr_stock sleeve 이미 SLEEVES 등록(regime_to_weights L50) + KRW Bloc 매핑 완료.
+#   stock_track _resolve_weight_card 가 'weight.equity.{regime}' 조회 — 한국 종목도 동일 경로 작동.
+#   eq_us_cyclical 본보기 코드 사실을 한국 도메인에 재활용(중복 변경 회피).
+# ============================================================================
+code_change_plan:
+  # --- ① 학습 (learn) ---
+  - {stage: learn, file: core/data/weight_panel.py, symbol: build_indicator_matrix,
+     current: "VintageProvider.realtime 로 시점×지표 PIT 행렬 조립 + _REFLEXIVE_WORDS 반사성 게이트(position/holding/inventory/turnover 등 word-boundary 차단)",
+     change: "블록2 indicators 17종 id 를 한국 series_ids 로 등록. ⚠️ inventory(반사성 게이트 차단 단어) 사용 금지 — 한국 인벤토리 cycle 이 필요하면 'stock_inventory_qoq' 같은 단어 회피 id 채택. foreign_net_buy·kosdaq_retail_beta 는 시장 거래량 = 외부 시계열로 통과 검증",
+     risk: "series_ids 추가만 = 무회귀. 반사성 게이트 word-boundary 매칭(L62 _series_words) self-test 추가 필수"}
+  - {stage: learn, file: scripts/train_weights.py, symbol: train_weight_cards,
+     current: "FRED 적재→build_indicator_matrix→regime_history→GlassoWeightLearner.fit→regime별 build_weight_card→registry. domain/scope 인자화 완료",
+     change: "domain='equity' scope='kr' 배치 1건 추가. returns=한국 유니버스 forward return(krx_universe.get_universe + FDR 가격). 펀더멘털 적재 경로 = dart_provider.fetch_filings(ticker, limit). DART_API_KEY 부재 시 graceful empty → 데이터 가용 종목만 학습",
+     risk: "배치 추가만, 라이브 미접촉. dart_provider 적재는 새 함수(opt-in). API 키 없으면 빈 카드 = 무회귀"}
+  - {stage: learn, file: core/structure/conditional_correlation.py, symbol: "RegimeGlasso.fit / effective_precision / corr_prior",
+     current: "nonparanormal→EBIC glasso→EB shrink→원공간 재스케일→regime별 Ω. corr_prior 주입 가능(None=I)",
+     change: "블록3 relationships 7개 partial-corr prior 를 corr_prior (17x17) 행렬로 주입. 이론 강한 ≤4 엣지(foreign→momentum, dollar→eps, semi→eps, credit→foreign) force-include 후보. min_obs=10 으로 KOSDAQ 소형 종목군 fit 가능성 확보",
+     risk: "corr_prior 는 생성자 인자(기본 None 유지) = opt-in 무회귀. min_obs 변경은 호출자(weight_cycle)에서 인자화"}
+  # --- ② 규칙화 (card) ---
+  - {stage: card, file: core/assume/weight_card.py, symbol: "WeightAssumptionCard / composed_weights / delta_arch_by_type / floor",
+     current: "hierarchical pooling w_global+δ_regime+δ_arch+δ_inter. soft archetype pi 혼합(delta_arch_by_type). lens 정성필드 없음. floor 단일 값(deadzone)",
+     change: "(a) lens 정성필드(pricing_principle·report_relations·regime_reading) 카드에 한국어 한국 문맥으로 주입 → judge LLM 한국 종목 평가 컨텍스트(③). (b) delta_arch_by_type 에 한국 archetype 등록 — exporter(수출주)/domestic(내수)/semi(반도체)/financial(금융)/valueup(밸류업 가이던스)/kosdaq_growth — pi soft membership 으로 종목 보간. (c) ★floor_by_regime 확장(eq_us_cyclical 와 공유 enhancement): KOSDAQ retail-driven 종목은 floor 상향(deadzone 확대 = 진입 보수화)",
+     risk: "Optional 필드 추가, 미제공 시 단일 floor 강등 = 무회귀. frozen pin_hash(L150) 에 lens·floor_by_regime 포함 결정 = us 와 공유"}
+  - {stage: card, file: core/assume/registry.py, symbol: "AssumptionRegistry.register / get / transition / get_version",
+     current: "register: assert_falsifiable 게이트 + 중복(id,version) 거부 + 역색인. get(id,as_of): PIT 최신. transition: append-only S→S'. get_version: frozen replay",
+     change: "★id 규약 = 'weight.equity.{regime}' (stock_track _resolve_weight_card L220) — kr/us 구분이 id 에 없음. 두 가지 선택: (옵션A) id 'weight.equity.kr.{regime}' / 'weight.equity.us.{regime}' 분리 + _resolve_weight_card 가 ticker 시장 prefix 로 분기 (회귀 위험). (옵션B 권장) 단일 id 유지 + archetype dict 에 'kr_exporter'/'us_cyclical' 등 한·미 archetype 동시 보유 + ticker 시장 매핑으로 pi 결정 (무회귀). 본 작업방은 옵션B 채택 권장",
+     risk: "옵션B = id 규약 유지 + archetype 확장 = 무회귀. 옵션A 채택 시 _resolve_weight_card 동반수정 + us 카드 회귀 검증 필수"}
+  # --- ③ 주입 (inject) ---
+  - {stage: inject, file: core/stock_track.py, symbol: "_extract_indicator_z / _apply_r15_sizing / _resolve_weight_card",
+     current: "_resolve_weight_card(L208): registry.get('weight.equity.{regime}') 조회(regime=state.raw_market_data['regime_label'], 부재→None=R15 미적용). _extract_indicator_z(L224): indicator_z override 우선, 없으면 raw_external_data/raw_market_data 의 수치 feature 를 series_ids 키매칭 추출(누락=0). _apply_r15_sizing(L242): buy 결정만 S_L1=clamp_floor(Σwz), deadzone→abstain, l1_size·a(down-only), 천장 불변식",
+     change: "_extract_indicator_z 코드변경 거의 불필요 — state.raw_external_data/raw_market_data 에 블록2 한국 지표(foreign_net_buy·usdkrw_export_exposure·semi_cycle_beta·low_pbr_valueup 등)를 series_ids 라벨로 공급하면 자동 추출. _resolve_weight_card 가 ticker 시장 prefix(KRX 6자리/US 알파벳)로 한국·미국 archetype pi 결정하도록 확장(옵션B). regime_label 은 KR/US 별 분리(regime_to_weights 가 이미 sleeve_regime_ids 로 분리)",
+     risk: "데이터 공급 중심 = 무회귀. down-only 천장 불변식(assert_ceiling_invariant) 보존됨. ticker prefix 분기는 helper 함수 추가(opt-in)"}
+  - {stage: inject, file: core/assume/judge.py, symbol: "_call_qwen_with_lens / _qwen_accepts_lens / synthesize_l1(L203) / assert_ceiling_invariant(L251)",
+     current: "★lens LLM 주입 메커니즘 이미 구현(eq_us_cyclical 검증): _qwen_accepts_lens 가 qwen_hook 시그니처 검사 → lens 받으면 _call_qwen_with_lens(lens=lens_prompt) 주입. synthesize_l1 로 S_L1 합성 + size_mult=l1_size·a2·a3 down-only + assert_ceiling_invariant 강제",
+     change: "신규 메커니즘 불필요 — 블록1 lens(한국 pricing_principle·regime_reading·estimation_note)를 lens_prompt 문자열로 생성·공급하는 경로만 추가(카드 lens 필드 → 한국어 lens_prompt 조립). 한국 종목 평가 시 외국인 수급·밸류업·KRW 노출 context LLM 주입. down-only attenuation 그대로",
+     risk: "lens_prompt 공급만 = opt-in 무회귀. 천장 불변식 이미 보장. eq_us_cyclical 와 공유 mechanism"}
+  # --- ④ 해제 (falsify) ---
+  - {stage: falsify, file: core/assume/weight_falsification.py, symbol: "score_ic_breakdown_eprocess / weight_card_verdict / evaluate_weight_card",
+     current: "PRIMARY=합성 score Rank-IC e-CUSUM 단측 붕괴 kill(L66~) / SECONDARY=Ω drift(Frobenius·logdet) re-fit(L89~). weight_card_verdict 가 ValidationVerdict 산출",
+     change: "블록5 4개 confidence_hooks 를 여기 매핑: confirm=IC 유지 / reject=e-CUSUM 붕괴. 한국 특유 파라미터 — baseline_ic 하향(한국 모멘텀 약효 반영, us 0.05 → kr 0.03), sd 상향(KOSDAQ 변동성 반영, 1.0 → 1.3)",
+     risk: "임계 파라미터 조정만, 추가 self-test. e-process 폐형 보존(replay 재현)"}
+  - {stage: falsify, file: core/assume/update_controller.py, symbol: "retract_now / UpdateController.step",
+     current: "step(card,verdict,...): RETRACT=disjunctive fast(hard_falsifier 1개로 즉시 retire, dwell/K 미대기) / ADOPT=conjunctive 5조건 AND(dwell+K-window+same-regime+effect+fdr). 측정 incident→KEEP, base-layer→HUMAN_REVIEW. dwell/K 는 호출자 주입",
+     change: "한국 가정 adopt dwell·K-window 를 route_lifecycle 호출 인자로 조정 — KOSDAQ 고변동 → dwell 길게(false adopt 방지), KOSPI 대형주 → us 와 동등. retract 는 빠르게 유지(틀린 가정 즉시 차단)",
+     risk: "호출 인자 파라미터 조정만 = 무회귀. step 로직 불변"}
+  # --- sleeve (kr_stock 기존재 확인) ---
+  - {stage: inject, file: core/brain/regime_to_weights.py, symbol: "SLEEVES / SLEEVE_BLOC / regime_to_weights",
+     current: "★SLEEVES=['us_stock','kr_stock',...] L50 — kr_stock 이미 존재(SLEEVE_BLOC[kr_stock]=Bloc.KRW L55, kr_stock=0.15 기본배분 L65). regime_to_weights(macro_view,returns_history,belief,sleeve_regime_ids): belief 동적 Σ_eff BL 배분. dir_key='stock' 으로 us/kr 공유",
+     change: "★신규 sleeve 불필요 — kr_stock sleeve 기존재. 종목 가중은 stock_track+weight_card composed_weights(pi) 경로에서 처리(블록7 위 card/inject 항목). sleeve 별 regime_history 가 sleeve_regime_ids 로 이미 분리(US overheat + KR recovery 동시 가능)",
+     risk: "sleeve 미변경 = 무회귀(신규 등록이 오히려 회귀 위험이라 회피)"}
+
+# ============================================================================
+# STATUS (다음 세션 재개용)
+# ============================================================================
+status:
+  done:
+    - "블록1 LENS 완성(이론·리포트·OSS): 4 핵심 = Korea discount·이익 글로벌 cycle·외국인 수급 주도·KOSPI/KOSDAQ 분절"
+    - "블록2 indicators 17종(§6 코어셋 10 + 한국 특화 7: foreign_net_buy/low_pbr_valueup/usdkrw_export_exposure/semi_cycle_beta/china_revenue_share/dividend_yield/kosdaq_retail_beta/governance_score)"
+    - "블록3 relationships 7(partial-corr prior, conditioning_set 명시. foreign↔momentum·dollar↔eps·semi↔eps 한국 핵심)"
+    - "블록4 weight_rules 14 — 한국 1순위 foreign_net_buy 0.18, fwd_ep+low_pbr_valueup 직교화, dollar_beta name_specific(수출/내수 부호 분리)"
+    - "블록5 confidence_hooks 4건(foreign_flow_alpha·valueup_rerating·usdkrw_exporter·semi_cycle_turn — 모두 코드 매핑+action_threshold+feeds_weight 명시)"
+    - "블록6 collector_plan 6건(D1 DART_API_KEY P0, D2 지역별매출, D3 컨센서스, D4 governance, D5 공매도, D6 반도체 cycle)"
+    - "블록7 code_change_plan 9항목 — 4단계 전부 실코드 사실 정밀화. ★발견: kr_stock sleeve 기존재(regime_to_weights L50) + judge lens 주입 기구현(eq_us_cyclical 검증) → 신규 메커니즘 불필요, archetype 확장으로 처리"
+    - "코드 Read 완료: weight_panel/conditional_correlation/weight_card/weight_falsification/stock_track + 한국 인프라(dart_provider/krx_flows/krx_universe)"
+    - "한국 데이터 인프라 사실 확인: stock/data/{dart_provider,krx_flows,krx_universe}.py + data/{krx_snapshots,krx_sector_snapshots,krx_flow_snapshots}.jsonl 일부 적재 + _refs/{dart-fss,OpenDartReader,FinanceDataReader} OSS 가용"
+  todo:
+    - "summary.md 작성"
+    - "main(btn-Codlearn) 방향성 보고"
+    - "(블록6 우선순위) DART_API_KEY 발급 후 dart_provider 라이브 fetch → fwd_ep·ROE·배당 실측 채워 블록5 hook 라이브 IC 측정"
+    - "(분석 보강) main 권고 ②: RegimeGlasso 전체 적합 대신 17 지표 × 적재 가능 종목 표본으로 상관행렬 + regime별 partial-corr 1회 산출 → 블록3 prior_sign·prior_strength 정밀화(미실행, 합성 픽스처 또는 적재 후 실행)"
+  pending_with_reason:
+    - "합성 픽스처 데이터 분석 미실행 — main 권고 ② '상관·partial-corr 만 먼저' 는 한국 적재 종목 표본이 필요. eq_us_cyclical 본보기는 40firm×36Q 합성 픽스처로 IC 측정했으나, 한국은 krx_flow 일부 적재 + dart_provider API 키 부재로 실측 진입 가설치 prior 만 작성. 라이브 hook(블록5) 가 적재 후 자동 검증 = 데이터 가용 시 즉시 갱신 경로 명시"

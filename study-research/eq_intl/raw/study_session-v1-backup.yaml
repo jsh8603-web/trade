@@ -1,0 +1,472 @@
+study_id: eq_intl
+asset_scope: [equity.intl]
+as_of: "2026-05-30"
+
+# =============================================================================
+# 블록1: LENS (정성 렌즈 — LLM 주입용. 일반론+리포트의 정제 결과)
+# ★가변: 블록5 flag 누적(확신/거부)→신뢰도→이 필드(특히 estimation_note·regime_reading)와
+#   블록4 가중치가 미세 변동. lens=초안, flag=갱신 경로.
+#
+# eq_intl = 국가/지역 지수 ETF (EFA/VEA 선진국, EEM/VWO 신흥국, EWJ/EWG/EWZ/INDA/EWY/EWT/FXI 등
+#   단일국, VGK/EWW 지역). 단일 종목이 아니라 "국가 = 한 자산" 단위로 평가한다.
+# =============================================================================
+lens:
+  pricing_principle: >
+    국가지수 ETF 의 달러표시 총수익 = (현지통화 지수수익) + (현지통화/USD 환수익) + 배당.
+    unhedged ETF(EEM/EFA 등 대부분)는 환이 1차 driver — 종목 평가에서 환을 빼면 절반을 놓친다.
+    현지 지수수익 자체는 (글로벌 위험선호 × 국가 베타) + (국가 거시: 성장·금리·재정) + (지수
+    섹터구성에 실린 글로벌 사이클: 반도체·원자재·금융). 즉 국가지수 가격 = 글로벌 유동성/위험선호를
+    공통인자로, 거기에 국가별 (통화 레짐 × 섹터구성 × 거시) 민감도가 곱해진 형태.
+    핵심 등식(직관): R_usd ≈ β_global·(risk-on factor) − β_usd·ΔDXY + β_commodity·Δcommod
+                      + β_rate·Δ(US real yield) + 국가 alpha(밸류·모멘텀·revision).
+  report_relations:
+    - "달러(broad DXY)↑ → EM 주식↓ (외화부채 부담·자본유출·원자재 압박). US real yield 고정 시에도 직접효과 잔존 = 가장 강한 단일 관계"
+    - "US 10Y real yield↑ → 자본이 US 로 회귀 → EM·고듀레이션 신흥국 압박. 달러강세의 공통원인이기도 함(real yield→DXY→EM 매개)"
+    - "China credit impulse(신용자극)↑ → 6~12개월 lag 로 원자재·원자재수출국(브라질·인니·남아공) 지수 선행. EM 사이클의 marginal demand"
+    - "글로벌 위험선호(VIX↓·HY OAS 축소) → EM 고베타 아웃퍼폼. risk-off 시 EM 이 가장 먼저·크게 빠짐(high beta to global risk)"
+    - "원자재 가격↑ → 원자재수출국(LatAm·자원국) terms-of-trade 개선 → 통화·지수 동반 강세 / 원자재수입국(인도·한국·일본)은 반대"
+    - "엔(JPY) 약세 → 일본 수출주 EPS↑(EWJ 현지수익↑) 그러나 unhedged USD 투자자는 환손실 — 헤지/언헤지 분기 핵심"
+    - "현지 정책금리↑(EM 중앙은행 통화방어 hike) → 단기 통화방어 but 성장둔화 → 지수 양면적. 금리차(carry)는 환에 우호"
+    - "cross-country value(CAPE/forward E-P 스프레드): 싼 국가가 장기 아웃퍼폼하나 value-trap(구조적 디스카운트=러시아·터키) 리스크 — 모멘텀과 병용 필수"
+    - "cross-country momentum(12-1): 국가단위 모멘텀은 가장 견고한 횡단면 신호(AQR). 단 risk-off 전환점에서 momentum crash"
+  regime_reading: >
+    [risk-on·달러약세·US real yield 하락] = EM·ex-US DM 이 US 를 아웃퍼폼(EM bull, reflation).
+      → 모멘텀·밸류·환carry 가중↑, 방어(vol·credit beta) 가중↓.
+    [risk-off·달러강세·US real yield 상승] = flight-to-quality(USD/US 우위), EM 언더퍼폼.
+      → 달러베타·realized vol·credit beta 가중↑, 모멘텀 가중↓(crash 회피).
+    [commodity 강세 사이클] = 원자재수출국 archetype 아웃퍼폼 → 해당 국가 commodity/terms-of-trade
+      베타 가중↑. 동시에 원자재수입국(인도·한국·일본)은 반대 신호.
+    [글로벌 성장둔화·China 디레버리징] = EM 전반 언더퍼폼, China credit impulse 음전환이 선행지표.
+  estimation_note: >
+    2026-05-30 기준 anchor(추정·확신도 중): 환(달러 방향)이 국가지수 횡단면 수익을 지배하는 국면이
+    구조적으로 길어졌다(2022~ 고금리·강달러 잔재). 따라서 eq_intl lens 의 1차 축은 단일종목 §6
+    하드룰의 valuation/quality 가 아니라 **macro_sensitivity(dollar·commodity·rate beta)** 라고
+    초기 가중을 둔다. 이 anchor 는 블록5 flag(달러베타 신호의 OOS Rank-IC)로 검증되며, 달러지배가
+    풀리면(real yield 하락 + DXY 추세 꺾임) estimation_note 와 블록4 base_weight 가 모멘텀/밸류
+    쪽으로 재배분된다.
+    ★2026-05-30 5y Yahoo daily 실측 (raw/analysis-output.txt):
+      (a) DXY↔국가ETF 일별 상관: 모두 음수 -0.23~-0.57, prior 강확인 — anchor 채택.
+      (b) regime 분해(VIX>25 risk-off): DXY-EM 상관이 risk-on -0.64→risk-off -0.80 으로 강화,
+          regime-conditional amplification 확인.
+      (c) 통념 부분 기각: DM Europe(germany/uk/dm_exus/europe) dxy_beta 가 EM(brazil/china/india)
+          보다 강함 — archetype dm_europe 의 dollar 채널이 1순위, em 은 5y 부분 decoupling(china
+          특히 capital controls 영향 추정).
+      (d) momentum 5y 무력화: cross-country 12-1 Rank-IC mean +0.015, IC-IR +0.13(연), IC>0 50% —
+          AQR prior 기간 의존성 큼. mom_12_1 base_weight 하향 + regime 가변 더 강조.
+
+# =============================================================================
+# 블록2: INDICATORS (정량 지표 — 우리 시스템 자료로 귀결)
+# §6 하드룰 코어셋(is_core: true)은 국가지수 = "지수집계 펀더멘털" 레벨로 해석.
+# eq_intl 특화(is_core: false)는 환·flow·terms-of-trade — 단일종목엔 없는 국가단위 축.
+# =============================================================================
+indicators:
+  # --- §6 통일 하드룰 코어셋 (지수 집계 레벨) ---
+  - id: fwd_ep_country
+    family: valuation
+    is_core: true
+    in_our_system: false   # 국가지수 forward 컨센서스 E/P 미수집 → 블록6
+    source_or_collector: "블록6: MSCI/index forward earnings yield 또는 country ETF 구성종목 가중 E/P"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 1
+  - id: roe_country
+    family: quality
+    is_core: true
+    in_our_system: false
+    source_or_collector: "블록6: 지수 집계 ROE/margin (MSCI country aggregate)"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 1
+  - id: eps_revision_breadth_country
+    family: revision
+    is_core: true
+    in_our_system: false
+    source_or_collector: "블록6: 국가지수 analyst revision breadth(상향-하향)/(전체). 국가로테이션 최강 신호 중 하나"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 0
+  - id: mom_12_1_country
+    family: momentum
+    is_core: true
+    in_our_system: false   # ETF 가격패널 도착 시 자체계산 가능
+    source_or_collector: "블록6: 국가 ETF TR 가격패널 → 12-1 모멘텀 자체계산(FinanceDataReader)"
+    transform: rank
+    vintage_policy: point_in_time
+    lag: 1
+  - id: dollar_beta_country
+    family: macro_sensitivity
+    is_core: true
+    in_our_system: false   # ★broad dollar index(DTWEXBGS) FRED_SERIES 미등록 — 블록6+블록7 learn
+    source_or_collector: "블록6/블록7: FRED DTWEXBGS(broad USD) + 국가ETF 수익 → 롤링 beta. main 선구축 DXY/FxStore 보완"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 0
+  - id: rate_beta_country
+    family: macro_sensitivity
+    is_core: true
+    in_our_system: true
+    source_or_collector: "fred_adapter[T10Y2Y]+US real yield(DFII10 블록6) vs 국가ETF 수익 롤링 beta"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 0
+  - id: oil_beta_country
+    family: macro_sensitivity
+    is_core: true
+    in_our_system: false   # ★oil(DCOILWTICO) FRED_SERIES 미등록 — 블록6+블록7 learn
+    source_or_collector: "블록6/블록7: FRED DCOILWTICO(WTI) 또는 Yahoo → 국가ETF 수익 롤링 beta(원자재수출국 분별)"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 0
+  - id: credit_beta_country
+    family: macro_sensitivity
+    is_core: true
+    in_our_system: true
+    source_or_collector: "fred_adapter[BAMLH0A0HYM2] HY OAS vs 국가ETF 수익(risk-on/off 베타)"
+    transform: level
+    vintage_policy: point_in_time
+    lag: 0
+  - id: realized_vol_country
+    family: risk
+    is_core: true
+    in_our_system: false
+    source_or_collector: "블록6: 국가 ETF TR 가격패널 → 실현변동성 자체계산"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 0
+  # --- eq_intl 특화 (is_core: false, weight cap. 단 sleeve 승격 후보 = fx) ---
+  - id: fx_carry_momentum   # ★sleeve 승격 요청 후보(블록6/§6 3-test): unhedged 환은 1차 driver
+    family: macro_sensitivity
+    is_core: false
+    in_our_system: false   # main 선구축 FxStore(DXY/USDKRW) 일부 → 다국가 확장 필요
+    source_or_collector: "블록6: FxStore 다국가 확장(현지/USD 환율). carry=금리차, momentum=환율 3-12m 추세"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 0
+  - id: real_exchange_rate_valuation   # 환 밸류(REER 갭) — 장기 평균회귀
+    family: valuation
+    is_core: false
+    in_our_system: false
+    source_or_collector: "블록6: BIS REER 또는 FRED 시리즈. 통화 고/저평가(terms-of-trade 조정)"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 1
+  - id: china_credit_impulse   # EM·원자재수출국 6-12m 선행
+    family: macro_driver
+    is_core: false
+    in_our_system: false
+    source_or_collector: "블록6: China TSF(total social financing) YoY. FRED/외부 소스"
+    transform: yoy
+    vintage_policy: point_in_time
+    lag: 2
+  - id: foreign_equity_flow   # 외국인 포트폴리오 flow(EM 단기수급)
+    family: macro_driver
+    is_core: false
+    in_our_system: false   # main 선구축 외국인순매수(pykrx)는 한국한정 → 다국가는 블록6
+    source_or_collector: "블록6: IIF/EPFR EM flow(유료) 또는 국가별 외국인순매수 프록시"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 1
+  - id: terms_of_trade   # 원자재수출국 archetype 분별 핵심
+    family: macro_driver
+    is_core: false
+    in_our_system: false
+    source_or_collector: "블록6: 국가별 수출가격/수입가격 지수(World Bank/BIS)"
+    transform: yoy
+    vintage_policy: point_in_time
+    lag: 2
+  - id: sovereign_cds_spread   # 테일/디폴트 리스크(EM 방어)
+    family: risk
+    is_core: false
+    in_our_system: false
+    source_or_collector: "블록6: 5Y 국채 CDS(유료) 또는 EMBI 스프레드 프록시(FRED EM OAS)"
+    transform: own_history_z
+    vintage_policy: point_in_time
+    lag: 0
+
+# =============================================================================
+# 블록3: RELATIONSHIPS (관계 가설 — glasso prior. partial-corr 기준!)
+# §8: 공통원인 매개는 edge=0, C→A·C→B 분해. conditioning_set 필수 명시.
+# 거시 driver named 채널 = dollar/real_rate/oil/credit (cglasso B 행렬). 나머지 거시=regime 조건키.
+# 이론 강한 ≤4 엣지만 force-include 화이트리스트 후보 표시.
+# =============================================================================
+relationships:
+  - node_a: dollar_beta_country
+    node_b: rate_beta_country
+    edge_type: common_cause   # US real yield 가 둘의 공통원인 → EM-dollar 직접효과는 real yield 고정 후 평가
+    conditioning_set: [credit_beta_country]
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.55
+    theory_basis: "US real yield↑가 달러강세와 EM자본유출을 동시 유발 — real rate 채널 분해 후 dollar 잔차효과 측정"
+  - node_a: dollar_beta_country
+    node_b: mom_12_1_country
+    edge_type: direct
+    conditioning_set: [credit_beta_country, rate_beta_country]
+    lag_routing: lagged
+    prior_sign: neg
+    prior_strength: 0.30   # ★2026-05-30 실측 하향 (was 0.50): pearson(dxy_beta, avg_mom)=-0.27 / spearman=-0.11. 부호 prior 일치하나 강도 약함
+    theory_basis: "강달러 추세가 EM모멘텀을 꺾음(모멘텀=환추세 동반). 위험/금리 고정 후에도 환 자체 추세효과 잔존. ★실측: 5y cross-country dxy_beta(-2.30~-0.80)와 평균 monthly return 간 pearson -0.27 — 부호 일치 강도 약함, mom 자체가 5y 무력화(H6) 영향. 데이터 길이 확대 시 재평가."
+    force_include_candidate: true   # 유지(이론 강함, 5y 만으론 부족). prior_strength 약화로 EBIC 가 자체 발견하게 허용
+  - node_a: oil_beta_country
+    node_b: china_credit_impulse
+    edge_type: common_cause   # China 수요가 oil 과 원자재수출국 지수의 공통 driver → 직접 oil-equity 는 분해
+    conditioning_set: [credit_beta_country]
+    lag_routing: lagged
+    prior_sign: pos
+    prior_strength: 0.45
+    theory_basis: "China 신용자극→원자재수요→유가·원자재수출국 동반. 공통원인 China 분해 시 oil 직접효과 축소"
+  - node_a: credit_beta_country
+    node_b: realized_vol_country
+    edge_type: direct
+    conditioning_set: []
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.35   # ★2026-05-30 실측 하향 (was 0.60): VIX proxy 로 본 vix_beta↔realized_vol pearson +0.055(거의 0). 단 vix_beta 분해능 부족(|β|<0.2) + HY OAS 직접 채널 미검증
+    theory_basis: "risk-off(HY OAS 확대) 시 EM 변동성 동반 급등 — 글로벌 위험선호 공통인자의 직접 발현. ★실측: vix proxy 로 본 cross-country vix_beta↔realized_vol pearson +0.055 — 거의 0. 단 vix_beta 자체가 모두 작아 분해능 부족(|β|<0.2). H2(VIX↔국가ETF 일별)는 모든 국가 -0.33~-0.76 강음수 = risk-off 채널 자체는 확인. HY OAS(BAMLH0A0HYM2) 가용 → 블록7 learn 직후 HY OAS 직접 베타로 재시험 필수."
+    force_include_candidate: true   # 유지(이론 강함, vix proxy 5y 분해능 부족, HY OAS 직접 미측정)
+  - node_a: fwd_ep_country
+    node_b: mom_12_1_country
+    edge_type: direct
+    conditioning_set: [credit_beta_country]
+    lag_routing: contemporaneous
+    prior_sign: neg
+    prior_strength: 0.35
+    theory_basis: "value(싼 국가)와 momentum(오른 국가)은 횡단면에서 음의 동시상관 — 분산 효과(value+momentum 병용 근거)"
+  - node_a: fx_carry_momentum
+    node_b: dollar_beta_country
+    edge_type: direct
+    conditioning_set: [rate_beta_country]
+    lag_routing: contemporaneous
+    prior_sign: pos
+    prior_strength: 0.50
+    theory_basis: "환carry/모멘텀과 달러베타는 같은 환 채널 — 금리차 고정 후 잔차는 환추세 공유"
+  - node_a: terms_of_trade
+    node_b: oil_beta_country
+    edge_type: common_cause   # 원자재가격이 terms-of-trade 와 oil-beta 의 공통 driver(수출국)
+    conditioning_set: []
+    lag_routing: lagged
+    prior_sign: pos
+    prior_strength: 0.40
+    theory_basis: "원자재수출국은 유가↑가 교역조건·지수 동반 개선 — archetype(수출국) 한정 양, 수입국은 부호반전"
+
+# =============================================================================
+# 블록4: WEIGHT_RULES (★최종 산출 — 종목별 가중치 동적 변경)
+# 종목 세분화 = 부록B hierarchical pooling: w_global + δ_regime + δ_arch(국가 archetype) + ticker shrink.
+# 국가 archetype(soft membership π, _regime_pi 로 주입): commodity_exporter / tech_exporter /
+#   domestic_demand / dm_europe / dm_japan / em_china. 한 국가가 복수 archetype 에 soft 소속.
+# =============================================================================
+weight_rules:
+  - indicator_id: dollar_beta_country
+    base_weight: 0.22   # ★eq_intl anchor: 단일종목보다 dollar 비중 크게(estimation_note)
+    modulate_by: [regime, industry, name_specific]
+    direction: "강달러·risk-off 국면 + 외화부채高/원자재수출 archetype → dollar beta 가중↑(FX drawdown 방어). 약달러 국면 → 가중↓"
+    granularity: ticker
+  - indicator_id: oil_beta_country
+    base_weight: 0.08   # ★2026-05-30 실측 하향 (was 0.12): H3 일별 |corr|<0.15(약), H5 월별 oil_beta R² < 0.06. 단 부호는 archetype 별 prior 일치(brazil +0.123, india -0.064). archetype 모듈레이션 의존도 ↑
+    modulate_by: [regime, industry]
+    direction: "commodity-bull 국면 + commodity_exporter archetype → oil/commodity beta 가중↑(부호 양). 원자재수입국(domestic_demand/dm_japan) → 부호 반전·가중↑(역방향 방어). ★실측: H5 oil_beta 모든 국가 R²<0.06 — 일별/월별 직접 신호 약. archetype 한정·regime conditional 적용 시만 의미 있음(H4 risk-off 시 commodity 신호도 함께 약화 가능성, FRED oil 추가 후 재평가)"
+    granularity: ticker
+  - indicator_id: mom_12_1_country
+    base_weight: 0.12   # ★2026-05-30 실측 하향 (was 0.18): H6 cross-country 12-1 Rank-IC mean +0.015, IC-IR +0.13, IC>0 50%. 5y 기간 무력화 → regime 가변 더 강조, base 축소
+    modulate_by: [regime]
+    direction: "risk-on·추세 국면 → 모멘텀 가중↑. risk-off 전환점(credit_beta·vol 급등) → 모멘텀 가중↓(momentum crash 회피). ★실측 기반: 무조건 모멘텀 X — risk-on regime 진입 확인 후만 가중. risk-off/transition 에서는 0 근접"
+    granularity: sleeve
+  - indicator_id: fwd_ep_country
+    base_weight: 0.15
+    modulate_by: [regime, name_specific]
+    direction: "밸류 디스카운트 국가는 base 가중, 단 value-trap(구조적 저평가·sovereign risk高 국가)은 name_specific 으로 가중↓"
+    granularity: ticker
+  - indicator_id: eps_revision_breadth_country
+    base_weight: 0.13
+    modulate_by: [regime]
+    direction: "국가 로테이션 신호 — 모든 국면 base. 턴어라운드 초기(revision 상향전환)에 가중↑"
+    granularity: sleeve
+  - indicator_id: credit_beta_country
+    base_weight: 0.10
+    modulate_by: [regime]
+    direction: "risk-off 국면 → credit beta(HY OAS 민감) 가중↑(방어 강화)"
+    granularity: sleeve
+  - indicator_id: realized_vol_country
+    base_weight: 0.06
+    modulate_by: [regime]
+    direction: "risk-off·고변동 국면 → vol 가중↑(저변동 국가 선호)"
+    granularity: sleeve
+  - indicator_id: fx_carry_momentum   # is_core:false → cap 적용. 단 sleeve 승격 시 base↑
+    base_weight: 0.04
+    modulate_by: [regime, name_specific]
+    direction: "캐리 우호(금리차高+저변동) 국면 → carry 가중↑. risk-off 시 carry unwind → 즉시 가중↓(carry crash). ⚠️ unhedged ETF 에선 이 신호가 부당캡 → main 에 sleeve 승격 요청(블록6)"
+    granularity: ticker
+
+# =============================================================================
+# 블록5: CONFIDENCE_HOOKS (신뢰도 누적 — 확신/거부 flag를 *코드로 구현*할 계획)
+# ★lens↔flag↔weight 한 루프. 매 거래마다 flag 누적→가정 신뢰도→렌즈/가중치 미세변동.
+# 매핑 검증: core/assume/weight_falsification.py score_ic_breakdown_eprocess(L66, e-CUSUM 단측) +
+#   weight_card_verdict(L109) → update_controller.step(hard_falsifier) RETIRE/KEEP 라우팅 실측 확인.
+# =============================================================================
+confidence_hooks:
+  - hypothesis_id: dollar_dominance_anchor   # 블록1 estimation_note + 블록2 dollar_beta_country
+    confirm_signal: "dollar_beta 로 사이징한 국가의 OOS outcome Rank-IC 양 유지(강달러기 방어 성공)"
+    reject_signal: "dollar_beta 신호 합성 score 의 Rank-IC e-CUSUM 단측 붕괴(baseline 아래 지속)"
+    emit_where: "backtest engine SELL outcome + 라이브 judge 사후평가(국가ETF buy 결정의 forward TR)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess(ic_series=OOS 윈도별 Rank-IC)"
+    confidence_metric: "e-value anytime-valid 누적(e_cusum, Ville: 거짓kill≤alpha)"
+    store: "registry 카드 confidence_now(weight_card_verdict 가 abs(ic_last)*10 clip) + RulePerformance"
+    action_threshold: "e-value≥1/alpha → dollar 지배 anchor 거부 → estimation_note 재배분(dollar→momentum/value) + retract live 차단. 유지 → adopt 강화"
+    feeds_weight: "신뢰도 변화 → derive_weights 재적합 trigger(secondary_refit 플래그) → base_weight(dollar 0.22) 미세조정"
+  - hypothesis_id: commodity_exporter_oil_link   # 블록3 oil-china common_cause + archetype
+    confirm_signal: "commodity_exporter archetype(π高) 국가에서 oil_beta 가중 사이징의 Rank-IC 양"
+    reject_signal: "oil_beta score Rank-IC e-CUSUM 단측 붕괴 OR archetype membership π 와 부호 불일치"
+    emit_where: "backtest engine outcome(archetype별 분해) + judge 사후평가"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess(archetype 서브패밀리)"
+    confidence_metric: "e-value 누적 + archetype별 Rank-IC 분해(hierarchical FDR 부모노드)"
+    store: "registry 카드(weight.equity.intl.{regime}.{archetype}) confidence_now"
+    action_threshold: "붕괴 → 해당 archetype oil_beta delta_arch 약화. 유지 → delta_arch_by_type[commodity_exporter] 강화"
+    feeds_weight: "composed_weights 의 delta_arch_by_type[commodity_exporter] 미세조정(soft membership 혼합)"
+  - hypothesis_id: momentum_crash_regime   # 블록4 momentum modulate_by regime
+    confirm_signal: "risk-off 전환점에서 모멘텀 가중↓ 적용한 국면의 drawdown 완화(OOS)"
+    reject_signal: "모멘텀 score Rank-IC 가 risk-on 에서도 붕괴(모멘텀 신호 자체 무력화)"
+    emit_where: "backtest engine(regime transition window 라벨) + judge"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess + omega_drift(SECONDARY)"
+    confidence_metric: "PRIMARY e-value(IC 붕괴) + SECONDARY Ω drift(상관구조 변화 → re-fit)"
+    store: "RulePerformance + 카드 secondary_falsification 필드"
+    action_threshold: "PRIMARY 붕괴 → momentum 카드 retract. SECONDARY drift만 → regime 조건부 momentum 가중 재적합(TRANSITION)"
+    feeds_weight: "needs_refit(fro_rel/logdet) → derive_weights 재실행 → mom_12_1 base_weight·delta_regime 갱신"
+  - hypothesis_id: fx_sleeve_promotion   # 블록4 fx_carry 부당캡 → §6 3-test
+    confirm_signal: "fx_carry_momentum 의 native 신호가 cap(0.04) 때문에 Rank-IC 손실(uncapped 시뮬 IC > capped)"
+    reject_signal: "uncapped 해도 IC 개선 없음(부당캡 가설 기각 → is_core:false 유지)"
+    emit_where: "backtest A/B(capped vs uncapped) outcome 비교 + §6 3-test(부호상충/조건부상관 decoupling/신호스택 발산)"
+    accumulate_in: "core/assume/weight_falsification(capped/uncapped 두 카드 IC 시계열 비교)"
+    confidence_metric: "IC gap e-value + 3-test 통과 카운트"
+    store: "main 에 sleeve 승격 요청 트리거(블록6 collector_plan fx 확장 선행)"
+    action_threshold: "3-test 중 1+ 통과 AND uncapped IC 유의 → main 에 intl-fx sleeve 승격 요청. 미충족 → cap 유지"
+    feeds_weight: "승격 시 fx_carry base_weight cap 해제 → regime_to_weights SLEEVES 에 intl_fx 추가(블록7 inject)"
+
+# --- 2026-05-30 실측 calibration 메타 (block5 초기 flag + 새 발견) ---
+priors_calibration_2026_05_30:
+  source: "Yahoo Finance chart API 5y daily (raw/yahoo_cache/{symbol}.csv, raw/analysis-output.txt)"
+  universe: [SPY, EFA, VEA, EWJ, EWG, EWU, EEM, VWO, EWZ, INDA, FXI, EWY, EWT, EWW, VGK, "DX-Y.NYB", "CL=F", "^VIX"]
+  obs_per_series: 1255   # ~5y daily
+  monthly_obs: 59
+  initial_flags:
+    dollar_dominance_anchor: EARLY_ADOPT
+    dollar_dominance_anchor_evidence: "H1 일별 DXY↔국가ETF 전부 음수(-0.23 to -0.57). H4 risk-off regime 에서 EM 상관 -0.640→-0.796 강화. H5 월별 dxy_beta 전부 음수(-0.80 to -2.30), R² 평균 0.30+. 부호·강도 모두 prior 지지 → adopt"
+    commodity_exporter_oil_link: NEEDS_DATA
+    commodity_exporter_oil_link_evidence: "H3 일별 |corr|<0.15(약하나 brazil +0.123 / india -0.064 부호는 archetype 별 prior 일치). H5 월별 oil R²<0.06(분해능 부족). FRED DCOILWTICO 추가 + 월별 lag 분석 + China credit impulse 결합 후 재평가"
+    momentum_crash_regime: CAUTION
+    momentum_crash_regime_evidence: "H6 cross-country 12-1 Rank-IC mean +0.015, IC-IR +0.13(연), IC>0 50%, n_months=46. 5y 기간 momentum 자체 무력화 — regime 가변 anchor 의 risk-off 회피 부분은 H4 가 간접 지지하나 직접 검증 미실시. 데이터 길이 확대 + regime 라벨 정합 필요"
+    fx_sleeve_promotion: PENDING
+    fx_sleeve_promotion_evidence: "FxStore 다국가 확장 미실시(블록6 요청 진행 중). 현 DXY/USDKRW 외 BRL/JPY/EUR/INR/TWD/KRW 등 필요. 5y 데이터 부재로 §6 3-test 시뮬 보류"
+  new_findings:
+    - id: dm_europe_dollar_dominance_strongest
+      evidence: "H1 일별 dxy 상관 최강: europe -0.569, germany -0.548, dm_exus -0.541, uk -0.523. H5 월별 dxy_beta 최강: korea -2.305, germany -2.151, brazil -1.840, europe -1.808. ★archetype dm_europe(+korea tech-export) 가 dollar 채널 1순위. EM broad 은 통념보다 약함"
+      action: "블록4 weight_card.composed_weights 의 delta_arch_by_type[dm_europe] 에서 dollar_beta 가중 ↑↑. archetype π 우선순위 보정"
+      anchored_to: dollar_dominance_anchor
+    - id: em_partial_decoupling_2021_2026
+      evidence: "H1: china dxy 상관 -0.294, brazil -0.286, india -0.302 — DM Europe 보다 약함. H2: china VIX 상관 -0.331(전체에서 가장 약), brazil -0.432. H4: risk-off 시 china DXY 상관 +0.033(반전!). china 의 capital controls/CNY peg 가 5y 기간 dollar/risk 채널 부분 차단"
+      action: "블록4 archetype em_china 의 dollar_beta delta_arch ↓ 또는 부호 가변(regime 조건부). archetype 분해 시 china 를 별도 sub-archetype 으로 처리 검토"
+      anchored_to: dollar_dominance_anchor
+    - id: dm_europe_vs_em_volatility_paradox
+      evidence: "H8: realized_vol(annualized) — DM Europe 16~20%(germany 20.4%, uk 16.5%), EM 15~31%(china 31.4%, brazil 27.7%, korea 28.7%). 즉 EM 이 vol 은 더 크나 vix_beta 는 (체계적) 더 작음 → idiosyncratic vol 비중이 큼"
+      action: "credit_beta vs idiosyncratic vol 분해 필요. realized_vol_country indicator 가 systematic(vix_beta) 와 idio 를 합쳐 봐야 → factor decomposition 검토"
+      anchored_to: credit_beta-realized_vol-relationship
+  caveats:
+    - "VIX = SPX 옵션 IV 라 SPY 와 mechanical 상관(H2: SPY -0.764 가 가장 강) → vix_beta proxy 가 HY OAS 채널을 완전히 대체하지 못함. FRED BAMLH0A0HYM2 직접 사용 필수"
+    - "5y(2021-05~2026-05) = COVID 회복 + 2022 인플레/금리 cycle + 2024 rate cycle 의 3 regime 만 cover. 1980s/2000s/2008/2015 dollar cycle 미반영"
+    - "Yahoo adjclose = TR(배당·분할 반영) 사용. 국가 ETF 별 distribution timing 차이는 미보정"
+
+# =============================================================================
+# 블록6: COLLECTOR_PLAN (부족 자료 수집기 추가 계획)
+# §7: 국가지수 ETF NAV/TR = "없음→요청" 명시 항목. 다국가 환·집계펀더멘털도 미수집.
+# =============================================================================
+collector_plan:
+  - missing: "국가/지역 지수 ETF TR(총수익) 가격패널 (EFA/VEA/EEM/VWO/EWJ/EWG/EWZ/INDA/EWY/EWT/FXI/VGK 등)"
+    source: "FinanceDataReader(MIT, 국가지수 ETF) + FinanceDatabase(DM/EM 분류)"
+    interface: VintageProvider   # realtime(etf_ticker, period, as_of) → 12-1 mom·realized vol 자체계산
+    credential: none
+  - missing: "broad USD index(DTWEXBGS) + WTI oil(DCOILWTICO) FRED 시리즈 (현 FRED_SERIES 미등록)"
+    source: "FRED DTWEXBGS / DCOILWTICO / DFII10(10Y real yield)"
+    interface: VintageProvider   # fred_adapter FRED_SERIES dict 에 추가(블록7 learn)
+    credential: none   # 기존 FRED 키 재사용
+  - missing: "다국가 환율 패널 (현지통화/USD) — FxStore 다국가 확장"
+    source: "FRED 환율 시리즈 또는 FinanceDataReader FX"
+    interface: FxStore   # 현 DXY/USDKRW(main 선구축) → BRL/INR/JPY/EUR/TWD/KRW 등 확장
+    credential: none
+  - missing: "국가지수 집계 펀더멘털 (forward E/P·ROE·EPS revision breadth)"
+    source: "MSCI country index aggregate (유료) 또는 ETF 구성종목 가중 집계(EDGAR/DART 부분 활용)"
+    interface: FundamentalsProvider
+    credential: "MSCI 또는 대체 컨센서스 소스 키 (main 검토 — 유료, 우선 ETF 구성종목 프록시로 대체 가능)"
+  - missing: "China credit impulse(TSF YoY), terms-of-trade, EM flow(EPFR/IIF), sovereign CDS"
+    source: "FRED 부분 + 외부(World Bank/BIS REER, EPFR 유료)"
+    interface: VintageProvider
+    credential: "EPFR/IIF flow·CDS 는 유료 — 우선순위 낮음, 무료 프록시(FRED EM OAS) 우선"
+
+# =============================================================================
+# 블록7: CODE_CHANGE_PLAN (★§4 4단계 코드 — 실제 Read 한 파일:심볼:변경)
+# 4단계 전부. 실 Read 근거: weight_panel.py(L140 build_indicator_matrix, L53 반사성),
+#   conditional_correlation.py(L237 RegimeGlasso/L207 eb_shrink/L318 effective_precision),
+#   weight_card.py(L115 composed_weights/L208 derive_weights), registry.py,
+#   stock_track.py(L208 _resolve_weight_card/L224 _extract_indicator_z/L242 _apply_r15_sizing),
+#   regime_to_weights.py(L50 SLEEVES — intl 부재), weight_falsification.py(L66 e-CUSUM),
+#   update_controller.py, train_weights.py(L79 train_weight_cards scope/domain 인자).
+# =============================================================================
+code_change_plan:
+  - stage: learn
+    file: core/brain/fred_adapter.py
+    symbol: FRED_SERIES
+    current: "16 시리즈(growth/inflation/financial). broad USD·oil·real yield 부재 — eq_intl 1차 driver 없음"
+    change: "DTWEXBGS(dollar_broad), DCOILWTICO(oil_wti), DFII10(us_real_yield_10y) 3 시리즈 dict 추가"
+    risk: "dict 추가만 — 기존 macro 학습 무회귀(다른 scope 는 series_ids 명시 선택)"
+  - stage: learn
+    file: core/data/weight_panel.py
+    symbol: build_indicator_matrix (L140) + assert_no_reflexive_series (L71)
+    current: "series_ids 로 시점×지표 PIT 행렬. 반사성 게이트는 position/holding/own 등 단어 차단"
+    change: "블록2 indicators id(dollar_beta_country·oil_beta_country·mom_12_1_country 등)를 eq_intl series_ids 로 등록. 'country'·'beta'·'mom' 토큰은 _REFLEXIVE_WORDS 비매칭 확인(통과)"
+    risk: "신규 series 등록만. 반사성 게이트 통과 검증 필요(beta⊄reflexive, 시장지표)"
+  - stage: learn
+    file: core/structure/conditional_correlation.py
+    symbol: RegimeGlasso.__init__(corr_prior, L244) + fit(L256) + eb_shrink(L207)
+    current: "nonparanormal→EBIC glasso→EB shrink→Ω_eff. corr_prior=None 시 독립 prior I"
+    change: "블록3 relationships(partial-corr prior)를 corr_prior 행렬로 주입. force_include_candidate=true 4엣지(dollar-mom, credit-vol)는 EB shrink lam_floor 상향 또는 force-include 화이트리스트"
+    risk: "corr_prior 주입은 opt-in 인자(None 기본 무회귀). force-include 는 ≤4 엣지 한정(§8)"
+  - stage: card
+    file: core/assume/weight_card.py
+    symbol: WeightAssumptionCard(L64) + composed_weights(pi)(L115) + delta_arch_by_type
+    current: "w_global+δ_regime+δ_arch+δ_inter. soft archetype membership π 혼합(delta_arch_by_type)"
+    change: "국가 archetype(commodity_exporter/tech_exporter/domestic_demand/dm_europe/dm_japan/em_china)을 delta_arch_by_type 키로. 블록1 lens(report_relations·regime_reading)를 카드 정성필드로 추가(③ LLM 주입). cap/floor 는 fx 등 비코어 지표에 별도 정책"
+    risk: "필드 추가만 — 미제공 시 0벡터 가법강등(무회귀). lens 정성필드는 judge 미사용 시 무시됨"
+  - stage: card
+    file: core/assume/registry.py
+    symbol: AssumptionRegistry.register / get(id, as_of)
+    current: "카드 버전드 보관 + PIT 조회. 현 id 규약 weight.equity.{regime}"
+    change: "eq_intl 카드 id 규약 weight.equity.intl.{regime}(+.{archetype} 옵션). _resolve_weight_card 가 조회할 키 정합"
+    risk: "id 네임스페이스 추가만 — 기존 weight.equity.{regime}(US/KR) 무충돌"
+  - stage: inject
+    file: core/stock_track.py
+    symbol: _extract_indicator_z(L224) + _resolve_weight_card(L208) + _apply_r15_sizing(L242)
+    current: "_resolve_weight_card 가 weight.equity.{regime} 조회. _extract_indicator_z 가 raw_external/market 의 수치 feature 를 series_ids 로 매칭. _apply_r15_sizing 이 composed_weights(_regime_pi) 로 S_L1 사이징"
+    change: "_resolve_weight_card 가 eq_intl 시 weight.equity.intl.{regime} 조회(scope 분기). _extract_indicator_z 가 국가 지표 z(dollar_beta·oil_beta·mom 등) 추출하게 키 확장. _regime_pi 로 국가 archetype soft membership 주입(commodity_exporter 등). down-only·천장 불변식 보존"
+    risk: "override·scope 분기 추가만. weight_card 미주입 시 기존 경로(무회귀). 천장 불변식 assert 유지"
+  - stage: inject
+    file: core/brain/regime_to_weights.py
+    symbol: SLEEVES(L50) + SLEEVE_BLOC(L53) + BASE_WEIGHTS
+    current: "SLEEVES=[us_stock,kr_stock,commodity,gold,bond,cash,coin]. intl 부재. SLEEVE_BLOC 으로 bloc 레짐 키잉"
+    change: "intl_stock sleeve 신규 등록(SLEEVES+SLEEVE_BLOC=Bloc.USD+BASE_WEIGHTS+REGIME_DIRECTION). fx 승격 시(블록5 fx_sleeve_promotion) intl_fx sleeve 추가"
+    risk: "★sleeve 추가는 자산배분 회귀 민감 — BASE_WEIGHTS 합 재정규화 필요. opt-in(intl 미사용 시 0비중)로 단계 도입. 무회귀 self-test 필수"
+  - stage: inject
+    file: core/assume/judge.py
+    symbol: synthesize_l1 호출부 + assert_ceiling_invariant
+    current: "L1 결정론 사이징 + LLM down-only 감쇠. 천장 불변식 강제"
+    change: "LLM judge 컨텍스트에 블록1 lens(국가지수 pricing_principle·regime_reading) 주입 경로. down-only 보존"
+    risk: "opt-in 컨텍스트 주입 — 미주입 무회귀. down-only/천장 불변식 불변"
+  - stage: falsify
+    file: core/assume/weight_falsification.py
+    symbol: score_ic_breakdown_eprocess(L66) + weight_card_verdict(L109) + omega_drift(L89)
+    current: "PRIMARY=score IC e-CUSUM 단측 붕괴 kill / SECONDARY=Ω drift re-fit. e_cusum Ville 거짓kill≤alpha"
+    change: "블록5 confidence_hooks 매핑: dollar_dominance/commodity_exporter/momentum_crash hypothesis 의 confirm=IC유지/reject=e-CUSUM붕괴. archetype 서브패밀리별 ic_series 분해(hierarchical FDR). eq_intl 임계(alpha·baseline_ic) 파라미터화"
+    risk: "추가 ic_series 입력만 — 기존 e-CUSUM 로직 불변(self-test 보존). archetype 분해는 부모노드 추가"
+  - stage: falsify
+    file: core/assume/update_controller.py
+    symbol: retract_now(L50) + UpdateController.step(L90)
+    current: "retract=빠름(disjunctive) / adopt=느림(5조건 AND). PRIMARY→RETIRE / SECONDARY→KEEP+refit플래그"
+    change: "eq_intl 가정의 adopt dwell·K-window 파라미터(환 레짐 전환은 느린 anchor → dwell 길게, momentum crash 는 빠른 retract). fx_sleeve 승격은 adopt 5조건 통과 요구"
+    risk: "파라미터 조정만 — 기본 disjunctive retract/AND adopt 로직 불변. eq_intl scope 한정 파라미터"

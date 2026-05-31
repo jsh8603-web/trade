@@ -1,0 +1,127 @@
+# Loaded 16 series, each ~1255 daily obs (5y 2021-05~2026-05)
+
+# Daily returns: 1254 obs. Monthly returns: 59 obs.
+
+======================================================================
+H1. DXY 일별 변화 ↔ 각 국가 ETF 일별 log-return 상관 (prior: 음수)
+======================================================================
+country          pearson    spearman       n
+us_spy            -0.233      -0.265    1254
+dm_exus           -0.541      -0.557    1254
+japan             -0.381      -0.415    1254
+germany           -0.548      -0.536    1254
+uk                -0.523      -0.522    1254
+em_broad          -0.426      -0.447    1254
+brazil            -0.286      -0.307    1254
+india             -0.302      -0.328    1254
+china             -0.294      -0.309    1254
+korea             -0.390      -0.407    1254
+taiwan            -0.334      -0.369    1254
+mexico            -0.355      -0.381    1254
+europe            -0.569      -0.570    1254
+
+======================================================================
+H2. VIX 일별 변화 ↔ 각 국가 ETF 일별 log-return 상관 (prior: 음수, EM 더 강함)
+======================================================================
+country          pearson    spearman       n
+us_spy            -0.764      -0.761    1254
+dm_exus           -0.651      -0.647    1254
+japan             -0.597      -0.551    1254
+germany           -0.572      -0.597    1254
+uk                -0.569      -0.557    1254
+em_broad          -0.571      -0.555    1254
+brazil            -0.432      -0.418    1254
+india             -0.469      -0.433    1254
+china             -0.331      -0.358    1254
+korea             -0.487      -0.480    1254
+taiwan            -0.581      -0.544    1254
+mexico            -0.456      -0.443    1254
+europe            -0.608      -0.623    1254
+
+======================================================================
+H3. WTI 일별 변화 ↔ 각 국가 ETF 일별 log-return (commodity exporter 양수)
+======================================================================
+country          pearson    spearman       n
+us_spy             0.076       0.059    1254
+dm_exus            0.033       0.069    1254
+japan              0.025       0.056    1254
+germany           -0.031       0.013    1254
+uk                 0.123       0.146    1254
+em_broad           0.018       0.088    1254
+brazil             0.123       0.146    1254
+india             -0.064       0.021    1254
+china              0.071       0.075    1254
+korea             -0.046       0.064    1254
+taiwan             0.020       0.069    1254
+mexico             0.059       0.103    1254
+europe             0.014       0.050    1254
+
+======================================================================
+H4. Regime 분해 — VIX 30 기준 risk-off/risk-on 분리 DXY↔EM 상관
+======================================================================
+risk-off months (VIX>25): 8, risk-on (≤25): 52
+  em_broad     risk-off corr=-0.796 (n=8) | risk-on corr=-0.640 (n=51)
+  brazil       risk-off corr=-0.456 (n=8) | risk-on corr=-0.506 (n=51)
+  china        risk-off corr=+0.033 (n=8) | risk-on corr=-0.541 (n=51)
+  korea        risk-off corr=-0.770 (n=8) | risk-on corr=-0.405 (n=51)
+  japan        risk-off corr=-0.901 (n=8) | risk-on corr=-0.608 (n=51)
+  europe       risk-off corr=-0.755 (n=8) | risk-on corr=-0.769 (n=51)
+
+======================================================================
+H5. Cross-country macro betas (월별 log-return univariate OLS)
+======================================================================
+country         dxy_beta  r2_dxy  oil_beta  r2_oil  vix_beta  r2_vix    n
+us_spy            -0.979   0.194    -0.023   0.002    -0.152   0.572   59
+dm_exus           -1.663   0.581    -0.042   0.008    -0.124   0.397   59
+japan             -1.366   0.425    -0.074   0.029    -0.094   0.246   59
+germany           -2.151   0.568    -0.071   0.014    -0.154   0.356   59
+uk                -1.400   0.484     0.035   0.007    -0.101   0.308   59
+em_broad          -1.553   0.397    -0.048   0.009    -0.095   0.183   59
+brazil            -1.840   0.238     0.083   0.011    -0.094   0.076   59
+india             -0.803   0.171    -0.094   0.053    -0.072   0.171   59
+china             -1.714   0.191     0.006   0.000    -0.040   0.013   59
+korea             -2.305   0.223    -0.102   0.010    -0.176   0.159   59
+taiwan            -1.485   0.201    -0.068   0.010    -0.130   0.189   59
+mexico            -1.692   0.308    -0.026   0.002    -0.132   0.231   59
+europe            -1.808   0.567    -0.038   0.006    -0.136   0.396   59
+
+======================================================================
+H6. 12-1m momentum → 다음 1m return Rank-IC (cross-country, monthly)
+======================================================================
+Rank-IC (12-1 momentum → next-month return), monthly cross-section:
+  mean IC = +0.0149
+  median IC = +0.0000
+  std = 0.3978
+  n_months = 46
+  IC>0 ratio = 50.00%
+  IC-IR (annualized) ≈ +0.130
+
+======================================================================
+H7. Cross-country dollar_beta ↔ 평균 mom_12_1 (force_include 가설, prior: 음수)
+======================================================================
+  pearson(dxy_beta, avg_monthly_return) = -0.265
+  spearman = -0.105
+  n_countries = 12
+  dxy_betas: ['-1.66', '-1.37', '-2.15', '-1.40', '-1.55', '-1.84', '-0.80', '-1.71', '-2.30', '-1.49', '-1.69', '-1.81']
+  countries: ['dm_exus', 'japan', 'germany', 'uk', 'em_broad', 'brazil', 'india', 'china', 'korea', 'taiwan', 'mexico', 'europe']
+
+======================================================================
+H8. Cross-country vix_beta ↔ realized_vol (force_include 가설 prior: 양수)
+======================================================================
+  pearson(vix_beta, realized_vol_ann) = +0.055
+  spearman = -0.098
+  n_countries = 12
+    dm_exus    vix_beta=-0.124 realized_vol=16.46%
+    japan      vix_beta=-0.094 realized_vol=18.23%
+    germany    vix_beta=-0.154 realized_vol=20.43%
+    uk         vix_beta=-0.101 realized_vol=16.45%
+    em_broad   vix_beta=-0.095 realized_vol=18.86%
+    brazil     vix_beta=-0.094 realized_vol=27.72%
+    india      vix_beta=-0.072 realized_vol=15.36%
+    china      vix_beta=-0.040 realized_vol=31.38%
+    korea      vix_beta=-0.176 realized_vol=28.66%
+    taiwan     vix_beta=-0.130 realized_vol=22.34%
+    mexico     vix_beta=-0.132 realized_vol=22.58%
+    europe     vix_beta=-0.136 realized_vol=17.88%
+
+# Done.

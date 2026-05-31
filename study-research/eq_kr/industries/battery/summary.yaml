@@ -1,0 +1,162 @@
+# summary.yaml — battery 산업 sub-set (frame §7 양식)
+# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트 통과 기록 의무.
+
+industry: battery
+asset_scope: [equity.kr]
+as_of: "2026-05-30"
+
+# 본 산업 universe (frame §1 Tier 2)
+universe:
+  static_round1:
+    - {ticker: "373220", name: "LG에너지솔루션", sub_cluster: cell}
+    - {ticker: "006400", name: "삼성SDI", sub_cluster: cell}
+    - {ticker: "247540", name: "에코프로비엠", sub_cluster: cathode}
+    - {ticker: "003670", name: "포스코퓨처엠", sub_cluster: cathode}
+  pit_dynamic_source: "stock.data.krx_flows.KrxSectorProvider.get_sector_map(as_of, market=KOSPI/KOSDAQ)"
+  sub_cluster_rationale: "frame §1.6 분석 unit vs portfolio label 분리. cell = USDKRW 노출, cathode = 리튬 cost-pass-through. eq-weight = factor cancel 위험."
+
+# 블록1: LENS (정성)
+lens:
+  pricing_principle: >
+    2차전지 종목 가격 = (a) 양극재 sub-cluster (247540, 003670) — LIT (리튬 ETF) yoy
+    lag 0-3M 양의 동조 (★validation-macro §2 H2 CONFIRMED, ρ +0.32, OOS ratio 1.19) +
+    cost-pass-through (메커니즘: 양극재 ASP = 리튬 spot + tolling, 매출 lag 1-2M) +
+    (b) 셀 sub-cluster (373220, 006400) — USDKRW 수출 베타 가설 (H1) ★REJECTED.
+    셀 매출 90%+ 해외 가설은 정성적 사실이나 실측 ρ=-0.10 (n=90) → 수출 매출 강세
+    가설은 ① 외국인 매도 동조 ② 비용도 USD 노출 (니켈/리튬) 으로 cancel.
+  report_relations:
+    - "LIT (리튬 ETF) yoy ↔ 양극재 매출 yoy (lag 1-2M, BNEF/SNE 통설)"
+    - "IRA 정책 cycle ↔ 한국 셀 multiple re-rating (2022-08 +20%, 2024-03 FEOC 직접 수혜)"
+    - "★ Trump 행정부 EV credit 변경 risk = 2025-2026 한국 셀 multiple 디레이팅 (실측 미관측 — event 부재)"
+    - "EV adoption S-curve inflection 15-20% 침투율 = 2024-2026 (BNEF EVO 2024)"
+    - "한국 NCM vs 중국 LFP shift → 한국 점유율 -2pt yoy (2023→2024, SNE)"
+  regime_reading: >
+    LIT yoy 강세 regime (+>20%) 시 양극재 매수, 약세 (yoy<-20%) 시 양극재 매도 — 단 본 라운드
+    regime 분해 cell N 부족 (lit_bull n=29, lit_bear n=14, lit_neutral n=46) → continuous
+    LIT yoy 차원에서 신호 (전체 n=89, ρ=+0.32) 가 강하고 threshold regime 분해는 추가 표본 필요.
+    Macro regime (Reflation/Recovery/Overheat/Slowdown) × KRW × 외국인 flow 36 cell 분해 = 외국인
+    flow 데이터 부재 (pykrx KRX 인증 필요) → cell collapse fallback.
+  estimation_note: >
+    2026-05 시점: LIT yoy = ★ 1년 lookback 측정 시점별 다름 (live yoy 측정 필요).
+    Trump 행정부 EV credit 변경 협상 (2026-Q1-Q2) 의 한국 셀 multiple 영향이 IRA 시행 +20% 의 mirror image
+    risk (-15-20% 추정 prior, ★실측 부재 hedge). 양극재 = LIT 동향 monitoring 의무.
+    ★ 점추정 covariance prior 박제 금지 (small-N rule §1 (e)) — base_weight = ic_mean ± SE 범위 박제.
+
+# 블록2: INDICATORS
+indicators_passed:
+  - id: lit_yoy
+    layer: 3
+    family: macro_sensitivity  # 산업 cycle proxy
+    ic_mean: 0.322  # lag0 monthly Spearman, n=89
+    ic_ci_95: [0.135, 0.509]  # ★IID SE 보정, block-bootstrap 다음 라운드
+    n_effective: 89
+    oos_ratio: 1.19  # OOS / IS = 0.312 / 0.262
+    cell_breakdown:
+      - {regime_type: lit_continuous, regime: "all", ic: 0.322, n: 89, note: "전체 표본 강 신호"}
+      - {regime_type: lit_yoy_threshold, regime: lit_neutral, ic: 0.105, n: 46, note: "TENTATIVE p=0.49"}
+      - {regime_type: lit_yoy_threshold, regime: lit_bull, ic: 0.051, n: 29, note: "TENTATIVE p=0.79"}
+      - {regime_type: lit_yoy_threshold, regime: lit_bear, ic: -0.108, n: 14, note: "INSUFFICIENT n<24"}
+    source_id: "validation-macro.md §2 + validation-industry.md §1"
+    notes: |
+      LIT = Global X Lithium ETF (yfinance), 252-day yoy.
+      Target = cathode sub-cluster (247540, 003670) 종목별 60-day forward, 월말 panel mean.
+      lag0 = +0.322 (p=0.002), lag1 = +0.359 (p=0.001), lag3 = +0.351 (p=0.001).
+      Multiple comparison Bonferroni α/7 ≈ 0.014 — lag0/1/3 모두 통과.
+      Factor neutralization (KOSPI+FX+SMH OLS residual): ρ 0.441 → 0.225 (n=100, p=0.024). 50% 축소하나 여전히 유의.
+
+# 블록3: RELATIONSHIPS (partial-corr 기준)
+relationships_passed:
+  - node_a: lit_yoy
+    node_b: cathode_panel_y60d  # 양극재 sub-cluster forward return
+    lag_months: 0
+    corr: 0.322
+    corr_ci_95: [0.135, 0.509]
+    conditioning_set: []  # 본 corr = unconditional. partial-corr (KOSPI+FX+SMH conditioning) = 0.225
+    n: 89
+    source_id: "validation-macro.md §2 + raw/validation-metrics.json:H2_lit_to_cathode.lags.0"
+    theory_basis: "양극재 cost-pass-through (BNEF Battery Price Survey 2023+24): ASP = lithium spot + tolling fee, 매출 lag 1-2M"
+  - node_a: lit_yoy
+    node_b: cathode_panel_y60d
+    lag_months: 1
+    corr: 0.359
+    corr_ci_95: [0.175, 0.543]
+    conditioning_set: []
+    n: 88
+    source_id: "raw/validation-metrics.json:H2_lit_to_cathode.lags.1"
+    theory_basis: "리튬 가격 → 매출 인식 lag 1M (계약-납품-회계 인식)"
+
+# 블록4: WEIGHT_RULES — ★점추정 prior 박제 금지, range 박제
+weight_rule_candidates:
+  - indicator_id: lit_yoy
+    base_weight_range: [0.10, 0.18]  # ic_mean=0.32 ± SE 0.096 ≈ [0.22, 0.42] → 보수 적용 0.10-0.18
+    modulate_by: [sub_cluster, cycle_phase]
+    direction: "양극재 sub (247540, 003670) 한정 — LIT yoy ↑ → forward return ↑. 셀 sub (373220, 006400) 적용 금지 (H1 REJECTED)."
+    granularity: ticker  # cathode sub 2개 ticker 한정
+    confidence: "high(5게이트 ALL PASS, OOS ratio 1.19)"
+    gate_status: {n: pass, se: pass, power: pass, fdr: pass, oos: pass}
+    source_ids: ["validation-macro.md §2", "validation-industry.md §1", "raw/validation-metrics.json"]
+    hedge_note: "★ small-N rule (n=89 boundary): 점추정 단정 회피. CI [+0.135, +0.509] 유지. block-bootstrap 보정 다음 라운드 권고."
+
+# 블록5: CONFIDENCE_HOOKS
+confidence_hooks:
+  - hypothesis_id: lit_to_cathode_passthrough
+    affects_indicator: lit_yoy
+    affects_edge: [lit_yoy, cathode_panel_y60d]
+    confirm_signal: "라이브 양극재 sub (247540, 003670) y60d return rank 가 LIT yoy 분위와 Spearman ρ>0 유지 (window 12M)"
+    reject_signal: "Rank-IC e-CUSUM 단측 붕괴 (baseline 0.15 미달 누적 K=3 month)"
+    emit_where: "core/assume/weight_falsification.score_ic_breakdown_eprocess + 라이브 judge 사후평가"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    confidence_metric: "e-value anytime-valid 누적"
+    store: "registry 카드 confidence_now + RulePerformance (battery.lit_cycle.cathode)"
+    action_threshold: "e-value>K=10 → adopt 강화 (base_weight upper bound 0.18) / 붕괴 → retract (live 차단)"
+    feeds_weight: "derive_weights 재적합 → cathode sub 종목 base_weight 변동 (KOSPI factor 합산 conditional)"
+
+# 블록6: COLLECTOR_PLAN (frame collector 신규 필요)
+collector_plan_industry:
+  - missing: "pykrx 외국인 flow (KRX_ID/PW 인증)"
+    source: "https://data.krx.co.kr — 회원가입 필요"
+    priority: high  # H5 외국인 regime breakdown 의 핵심 데이터
+  - missing: "DART 분기 펀더멘털 R&D, 매출, 영업이익 (DART_API_KEY)"
+    source: "https://opendart.fss.or.kr — 무료 API key (즉시 발급)"
+    priority: high  # Layer 1 펀더멘털 IC 측정 의무
+  - missing: "LME 리튬·니켈·코발트 spot 가격 (유료)"
+    source: "Trading Economics free chart scrape OR Refinitiv (유료)"
+    priority: medium  # LIT ETF proxy 로 부분 대체 (correlation 0.85+ 통설)
+  - missing: "SNE Research GWh 출하 (유료)"
+    source: "SNE Research 회원가입 (월간 보고서)"
+    priority: low  # DART 매출 proxy 가능
+  - missing: "LMC Automotive 글로벌 EV 판매대수"
+    source: "LMC 유료 OR IEA Global EV Outlook annual"
+    priority: medium  # TSLA proxy 한계 명확
+
+# 본 산업 미해결 (8축 H)
+open_questions:
+  - "외국인 flow regime breakdown (H5) — pykrx KRX 인증 후 재실행 의무. 기대 finding: flow 강매수 regime 에서 ic boost."
+  - "IRA event study (H4) — N 영구 부족. 대안 = policy regime indicator → cross-section IC 측정 (Trump 2026-Q1-Q2 변경 대비)."
+  - "block-bootstrap autocorr 보정 — small-n-statistical-rigor §1 (d) 권고. 본 라운드 IID 변동만."
+  - "DART 분기 펀더멘털 (R&D, 매출 yoy, OP margin) → cross-industry pooled IC 측정 (N=4 sub-universe 한계 보강)."
+  - "LMC EV 판매대수 proxy 대체 — TSLA REJECTED, LIT+BATT 가중 평균 시도 권고."
+  - "Trump 행정부 EV credit 변경 (2026-Q1-Q2 예상) event window 측정 — 변경 발생 시 ad-hoc round-N."
+  - "양극재 NCM vs LFP shift — 한국 점유율 -2pt yoy 영향 (cross-section 셀 종목 종속변수) 측정."
+  - "skfolio CombinatorialPurgedKFoldSplit (frame §M4 #5 권고) 적용 — 본 라운드 walk-forward 단일 split 만."
+
+# Hard-fail 4 (B C D I) — 본 라운드 self-check
+hard_fail_self_check:
+  B_real_data:
+    status: "PASS (raw/run_validation.py + raw/data/*.parquet + raw/validation-metrics.json 재실행 가능)"
+    note: "합성·시뮬 데이터 0%. FDR/yfinance 실측만."
+  C_traceability:
+    status: "PASS"
+    note: "ic_mean / corr 모든 yaml 수치가 validation-*.md 의 cell + raw/validation-metrics.json key 매핑."
+  D_pit:
+    status: "PARTIAL"
+    note: "Adj Close 사용 (FDR — 액면분할 자동 보정). 단 vintage_policy = final_revised (point_in_time 미적용, FDR/yfinance 제한). DART 펀더멘털 부재 → PIT 측정 불가. 다음 라운드 보강."
+  I_survivor_bias:
+    status: "PARTIAL"
+    note: "krx_universe.delisted 미점검. 2차전지 4종 = 모두 현존. 단 universe = 정적 (frame §1 PIT dynamic 미적용)."
+
+# Tier label (small-n-statistical-rigor)
+verdict_label_H2: "CONFIRMED (n=89≥30, p<0.005, lag0/1/3 모두 Bonferroni 통과, OOS ratio 1.19, factor-neutralized 후 0.225 p=0.024 유지)"
+verdict_label_H1: "REJECTED (ρ=-0.096 n=90 p=0.37, IS-OOS sign flip)"
+verdict_label_H6: "REJECTED (IC=-0.085 n=74, OOS 사실상 zero) — 단 한국 약효 통설 partial support 방향"
+verdict_label_others: "REJECTED (H3 TSLA, B5 SMH) OR DEFERRED (H4 IRA, H5 외국인 flow, H7 spread TENTATIVE) OR INSUFFICIENT (Layer 1 펀더멘털 N=4)"
