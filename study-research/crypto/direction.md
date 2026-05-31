@@ -178,6 +178,54 @@ claude 모델이 R3 끝에 미세 정정 2건 제안 — 본 direction 에 반�
 
 ---
 
+## §3.5 cycle 2 후속 가설 sketch (H7-H12, collector 도착 후 검증 진입용)
+
+> **추가 시점**: 2026-05-31 cycle 1 종료 후 main collector 응답 대기 중. cycle 2 진입 시 즉시 검증 코드 작성 prerequisite.
+> **학술 framework 본문**: `raw/theory-notes.md` §6 (각 가설별 원전·변수정의·반증조건·12축 박제 사전 정리).
+> **공통 박제**: ⛔점추정 prior 박제 X / 자문 그대로 코드화 X / single-source 단정 X / small-N (n<30) 단정 X. **prior_strength = tentative + 자문 magnitude 본 표본 재현 후만 채택**. AUDIT-GUIDE §1 12축 B(SE 보정 후 Rank-IC>0.03·t>2.0) + D(PIT) + F(반증조건+기각가능) + K(시도횟수 Bonferroni 보정) 의무.
+
+### H7. AdrActCnt → BTC value (network value channel, Pagnotta&Buraschi 2018)
+- 가설: post-2024 ETF 제외, Δlog(active addresses) → fwd_30d_ret 양 leading 효과 (sub-Metcalfe α=0.5~1.0).
+- 반증조건: β CI 0 포함 (Newey-West HAC lag=30d) OR Rank-IC<0.03 OOS OR post-2024 부호반전.
+- collector: CoinMetrics `AdrActCnt` (P0-1). 시도횟수 K=16 (Bonferroni α/16=0.003).
+
+### H8. TxVolUSD → BTC fwd_ret (utility, Catalini&Gans 2020)
+- 가설: Δlog(tx_vol_usd) z>+1σ → fwd_30d_ret 약 양 (utility 신호).
+- 반증조건: tx_vol 가 price 와 mechanical co-move (predictive 효과 없음) OR β CI 0 포함.
+- collector: CoinMetrics `TxTfrValAdjUSD` (P0-1). K=12.
+
+### H9. BTC-Nasdaq rolling corr → risk-asset/decoupled regime classifier (Baur 2018)
+- 가설: corr_60d(BTC, Nasdaq) 3 regime 의 fwd_30d_ret 분포 차이 유의 (decoupled regime 회복 길다).
+- 반증조건: ANOVA p>0.05 OR regime 전이 < 분기 1회 OR corr_60d mostly 0 oscillate.
+- collector: yfinance `^IXIC` (P0-3). ★중첩 윈도우 → Newey-West HAC lag=60d + Block bootstrap (block=90d) 강제. K=36 (window 길이 민감도 4종 포함).
+
+### H10. BTC-Gold rolling corr → digital gold thesis (Baur 2018 / Klein 2018)
+- 가설: post-2020 risk-off (VIX>30 day) 에서 corr_btc_gold>0.2 (digital gold 시그널).
+- 반증조건: risk-off 표본 CI 0 포함 OR full vs risk-off subsample 부호 역전 OR post-2024 vs pre-2024 t-stat<2.
+- collector: FRED `GOLDAMGBD228NLBM` (P0-4). risk-off N~200-400 day = small-N 경고 (LOO p 의무). K=36.
+
+### H11. Google Trends 'bitcoin' attention z → fwd_4w_ret (Liu&Tsyvinski 2021)
+- 가설: weekly attn_z>+1σ → fwd_4w_ret 약 양 (bear regime 효과 더 큼).
+- 반증조건: β CI 0 포함 OR post-2021 부호반전·무효 OR Granger lead 양방향 (endogeneity).
+- collector: PyTrends (P1-6). weekly n~416, **5y 단일 query 사용 의무** (normalize 일관성). K=16.
+
+### H12. DefiLlama TVL/DEX → BTC (DeFi utility via stablecoin, Cong 2022)
+- 가설: Δlog(tvl_total) z>+1σ → fwd_30d_ret 약 양. **단 H3 stablecoin Δ 와 multicollinearity 강함** — partial-corr 직교화 후 잔존 신호만 valid.
+- 반증조건: partial-corr (tvl_z|stablecoin_z) CI 0 포함 OR H3 와 multicollinearity>0.7 OR BTC 직접 vs ETH 매개에서 ETH 가 dominant.
+- collector: DefiLlama 확장 (P1-7). ★L 통합 상관 USD 공통인자 중복 회피 사전 명시. K=12.
+
+### §3.5 cycle 2 진입 절차 (collector 도착 후)
+1. scripts/h{7-12}_*.py 작성 (⛔자문 magnitude 코드 내 박제 X)
+2. 실측 → raw/validation-h{7-12}-*.md 산출 (theory-notes §6.7 양식)
+3. 본 방 self-audit (5단계 verdict + hedge 어휘)
+4. opus subagent 12축 audit 별도 호출 (main 책임)
+5. audit 통과분만 yaml v3 신규 블록 통합 (indicators / relationships / weight_rules / confidence_hooks)
+6. H1/H2/H3 재검증 (신규 conditioning_set + partial-corr CI 변화)
+7. prior ladder 재캘리브 + walk-forward strict OOS 1차 시뮬
+- ⛔ **cycle 2 진입 직전 사용자 confirm 의무** (R2 큰 자원 latch, ≥20분 LLM 호출 가능)
+
+---
+
 ## §4. 본 시스템 Wire 매핑 — 5 결정 종합
 
 | 결정 | 합의 | 적용 위치 |

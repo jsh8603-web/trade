@@ -1,0 +1,4 @@
+  DFII10 4280 rows, 2010-01-01 ~ 2026-05-28 -> fred-dfii10.csv
+  DTWEXBGS 4276 rows, 2010-01-01 ~ 2026-05-22 -> fred-dtwexbgs.csv
+  M2SL 196 rows, 2010-01-01 ~ 2026-04-01 -> fred-m2sl.csv
+GOLDAMGBD228NLBM FAIL

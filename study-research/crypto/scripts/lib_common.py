@@ -43,6 +43,22 @@ def load_coinmetrics() -> pd.DataFrame:
     return df
 
 
+def load_coinmetrics_v2() -> pd.DataFrame:
+    """v2 신규 4 metric (P0-A 2026-05-31): AdrActCnt / TxCnt / HashRate / BlkCnt.
+
+    anonymous tier probe 후 확정 (TxTfrValAdjUSD / SOPR / RevUSD = 403, 별도).
+    range: 2009-01-03 ~ 2026-05-30 (6357 daily).
+    """
+    p = DATA / "coinmetrics-btc-daily-v2.csv"
+    df = pd.read_csv(p)
+    df["date"] = _parse_iso(df["time"]).dt.normalize()
+    for c in ["AdrActCnt", "TxCnt", "HashRate", "BlkCnt"]:
+        if c in df.columns:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+    df = df.dropna(subset=["date"]).sort_values("date").drop_duplicates("date").reset_index(drop=True)
+    return df
+
+
 def load_fgi() -> pd.DataFrame:
     p = DATA / "fgi-daily.csv"
     df = pd.read_csv(p)
@@ -69,6 +85,30 @@ def load_funding_daily() -> pd.DataFrame:
         absmax=lambda x: x.abs().max(),
     ).reset_index()
     return g
+
+
+def load_yfinance(symbol: str) -> pd.DataFrame:
+    """yfinance daily close loader. symbol = 'ixic' / 'gspc' / 'vix' / 'gold-gcf'."""
+    p = DATA / f"yfinance-{symbol}.csv"
+    df = pd.read_csv(p)
+    df["date"] = pd.to_datetime(df["date_utc"], format="%Y-%m-%d", errors="coerce")
+    for c in ["Open", "High", "Low", "Close", "Volume"]:
+        if c in df.columns:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+    df = df.dropna(subset=["date"]).sort_values("date").drop_duplicates("date").reset_index(drop=True)
+    return df[[c for c in ["date", "Open", "High", "Low", "Close", "Volume"] if c in df.columns]]
+
+
+def load_fred(code: str) -> pd.DataFrame:
+    """FRED series loader. code = 'dfii10' / 'dtwexbgs' / 'm2sl'."""
+    p = DATA / f"fred-{code}.csv"
+    df = pd.read_csv(p)
+    df["date"] = pd.to_datetime(df["date_utc"], format="%Y-%m-%d", errors="coerce")
+    # 컬럼명 = FRED code 대문자
+    upper = code.upper()
+    if upper in df.columns:
+        df[upper] = pd.to_numeric(df[upper], errors="coerce")
+    return df.dropna(subset=["date"]).sort_values("date").drop_duplicates("date").reset_index(drop=True)
 
 
 def load_stablecoin() -> pd.DataFrame:
@@ -220,3 +260,76 @@ def halving_phase(date: pd.Timestamp) -> str:
 def forward_return(close: pd.Series, horizon: int) -> pd.Series:
     """log(close[t+h] / close[t]). 미래 lookahead OK (검증 대상). PIT 시점 = t."""
     return np.log(close.shift(-horizon) / close)
+
+
+# ===========================================================================
+# On-chain valuation (MVRV-derived; collector 무관 — CoinMetrics 보유)
+# theory-notes §1(i) Glassnode framework. H1 conditioning 확장 후보 (P1-2, 2026-05-31).
+# ===========================================================================
+def nupl(market_cap=None, realized_cap=None, mvrv=None) -> pd.Series:
+    """Net Unrealized Profit/Loss = (M - R) / M = 1 - 1/MVRV (회계 동치).
+
+    두 진입점:
+    - (market_cap, realized_cap) 모두 제공: 직접 정의
+    - mvrv 만 제공: 1 - 1/mvrv 회계 동치 (CoinMetrics anonymous tier 폴백)
+
+    Glassnode regime band: >0.75 Euphoria / 0.5-0.75 Belief / 0.25-0.5 Optimism /
+    0-0.25 Hope / <0 Capitulation.
+    """
+    if mvrv is not None:
+        v = pd.Series(mvrv, dtype=float).reset_index(drop=True)
+        return 1.0 - 1.0 / v
+    if market_cap is None or realized_cap is None:
+        raise ValueError("nupl(): mvrv 또는 (market_cap, realized_cap) 둘 다 필수")
+    m = pd.Series(market_cap, dtype=float).reset_index(drop=True)
+    r = pd.Series(realized_cap, dtype=float).reset_index(drop=True)
+    return (m - r) / m
+
+
+def mvrv_z(market_cap=None, realized_cap=None, mvrv=None, window: int = 1460) -> pd.Series:
+    """MVRV-Z = (M - R) / σ(M) over rolling window (4y = 1460d, Glassnode 표준).
+
+    두 진입점:
+    - (market_cap, realized_cap) 직접 정의
+    - (market_cap, mvrv) 제공: R = M/mvrv 역산 후 동일 계산 (anonymous tier 폴백)
+
+    ⚠️ 4y warmup — 첫 1460d 구간 NaN.
+    """
+    if market_cap is None:
+        raise ValueError("mvrv_z(): market_cap 필수")
+    m = pd.Series(market_cap, dtype=float).reset_index(drop=True)
+    if realized_cap is not None:
+        r = pd.Series(realized_cap, dtype=float).reset_index(drop=True)
+    elif mvrv is not None:
+        v = pd.Series(mvrv, dtype=float).reset_index(drop=True)
+        r = m / v
+    else:
+        raise ValueError("mvrv_z(): realized_cap 또는 mvrv 둘 중 하나 필수")
+    sigma = m.rolling(window=window, min_periods=window // 2).std()
+    return (m - r) / sigma
+
+
+if __name__ == "__main__":
+    # ⚠️ anonymous tier = CapRealUSD 빈칸. MVRV+MarketCap 으로 역산 폴백.
+    cm = load_coinmetrics()
+    cm = cm.dropna(subset=["CapMrktCurUSD", "CapMVRVCur"]).reset_index(drop=True)
+    n_total = len(cm)
+    n_real = cm["CapRealUSD"].notna().sum() if "CapRealUSD" in cm.columns else 0
+    print(f"[lib_common sanity] n_obs (MVRV+MarketCap) = {n_total}, "
+          f"CapRealUSD 비어있지 않음 = {n_real} (anonymous tier 확인)")
+
+    cm["nupl_val"] = nupl(mvrv=cm["CapMVRVCur"])
+    cm["mvrv_z_val"] = mvrv_z(market_cap=cm["CapMrktCurUSD"], mvrv=cm["CapMVRVCur"], window=1460)
+    n_zwarmed = cm["mvrv_z_val"].notna().sum()
+    print(f"mvrv_z warmup-passed (4y 후): {n_zwarmed} days")
+    print(f"NUPL range: [{cm['nupl_val'].min():.4f}, {cm['nupl_val'].max():.4f}]")
+    q = cm["nupl_val"].quantile([0.25, 0.5, 0.75]).values
+    print(f"NUPL p25/p50/p75: [{q[0]:.4f}, {q[1]:.4f}, {q[2]:.4f}]")
+    z = cm["mvrv_z_val"].dropna()
+    print(f"MVRV-Z range (4y warmup 후): [{z.min():.4f}, {z.max():.4f}]")
+    nupl_euph = (cm["nupl_val"] > 0.75).sum()
+    nupl_capi = (cm["nupl_val"] < 0).sum()
+    print(f"NUPL >0.75 Euphoria days: {nupl_euph} ({100*nupl_euph/n_total:.1f}%)")
+    print(f"NUPL <0 Capitulation days: {nupl_capi} ({100*nupl_capi/n_total:.1f}%)")
+    rho_nm = cm[["nupl_val", "CapMVRVCur"]].corr().iloc[0, 1]
+    print(f"⚠️ corr(NUPL, MVRV) = {rho_nm:.4f} (회계 동치 — 단조변환)")

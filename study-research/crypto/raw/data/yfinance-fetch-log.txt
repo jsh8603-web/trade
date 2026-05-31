@@ -1,0 +1,3 @@
+  ^IXIC 4126 rows, 2010-01-04 ~ 2026-05-29 -> yfinance-ixic.csv
+  ^GSPC 4126 rows, 2010-01-04 ~ 2026-05-29 -> yfinance-gspc.csv
+  ^VIX 4127 rows, 2010-01-04 ~ 2026-05-29 -> yfinance-vix.csv

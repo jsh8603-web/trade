@@ -1,0 +1,37 @@
+[start] 2026-05-31 15:31:28 new 5 metric direct fetch
+[fetch] AdrActCnt
+  AdrActCnt page 1: 1000 rows, total 1000, earliest 2023-09-04, next=yes
+  AdrActCnt page 2: 1000 rows, total 2000, earliest 2020-12-08, next=yes
+  AdrActCnt page 3: 1000 rows, total 3000, earliest 2018-03-14, next=yes
+  AdrActCnt page 4: 1000 rows, total 4000, earliest 2015-06-18, next=yes
+  AdrActCnt page 5: 1000 rows, total 5000, earliest 2012-09-21, next=yes
+  AdrActCnt page 6: 1000 rows, total 6000, earliest 2009-12-26, next=yes
+  AdrActCnt page 7: 357 rows, total 6357, earliest 2009-01-03, next=no
+[fetch] TxCnt
+  TxCnt page 1: 1000 rows, total 1000, earliest 2023-09-04, next=yes
+  TxCnt page 2: 1000 rows, total 2000, earliest 2020-12-08, next=yes
+  TxCnt page 3: 1000 rows, total 3000, earliest 2018-03-14, next=yes
+  TxCnt page 4: 1000 rows, total 4000, earliest 2015-06-18, next=yes
+  TxCnt page 5: 1000 rows, total 5000, earliest 2012-09-21, next=yes
+  TxCnt page 6: 1000 rows, total 6000, earliest 2009-12-26, next=yes
+  TxCnt page 7: 357 rows, total 6357, earliest 2009-01-03, next=no
+[fetch] HashRate
+  HashRate page 1: 1000 rows, total 1000, earliest 2023-09-04, next=yes
+  HashRate page 2: 1000 rows, total 2000, earliest 2020-12-08, next=yes
+  HashRate page 3: 1000 rows, total 3000, earliest 2018-03-14, next=yes
+  HashRate page 4: 1000 rows, total 4000, earliest 2015-06-18, next=yes
+  HashRate page 5: 1000 rows, total 5000, earliest 2012-09-21, next=yes
+  HashRate page 6: 1000 rows, total 6000, earliest 2009-12-26, next=yes
+  HashRate page 7: 351 rows, total 6351, earliest 2009-01-09, next=no
+[fetch] BlkCnt
+  BlkCnt page 1: 1000 rows, total 1000, earliest 2023-09-04, next=yes
+  BlkCnt page 2: 1000 rows, total 2000, earliest 2020-12-08, next=yes
+  BlkCnt page 3: 1000 rows, total 3000, earliest 2018-03-14, next=yes
+  BlkCnt page 4: 1000 rows, total 4000, earliest 2015-06-18, next=yes
+  BlkCnt page 5: 1000 rows, total 5000, earliest 2012-09-21, next=yes
+  BlkCnt page 6: 1000 rows, total 6000, earliest 2009-12-26, next=yes
+  BlkCnt page 7: 357 rows, total 6357, earliest 2009-01-03, next=no
+[OK] saved 6357 rows -> coinmetrics-btc-daily-v2.csv
+  range: 2009-01-03T00:00:00.000000000Z ~ 2026-05-30T00:00:00.000000000Z
+  success: [('AdrActCnt', 6357), ('TxCnt', 6357), ('HashRate', 6351), ('BlkCnt', 6357)]
+  fail: []

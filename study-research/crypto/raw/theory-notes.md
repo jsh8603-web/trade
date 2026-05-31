@@ -492,3 +492,417 @@ partial-corr 검증 (offline 표):
 - 위 §4 진입점 표대로 분석 .py 직접 실행 → numeric 산출 → `raw/validation-{지표}.md` 누적.
 - prior 채널 ladder + effective-N gate 두 우선 항목 먼저 실측 → 결과에 따라 D1 prior 값 또는 D4 hybrid 의 internal glasso 부분 조정.
 - 검증 결과 + 본 theory-notes 종합 → study_session.yaml 7 블록 (lens / indicators / relationships / weight_rules / confidence_hooks / collector_plan / code_change_plan).
+
+---
+
+## §6. cycle 2 후속 가설 H7-H12 학술 framework (collector 도착 직후 검증 진입용)
+
+> **작성 시점**: 2026-05-31 cycle 1 종료 후 main collector 응답 대기 중. idle 회피 사전작업.
+> **목적**: collector 11종 도착 즉시 H7-H12 검증 코드 작성 + 실측 진입 가능하도록 학술 framework·변수정의·반증조건·12축 박제 사전 정리.
+> **위치**: cycle 1 의 §1 5채널 11문헌 정리에 *후속* 으로, cycle 2 진입 시 즉시 검증 코드 작성용 prerequisite.
+
+### §6.0 메타 — 박제 의무 (12축 + 불변 5금지)
+
+본 §6 의 6 가설은 모두 다음을 의무 박제한다 (한 가설이라도 누락 시 cycle 2 검증 진입 보류):
+
+- ⛔ **불변 5금지** (main 박제 2026-05-31): (1) 점추정 prior 박제 X (2) 합성·시뮬 데이터 X (3) 자문 그대로 코드화 X — 자문 magnitude 본 표본 재현 후만 채택 (4) single-source 단정 X — 학술 + 실무 + 본 1차 데이터 3중 (5) small-N 단정 X — n<30 hedge 어휘 강제, n<10 ★INSUFFICIENT 또는 TENTATIVE DIRECTIONAL 격하
+- **AUDIT-GUIDE §1 12축** 박제 (한 가설당 사전 명시 의무):
+  - **A** 학술 근거 (저자·연도·원전 명제·가정·한계) — 자문 복붙 X, 원전 본인 정리
+  - **B** 검증 방식 (n·p·Newey-West HAC SE / Block bootstrap CI / Bonferroni 시도횟수) — 자문 점추정 비박제, 본 표본 재현 후 결정
+  - **D** PIT (모든 시리즈 vintage 또는 first-release / forward return = 익일시가 진입) — lookahead 금지
+  - **F** 반증조건 (정량 임계 + e-value 또는 CI 0 포함 검증) + 기각 가능성 명시
+  - **G** effective N 한계 + small-N tier 강등 라벨 (validated vs structural prior)
+  - **I** 생존편향 (BTC 단일 sleeve 현재 = 가장 큰 surviving asset, ETH 등 멀티코인 확장 시 상폐 sleeve 추가 의무 명시)
+  - **K** 시도횟수 사전 공시 — 가설별 ≥4 비교 시 Bonferroni / FDR 보정 사전 박제
+
+- **measurement axis 5종** 의무 명시:
+  - (a) **시제**: contemporaneous vs lagged k vs forward k (★lookahead 회피 명시)
+  - (b) **frequency**: daily / weekly / monthly
+  - (c) **transform**: level / Δ / log / yoy / z-score (rolling window 길이 명시)
+  - (d) **conditioning**: unconditional vs partial-corr (controls 사전 enumerate)
+  - (e) **regime**: full sample vs regime-conditional (FGI / vol / macro epoch)
+
+- **prior_strength 표기 형식**: `tentative (자문 X 자료 인용, n=Y 표본 재현 후 결정)`. 점추정 박제 절대 금지.
+
+---
+
+### §6.1 H7 — AdrActCnt → BTC market value (network value 채널)
+
+#### (A) 학술 근거
+
+**원전 1**: Pagnotta, E. S., & Buraschi, A. (2018). *An equilibrium valuation of bitcoin and decentralized network assets.* SSRN Working Paper.
+- 핵심 명제: 분산 네트워크 자산의 균형 가치 = 보안 채굴자 ↔ 사용자 양면 시장 균형. 네트워크 가치 ∝ N^α (N = active users, α ∈ [0.5, 1.2] sub-Metcalfe ~ Metcalfe).
+- 가정: (a) 사용자가 화폐로 사용 (transaction motive) (b) 채굴 보안과 사용자 수가 양 균형 (c) 외생 가격 충격 없음.
+- 한계: (i) 모델이 BTC = medium of exchange 가정 — store-of-value 시대 (ETF 도입 후) 와 misalign 가능. (ii) α 추정 OOS 외 안정성 미보장 (Liu&Tsyvinski 2021 매도). (iii) 활성주소 = unique buyer 가정이나 cluster (거래소 hot-wallet, custodian) 동일 entity 의 다중 주소 발현 → N 과대평가.
+
+**원전 2 (지지)**: Metcalfe (1995 후) "Network value ∝ N²" — BTC 에 직접 적용 시 BTC market cap ∝ (active addr)^2 (Alabi 2017, Wheatley et al 2019, Peterson 2018 "Bitcoin Spreads Like a Virus").
+
+**원전 3 (반증)**: Liu, Y., & Tsyvinski, A. (2021). *Risks and returns of cryptocurrency.* RFS — factor model 에서 attention + momentum 이 활성주소 single-name 능가, 활성주소는 직접 factor 가 아니다.
+
+#### (B) 변수 정의 + measurement axis
+
+```
+addr_active(t) = CoinMetrics AdrActCnt (daily, BTC mainnet)
+market_cap(t)  = CoinMetrics CapMrktCurUSD (daily)
+log_addr(t)    = ln(addr_active(t))
+log_mcap(t)    = ln(market_cap(t))
+```
+
+- (a) 시제: **forward k=30d return** (predictive) + **contemporaneous level** (등치 검정 2 axis 모두)
+- (b) frequency: daily (network 활성 변동성 capture)
+- (c) transform: (i) level log-log regression (predictive: Δlog_addr_t → fwd_30d_ret) (ii) rolling z-score (252d window)
+- (d) conditioning: macro epoch (pre-2017 / 2017-2020 / 2020-2024 / post-2024 ETF) × halving phase
+- (e) regime: full sample vs ETF post-2024 (Pagnotta 가정 misalign 의심 구간)
+
+#### (H7) 가설
+
+> H7: **post-2024 ETF 시대 제외**, daily Δlog(active_addresses) 가 fwd_30d_ret 에 양의 leading 효과 (sub-Metcalfe α=0.5~1.0 범위).
+
+- prior_strength: **tentative** (Pagnotta 2018 이론 prior, 본 우리 표본 재현 후 결정). ★점추정 자문 magnitude 비박제.
+- **반증조건 (F)**: (i) Δlog(addr) → fwd_30d_ret 회귀 β CI 0 포함 (95% Newey-West HAC SE) (ii) Rank-IC < 0.03 OOS (iii) post-2024 sub-sample 부호 반전 (custodian cluster 영향 = active addr 가 디플레이션).
+- **시도횟수 사전 공시 (K)**: 본 가설 = 1 base + 4 epoch × 4 halving phase = 16 cell. **Bonferroni α/16 = 0.003 임계 적용 의무**.
+
+#### (B 검증 절차 + D PIT)
+
+- 데이터: CoinMetrics community API `metrics=AdrActCnt,CapMrktCurUSD` (P0-1 collector 도착 후).
+- PIT: CoinMetrics community = 익일 02:00 UTC 갱신 → t 일 종료 후 t+1 사용 가능 (T+1 PIT 가능). vintage 라벨 의무.
+- 회귀: HAC (Newey-West lag = 30d, autocorr decay rule of thumb).
+- CI: **Block bootstrap** (block = 30d, B=10000 resample, claude-web 자문 권고).
+- ★lookahead 회피: fwd_30d_ret = price(t+1) → price(t+31) (open-to-open).
+
+#### (I 생존편향 / G effective N)
+
+- BTC 단일 sleeve = surviving largest asset. Bias 회피 = 별도 멀티코인 (ETH, 상폐 ICO token 포함) 확장 시 처리. 본 H7 = BTC only 명시.
+- effective N: daily n ≈ 5500 (2010-07~). regime-conditional N_eff: macro epoch 4 × halving 4 = 16 cell. 평균 N/cell ≈ 340 일, autocorr 보정 후 N_eff ≈ 100~150 추정 (autocorr 30d 가정 시). **N_eff < 100 인 cell = ★INSUFFICIENT 라벨, validated alpha X.**
+
+#### (E 자문 환각 cross-verify)
+
+- 자문 round-{1,2,3} 에서 Pagnotta&Buraschi 인용 매핑 후 원전 abstract level 본인 확인. ★Pagnotta α 의 우리 표본 magnitude 매칭 = 후속 실측 후만 채택, 자문 magnitude 비박제.
+- 본 framework 작성 시점 (2026-05-31): 원전 PDF 직접 접근 X, abstract + 자문 인용 압축 (취약성 명시).
+
+#### (우리 시스템 wire)
+
+- collector: `scripts/collect_coinmetrics.py` 의 metric 분리 호출 패턴 확장 (`AdrActCnt` 추가, page_size=1000).
+- 검증 코드: `scripts/h7_network_value.py` (cycle 2 collector 도착 후 작성).
+- 산출: `raw/validation-h7-network-value.md` (B/D/F/K 12축 박제 양식).
+- yaml v3 통합: 블록2 indicators 신규 `network_addr_z` + 블록3 relationships H7 신규 + 블록5 confidence_hook (affects_indicator: network_addr_z).
+
+---
+
+### §6.2 H8 — TxVolUSD → BTC fwd_ret (utility 채널)
+
+#### (A) 학술 근거
+
+**원전 1**: Athey, S., Parashkevov, I., Sarukkai, V., & Xia, J. (2016). *Bitcoin pricing, adoption, and usage: Theory and evidence.* Stanford WP.
+- 핵심 명제: BTC 가격 = utility 사용량 (transaction volume) + speculative demand 합성. 장기적으로 utility 가 fundamental.
+- 한계: utility 와 speculative 분리 불가 (관찰 비식별).
+
+**원전 2**: Catalini, C., & Gans, J. S. (2020). *Some simple economics of the blockchain.* Communications of the ACM 63(7).
+- 핵심: blockchain 자산의 가치 = verification cost ↓ + networking cost ↓. tx volume = 사용 강도 proxy.
+- 한계: BTC = high fee high security, scalability 한계 → tx volume 의 utility 신호 약화.
+
+**원전 3 (반증)**: Yermack (2015) — BTC tx volume 의 상당 부분이 거래소 간 hot-wallet shuffle. utility 와 무관.
+
+#### (B) 변수 정의
+
+```
+tx_vol_usd(t) = CoinMetrics TxTfrValAdjUSD (adjusted, 거래소 hot-wallet shuffle 일부 제거)
+log_tx(t)     = ln(tx_vol_usd(t))
+Δlog_tx(t)    = log_tx(t) - log_tx(t-1)
+```
+
+- (a) 시제: contemporaneous + forward 30d (등치 검정)
+- (b) frequency: daily
+- (c) transform: Δlog (Δ stationary), z-score (252d rolling)
+- (d) conditioning: macro epoch, halving phase, mvrv level (cycle phase)
+- (e) regime: ETF pre/post (post-2024 custodian shuffle 영향)
+
+#### (H8) 가설
+
+> H8: Δlog(tx_vol_usd) z-score > +1σ → fwd_30d_ret 약 양의 효과 (utility surge → demand → price).
+
+- prior_strength: **tentative** (Athey 2016 이론 prior, BTC fee 시대 utility 신호 약화 가능).
+- **반증조건 (F)**: (i) β CI 0 포함 (ii) Rank-IC < 0.03 OOS (iii) tx_vol 이 price 와 mechanical co-move (즉 tx_vol = num_tx × price 동치 — predictive 효과 없음).
+- **시도횟수 (K)**: H8 base × 4 epoch × MVRV regime 3 = 12 cell, Bonferroni α/12 = 0.0042.
+
+#### (D PIT / I 생존편향)
+
+- PIT: CoinMetrics community T+1 PIT.
+- 생존편향: BTC only, 멀티코인 확장 후 처리.
+
+#### (G effective N)
+
+- daily n ≈ 5500, regime-cell 평균 ≈ 460 일 / N_eff ≈ 150 추정.
+
+#### (우리 시스템 wire)
+
+- collector: CoinMetrics `TxTfrValAdjUSD` (P0-1 metric 분리 호출).
+- 검증: `scripts/h8_tx_vol_utility.py`.
+- 산출: `raw/validation-h8-tx-vol.md`.
+
+---
+
+### §6.3 H9 — BTC-Nasdaq rolling corr → risk-on/decoupled regime classifier
+
+#### (A) 학술 근거
+
+**원전 1**: Baur, D. G., & Hoang, L. T. (2018). *Bitcoin: medium of exchange or speculative assets?* Journal of International Financial Markets, Institutions and Money.
+- 핵심 명제: BTC 의 상관 regime 시기별 변화 — pre-2017 무상관 / 2017-2020 risk-asset 상관 / digital-gold 서사 변동.
+- 한계: 표본 2010-2017, post-COVID·post-ETF 미포함.
+
+**원전 2 (보강)**: Bhambhwani, S., Delikouras, S., & Korniotis, G. M. (2019). *Do fundamentals drive cryptocurrency prices?* SSRN.
+- 핵심: BTC 의 macro factor exposure 시간변동 강함.
+
+**원전 3 (post-2024)**: Liu, Y., & Tsyvinski, A. (2021). *Risks and returns of cryptocurrency.* RFS — BTC 의 factor exposure 가 다른 자산 클래스와 거의 독립 (post-2014~2017 표본).
+- 한계: 2024 ETF 도입 후 institutional fund flow → Nasdaq tech 와 상관 ↑ 가능성.
+
+#### (B) 변수 정의
+
+```
+ret_btc(t)     = ln(price_btc(t)/price_btc(t-1)) (daily, 종가 기준)
+ret_nasdaq(t)  = ln(close_ixic(t)/close_ixic(t-1))
+corr_60d(t)    = Pearson corr (ret_btc[t-60:t], ret_nasdaq[t-60:t])
+```
+
+- (a) 시제: contemporaneous rolling corr (regime label) → fwd 30d (regime 별 outcome)
+- (b) frequency: daily
+- (c) transform: rolling 60d corr (Baur 2018 표준 window)
+- (d) conditioning: VIX regime (low/mid/high), macro epoch
+- (e) regime: regime = (corr_60d > 0.4: risk-asset) / (corr_60d ∈ [-0.1, 0.4]: mixed) / (corr_60d < -0.1: decoupled/digital-gold)
+
+#### (H9) 가설
+
+> H9: corr_60d(BTC, Nasdaq) regime 별 fwd_30d_ret 분포 차이 유의 (특히 decoupled regime 에서 가격 회복 기간 더 길다).
+
+- prior_strength: **tentative** (Baur 2018 표본 매핑 우리 표본 재현 후 결정).
+- **반증조건 (F)**: (i) 3 regime 의 fwd_30d_ret 평균 차이 ANOVA p > 0.05 (ii) regime 전이 빈도 < 분기 1회 (regime 정의가 noise) (iii) corr_60d 가 mostly 0 근방 oscillate (decoupled regime 사실상 없음).
+- **시도횟수 (K)**: H9 base × 3 regime × VIX 3 + window 길이 민감도 (30/60/90/120d 4종) = 36 셀. **Bonferroni α/36 = 0.0014 hard 임계.**
+
+#### (D PIT / 중첩 윈도우 SE 보정)
+
+- PIT: ^IXIC daily close (T+1).
+- ★중첩 forward-return window: corr_60d 자체가 overlapping → t-stat 부풀림 (claude-web 자문). **Newey-West HAC lag = 60d 강제** + Block bootstrap (block = 90d).
+
+#### (E 자문 cross-verify)
+
+- ★자문 (round-2-claude) "BTC-Nasdaq corr 2024 0.4~0.6 → 2025 0.2~0.5" magnitude 본 표본 (yfinance ^IXIC) 직접 재현 의무. 본 framework 단계 = 학술 sketch only, 정량 비박제.
+
+#### (우리 시스템 wire)
+
+- collector: yfinance `^IXIC` (P0-3).
+- 검증: `scripts/h9_btc_nasdaq_decoupling.py`.
+- 산출: `raw/validation-h9-btc-nasdaq.md`.
+
+---
+
+### §6.4 H10 — BTC-Gold rolling corr → digital gold thesis
+
+#### (A) 학술 근거
+
+**원전 1**: Baur, D. G., Hong, K., & Lee, A. D. (2018). *Bitcoin: medium of exchange or speculative assets?* JIFMIM.
+- 핵심 명제: BTC ≠ gold (corr near zero) — store-of-value 주장 부정.
+- 한계: 표본 2010-2015. post-2020 COVID 유동성 + 2024 ETF → digital gold 서사 강화 시기 미포함.
+
+**원전 2**: Klein, T., Pham Thu, H., & Walther, T. (2018). *Bitcoin is not the New Gold — A comparison of volatility, correlation, and portfolio performance.* International Review of Financial Analysis.
+- 핵심: BTC vol = gold vol × 10+, risk-off 시기 BTC 하락 (gold 와 반대).
+- 한계: 2014-2017 표본.
+
+**원전 3 (반증)**: Smales, L. A. (2019). *Bitcoin as a safe haven: Is it even worth considering?* Finance Research Letters.
+- 핵심: BTC = "speculative haven" 일 가능성. limited 사례.
+
+**원전 4 (post-2024)**: BlackRock, Fidelity 2024 BTC ETF 도입 → "digital gold" 서사 institutional 채택 — 학술 follow-up 표본 미발행, 본 검증이 1차 평가 의의.
+
+#### (B) 변수 정의
+
+```
+ret_gold(t)    = ln(gold_pm(t)/gold_pm(t-1)) (FRED GOLDAMGBD228NLBM, London PM Fix)
+corr_btc_gold(t) = Pearson corr (ret_btc[t-60:t], ret_gold[t-60:t])
+```
+
+- (a) 시제: contemporaneous rolling corr → fwd 30d (regime outcome)
+- (b) frequency: daily (gold PM = 영업일만, BTC = 365일 → align join inner)
+- (c) transform: rolling 60d corr + risk-off subsample (VIX > 30 day filter)
+- (d) conditioning: VIX regime, real_rate (DFII10) regime
+- (e) regime: digital-gold regime (corr > 0.3) / non-digital (corr < 0.1)
+
+#### (H10) 가설
+
+> H10: **post-2020 risk-off 시기 (VIX > 30 daily filter)** 에서 corr_btc_gold > 0.2 (digital gold 채택 시그널).
+
+- prior_strength: **tentative** (Baur 2018 의 BTC≠gold prior + post-2024 ETF 시대 매핑 — 우리 표본 first-time evaluation).
+- **반증조건 (F)**: (i) risk-off 표본 corr_btc_gold CI 0 포함 (ii) full-sample corr 가 risk-off subsample 보다 높음 (digital gold 가 *역방향* — risk-on 시 gold 와 동행, risk-off 시 회피) (iii) post-2024 vs pre-2024 corr 차이 t-stat < 2.
+- **시도횟수 (K)**: H10 base × VIX 3 regime × real_rate 3 × window 길이 4 = 36. **Bonferroni α/36 = 0.0014.**
+
+#### (G effective N + 표본 한계)
+
+- gold daily ≈ 252 영업일/년 × 14년 (2012~) = ~3500 obs. inner join BTC ≈ ~3500.
+- **risk-off 표본 N**: VIX > 30 daily ≈ 200~400 obs 전체 (★small-N 경고). cell 별 N < 100 = ★INSUFFICIENT 라벨.
+
+#### (E 자문 cross-verify)
+
+- ★자문 (round-2-gemini, round-3-claude) "BTC-Gold corr 2024 0.1~0.3 → 2025 0.3~0.5" 본 표본 재현 후만 채택.
+
+#### (우리 시스템 wire)
+
+- collector: FRED `GOLDAMGBD228NLBM` (P0-4).
+- 검증: `scripts/h10_btc_gold_digital.py`.
+- 산출: `raw/validation-h10-btc-gold.md`.
+
+---
+
+### §6.5 H11 — Google Trends 'bitcoin' attention z → fwd_30d_ret
+
+#### (A) 학술 근거
+
+**원전 1**: Liu, Y., & Tsyvinski, A. (2021). *Risks and returns of cryptocurrency.* Review of Financial Studies 34(6).
+- 핵심 명제: BTC 의 두 주요 predictor = (1) momentum (1-6 week) (2) investor attention (Google search trend). MVRV/funding 외 *독립 정보량*.
+- 정량: 2014-2018 표본, attention 1σ ↑ → 1-week fwd return +1.2%~+2.4%.
+- 가정: attention = unhedged buying pressure proxy.
+- 한계: (i) 표본 2014-2018 (attention 신호 saturate 전) (ii) attention level 가 BTC 가격에 endogenous (가격 ↑ → 검색 ↑) — Granger lead 비대칭 검증 필수 (iii) post-2021 mass-media saturate 시 신호 약화 가능.
+
+**원전 2 (방법론)**: Da, Z., Engelberg, J., & Gao, P. (2011). *In search of attention.* Journal of Finance 66(5).
+- 핵심: Google search trend = retail attention proxy. 주식에 응용된 표준.
+- 한계: 키워드 ambiguity (bitcoin vs btc vs cryptocurrency).
+
+#### (B) 변수 정의
+
+```
+trends_btc(t)  = PyTrends weekly 'bitcoin' (worldwide, default region)
+                 [normalize 100 max in window]
+attn_z(t)      = (trends_btc(t) - rolling_mean(52w)) / rolling_std(52w)
+```
+
+- (a) 시제: lagged k=0 → forward 1-4 weeks (Da 2011 표준)
+- (b) frequency: **weekly** (PyTrends 한계 + 7d daily rate-limit 회피)
+- (c) transform: z-score 52w rolling (Liu&Tsyvinski 표준)
+- (d) conditioning: macro epoch, MVRV regime
+- (e) regime: bull (mvrv > 1.5) vs bear (mvrv < 1.0)
+
+#### (H11) 가설
+
+> H11: weekly attn_z > +1σ → fwd_4w_ret 약 양의 효과 (Liu&Tsyvinski 표본 재현). **bear regime 에서 효과 더 크다** (정보 비대칭).
+
+- prior_strength: **tentative** (LTW 2021 표본 2014-2018, 우리 2018~2026 표본 재현 후 결정).
+- **반증조건 (F)**: (i) attn_z → fwd_4w_ret β CI 0 포함 (ii) post-2021 sub-sample 부호 반전 또는 무효 (iii) Granger lead 양방향 (attn → price OR price → attn 동시 유의 = endogeneity 문제 확인).
+- **시도횟수 (K)**: H11 base × 4 horizon (1/2/3/4w) × MVRV 2 regime × bear/bull = 16 cell. Bonferroni α/16 = 0.003.
+
+#### (D PIT / E 자문 환각)
+
+- PIT: PyTrends weekly = 일요일 0시 release, T+1 사용 가능. **★PyTrends rate-limit + 표본 정규화 (100 max)**: 같은 query 를 1y 단위 fetch 시 정규화 baseline 다름 → **5y 단일 query 사용 의무** (rolling normalize).
+- ★자문 (round-3-claude) LTW 2021 정량 "+0.5~+0.7" 우리 표본 재현 후만 채택.
+
+#### (G effective N)
+
+- weekly n ≈ 8년 × 52 ≈ 416 obs. regime-cell 평균 ≈ 100 obs / N_eff ≈ 40~60 추정 (weekly autocorr 4w 가정).
+
+#### (우리 시스템 wire)
+
+- collector: PyTrends (P1-6). rate-limit 주의 + retry 의무.
+- 검증: `scripts/h11_attention_predictor.py`.
+- 산출: `raw/validation-h11-attention.md`.
+
+---
+
+### §6.6 H12 — DefiLlama TVL/DEX volume → BTC (DeFi utility 매개 채널)
+
+#### (A) 학술 근거
+
+**원전 1**: Cong, L. W., Li, Y., & Wang, N. (2022). *Token-based platform finance.* Journal of Financial Economics.
+- 핵심 명제: DeFi protocol token 의 가치 = on-chain 활동도 (TVL, fee, volume) 의 함수.
+- 한계: BTC 직접 DeFi 활동 (Lightning, Rune 등) 매우 작음. ETH/L2 매개 가정.
+
+**원전 2**: Aramonte, S., Huang, W., & Schrimpf, A. (2021). *DeFi risks and the decentralisation illusion.* BIS Quarterly Review.
+- 핵심: DeFi TVL = composability + leverage, 위기 시 cascading liquidation 위험.
+
+**원전 3**: Schär, F. (2021). *Decentralized Finance: On Blockchain- and Smart Contract-Based Financial Markets.* Federal Reserve Bank of St. Louis Review.
+- 핵심: DeFi 활동 = stablecoin transmission 채널의 보강.
+
+#### (B) 변수 정의
+
+```
+tvl_total(t)   = DefiLlama protocols TVL sum (USD, all chains)
+dex_vol(t)     = DefiLlama DEX 7d volume sum
+bridge_in(t)   = DefiLlama stablecoin bridge inflow (chain별 → BTC 인접)
+log_tvl(t)     = ln(tvl_total(t))
+```
+
+- (a) 시제: lagged k=7d → fwd_30d (DeFi 활동 → stablecoin → BTC 매개)
+- (b) frequency: daily
+- (c) transform: Δlog z-score (252d rolling)
+- (d) conditioning: stablecoin supply z (H3 보조), real_rate
+- (e) regime: bull/bear (MVRV) × DeFi 성장 phase (pre-2022 / 2022-2024 / post-2024)
+
+#### (H12) 가설
+
+> H12: Δlog(tvl_total) z > +1σ → fwd_30d_ret 약 양의 효과. **단 H3 stablecoin supply Δ 와 multicollinearity 강함** — partial-corr 직교화 후 잔존 신호만 본 가설 valid.
+
+- prior_strength: **tentative** (Cong 2022 이론 prior, BTC 직접 효과 약 추정).
+- **반증조건 (F)**: (i) partial-corr (tvl_z | stablecoin_supply_z) CI 0 포함 (ii) H3 stablecoin 신호와 multicollinearity > 0.7 → 별도 정보 없음 (iii) BTC 직접 vs ETH 매개 비교 시 ETH 가 dominant (= BTC 직접 신호 부재).
+- **시도횟수 (K)**: H12 base × 3 phase × MVRV 2 regime × control 유무 2 = 12. Bonferroni α/12 = 0.0042.
+
+#### (G effective N + L 통합 상관)
+
+- DefiLlama TVL daily ≈ 2017-11~ ≈ 3100 obs.
+- ★L 통합 상관: H3 stablecoin supply 와 잠재 인자 (USD funding cost) 공통. main system_priors 통합 시 중복 계상 회피.
+
+#### (우리 시스템 wire)
+
+- collector: DefiLlama 확장 (P1-7). 기존 `defillama-stablecoin-total.csv` collector endpoint 확장 + bridges/TVL/DEX 3 endpoint 추가.
+- 검증: `scripts/h12_defi_utility.py`.
+- 산출: `raw/validation-h12-defi-utility.md`.
+
+---
+
+### §6.7 공통 small-N rigor 게이트 (12축 통과 절차)
+
+H7-H12 각 가설별 검증 산출물 (`raw/validation-h{N}-*.md`) 의 공통 양식:
+
+```markdown
+# validation-h{N} — {hypothesis name}
+
+## Data Coverage
+- 시리즈: {source / metric / 기간 시작 ~ 종료} (n_total = X일)
+- 결측·갭: {pre-list 누락 일 / 주말·휴장 처리}
+- regime-cell N: {cell 별 N + N_eff (autocorr 보정 후)}
+
+## H{N} 검증 결과
+- 시제 axis: {contemporaneous / lagged k / forward k}
+- frequency / transform / conditioning / regime: {5 axis 명시}
+- 회귀 / 상관: β / Rank-IC / Newey-West HAC SE / Block bootstrap CI (B=10000, block=k)
+- **시도횟수 K**: {본 가설 비교 cell 수} → Bonferroni α/m 임계
+- p (raw): {raw p}
+- p (Bonferroni 보정): {보정 후 유의 여부}
+- LOO robustness (n<30): {LOO p 분포}
+
+## verdict (5단계)
+- {★CONFIRMED 강력 / CONFIRMED / PARTIAL CONFIRMED / TENTATIVE DIRECTIONAL / ★INSUFFICIENT}
+- hedge 어휘: {"방향성 약 prior", "비유의", "CI 넓음", "추가 검증 필요"}
+
+## 12축 박제 자가 점검
+- A 학술 근거 cite: ...
+- B SE 보정: Newey-West HAC lag=k / Block bootstrap (block=k)
+- D PIT: {vintage / first-release 여부}
+- E 자문 환각: {자문 magnitude 본 표본 재현 결과 매칭/불일치}
+- F 반증조건 명시 + 기각 가능성: ...
+- G effective N tier: validated / structural prior 라벨
+- I 생존편향 처리: BTC only 명시 / 멀티코인 확장 시 별도 처리
+- K 시도횟수: {본 가설 K + Bonferroni 적용 결과}
+- L 통합 상관 공통인자: {USD / 실질금리 / 글로벌 유동성 중복 여부}
+
+## 후속 의문 (cycle 3 자료)
+- ...
+```
+
+### §6.8 cycle 2 진입 전 board 사전 점검
+
+collector 도착 후 본 §6 framework 활용 순서:
+1. **scripts/h{N}_*.py 작성** (위 §6.X.B + (D PIT) + (12축 박제) 명세 그대로 코드화). ⛔자문 magnitude 코드 안에 박제 X.
+2. **실측 실행** → validation-h{N}-*.md 산출 (§6.7 양식).
+3. **본 방 self-audit** = §6.7 자가 점검 (12축 5단계 verdict).
+4. **opus subagent (12축 audit) 별도 호출** (main 책임 = main subagent dispatch).
+5. **audit 통과분만 yaml v3 통합** — 가설별 indicators / relationships / weight_rules / confidence_hooks 신규 블록.
+6. **H1/H2/H3 재검증** (신규 conditioning_set 으로) — partial-corr CI 변화 측정.
+7. **prior ladder 재캘리브** + walk-forward strict OOS 1차 시뮬 산출.
+
+⛔ **cycle 2 진입 직전 사용자 confirm 의무** (큰 자원 latch R2, ≥20분 LLM 호출 가능성): collector 도착 + 위 1-7 절차 진입 직전 본 방 → main 보고 + 사용자 confirm.
+
