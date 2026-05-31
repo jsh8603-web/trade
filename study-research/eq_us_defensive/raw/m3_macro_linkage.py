@@ -104,14 +104,26 @@ panel_d = ret[SECTORS].join(factors_daily, how='inner').dropna()
 print(f'Daily panel n={len(panel_d)}, range {panel_d.index.min().date()} -> {panel_d.index.max().date()}')
 
 def ols_loading(y, X):
-    """Returns betas + R²."""
+    """Returns (betas, R², SE_betas).
+
+    ★v3 fix: SE_betas 반환 추가 — Welch t-test for cross-epoch β gap 용도.
+    Homoscedastic SE 만 (HAC 미적용, rule §1.4 추후 보강 필요).
+    """
     Xc = np.column_stack([np.ones(len(X)), X])
     b, *_ = np.linalg.lstsq(Xc, y, rcond=None)
     yhat = Xc @ b
     ss_res = np.sum((y - yhat)**2)
     ss_tot = np.sum((y - y.mean())**2)
     r2 = 1 - ss_res/ss_tot if ss_tot > 0 else np.nan
-    return b, r2
+    n, k = Xc.shape
+    dof = max(n - k, 1)
+    sigma2 = ss_res / dof
+    try:
+        cov_b = sigma2 * np.linalg.inv(Xc.T @ Xc)
+        se_b = np.sqrt(np.diag(cov_b))
+    except np.linalg.LinAlgError:
+        se_b = np.full(k, np.nan)
+    return b, r2, se_b
 
 m3_loadings = {}
 factor_cols = ['d_rate', 'd_real_rate', 'r_dxy', 'd_hy']
@@ -120,13 +132,14 @@ print(f"  {'sector':<7s} {'α':>9s} {'β_rate':>9s} {'β_real':>9s} {'β_dxy':>9
 for s in SECTORS:
     y = panel_d[s].values
     X = panel_d[factor_cols].values
-    b, r2 = ols_loading(y, X)
+    b, r2, se = ols_loading(y, X)
     m3_loadings[s] = {
         'alpha': round(float(b[0]), 6),
         'beta_rate_dgs10': round(float(b[1]), 4),
         'beta_real_rate_dfii10': round(float(b[2]), 4),
         'beta_dxy': round(float(b[3]), 4),
         'beta_credit_hy_oas': round(float(b[4]), 4),
+        'se_beta_dxy': round(float(se[3]), 4),
         'R2': round(float(r2), 4),
         'n': len(panel_d),
     }
@@ -140,21 +153,83 @@ for ep in ['E1_tighten_shock', 'E2_transition_rebound', 'E3_rate_resurge', 'E4_p
     sub = panel_d[panel_d['epoch'] == ep]
     if len(sub) < 30: continue
     print(f'\n  [{ep}] n_days={len(sub)}')
-    print(f"    {'sector':<7s} {'β_rate':>9s} {'β_real':>9s} {'β_dxy':>9s} {'β_hy':>9s} {'R²':>7s}")
+    print(f"    {'sector':<7s} {'β_rate':>9s} {'β_real':>9s} {'β_dxy':>9s} {'SE_dxy':>9s} {'β_hy':>9s} {'R²':>7s}")
     m3_epoch_loadings[ep] = {}
     for s in SECTORS:
         y = sub[s].values
         X = sub[factor_cols].values
-        b, r2 = ols_loading(y, X)
+        b, r2, se = ols_loading(y, X)
         m3_epoch_loadings[ep][s] = {
             'beta_rate': round(float(b[1]), 4),
             'beta_real_rate': round(float(b[2]), 4),
             'beta_dxy': round(float(b[3]), 4),
+            'se_beta_dxy': round(float(se[3]), 4),
             'beta_credit': round(float(b[4]), 4),
             'R2': round(float(r2), 4),
             'n': len(sub),
         }
-        print(f"    {s:<7s} {b[1]:+.4f}   {b[2]:+.4f}   {b[3]:+.4f}   {b[4]:+.4f}   {r2:.4f}")
+        print(f"    {s:<7s} {b[1]:+.4f}   {b[2]:+.4f}   {b[3]:+.4f}   {se[3]:.4f}   {b[4]:+.4f}   {r2:.4f}")
+
+# ============================================================================
+# (2.5) ★v3 NEW: Welch z-test for β_dxy(E3) vs β_dxy(E4) gap + Bonferroni 보정
+# rule §1.5 multiple comparison: 4 sector × 1 gap = m=4 비교 → α/4 = 0.0125
+# ============================================================================
+print('\n' + '=' * 78)
+print('M3-(2.5): β_dxy E3 (rate-up) vs E4 (rate-down) Welch z-test ★v3 fix')
+print('=' * 78)
+
+from scipy.stats import norm
+
+GAP_SECTORS = ['XLU', 'XLP', 'XLV', 'XLF']  # defensive + financial 핵심 4
+m_comparisons = len(GAP_SECTORS)
+alpha_raw = 0.05
+alpha_bonf = alpha_raw / m_comparisons
+print(f'\nBonferroni 보정: m={m_comparisons} 비교, α_raw={alpha_raw}, α_bonf={alpha_bonf:.4f}')
+print(f"\n  {'sector':<7s} {'β_dxy_E3':>10s} {'SE_E3':>8s} {'β_dxy_E4':>10s} {'SE_E4':>8s} {'gap':>8s} {'z':>7s} {'p_raw':>8s} {'p_bonf_sig':>11s}")
+
+m3_dxy_gap = {}
+for s in GAP_SECTORS:
+    if 'E3_rate_resurge' not in m3_epoch_loadings or 'E4_pivot_easing' not in m3_epoch_loadings:
+        print(f"  {s:<7s} insufficient epoch coverage")
+        continue
+    if s not in m3_epoch_loadings['E3_rate_resurge'] or s not in m3_epoch_loadings['E4_pivot_easing']:
+        print(f"  {s:<7s} insufficient sector coverage")
+        continue
+    b_e3 = m3_epoch_loadings['E3_rate_resurge'][s]['beta_dxy']
+    se_e3 = m3_epoch_loadings['E3_rate_resurge'][s]['se_beta_dxy']
+    b_e4 = m3_epoch_loadings['E4_pivot_easing'][s]['beta_dxy']
+    se_e4 = m3_epoch_loadings['E4_pivot_easing'][s]['se_beta_dxy']
+    gap = b_e3 - b_e4
+    se_gap = np.sqrt(se_e3**2 + se_e4**2)
+    z = gap / se_gap if se_gap > 0 else np.nan
+    p_raw = 2 * (1 - norm.cdf(abs(z))) if not np.isnan(z) else np.nan
+    bonf_sig = (p_raw < alpha_bonf) if not np.isnan(p_raw) else False
+    raw_sig = (p_raw < alpha_raw) if not np.isnan(p_raw) else False
+    m3_dxy_gap[s] = {
+        'beta_dxy_E3': round(float(b_e3), 4), 'se_E3': round(float(se_e3), 4),
+        'beta_dxy_E4': round(float(b_e4), 4), 'se_E4': round(float(se_e4), 4),
+        'gap_E3_minus_E4': round(float(gap), 4),
+        'se_gap': round(float(se_gap), 4),
+        'welch_z': round(float(z), 3) if not np.isnan(z) else None,
+        'p_raw': round(float(p_raw), 4) if not np.isnan(p_raw) else None,
+        'raw_sig_alpha005': bool(raw_sig),
+        'bonferroni_sig_alpha005_over_m4': bool(bonf_sig),
+    }
+    bonf_label = '★PASS' if bonf_sig else ('raw-only' if raw_sig else 'FAIL')
+    print(f"  {s:<7s} {b_e3:+.4f}   {se_e3:.4f}  {b_e4:+.4f}   {se_e4:.4f}  {gap:+.4f}  {z:+.3f}  {p_raw:.4f}      {bonf_label}")
+
+print('\n[M3 dollar gap verdict — ★v3 격하 (rule §1.5)]')
+print('  자문 prior "M1 dollar 채널 rate-up 2배" 단정 → 본 검정:')
+bonf_pass_count = sum(1 for v in m3_dxy_gap.values() if v.get('bonferroni_sig_alpha005_over_m4'))
+raw_pass_count = sum(1 for v in m3_dxy_gap.values() if v.get('raw_sig_alpha005'))
+print(f'  raw p<0.05 sector 수: {raw_pass_count}/{len(m3_dxy_gap)}')
+print(f'  ★Bonferroni p<{alpha_bonf:.4f} sector 수: {bonf_pass_count}/{len(m3_dxy_gap)}')
+if bonf_pass_count == 0:
+    print('  → ★비유의 (Bonferroni 후 0). M1 단정 철회 — 방향성 힌트 한정 (rule §2 verdict 5단계: TENTATIVE DIRECTIONAL)')
+elif bonf_pass_count < len(m3_dxy_gap):
+    print(f'  → 부분 유의 ({bonf_pass_count} sector). 보편화 X — sector-specific 약 신호')
+else:
+    print('  → 전 sector Bonferroni PASS — 강 신호 (다만 n=63/657 day epoch 자기상관 미보정)')
 
 # ============================================================================
 # (3) Within-sleeve corr (cross-asset-class vs within-sleeve 구분 — M1 caveat)
@@ -183,13 +258,20 @@ print(f'Avg defensive ~ SPY corr = {np.mean(spy_corrs):.3f}')
 # Save
 # ============================================================================
 out = {
-    'date': '2026-05-30',
+    'date': '2026-05-31',
+    'version': 'v3',
+    'v3_fix_notes': [
+        '★ols_loading: SE_betas 반환 (homoscedastic, HAC 미적용 — rule §1.4 추후 보강)',
+        '★Welch z-test for β_dxy(E3) vs β_dxy(E4) gap, m=4 Bonferroni 보정 (α/4=0.0125)',
+        '★M1 "dollar 채널 2배" 단정 → Bonferroni 후 verdict 격하 (rule §1.5 multiple comparison)',
+    ],
     'panel_n_daily': len(panel_d),
     'panel_n_monthly': len(panel_m),
     'date_range': f"{panel_d.index.min().date()} -> {panel_d.index.max().date()}",
     'm3_epoch_excess': m3_epoch,
     'm3_full_sample_loadings': m3_loadings,
     'm3_epoch_loadings': m3_epoch_loadings,
+    'm3_dxy_gap_welch_bonferroni': m3_dxy_gap,
     'within_sleeve_avg_corr_defensive': round(float(def_avg), 3),
     'avg_def_to_spy_corr': round(float(np.mean(spy_corrs)), 3),
 }

@@ -1,7 +1,13 @@
 {
-  "date": "2026-05-30",
+  "date": "2026-05-31",
+  "version": "v3",
+  "v3_fix_notes": [
+    "\u2605classify_regime: KeyError \u2192 OutOfSample \ubcc4\ub3c4 \ub77c\ubca8 (silent credit=False \uae08\uc9c0). rule \u00a71.1 coverage \uc704\uc870 \ubc29\uc9c0",
+    "\u2605H1 forward 3M predictive variant \ucd94\uac00 (USE_FORWARD_3M flag). spec text predictive vs v2 code contemporaneous drift \uc815\uc815",
+    "\u2605H3 verdict \uaca9\ud558: n<10 \uc2dc INSUFFICIENT/TENTATIVE \ud55c\uc815 (rule \u00a71.2). REVERSED \ub2e8\uc815 \ucca0\ud68c"
+  ],
   "data_period_daily": "2003-01-03 -> 2026-05-28",
-  "h1_real_rate_dichotomy": {
+  "h1_real_rate_dichotomy_contemporaneous": {
     "XLU": {
       "beta": -0.0106,
       "rankIC": -0.07,
@@ -51,7 +57,51 @@
       "n": 5844
     }
   },
-  "h1_sign_split_confirmed": true,
+  "h1_sign_split_contemporaneous": true,
+  "h1_real_rate_dichotomy_forward_3m": {
+    "XLU": {
+      "rankIC_fwd3M": 0.017,
+      "p_fwd": 0.7764,
+      "partial_IC_fwd_given_SPY": -0.006,
+      "partial_p_fwd": 0.9157,
+      "n": 277
+    },
+    "XLP": {
+      "rankIC_fwd3M": -0.052,
+      "p_fwd": 0.3879,
+      "partial_IC_fwd_given_SPY": -0.065,
+      "partial_p_fwd": 0.2827,
+      "n": 277
+    },
+    "XLV": {
+      "rankIC_fwd3M": 0.039,
+      "p_fwd": 0.5213,
+      "partial_IC_fwd_given_SPY": 0.028,
+      "partial_p_fwd": 0.6454,
+      "n": 277
+    },
+    "XLF": {
+      "rankIC_fwd3M": -0.032,
+      "p_fwd": 0.5971,
+      "partial_IC_fwd_given_SPY": -0.035,
+      "partial_p_fwd": 0.5592,
+      "n": 277
+    },
+    "XLC": {
+      "rankIC_fwd3M": -0.049,
+      "p_fwd": 0.418,
+      "partial_IC_fwd_given_SPY": 0.079,
+      "partial_p_fwd": 0.1874,
+      "n": 277
+    },
+    "SPY": {
+      "rankIC_fwd3M": -0.069,
+      "p_fwd": 0.2534,
+      "partial_IC_fwd_given_SPY": null,
+      "partial_p_fwd": null,
+      "n": 277
+    }
+  },
   "h2_yield_curve_lead_lag": {
     "lag_0": {
       "rankIC": 0.171,
@@ -143,22 +193,38 @@
       "n": 1,
       "note": "insufficient"
     },
-    "Normal": {
-      "n": 308,
-      "sleeve_mean_mo": -0.0002,
+    "Normal (in-sample)": {
+      "n": 27,
+      "sleeve_mean_mo": -0.0054,
       "sleeve_95CI": [
-        -0.0028,
-        0.0024
+        -0.0173,
+        0.0064
       ],
-      "sleeve_p": 0.8682,
-      "def_only_mean_mo": 0.0,
+      "sleeve_p": 0.3776,
+      "def_only_mean_mo": -0.0064,
       "def_only_95CI": [
-        -0.0033,
-        0.0033
+        -0.0201,
+        0.0079
       ],
-      "def_only_p": 0.9872
+      "def_only_p": 0.3794
+    },
+    "OutOfSample (\u2605v3)": {
+      "n": 281,
+      "sleeve_mean_mo": 0.0003,
+      "sleeve_95CI": [
+        -0.0023,
+        0.0029
+      ],
+      "sleeve_p": 0.823,
+      "def_only_mean_mo": 0.0007,
+      "def_only_95CI": [
+        -0.0027,
+        0.0041
+      ],
+      "def_only_p": 0.694
     }
   },
+  "h3_hy_data_period": "BAMLH0A0HYM2 \uc77c\ubcc4 \uac00\uc6a9 2023-05~ (pre-2023 280mo = OutOfSample)",
   "h4_credit_beta": {
     "XLU": {
       "beta_dHY": -0.0218,

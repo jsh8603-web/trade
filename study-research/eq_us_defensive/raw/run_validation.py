@@ -128,6 +128,62 @@ for s in sectors_h1[:-1]:
     print(f"  {s}: mean={roll_b.mean():+.4f} std={roll_b.std():.4f} sign-flip-pct={sign_flip*100:.1f}%")
 
 # ============================================================================
+# H1 — Forward 3M Predictive Variant (★v3 fix)
+# spec text = "DFII10 1σ 상승 → XLU 향후 3M 선도수익률 음의 영향" (predictive)
+# v2 코드 = same-day contemporaneous → spec/impl drift (rule §1.3 위반)
+# v3: contemporaneous AND predictive 동시 출력 → spec/impl 분리 명시
+# ============================================================================
+USE_FORWARD_3M = True  # config flag (rule §1.3 spec/code 1:1 verify)
+h1_fwd = {}
+if USE_FORWARD_3M:
+    print('\n' + '-' * 78)
+    print('[H1 — Forward 3M predictive variant] ★v3 spec/impl drift fix')
+    print('-' * 78)
+    # Monthly aggregation
+    dfii10_m = dfii10.resample('ME').last()
+    d_dfii10_m = dfii10_m.diff().rename('d_DFII10_m')
+    spy_m_fwd = (1 + ret['SPY']).resample('ME').prod() - 1
+
+    sectors_h1_fwd = ['XLU', 'XLP', 'XLV', 'XLF', 'XLC', 'SPY']
+    print(f"  {'sector':<7s} {'rankIC_fwd3M':>13s} {'p':>8s}  {'partial|SPY_fwd':>16s}  {'p':>8s}  n")
+    for s in sectors_h1_fwd:
+        ret_m_s = (1 + ret[s]).resample('ME').prod() - 1
+        # Forward 3M sum return: sum of next 3 months from t+1 to t+3
+        fwd_3m = ret_m_s.shift(-1).rolling(3).sum().shift(-2)
+        df_s = pd.concat([d_dfii10_m.rename('d_real'),
+                          fwd_3m.rename('fwd_3m'),
+                          spy_m_fwd.rename('SPY_m')], axis=1).dropna()
+        if len(df_s) < 24:
+            print(f"  {s:<7s} insufficient (n={len(df_s)})")
+            continue
+        ic, p = spearmanr(df_s['d_real'], df_s['fwd_3m'])
+        if s == 'SPY':
+            pic, pp = np.nan, np.nan
+        else:
+            pic, pp = partial_spearman(df_s['d_real'].values, df_s['fwd_3m'].values, df_s['SPY_m'].values)
+        h1_fwd[s] = {
+            'rankIC_fwd3M': round(float(ic), 3), 'p_fwd': round(float(p), 4),
+            'partial_IC_fwd_given_SPY': round(pic, 3) if not np.isnan(pic) else None,
+            'partial_p_fwd': round(pp, 4) if not np.isnan(pp) else None, 'n': len(df_s),
+        }
+        pic_str = f"{pic:+.3f}" if not np.isnan(pic) else "  N/A"
+        pp_str = f"{pp:.4f}" if not np.isnan(pp) else "  N/A"
+        print(f"  {s:<7s} {ic:+.3f}        {p:.4f}    {pic_str}           {pp_str}  {len(df_s)}")
+
+    print('\n[H1 forward 3M verdict — spec text 매칭]')
+    fwd_keys = ['XLU', 'XLP', 'XLF']
+    fwd_ok = all(k in h1_fwd for k in fwd_keys)
+    if fwd_ok:
+        xlu_f = h1_fwd['XLU']['partial_IC_fwd_given_SPY']
+        xlp_f = h1_fwd['XLP']['partial_IC_fwd_given_SPY']
+        xlf_f = h1_fwd['XLF']['partial_IC_fwd_given_SPY']
+        spec_split = (xlu_f is not None and xlu_f < 0) and (xlp_f is not None and xlp_f < 0) and (xlf_f is not None and xlf_f > 0)
+        print(f"  Forward 3M sign split (util/staples NEG, banks POS): {'PASS' if spec_split else 'FAIL (spec text 와 불일치 — predictive 채널 X)'}")
+        print(f"  XLU fwd partial IC|SPY = {xlu_f}, XLP = {xlp_f}, XLF = {xlf_f}")
+    else:
+        print('  insufficient data for fwd verdict')
+
+# ============================================================================
 # H2: Yield Curve Slope (DGS10-DGS2) -> XLF NIM leading (CCF 0~12M lag)
 # Hypothesis: slope steepening -> XLF excess return rises with 3-6M lag
 # Method: monthly Δslope_{t-k} vs XLF excess (vs SPY)_{t}, Spearman IC for k=0..12
@@ -204,19 +260,24 @@ t10y_p75 = t10yie.quantile(0.75)
 print(f'\nRegime thresholds: HY p75={hy_p75:.3f}, p90={hy_p90:.3f}, T10YIE p75={t10y_p75:.3f}')
 
 def classify_regime(idx):
-    """Returns DataFrame with independent dummies — Credit + Inflation can co-occur."""
-    creds, infls = [], []
+    """Returns DataFrame with independent dummies — Credit + Inflation can co-occur.
+
+    ★v3 fix (2026-05-31): KeyError = HY OAS 또는 driver missing month → OutOfSample 별도 라벨.
+    이전 v2 의 silent credit=False 처리는 pre-2023 280개월 (HY OAS 일별 시리즈 가용 한계) 을
+    'Normal' 로 오분류 → n 위조 (rule empirical-claim-presentation.md §1.1).
+    """
+    creds, infls, oos = [], [], []
     for t in idx:
         try:
             hyv = hy.loc[t]
             t10v = t10yie.loc[t]
             df_ffr = d_ffr_6m.loc[t]
+            cred = pd.notna(hyv) and hyv > hy_p75
+            infl = pd.notna(t10v) and t10v > t10y_p75 and pd.notna(df_ffr) and df_ffr > 0.25
+            creds.append(cred); infls.append(infl); oos.append(False)
         except KeyError:
-            creds.append(False); infls.append(False); continue
-        cred = pd.notna(hyv) and hyv > hy_p75
-        infl = pd.notna(t10v) and t10v > t10y_p75 and pd.notna(df_ffr) and df_ffr > 0.25
-        creds.append(cred); infls.append(infl)
-    return pd.DataFrame({'credit': creds, 'inflation': infls}, index=idx)
+            creds.append(False); infls.append(False); oos.append(True)
+    return pd.DataFrame({'credit': creds, 'inflation': infls, 'out_of_sample': oos}, index=idx)
 
 # Sleeve monthly excess (XLP+XLU+XLV+XLF equal-weighted, vs SPY)
 sleeve_m = pd.DataFrame({
@@ -236,11 +297,14 @@ regime_df = classify_regime(common_idx)
 df_h3 = pd.concat([sleeve_excess, defonly_excess, regime_df], axis=1, join='inner').dropna()
 print(f'Monthly period: {df_h3.index.min().date()} -> {df_h3.index.max().date()}, n={len(df_h3)}')
 
+oos_n = df_h3['out_of_sample'].sum() if 'out_of_sample' in df_h3.columns else 0
 print(f'\nRegime distribution (n={len(df_h3)} months) — independent dummies:')
+print(f"  OutOfSample (HY missing):      n={oos_n}  ★v3: silent Normal 처리 금지")
 print(f"  Credit Stress (HY OAS>p75):   n={df_h3['credit'].sum()}")
 print(f"  Inflation Shock:               n={df_h3['inflation'].sum()}")
 print(f"  Both (credit & inflation):     n={(df_h3['credit'] & df_h3['inflation']).sum()}")
-print(f"  Normal (neither):              n={((~df_h3['credit']) & (~df_h3['inflation'])).sum()}")
+in_sample = ~df_h3['out_of_sample'] if 'out_of_sample' in df_h3.columns else pd.Series(True, index=df_h3.index)
+print(f"  Normal (neither, in-sample):   n={(in_sample & (~df_h3['credit']) & (~df_h3['inflation'])).sum()}")
 
 print('\nMean monthly excess return by regime (sleeve = XLP+XLU+XLV+XLF eq, def_only = XLP+XLU+XLV):')
 h3 = {}
@@ -253,13 +317,15 @@ def bootstrap_ci(x, n=10000, alpha=0.05):
     return float(np.mean(x)), float(lo), float(hi), float(p_two_sided)
 
 print(f"  {'regime':<22s} {'n':>5s}  {'sleeve_mean':>13s}  {'95%CI':>22s}  {'p':>6s}   {'def_only_mean':>14s}  {'def_p':>7s}")
+in_sample_mask = ~df_h3['out_of_sample'] if 'out_of_sample' in df_h3.columns else pd.Series(True, index=df_h3.index)
 regimes_to_test = {
     'Credit Stress (all)': df_h3['credit'] == True,
     'Credit only (~infl)': (df_h3['credit'] == True) & (df_h3['inflation'] == False),
     'Inflation Shock (all)': df_h3['inflation'] == True,
     'Inflation only (~cred)': (df_h3['inflation'] == True) & (df_h3['credit'] == False),
     'Both regimes': (df_h3['credit'] == True) & (df_h3['inflation'] == True),
-    'Normal': (df_h3['credit'] == False) & (df_h3['inflation'] == False),
+    'Normal (in-sample)': in_sample_mask & (df_h3['credit'] == False) & (df_h3['inflation'] == False),
+    'OutOfSample (★v3)': df_h3['out_of_sample'] == True if 'out_of_sample' in df_h3.columns else pd.Series(False, index=df_h3.index),
 }
 for r, mask in regimes_to_test.items():
     sub = df_h3[mask]
@@ -282,14 +348,29 @@ for r, mask in regimes_to_test.items():
     }
     print(f"  {r:<22s} {len(sub):>5d}  {mx:+.4f}     [{lo:+.4f}, {hi:+.4f}]  {p_x:.4f}    {mdx:+.4f}        {p_dx:.4f}")
 
-print('\n[H3 verdict]')
-if 'Credit' in h3 and 'note' not in h3['Credit']:
-    credit_pos = h3['Credit']['sleeve_mean_mo'] > 0
-    credit_sig = h3['Credit']['sleeve_p'] < 0.10
-    print(f"  Credit regime: sleeve excess {h3['Credit']['sleeve_mean_mo']:+.4f}/mo, p={h3['Credit']['sleeve_p']:.4f} — {'CONFIRMED' if credit_pos and credit_sig else 'WEAK/REJECT'}")
-if 'Inflation' in h3 and 'note' not in h3['Inflation']:
-    infl_weaker = h3['Inflation']['sleeve_mean_mo'] < h3['Credit']['sleeve_mean_mo'] if 'Credit' in h3 and 'note' not in h3['Credit'] else None
-    print(f"  Inflation regime: sleeve excess {h3['Inflation']['sleeve_mean_mo']:+.4f}/mo, p={h3['Inflation']['sleeve_p']:.4f} — {'CONFIRMED weaker than Credit' if infl_weaker else 'UNEXPECTED'}")
+print('\n[H3 verdict — ★v3 격하]')
+# Credit Stress (all) key 사용 (이전 'Credit' = 별도 라벨)
+credit_key = 'Credit Stress (all)'
+if credit_key in h3 and 'note' not in h3[credit_key]:
+    credit_n = h3[credit_key]['n']
+    # rule §1.2: n < 30 → LOO 의무, n < 10 → 단정 verdict 금지 (★INSUFFICIENT or TENTATIVE)
+    if credit_n < 10:
+        print(f"  Credit regime n={credit_n} (<10) → ★INSUFFICIENT (rule §1.2 단정 verdict 금지)")
+        print(f"  raw mean = {h3[credit_key]['sleeve_mean_mo']:+.4f}/mo (★방향성 힌트 한정, REVERSED 단정 X)")
+        print(f"  Bootstrap p = {h3[credit_key]['sleeve_p']:.4f} (★IID assumption, autocorr 무시 — Block bootstrap 미적용)")
+        print(f"  ★실 위기표본 부재 (37mo·post-2023 only) — pre-2023 280mo = OutOfSample")
+    else:
+        credit_pos = h3[credit_key]['sleeve_mean_mo'] > 0
+        credit_sig = h3[credit_key]['sleeve_p'] < 0.10
+        print(f"  Credit regime: sleeve excess {h3[credit_key]['sleeve_mean_mo']:+.4f}/mo, p={h3[credit_key]['sleeve_p']:.4f} — {'CONFIRMED' if credit_pos and credit_sig else 'WEAK/REJECT'}")
+infl_key = 'Inflation Shock (all)'
+if infl_key in h3 and 'note' not in h3[infl_key]:
+    infl_n = h3[infl_key]['n']
+    if infl_n < 10:
+        print(f"  Inflation regime n={infl_n} (<10) → ★INSUFFICIENT")
+    else:
+        infl_weaker = h3[infl_key]['sleeve_mean_mo'] < h3[credit_key]['sleeve_mean_mo'] if credit_key in h3 and 'note' not in h3[credit_key] else None
+        print(f"  Inflation regime: sleeve excess {h3[infl_key]['sleeve_mean_mo']:+.4f}/mo, p={h3[infl_key]['sleeve_p']:.4f} — {'CONFIRMED weaker than Credit' if infl_weaker else 'UNEXPECTED'}")
 
 # ============================================================================
 # H4: dividend_yield z + credit_beta (proxy via daily ΔHY OAS vs sector returns)
@@ -339,13 +420,21 @@ print(f"  XLF partial IC|SPY = {xlf_h4:+.3f}")
 # Save metrics
 # ============================================================================
 out = {
-    'date': '2026-05-30',
+    'date': '2026-05-31',
+    'version': 'v3',
+    'v3_fix_notes': [
+        '★classify_regime: KeyError → OutOfSample 별도 라벨 (silent credit=False 금지). rule §1.1 coverage 위조 방지',
+        '★H1 forward 3M predictive variant 추가 (USE_FORWARD_3M flag). spec text predictive vs v2 code contemporaneous drift 정정',
+        '★H3 verdict 격하: n<10 시 INSUFFICIENT/TENTATIVE 한정 (rule §1.2). REVERSED 단정 철회',
+    ],
     'data_period_daily': f"{joined_h1.index.min().date()} -> {joined_h1.index.max().date()}",
-    'h1_real_rate_dichotomy': h1,
-    'h1_sign_split_confirmed': sign_split_ok,
+    'h1_real_rate_dichotomy_contemporaneous': h1,
+    'h1_sign_split_contemporaneous': sign_split_ok,
+    'h1_real_rate_dichotomy_forward_3m': h1_fwd if USE_FORWARD_3M else None,
     'h2_yield_curve_lead_lag': h2,
     'h2_best_lag': best_lag,
     'h3_hy_oas_regime': h3,
+    'h3_hy_data_period': 'BAMLH0A0HYM2 일별 가용 2023-05~ (pre-2023 280mo = OutOfSample)',
     'h4_credit_beta': h4,
 }
 with open(ROOT / 'validation-metrics.json', 'w') as f:

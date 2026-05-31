@@ -1,33 +1,39 @@
 study_id: eq_us_defensive
 asset_scope: [equity.us]
-as_of: "2026-05-30"
-version: v2  # v1 합성 시뮬 기반 → v2 실측 calibration
+as_of: "2026-05-31"
+version: v3  # v1 합성 폐기 → v2 실측 calibrate → v3 격하 정정 (rule §1 5의무)
 
 # ============================================================================
-# v2 재칼리브레이션 노트 (사용자 + main 지적 반영)
-# v1 = 합성 240m seed 20260530 (raw/lens-hypothesis-quickcheck.txt) prior-consistent 시뮬 = 폐기 동등
-# v2 = 실데이터 검증 (FRED + Yahoo, 2003-01~2026-05) — raw/run_validation.py + raw/m3_macro_linkage.py
+# v3 재칼리브레이션 노트 (★main 독립검증 verdict=Tier3 불충실 → 3 결함 보수)
+# v1 = 합성 240m seed 20260530 prior-consistent 시뮬 = 폐기
+# v2 = 실데이터 검증 (FRED + Yahoo, 2003-01~2026-05) — ★3 결함 위에 calibrate
+#   결함 1: H3 데이터 커버리지 위조급 (classify_regime KeyError → silent Normal 280mo)
+#   결함 2: M3 dollar regime-switch 과대 단정 (Welch z=1.34 p_diff=0.18 비유의, Bonferroni 미적용)
+#   결함 3: H1 spec/impl 부정합 (predictive text vs contemporaneous code)
+# v3 = ★결함 fix + 정량 claim presentation 5 의무 강제 (rule §1)
 #
-# ★실측으로 발견된 핵심 결과:
-#   H1 (Real Rate Dichotomy)     = ★CONFIRMED 강력 — XLU partial IC=-0.167 / XLF +0.129 (n=5844)
-#   H2 (Yield Curve 3-6M NIM lag) = ★REJECTED — Stigum lag 실측 X, contemporaneous lag=0 만 강 (IC=+0.171 p=0.002)
-#   H3 (HY OAS defensive outperform) = ★REVERSED — Credit regime 시 sleeve excess -1.5%/월 (BAB X)
-#   H4a (Credit beta sub-sleeve)   = PARTIAL CONFIRMED — defensive +0.09 / XLF -0.166 (n=752, short window)
-#   M3 (★Dollar 채널 rate-regime 부호 반전) = M1 가설 직접 확인
+# ★실측 결과 (★v3 격하 verdict):
+#   H1 Real Rate Dichotomy   = PARTIAL (contemp CONFIRMED n=5844 / fwd3M FAILS rule §2 REJECTED)
+#   H2 Yield Curve 3-6M NIM lag = REJECTED 유지 (Stigum lag 미관측, contemp lag=0 만)
+#   H3 HY OAS defensive       = ★INSUFFICIENT (n=9 < 10, classify_regime KeyError 버그 사후 fix,
+#                                LOO 5/9 p>0.05 붕괴, 단일 cycle, IID Bootstrap autocorr 무시)
+#   H4a Credit beta           = PARTIAL CONFIRMED 유지 (gap 0.257, n=752 short window 명시)
+#   M3 Dollar 채널 rate-regime = ★TENTATIVE DIRECTIONAL (Welch z=1.34 p=0.18 비유의,
+#                                Bonferroni α/4=0.0125 후 0/4 sector PASS)
 #
 # 범위: 미국 방어주 + 금융주 통합 sleeve (사용자 task spec)
-# 분류: XLP(Staples) · XLU(Utilities) · XLV(Healthcare) · XLF(Financials) · XLC mature
-# intra-sleeve dispersion 최대 — industry archetype 강제 분해 (실측 H1·H4a 부호 분기 anchor)
+# ★v4 sleeve 분리 prerequisite: DEFENSIVE_PURE = {XLP, XLU, XLV, XLC mature} / FINANCIALS = {XLF}
+#   현 v3 yaml 은 여전히 user task label "sleeve eq-weight" 기반 — v4 작업 시 sleeve 재정의 필요
 
 # ============================================================================
-# 블록1: LENS (정성 렌즈 — LLM 주입용. 실측 anchor 박제)
-# ★가변: 블록5 flag 누적이 estimation_note·regime_reading·블록4 가중을 미세 변동
+# 블록1: LENS (정성 렌즈 — ★v3 격하 hedge 적용)
 # ============================================================================
 lens:
   pricing_principle: >
     미국 방어주+금융주 = 5 sub-archetype 통합 sleeve. P = M × E 동일 골격이지만 결정요인이
-    sub-archetype 별 부호 반대라 한 카드로 합치면 신호 cancel. 실측 H1 partial IC sign-split
-    (XLU -0.167 / XLF +0.129, n=5844 일) 가 archetype 분리 필요성의 정량 anchor.
+    sub-archetype 별 부호 반대라 한 카드로 합치면 신호 cancel. ★v3 격하: 실측 H1 contemp
+    partial IC sign-split (XLU -0.167 / XLF +0.129, n=5844 일) 가 archetype 분리 필요성의
+    정량 anchor — 단 contemp 한정, predictive fwd3M FAILS (spec text 직접 매칭 실패).
     [Utility] EPS = Rate_Base × Allowed_ROE. duration 15~25Y, 채권 대체재. real rate 1순위 driver.
     [Staples] P = M(brand_equity) × E(Vol × Price × Margin). pricing power vs commodity input.
     듀레이션 10~15Y, EM 매출 비중에 따라 DXY 노출.
@@ -35,235 +41,332 @@ lens:
     [Bank] V = BV + Σ(ROE-COE)·BV/(1+COE)^t. duration 5~8Y. NIM 의 leading=slope (단 실측 lag=0).
     [Insurance] Embedded Value, life duration 30Y+ (★reinvestment risk = 은행 NIM 보다 훨씬 장기).
   report_relations:
-    - "★실측: 일별 ΔDFII10 → XLU partial IC=-0.167 / XLF +0.129 (p<0.0001, n=5844 일). Ilmanen bond proxy + Boyd-Gertler 학술 anchor 강력 지지"
-    - "★실측: Δslope(DGS10-DGS2) → XLF excess return contemporaneous IC=+0.171 (p=0.002, n=317 월). Stigum 의 3-6M lag *실데이터 미관측* (시장 효율성). lag=0 만 유의"
-    - "★실측 REVERSED: HY OAS > p75 (Credit Stress regime n=9) 시 본 sleeve excess -1.5%/월 (Bootstrap p=0.005). financials 제외해도 def_only -1.96%/월. Frazzini-Pedersen BAB 가 modern QE 시대 본 sleeve 에서 X"
-    - "★실측: ΔHY OAS → XLF partial IC=-0.166 (banks provisioning channel 시장 베타 초과) / defensive partial IC mean +0.09 (시장 베타 흡수 후 residual 회복력, n=752)"
-    - "★M3 발견: rate-up regime (E3 2023Q3) 에 방어 sleeve dollar loading β_dxy +0.21~+0.66 폭증 / rate-down regime (E4) -0.01~-0.18 부호 반전. M1 'dollar 채널 rate-up 2배' 직접 확인"
+    - "★v3 hedge: 일별 ΔDFII10 → XLU contemp partial IC=-0.167 / XLF +0.129 (p<0.0001, n=5844 일).
+       Ilmanen bond proxy + Boyd-Gertler 학술 anchor 지지. ★lag_routing=contemporaneous 한정 —
+       predictive fwd3M FAILS (rule §2 REJECTED, spec text 원안 무효)"
+    - "실측: Δslope(DGS10-DGS2) → XLF excess return contemporaneous IC=+0.171 (p=0.002, n=317 월).
+       Stigum 의 3-6M lag 실데이터 미관측 (시장 효율성). lag=0 만 유의"
+    - "★v3 INSUFFICIENT: HY OAS > p75 Credit Stress regime n=9 (rule §1.2 <10) sleeve excess
+       raw mean -1.5%/월 (Bootstrap p=0.005, ★IID autocorr 무시). LOO 5/9 시 p>0.05 붕괴.
+       단일 cycle 표본 (2023-2024, 8mo 연속). REVERSED 단정 철회 — ALFRED HY OAS full historical
+       fetch (2000-01~) 후 재검증 필수"
+    - "실측: ΔHY OAS → XLF partial IC=-0.166 / defensive partial IC mean +0.09 (n=752 short
+       window). banks provisioning channel 시장 베타 초과 잔여 — industry 부호 분기 anchor"
+    - "★v3 TENTATIVE DIRECTIONAL (rule §2): rate-up regime (E3 2023Q3) 방어 sleeve dollar
+       loading β_dxy +0.21~+0.66 vs rate-down regime (E4) -0.01~-0.18. 단 Welch z=1.34
+       p_diff=0.18 비유의, Bonferroni α/4=0.0125 후 0/4 sector PASS. M1 '강력 확인 / 2배'
+       단정 철회 — 방향성 약 prior 한정"
     - "XLF (banks) β_dxy rate-regime 무관 +0.15~+0.20 일관 — 다국적 결제·자산운용 채널 안정"
-    - "within-sleeve corr 0.556 vs 방어~SPY corr 0.732 → 본 sleeve 내부는 equity common factor (market beta) dominant. M4 거시 named factor 는 sub-archetype 부호 분기로만 의미"
+    - "within-sleeve corr 0.556 vs 방어~SPY corr 0.732 → 본 sleeve 내부는 equity common
+       factor (market beta) dominant. M4 거시 named factor 는 sub-archetype 부호 분기로만 의미"
   regime_reading: >
-    Reflation/Recovery: 방어 underperform (현 E4 pivot 시기 sleeve-SPY -0.78%/월 실측).
-    Slowdown/Stagflation: ★자문 prior (방어 lead) 가 실측 X — Credit Stress regime 시 sleeve
-    -1.5%/월 underperform. financials 제외해도 def_only -1.96%/월. 본 sleeve 의 *방어 alpha
-    실증 X*. modern QE 시대 패턴 + XLF 비중이 GFC 등에서 큰 underperform 유발 가능성.
-    → sleeve 비중 *축소* 가 risk-off 권고 (자문 prior 반대).
-    단 sub-archetype 별 분기: XLF 가 가장 큰 negative (provisioning channel), defensive 는
-    시장 베타 흡수 후 residual POS. 즉 *상대* 가중은 defensive ↑ / financial ↓.
+    Reflation/Recovery: 방어 underperform (현 E4 pivot 시기 sleeve-SPY -0.78%/월 실측, n=32mo).
+    Slowdown/Stagflation: ★v3 INSUFFICIENT — Credit Stress regime n=9 (rule §1.2 <10) 단일
+    cycle (2023-2024) 라 BAB defensive thesis 의 confirm/reject 모두 본 데이터로 판정불가.
+    자문 BAB prior 의 REVERSED 단정 철회. ALFRED HY OAS full historical (2008 GFC + 2020
+    COVID + 2022 dot 포함) fetch 후 재검증 필수. 현 상대 권고 = 보수적 — 방향성 결정 보류.
+    sub-archetype 별 분기: H4a anchor 유효 (XLF -0.166 / defensive +0.09) — 단 n=752 short
+    window 명시 hedge.
   estimation_note: >
-    2026-05 추정 (실측 anchor): 현 E4 pivot·인하 시기. 본 sleeve sleeve-SPY -0.78%/월
-    underperform 추세 지속. rate-down 시 방어 dollar loading 음수 (η_dxy XLU -0.18 / XLP -0.14)
-    → 강달러는 본 sleeve 에 *부정적*. credit cycle 안정 시 XLF 가중 유지 가능.
-    ★실측 anchor 가 hook update 의 1순위 검증 대상:
-    (a) H1 sign split 부호 안정성 (rolling 60D sign-flip 25~43% — sub-sleeve 별 차이 모니터)
-    (b) H3 reversed 결과의 지속성 (Credit regime sample 증가 시 재검증)
-    (c) M3 dollar 채널 rate-regime 부호 반전의 안정성 (E3 vs E4 비교 표본 증가)
+    2026-05 추정 (★v3 hedge): 현 E4 pivot·인하 시기. 본 sleeve sleeve-SPY -0.78%/월
+    underperform 추세 지속 (n=32mo). rate-down 시 방어 dollar loading 음수 — 단 Welch z
+    비유의 (M3 TENTATIVE). credit cycle 안정 시 XLF 가중 유지 가능.
+    ★실측 anchor hook update 1순위 검증 대상:
+    (a) H1 contemp sign split 부호 안정성 (rolling 60D sign-flip 25~43% — sub-sleeve 별 차이)
+    (b) H3 INSUFFICIENT 상태 — ALFRED full fetch 후 verdict 결정 (현 PENDING_ALFRED 동결)
+    (c) M3 dollar Welch gap 의 표본 확장 (E1 2022Q1~Q3 데이터 충원 후 재검증)
+    ★단정 어휘 (강력·본질·압도적) 금지 — rule §2 hedge 어휘 강제 (n=752 short / n=9 INSUFFICIENT)
 
 # ============================================================================
-# 블록2: INDICATORS (정량 지표 — 우리 시스템 자료로 귀결)
-# §6 주식 통일 하드룰 코어셋 10종 = is_core:true (us/kr/intl/reit 비교가능성)
-# ★실측 검증 완료: rate_beta (H1) / credit_beta (H4a) — base_weight·prior_strength 실측 IC 비례
+# 블록2: INDICATORS (★v3 — 실측 IC anchor 박제 시 hedge 명시)
 # ============================================================================
 indicators:
-  # --- §6 코어셋 (통일 하드룰) — cyclical 방과 동일 id ---
+  # --- §6 코어셋 (통일 하드룰) ---
   - {id: fwd_ep, family: valuation, is_core: true, in_our_system: true,
-     source_or_collector: "EDGAR edgar_provider(EPS) + 가격 → forward E/P; sector_multiples 보조", transform: own_history_z, vintage_policy: point_in_time, lag: 1}
+     source_or_collector: "EDGAR edgar_provider(EPS) + 가격 → forward E/P; sector_multiples 보조",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 1}
   - {id: roe_margin_trend, family: quality, is_core: true, in_our_system: true,
-     source_or_collector: "EDGAR edgar_provider 재무. 방어주 안정성 본질 (단 실측 미수행 — H4 원안 deferred)", transform: yoy, vintage_policy: point_in_time, lag: 1}
+     source_or_collector: "EDGAR edgar_provider 재무. 방어주 안정성 본질 (단 실측 미수행 — H4 원안 deferred)",
+     transform: yoy, vintage_policy: point_in_time, lag: 1}
   - {id: earnings_revision_breadth, family: revision, is_core: true, in_our_system: false,
      source_or_collector: "Finnhub estimate 대체 — 블록6 요청", transform: own_history_z, vintage_policy: point_in_time, lag: 0}
   - {id: fwd_eps_momentum, family: revision, is_core: true, in_our_system: true,
      source_or_collector: "EDGAR fwd EPS 변화율", transform: yoy, vintage_policy: point_in_time, lag: 1}
   - {id: price_mom_12_1, family: momentum, is_core: true, in_our_system: true,
-     source_or_collector: "가격 시계열 12M-1M 모멘텀. ★방어주 약 — base 하향", transform: rank, vintage_policy: point_in_time, lag: 0}
+     source_or_collector: "가격 시계열 12M-1M 모멘텀. ★방어주 약 — base 하향",
+     transform: rank, vintage_policy: point_in_time, lag: 0}
   - {id: rate_beta, family: macro_sensitivity, is_core: true, in_our_system: true,
-     source_or_collector: "★실측 anchor: 일별 ΔDFII10 partial IC|SPY 측정. XLU=-0.167 / XLP=-0.040 / XLV=-0.011 / XLF=+0.129 / XLC=-0.046 (n=5844, p<0.0001)", transform: level, vintage_policy: point_in_time, lag: 0}
+     source_or_collector: "★v3 실측 anchor (contemp 한정, lag_routing=contemporaneous): 일별 ΔDFII10
+       partial IC|SPY = XLU -0.167 / XLP -0.040 / XLV -0.011 / XLF +0.129 / XLC -0.046
+       (n=5844, p<0.0001). predictive fwd3M FAILS (rule §2 REJECTED) — spec text 원안 무효.
+       DFII10 ALFRED PIT 미보유 — vintage 정확성 한계",
+     transform: level, vintage_policy: point_in_time, lag: 0}
   - {id: dollar_beta, family: macro_sensitivity, is_core: true, in_our_system: false,
-     source_or_collector: "★M3 실측: rate-up regime XLU β_dxy=+0.57 / rate-down -0.18 — rate-regime conditional 필수", transform: level, vintage_policy: point_in_time, lag: 0}
+     source_or_collector: "★v3 TENTATIVE: M3 epoch β_dxy raw gap rate-up XLU +0.57 / rate-down -0.18
+       (방향성 일관) — 단 Welch z=1.34 p=0.18 비유의 + Bonferroni α/4=0.0125 후 0/4 sector PASS.
+       rate-regime conditional 채택 보류 — ALFRED HY OAS full fetch 후 표본 확장 + HAC SE 부착",
+     transform: level, vintage_policy: point_in_time, lag: 0}
   - {id: oil_beta, family: macro_sensitivity, is_core: true, in_our_system: true,
-     source_or_collector: "종목수익률 vs WTI 회귀. 본 검증 미수행 (블록6 추가 요청)", transform: level, vintage_policy: point_in_time, lag: 0}
+     source_or_collector: "종목수익률 vs WTI 회귀. 본 검증 미수행 (블록6 추가 요청)",
+     transform: level, vintage_policy: point_in_time, lag: 0}
   - {id: credit_beta, family: macro_sensitivity, is_core: true, in_our_system: true,
-     source_or_collector: "★실측 anchor: 일별 ΔHY OAS partial IC|SPY. XLU=+0.076 / XLP=+0.105 / XLV=+0.091 / XLF=-0.166 / XLC=+0.005 (n=752, short window). industry-level 부호 분기 명확", transform: level, vintage_policy: point_in_time, lag: 0}
+     source_or_collector: "★v3 hedge: 일별 ΔHY OAS partial IC|SPY = XLU +0.076 / XLP +0.105 / XLV
+       +0.091 / XLF -0.166 / XLC +0.005 (n=752, ★short window). H4a industry 부호 분기 유효 —
+       단 H3 regime conditional 은 INSUFFICIENT (n=9) PENDING_ALFRED",
+     transform: level, vintage_policy: point_in_time, lag: 0}
   - {id: realized_vol, family: risk, is_core: true, in_our_system: true,
      source_or_collector: "가격 시계열 60D 실현 변동성", transform: own_history_z, vintage_policy: point_in_time, lag: 0}
 
   # --- 방어주 특화 (is_core:false + weight cap) ---
   - {id: dividend_yield, family: valuation, is_core: false, in_our_system: false,
-     source_or_collector: "EDGAR 배당 / 가격. ★실측 미수행 — 블록6 요청", transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+     source_or_collector: "EDGAR 배당 / 가격. ★실측 미수행 — 블록6 요청",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 0}
   - {id: dividend_safety, family: quality, is_core: false, in_our_system: false,
-     source_or_collector: "EDGAR FCF/배당 + 부채 + 5Y CV. ★실측 미수행", transform: own_history_z, vintage_policy: point_in_time, lag: 1}
+     source_or_collector: "EDGAR FCF/배당 + 부채 + 5Y CV. ★실측 미수행",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 1}
   - {id: fcf_yield, family: valuation, is_core: false, in_our_system: false,
-     source_or_collector: "EDGAR FCF/시가총액. ★실측 미수행", transform: own_history_z, vintage_policy: point_in_time, lag: 1}
+     source_or_collector: "EDGAR FCF/시가총액. ★실측 미수행",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 1}
   - {id: earnings_stability, family: quality, is_core: false, in_our_system: false,
-     source_or_collector: "EDGAR 5Y EPS std/mean. ★실측 미수행", transform: own_history_z, vintage_policy: point_in_time, lag: 1}
+     source_or_collector: "EDGAR 5Y EPS std/mean. ★실측 미수행 (v4 작업 prerequisite)",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 1}
 
   # --- 금융주 특화 (is_core:false + weight cap) ---
   - {id: nim_trend, family: quality, is_core: false, in_our_system: false,
-     source_or_collector: "EDGAR 은행 NII/IEA YoY. ★실측 미수행 (H2 의 NIM proxy 인 XLF excess 만 검증)", transform: yoy, vintage_policy: point_in_time, lag: 1}
+     source_or_collector: "EDGAR 은행 NII/IEA YoY. ★실측 미수행 (H2 의 NIM proxy 인 XLF excess 만 검증)",
+     transform: yoy, vintage_policy: point_in_time, lag: 1}
   - {id: yield_curve_slope_beta, family: macro_sensitivity, is_core: false, in_our_system: true,
-     source_or_collector: "★실측: 월별 Δ(DGS10-DGS2) → XLF excess contemporaneous IC=+0.171 p=0.002 (n=317). Stigum 3-6M lag 미관측", transform: level, vintage_policy: point_in_time, lag: 0}
+     source_or_collector: "실측: 월별 Δ(DGS10-DGS2) → XLF excess contemporaneous IC=+0.171 p=0.002
+       (n=317). Stigum 3-6M lag 미관측",
+     transform: level, vintage_policy: point_in_time, lag: 0}
   - {id: pb_ratio, family: valuation, is_core: false, in_our_system: true,
-     source_or_collector: "EDGAR BV/가격. 은행 valuation 표준", transform: own_history_z, vintage_policy: point_in_time, lag: 1}
+     source_or_collector: "EDGAR BV/가격. 은행 valuation 표준",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 1}
 
 # ============================================================================
-# 블록3: RELATIONSHIPS (관계 가설 — partial-corr prior. 실측 IC 기반 strength)
-# ★prior_strength = 실측 |partial IC| (이전 v1 = 합성 prior, v2 = 실측)
+# 블록3: RELATIONSHIPS (★v3 — rule §1.5(e) 점추정 covariance prior 박제 금지 반영)
 # ============================================================================
 relationships:
+  # --- H1 real rate (contemp 한정 — predictive REJECTED) ---
   - {node_a: real_rate_dfii10, node_b: XLU_return, edge_type: direct,
      conditioning_set: [SPY_return], lag_routing: contemporaneous,
      prior_sign: neg, prior_strength: 0.17,
-     theory_basis: "★실측: partial IC=-0.167 p<0.0001 (n=5844 일). Ilmanen bond proxy + duration 15~25Y"}
+     theory_basis: "★v3: contemp partial IC=-0.167 p<0.0001 (n=5844). predictive fwd3M FAILS
+       (rule §2 REJECTED). lag_routing=contemporaneous 한정 anchor"}
 
   - {node_a: real_rate_dfii10, node_b: XLF_return, edge_type: direct,
      conditioning_set: [SPY_return], lag_routing: contemporaneous,
      prior_sign: pos, prior_strength: 0.13,
-     theory_basis: "★실측: partial IC=+0.129 p<0.0001 (n=5844). Boyd-Gertler 은행 대차대조표"}
+     theory_basis: "★v3: contemp partial IC=+0.129 p<0.0001 (n=5844). predictive fwd3M FAILS.
+       NIM lag 채널 직접 검증 X"}
 
   - {node_a: real_rate_dfii10, node_b: XLP_return, edge_type: direct,
      conditioning_set: [SPY_return], lag_routing: contemporaneous,
      prior_sign: neg, prior_strength: 0.04,
-     theory_basis: "★실측: partial IC=-0.040 p=0.003. duration 10~15Y, prior 의 1/8 (시장 베타가 대부분 흡수)"}
+     theory_basis: "★v3: contemp partial IC=-0.040 p=0.003. prior 의 1/8 (시장 베타 흡수). fwd3M FAILS"}
 
+  # --- H2 yield curve slope ---
   - {node_a: yield_curve_slope, node_b: XLF_excess_return, edge_type: direct,
      conditioning_set: [], lag_routing: contemporaneous,
      prior_sign: pos, prior_strength: 0.17,
-     theory_basis: "★실측: contemporaneous IC=+0.171 p=0.002 (n=317 월). Stigum 의 3-6M lag 가격 X (시장 효율성). NIM 펀더멘털만 lag 가능"}
+     theory_basis: "실측: contemporaneous IC=+0.171 p=0.002 (n=317 월). Stigum 의 3-6M lag 가격 X
+       (시장 효율성). NIM 펀더멘털만 lag 가능"}
 
+  # --- H4a credit beta industry split (n=752 short window 명시) ---
   - {node_a: hy_oas_change, node_b: XLF_return, edge_type: direct,
      conditioning_set: [SPY_return], lag_routing: contemporaneous,
      prior_sign: neg, prior_strength: 0.17,
-     theory_basis: "★실측: partial IC=-0.166 p<0.001 (n=752). banks provisioning channel 시장 베타 초과"}
+     theory_basis: "★v3 hedge: partial IC=-0.166 p<0.001 (n=752 ★short window). banks provisioning
+       channel — ALFRED full fetch 후 표본 확장 권고"}
 
   - {node_a: hy_oas_change, node_b: defensive_return, edge_type: direct,
      conditioning_set: [SPY_return], lag_routing: contemporaneous,
      prior_sign: pos, prior_strength: 0.09,
-     theory_basis: "★실측: defensive (XLU/XLP/XLV) partial IC mean=+0.09 (n=752). 시장 베타 흡수 후 residual 회복력"}
+     theory_basis: "★v3 hedge: defensive (XLU/XLP/XLV) partial IC mean=+0.09 (n=752 short).
+       시장 베타 흡수 후 residual 회복력"}
 
+  # --- ★v3 NEW: H3 hy_oas_sleeve_regime (★INSUFFICIENT — prior_strength null 동결) ---
+  - {node_a: hy_oas_regime, node_b: sleeve_excess_return, edge_type: direct,
+     conditioning_set: [], lag_routing: contemporaneous,
+     prior_sign: unsigned, prior_strength: null,  # ★v3 INSUFFICIENT (rule §1.5(e))
+     theory_basis: "★v3 INSUFFICIENT: Credit regime n=9 < 10 (rule §1.2 단정 verdict 금지).
+       raw mean -1.5%/월 단정 X — LOO p>0.05 + IID Bootstrap autocorr 무시 + 단일 cycle.
+       PENDING_ALFRED — full historical fetch (2000-01~) 후 verdict 결정"}
+
+  # --- M3 dollar (★v3 TENTATIVE — prior_strength 격하) ---
   - {node_a: dxy_change, node_b: defensive_return, edge_type: direct,
      conditioning_set: [rate_regime], lag_routing: contemporaneous,
-     prior_sign: unsigned, prior_strength: 0.30,
-     theory_basis: "★M3 실측: rate-up E3 β_dxy XLU=+0.574 / rate-down E4 -0.180. M1 'dollar 채널 rate-up 2배' 확인. rate-regime conditional 필수"}
+     prior_sign: unsigned, prior_strength: 0.10,  # ★v2 0.30 → v3 0.10 (TENTATIVE rule §2)
+     theory_basis: "★v3 TENTATIVE DIRECTIONAL: rate-up E3 β_dxy XLU=+0.574 / rate-down E4 -0.180
+       방향성 일관 — 단 Welch z=1.34 p_diff=0.18 비유의, Bonferroni α/4=0.0125 후 0/4 sector PASS.
+       prior 박제 X — 표본 확장 (E1 충원) 후 재검증"}
 
   - {node_a: dxy_change, node_b: XLF_return, edge_type: direct,
      conditioning_set: [], lag_routing: contemporaneous,
      prior_sign: pos, prior_strength: 0.15,
-     theory_basis: "★M3 실측: XLF β_dxy = +0.152 (E3) / +0.155 (E4) — rate-regime 무관 안정 양"}
+     theory_basis: "M3 실측: XLF β_dxy = +0.152 (E3) / +0.155 (E4) — rate-regime 무관 안정 양"}
 
 # ============================================================================
-# 블록4: WEIGHT_RULES (★실측 IC 기반 재calibrate, v1 합성 시뮬값 폐기)
-# ★base_weight = 실측 effect size 비례 (v1 prior 의 1/2 ~ 1/3 수준)
+# 블록4: WEIGHT_RULES (★v3 — base_weight 격하 + hedge direction 적용)
 # ============================================================================
 weight_rules:
-  # --- §6 코어셋 (실측 기반 재calibrate) ---
   - {indicator_id: fwd_ep, base_weight: 0.10, modulate_by: [regime, industry],
-     direction: "실측 미수행 — base 보수적 유지. EDGAR 펀더멘털 적재 후 재calibrate", granularity: industry}
-
-  - {indicator_id: roe_margin_trend, base_weight: 0.10, modulate_by: [regime, industry],
-     direction: "실측 미수행 (H4 원안 deferred). 종목 단위 ROE/FCF/D/E 데이터 부재. EDGAR 적재 prerequisite", granularity: industry}
-
-  - {indicator_id: price_mom_12_1, base_weight: 0.04, modulate_by: [regime],
-     direction: "방어주 mean-reversion 우위 — base 매우 낮음 (v1 0.06 → v2 0.04)", granularity: sleeve}
-
-  - {indicator_id: rate_beta, base_weight: 0.10, modulate_by: [regime, industry, name_specific],
-     direction: "★실측 H1 anchor: XLU partial IC=-0.167 / XLF +0.129. 시장 베타 흡수 후 effect size 합성 prior 의 1/3. industry 부호 분기 (utility/staples NEG / banks POS). rolling sign-flip 25~43% 모니터",
-     granularity: ticker}
-
-  - {indicator_id: dollar_beta, base_weight: 0.08, modulate_by: [regime, industry],
-     direction: "★M3 실측: rate-regime conditional. rate-up XLU β_dxy=+0.57 (방어 강노출) / rate-down -0.18 (방어 면역). XLF rate-regime 무관 +0.15 안정",
+     direction: "실측 미수행 — base 보수적 유지. EDGAR 펀더멘털 적재 후 재calibrate",
      granularity: industry}
 
-  - {indicator_id: credit_beta, base_weight: 0.06, modulate_by: [regime, industry],
-     direction: "★실측: industry-level 부호 분기. XLF partial IC=-0.166 (banks penalty in risk-off) / defensive +0.09 (residual 회복력). v1 0.12 → v2 0.06 (H3 reversed 결과 반영)",
+  - {indicator_id: roe_margin_trend, base_weight: 0.10, modulate_by: [regime, industry],
+     direction: "실측 미수행 (H4 원안 deferred). 종목 단위 ROE/FCF/D/E 데이터 부재.
+       EDGAR 적재 prerequisite",
+     granularity: industry}
+
+  - {indicator_id: price_mom_12_1, base_weight: 0.04, modulate_by: [regime],
+     direction: "방어주 mean-reversion 우위 — base 매우 낮음",
+     granularity: sleeve}
+
+  # ★v3 hedge: 0.10 → 0.08 (predictive FAILS 격하)
+  - {indicator_id: rate_beta, base_weight: 0.08, modulate_by: [regime, industry, name_specific],
+     direction: "★v3 hedge: H1 contemp sign split CONFIRMED (XLU -0.17 / XLF +0.13, n=5844)
+       만 유효. predictive fwd3M FAILS (rule §2 REJECTED) → base v2 0.10 → v3 0.08.
+       lag_routing=contemporaneous 한정. 시간 가변성 25~43%",
+     granularity: ticker}
+
+  # ★v3 격하: 0.08 → 0.06 (TENTATIVE 비유의)
+  - {indicator_id: dollar_beta, base_weight: 0.06, modulate_by: [regime, industry],
+     direction: "★v3 TENTATIVE: M3 epoch β_dxy raw gap 방향성 일관 단 Welch z=1.34 비유의.
+       Bonferroni 후 0/4 sector PASS → base v2 0.08 → v3 0.06. rate-regime conditional 채택 보류
+       (표본 확장 후 재검증). XLF rate-regime 무관 +0.15 stable 만 유효",
+     granularity: industry}
+
+  # ★v3 격하: 0.06 → 0.04 (H3 INSUFFICIENT)
+  - {indicator_id: credit_beta, base_weight: 0.04, modulate_by: [regime, industry],
+     direction: "★v3 격하: H3 INSUFFICIENT (n=9) 위에 base 추가 강등 (v1 0.12 → v2 0.06 → v3 0.04).
+       H4a industry-level 분기 (XLF -0.166 / defensive +0.09, n=752 short) 만 유효 — H3 regime
+       conditional 은 ALFRED full fetch 후 재검증 PENDING",
      granularity: industry}
 
   - {indicator_id: realized_vol, base_weight: 0.06, modulate_by: [regime],
-     direction: "방어주 저변동 특성, 실측 검증 미수행", granularity: sleeve}
+     direction: "방어주 저변동 특성, 실측 검증 미수행",
+     granularity: sleeve}
 
   # --- 금융 특화 ---
   - {indicator_id: yield_curve_slope_beta, base_weight: 0.08, modulate_by: [regime, industry],
-     direction: "★실측: contemporaneous IC=+0.171 p=0.002 (n=317 월). Stigum lag X. XLF banks 한정 contemporaneous 양. v1 0.10 → v2 0.08 (실측 effect size)",
+     direction: "실측: contemporaneous IC=+0.171 p=0.002 (n=317 월). Stigum lag X.
+       XLF banks 한정 contemporaneous 양",
      granularity: industry}
 
   - {indicator_id: pb_ratio, base_weight: 0.06, modulate_by: [industry],
-     direction: "은행/보험 valuation 표준 — 실측 미수행", granularity: industry}
+     direction: "은행/보험 valuation 표준 — 실측 미수행",
+     granularity: industry}
 
 # ============================================================================
-# 블록5: CONFIDENCE_HOOKS (★실측 confirm/reject 조건 — 자문 prior 대신 실측 anchor)
-# ★실측 baseline 명시: confirm = 실측 IC 부호 유지 / reject = 부호 반전 또는 무효
+# 블록5: CONFIDENCE_HOOKS (★v3 — INSUFFICIENT/TENTATIVE 격하 + 재검증 조건 명시)
 # ============================================================================
 confidence_hooks:
-  - hypothesis_id: real_rate_dichotomy_h1
-    confirm_signal: "rolling 60M partial IC(ΔDFII10, XLU_ret | SPY) < -0.10 AND partial IC(XLF) > +0.07 (60% 기간 유지)"
-    reject_signal: "rolling partial IC 부호 반전 (XLU > 0 또는 XLF < 0) 12M 지속 OR sign-flip rate > 50%"
-    emit_where: "raw/run_validation.py rolling 60D rate beta 시계열 + score_ic_breakdown_eprocess regime=rate_shock"
-    accumulate_in: "weight_falsification.score_ic_breakdown_eprocess + Ω drift (omega_drift Frobenius)"
-    confidence_metric: "Spearman partial IC e-process anytime-valid (Ville P(거짓kill) ≤ alpha=0.05)"
-    store: "WeightAssumptionCard.confidence_now (sub_key=rate_dichotomy) + RulePerformance"
-    action_threshold: "e-value ≥ 20 (1/alpha) → rate_beta base 0.10 유지. reject → base 0.05 강등 + lens.estimation_note IRA capex 중화 문구 추가"
-    feeds_weight: "rate_beta delta_arch_by_type 의 banks (+0.13 anchor) / util (-0.17) 강도 동적 조정"
+  - hypothesis_id: real_rate_dichotomy_h1_contemporaneous_v3
+    confirm_signal: "rolling 60M contemp partial IC(ΔDFII10, XLU_ret | SPY) < -0.10 AND
+      partial IC(XLF) > +0.07 (60% 기간 유지)"
+    reject_signal: "rolling contemp partial IC 부호 반전 (XLU > 0 또는 XLF < 0) 12M 지속 OR
+      sign-flip rate > 50%"
+    predictive_monitor: "★v3 NEW: rolling 60M forward 3M partial IC 가 |IC| > 0.05 + p<0.10
+      등장 시 spec text 재정의 검토 (현 fwd3M FAILS REJECTED)"
+    emit_where: "raw/run_validation.py rolling 60D rate beta + USE_FORWARD_3M=True forward 3M"
+    accumulate_in: "weight_falsification.score_ic_breakdown_eprocess + Ω drift"
+    confidence_metric: "contemp partial IC e-process (Ville) + fwd3M IC monitor 분리"
+    store: "WeightAssumptionCard.confidence_now (sub_key=rate_dichotomy_contemp)"
+    action_threshold: "e-value ≥ 20 → rate_beta base 0.08 유지. reject → base 0.04 강등 +
+      lens.estimation_note IRA capex 중화 문구 추가"
+    feeds_weight: "rate_beta delta_arch_by_type banks (+0.13) / util (-0.17) contemp 한정 anchor"
 
   - hypothesis_id: slope_xlf_contemporaneous_h2_redefined
     confirm_signal: "월별 contemporaneous IC(Δslope, XLF_excess) > +0.10 + p<0.10 (rolling 60M 유지)"
-    reject_signal: "contemporaneous IC 무유의 (p>0.20) 24M 지속 OR Stigum lag 3-6M 부활 (IC>+0.10 at k=3~6)"
+    reject_signal: "contemporaneous IC 무유의 (p>0.20) 24M 지속 OR Stigum lag 3-6M 부활"
     emit_where: "월별 lag-scan 분기 재실행 (run_validation.py H2 block)"
     accumulate_in: "weight_falsification.score_ic_breakdown_eprocess (regime=slope_signal)"
     confidence_metric: "contemporaneous IC vs prior lag 3-6M IC 비교 시계열"
     store: "registry yield_curve_slope_beta confidence_now"
-    action_threshold: "lag=0 IC 지속 → yield_curve_slope_beta base 0.08 유지 / 부활 시 lag=4M 모델 도입 검토"
+    action_threshold: "lag=0 IC 지속 → yield_curve_slope_beta base 0.08 유지 / 부활 시 lag=4M 모델 도입"
     feeds_weight: "yield_curve_slope_beta delta_arch_by_type XLF banks 가중 조정"
 
-  - hypothesis_id: hy_oas_sleeve_inversion_h3_reversed
-    confirm_signal: "Credit Stress regime (HY OAS > p75) 시 sleeve excess < -0.5%/월 유지 (실측 -1.5%/월 baseline)"
-    reject_signal: "Credit regime 시 sleeve excess > +0.5%/월 — 전통 BAB 방어 thesis 부활 신호"
-    emit_where: "분기별 regime classifier + monthly excess return tracker (m3_macro_linkage.py)"
-    accumulate_in: "weight_falsification.score_ic_breakdown_eprocess (regime=credit)"
-    confidence_metric: "Bootstrap 10k t-test on Credit regime sleeve excess mean (현 anchor -1.5%/월 n=9)"
-    store: "WeightAssumptionCard.confidence_now (regime=credit sub-key)"
-    action_threshold: "현 실측 지속 → Credit regime 진입 시 sleeve 비중 축소 (자문 prior 반대). 부활 시 비중 복원"
-    feeds_weight: "credit_beta base 0.06 ↔ 0.12 dynamic by regime confidence"
+  # ★v3 격하 + PENDING_ALFRED 동결 (이전 hy_oas_sleeve_inversion_h3_reversed 폐기)
+  - hypothesis_id: hy_oas_sleeve_h3_pending_alfred_v3
+    status: PENDING_ALFRED  # ★INSUFFICIENT — ALFRED full fetch 까지 e-process 동결
+    confirm_signal: "★ALFRED HY OAS full historical fetch (2000-01~) + n≥30 + p<0.05
+      (Block bootstrap or HAC SE) + LOO p<0.05 유지 후에만 verdict 결정"
+    reject_signal: "동일 조건 + Credit regime sleeve excess > +0.5%/월 안정 = 자문 BAB prior 부활"
+    emit_where: "ALFRED HY OAS fetch 완료 후 run_validation.py H3 block 재실행"
+    accumulate_in: "★PENDING — e-process 적재 정지 (INSUFFICIENT 상태에서 score 누적 금지)"
+    confidence_metric: "Block bootstrap (block=4 또는 Stationary) + Welch t-test + LOO sensitivity"
+    store: "WeightAssumptionCard.confidence_now (regime=credit sub-key) = PENDING_ALFRED"
+    action_threshold: "★v3: credit regime classifier 가중 0.04 cap, 부호 unsigned. ALFRED 후 해제"
+    feeds_weight: "credit_beta base 0.04 동결 → ALFRED 완료 후 재calibrate"
 
   - hypothesis_id: credit_beta_sub_sleeve_split_h4a
-    confirm_signal: "rolling 24M partial IC(ΔHY, sector | SPY) gap (defensive mean - XLF) > +0.15 (현 anchor +0.257)"
+    confirm_signal: "rolling 24M partial IC(ΔHY, sector | SPY) gap (defensive mean - XLF) > +0.15
+      (현 anchor +0.257, n=752 short)"
     reject_signal: "gap < +0.05 (sub-sleeve 분기 무효) 12M 지속"
     emit_where: "분기별 partial IC scan (run_validation.py H4 block)"
     accumulate_in: "weight_falsification.score_ic_breakdown_eprocess (regime=credit_cycle)"
-    confidence_metric: "Spearman partial IC gap 시계열"
+    confidence_metric: "Spearman partial IC gap 시계열 — n=752 short window 명시 hedge"
     store: "registry credit_beta confidence_now"
     action_threshold: "gap > 0.15 유지 → industry 분기 강화 / gap < 0.05 → industry 통합"
     feeds_weight: "credit_beta delta_arch_by_type 의 banks 부호 강도 동적 조정"
 
-  - hypothesis_id: dollar_channel_rate_regime_switch_m3
-    confirm_signal: "rate-up regime 시 XLU β_dxy > +0.3 AND rate-down regime 시 β_dxy < +0.0 (현 anchor: E3 +0.57 / E4 -0.18)"
-    reject_signal: "rate-up vs rate-down β_dxy gap < +0.15 (부호 반전 효과 소멸) 4 epoch 지속"
-    emit_where: "epoch-conditional OLS 회귀 (m3_macro_linkage.py)"
-    accumulate_in: "weight_falsification.omega_drift + Ω drift Frobenius"
-    confidence_metric: "epoch별 β_dxy 시계열 + gap 측정"
-    store: "WeightAssumptionCard.confidence_now (dollar_channel sub_key)"
-    action_threshold: "rate-regime 부호 반전 유지 → dollar_beta modulate_by=[regime, industry] 강화. 무효 시 rate-regime conditioning 제거"
-    feeds_weight: "dollar_beta base 0.08 + rate-regime modulator strength 조정"
+  # ★v3 격하: dollar_channel_rate_regime_switch_m3 → tentative_v3
+  - hypothesis_id: dollar_channel_rate_regime_tentative_v3
+    status: TENTATIVE_DIRECTIONAL  # ★Welch z=1.34 p=0.18 비유의, Bonferroni 후 0/4 sector PASS
+    confirm_signal: "★표본 확장 (E1 2022Q1~Q3 충원) + Welch z>1.96 또는 Bonferroni 후 ≥2 sector
+      PASS 후에만 confirm. 현 anchor: E3 +0.57 / E4 -0.18 (raw gap 일관 단 비유의)"
+    reject_signal: "표본 확장 후 rate-up vs rate-down β_dxy gap < +0.15 4 epoch 지속 OR
+      Welch z 일관 < 1.0"
+    emit_where: "epoch-conditional OLS + Welch z 재계산 (m3_macro_linkage.py ★v3 부착)"
+    accumulate_in: "★PENDING — TENTATIVE 상태 e-process 적재 약 가중 (full credit X)"
+    confidence_metric: "epoch별 β_dxy + SE + Welch z + Bonferroni 시계열"
+    store: "WeightAssumptionCard.confidence_now (dollar_channel sub_key) = TENTATIVE"
+    action_threshold: "표본 확장 후 confirm → dollar_beta modulate_by=[regime, industry] 강화.
+      reject → rate-regime conditioning 제거"
+    feeds_weight: "dollar_beta base 0.06 + rate-regime modulator strength 보수적 조정"
 
 # ============================================================================
-# 블록6: COLLECTOR_PLAN (실측 한계 → 추가 데이터 요청)
+# 블록6: COLLECTOR_PLAN (★v3 — 우선순위 명시)
 # ============================================================================
 collector_plan:
-  - {missing: "BAMLH0A0HYM2 (HY OAS) 일별 historical full (현 2023-05~만, 2000-01~ 가용)", source: "FRED ALFRED 직접 fetch", interface: VintageProvider, credential: none}
-  - {missing: "DCOILWTICO (WTI 일별)", source: "FRED fred_adapter 추가", interface: VintageProvider, credential: none}
-  - {missing: "EDGAR 펀더멘털 종목 단위 (ROE/FCF/D/E)", source: "EDGAR XBRL 파싱", interface: FundamentalsProvider, credential: none}
-  - {missing: "EDGAR 은행 NIM·NPL·CET1 (H5 Quality Banks)", source: "EDGAR 10-K/Y-9C 파싱 + KBW BKX 인덱스 보조", interface: FundamentalsProvider, credential: none}
-  - {missing: "dividend_yield + dividend_safety 시계열", source: "EDGAR 배당 + 자체 계산", interface: FundamentalsProvider, credential: none}
-  - {missing: "Insurance reinvestment_yield_spread (H10)", source: "EDGAR 10-K + FRED 금리 곡선", interface: FundamentalsProvider, credential: none}
-  - {missing: "GICS sub-industry 분류 (5 archetype 정의)", source: "FinanceDatabase (MIT) + ETF holdings", interface: new, credential: none}
+  # ★Priority 1 — v3 INSUFFICIENT/TENTATIVE 해제용 (필수)
+  - {missing: "BAMLH0A0HYM2 (HY OAS) 일별 historical full (현 2023-05~만, 2000-01~ 가용)",
+     priority: 1, blocks: "H3 INSUFFICIENT 해제 + H4a n=752 → n=5800+ 확장 + M3 표본 확장",
+     source: "FRED ALFRED 직접 fetch", interface: VintageProvider, credential: none}
+  - {missing: "DFII10 ALFRED PIT vintage (현 spot only)",
+     priority: 1, blocks: "H1 predictive 재검증 정확성",
+     source: "FRED ALFRED API", interface: VintageProvider, credential: none}
+  - {missing: "DCOILWTICO (WTI 일별)",
+     priority: 2, blocks: "M3 oil factor 추가", source: "FRED fred_adapter 추가",
+     interface: VintageProvider, credential: none}
+  # ★Priority 2 — v4 sleeve 분리 + EDGAR 펀더멘털
+  - {missing: "EDGAR 펀더멘털 종목 단위 (ROE/FCF/D/E/dividend/NIM/NPL/CET1)",
+     priority: 2, blocks: "H4·H5·H10·H11 검증",
+     source: "EDGAR XBRL Facts API", interface: FundamentalsProvider, credential: none}
+  - {missing: "VIX term structure (VIX3M/VIX)",
+     priority: 2, blocks: "H9 VRP carry defensive 알파 검증",
+     source: "CBOE 직접 (^VIX3M Yahoo)", interface: new, credential: none}
+  - {missing: "earnings_stability (Asness QMJ quality factor)",
+     priority: 2, blocks: "H4 원안 검증 prerequisite",
+     source: "EDGAR XBRL 자체 파싱", interface: FundamentalsProvider, credential: none}
+  # Priority 3
+  - {missing: "은행 NIM/NPL/CET1 (FFIEC Call Reports)",
+     priority: 3, blocks: "H5 Quality Banks",
+     source: "EDGAR + Y-9C 파싱 또는 FFIEC API", interface: FundamentalsProvider, credential: none}
+  - {missing: "GICS sub-industry 분류 (5 archetype 정의)",
+     priority: 3, blocks: "v4 산업별 subagent 분할",
+     source: "FinanceDatabase (MIT) + ETF holdings", interface: new, credential: none}
 
 # ============================================================================
-# 블록7: CODE_CHANGE_PLAN (★실측 검증 후 정밀화 — cyclical anchor 활용)
-# 신규 4 모듈 self-test + 무회귀 (theory-notes §5.1) — 2-3 단계에서 적용
+# 블록7: CODE_CHANGE_PLAN (★v3 격하 anchor 반영)
 # ============================================================================
 code_change_plan:
   # --- ① 학습 ---
   - {stage: learn, file: core/data/weight_panel.py, symbol: build_indicator_matrix,
-     current: "VintageProvider.realtime PIT 행렬 + _REFLEXIVE_WORDS 게이트 (cyclical 검증)",
-     change: "본 sleeve indicators 17종 등록. ★rate_beta·credit_beta·dollar_beta 의 실측 IC anchor 박제",
+     current: "VintageProvider.realtime PIT 행렬",
+     change: "본 sleeve indicators 17종 등록. ★v3 hedge: rate_beta/credit_beta anchor 박제 시
+       lag_routing=contemporaneous 명시 + n_window 명시 (n=5844 / n=752 short / n=9 INSUFFICIENT)",
      risk: "추가만 = 무회귀"}
 
   - {stage: learn, file: scripts/train_weights.py, symbol: train_weight_cards,
@@ -273,56 +376,70 @@ code_change_plan:
 
   - {stage: learn, file: core/structure/conditional_correlation.py, symbol: "RegimeGlasso.fit",
      current: "EBIC glasso + EB shrink. corr_prior 주입 가능",
-     change: "★실측 force-include 4 엣지: (real_rate_dfii10, XLU) prior -0.17 / (real_rate, XLF) +0.13 / (slope, XLF_excess) +0.17 / (hy_oas, XLF) -0.17",
+     change: "★v3 실측 force-include 4 엣지: (real_rate, XLU) prior -0.17 contemp /
+       (real_rate, XLF) +0.13 contemp / (slope, XLF_excess) +0.17 contemp /
+       (hy_oas, XLF) -0.17 (n=752 short). H3 regime 엣지 = PENDING_ALFRED 동결",
      risk: "corr_prior opt-in = 무회귀"}
 
   # --- ② 규칙화 ---
   - {stage: card, file: core/assume/weight_card.py, symbol: "WeightAssumptionCard / composed_weights",
      current: "hierarchical pooling + delta_arch_by_type + floor",
-     change: "(a) lens 정성필드 추가 (pricing_principle·report_relations·estimation_note 실측 anchor). (b) delta_arch_by_type 5 archetype 등록 (staples/utility/healthcare/bank/insurance). (c) ★rate_beta·dollar_beta delta 의 rate-regime conditional 추가",
+     change: "(a) lens 정성필드 추가 (★v3 hedge anchor). (b) delta_arch_by_type 5 archetype 등록.
+       (c) ★v3: rate_beta·dollar_beta delta rate-regime conditional 은 TENTATIVE 마킹 + 보수적 적용",
      risk: "Optional 필드 = 무회귀"}
 
   # --- ③ 주입 ---
   - {stage: inject, file: core/stock_track.py, symbol: "_extract_indicator_z",
      current: "indicator_z override + raw_external_data series_ids 자동 추출",
-     change: "데이터 공급만 추가 — 실측 indicator id (rate_beta/credit_beta/dollar_beta 등) 의 series_ids 라벨 매칭",
+     change: "데이터 공급만 추가 — 실측 indicator id series_ids 라벨 매칭",
      risk: "데이터 공급만 = 무회귀"}
 
   - {stage: inject, file: core/assume/judge.py, symbol: "_call_qwen_with_lens",
      current: "lens 주입 기구현 (L126-228)",
-     change: "본 sleeve lens (실측 anchor) lens_prompt 로 조립·공급",
+     change: "본 sleeve lens (★v3 hedge anchor) lens_prompt 로 조립·공급",
      risk: "opt-in = 무회귀"}
 
   # --- ④ 해제 ---
   - {stage: falsify, file: core/assume/weight_falsification.py, symbol: score_ic_breakdown_eprocess,
      current: "PRIMARY=IC e-CUSUM / SECONDARY=Ω drift",
-     change: "5 confidence_hooks 매핑. ★실측 baseline 적용: baseline_ic 별로 (H1: ±0.10 / H2: +0.10 / H3 reversed: -0.005 / H4a: gap 0.15 / M3 dollar: 0.3)",
+     change: "★v3 confidence_hooks 5 매핑 + 격하 baseline:
+       (H1 contemp ±0.10 / H2 +0.10 / H3 PENDING_ALFRED 동결 /
+        H4a gap 0.15 short / M3 dollar TENTATIVE 약 가중)",
      risk: "임계 파라미터만 = 무회귀"}
 
   # --- ⑤ 신규 모듈 (theory-notes §5.1 self-test 명세) ---
   - {stage: card, file: core/structure/factor_beta_decomposition.py, symbol: "(신규)",
      current: "미존재",
-     change: "★Bond proxy attribution rolling regression (XLU rate_beta = β1·ΔDFII10 + β2·ΔT10YIE + β3·IRA + β4·crisis). interpretation layer. self-test 3종 (synthetic known β / IRA dummy jump 2022-08 / collinearity robust)",
-     risk: "★main 검토 (a) 의무: 무회귀 hash test (train_weight_cards 출력 동일성) + 직접 매매신호 X opt-in"}
+     change: "★Bond proxy attribution rolling regression interpretation layer. self-test 3종
+       (synthetic known β / IRA dummy jump 2022-08 / collinearity robust)",
+     risk: "★main 검토: 무회귀 hash test + 직접 매매신호 X opt-in"}
 
 # ============================================================================
-# STATUS (다음 세션 재개용)
+# STATUS (★v3 — 다음 세션 재개용)
 # ============================================================================
 status:
   done:
-    - "v2 실측 calibration 완료 — v1 합성 시뮬값 (lens-hypothesis-quickcheck.txt) 전량 폐기"
-    - "FRED 데이터: DFII10/T10YIE/DTWEXBGS/UNRATE/FEDFUNDS 추가 fetch + 재활용 (DGS10/DGS2/BAMLH0A0HYM2/VIXCLS)"
-    - "ETF 데이터: XLP/XLU/XLV/XLF/XLC + SPY (XLC 2018-06~ yfinance 추가)"
-    - "★실측 H1 CONFIRMED: XLU partial IC=-0.167 / XLF +0.129 (n=5844, p<0.0001) → Ilmanen·Boyd-Gertler 학술 anchor 강력 지지"
-    - "★실측 H2 REJECTED: Stigum 3-6M lag 미관측, contemporaneous lag=0 만 강 (IC=+0.171 p=0.002, n=317) → 가설 재정의 lag→contemporaneous"
-    - "★실측 H3 REVERSED: Credit regime sleeve excess -1.5%/월 (Bootstrap p=0.005, n=9) → 자문 BAB prior 반대"
-    - "★실측 H4a CONFIRMED: defensive partial IC +0.09 / XLF -0.166 (gap 0.257, n=752 short) → industry 부호 분기"
-    - "★M3 발견: rate-up regime XLU β_dxy=+0.57 / rate-down -0.18 → M1 'dollar 채널 rate-up 2배' 직접 확인"
-    - "validation-H1/H2/H3/H4.md + m3-macro-linkage.md (강제 산출)"
-    - "raw/run_validation.py + raw/m3_macro_linkage.py + validation-metrics.json + m3-metrics.json"
-    - "yaml v2: relationships prior_strength = 실측 |partial IC| / weight_rules base_weight = 실측 effect size 비례 / confidence_hooks 실측 baseline 기반 confirm/reject"
+    - "v3 격하 정정 완료 — main 독립검증 Tier3 verdict 3 결함 보수"
+    - "★rule ~/.claude/rules/empirical-claim-presentation.md 5 의무 + §1.6 + §2 verdict 5단계 강제"
+    - "★run_validation.py: classify_regime KeyError → OutOfSample 라벨 분리 (v2 silent default fix)"
+    - "★run_validation.py: H1 forward 3M predictive variant 추가 (USE_FORWARD_3M flag).
+       spec text predictive vs v2 code contemporaneous drift 정정"
+    - "★m3_macro_linkage.py: ols_loading SE 반환 + Welch z + Bonferroni α/4=0.0125 부착.
+       M1 'dollar 채널 2배' 단정 → TENTATIVE DIRECTIONAL 격하"
+    - "★validation-H1.md v3: ★CONFIRMED 강력 → PARTIAL (contemp CONFIRMED / fwd3M FAILS)"
+    - "★validation-H3.md v3: ★REVERSED → ★INSUFFICIENT (n=9 < 10, single cycle, IID 무시)"
+    - "★m3-macro-linkage.md v3: M1 강력 확인·2배 → TENTATIVE (Welch z=1.34 p=0.18)"
+    - "★yaml v3: relationships prior_strength 격하 (H3 null / M3 0.30→0.10) +
+       weight_rules base 격하 (rate 0.10→0.08 / dollar 0.08→0.06 / credit 0.06→0.04) +
+       confidence_hooks PENDING_ALFRED / TENTATIVE 마킹"
+    - "★promotion-log ERROR-202605302130 + ERROR-202605302245 prepend 완료 (v3 보수 root cause)"
   todo:
-    - "EDGAR 펀더멘털 적재 → H4 원안 (Quality QMJ Slowdown Rank-IC) 검증"
-    - "BAMLH0A0HYM2 일별 historical full fetch (2000-01~) → H4a 재검증 n=5800+"
-    - "신규 4 모듈 self-test 작성 (factor_beta_decomp / structural_break / kci_test / normalize_kpi) — theory-notes §5.1 명세"
-    - "M3 결과 main M4 factor seed 입력 (dollar 채널 rate-regime conditional 핵심)"
+    - "★run_validation.py + m3_macro_linkage.py 재실행 → validation-metrics.json + m3-metrics.json
+       v3 값 박제 (H1 fwd3M IC / H3 OOS regime n / M3 Welch z + Bonferroni)"
+    - "★v4 sleeve 분리 작업 (handoff §Priority 3): DEFENSIVE_PURE/FINANCIALS 재정의 +
+       누락 지표 (earnings_stability·VIX_term·yield_curve_steepness·credit_beta full) +
+       산업별 subagent 4 (staples/utility/healthcare/banks) 병렬"
+    - "ALFRED BAMLH0A0HYM2 + DFII10 PIT fetch → H3 INSUFFICIENT 해제 + H1 predictive 재검증"
+    - "EDGAR 펀더멘털 적재 → H4·H5·H10·H11 검증"
+    - "신규 4 모듈 self-test 작성 (factor_beta_decomp / structural_break / kci_test / normalize_kpi)"
+    - "M3 결과 main M4 factor seed 입력 (★v3 TENTATIVE 명시)"
