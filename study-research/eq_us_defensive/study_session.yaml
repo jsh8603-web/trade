@@ -1,7 +1,73 @@
 study_id: eq_us_defensive
 asset_scope: [equity.us]
 as_of: "2026-05-31"
-version: v4  # v3 격하 → v4 sleeve 분리 + H3 재검증 (NFCI/BAA10Y full historical)
+version: v4-tier  # v4 + main 12축 audit PASS + tier 라벨 + 보강 3 (walk-forward + vintage + gap 표현)
+
+# ============================================================================
+# ★main 12축 audit tier verdict (2026-05-31, hard-fail 0, bit-identical 재현 PASS)
+# ============================================================================
+audit_tier_verdict:
+  H1_real_rate_dichotomy_contemporaneous: validated  # n=5844, p<0.0001, sign split CONFIRMED
+  H1_real_rate_dichotomy_forward_3m: REJECTED        # fwd3M partial IC ~0, p>0.28
+  H2_yield_curve_slope_lead_lag: REJECTED            # Stigum 3-6M lag 미관측, contemp lag=0 만
+  H3_credit_stress_sleeve_sign_split: structural_TENTATIVE  # 방향 4/4 일관, Bonferroni 0/8 PASS,
+                                                              # walk-forward 도 sign 4/4 일관 (★단 Bonferroni 0/2)
+  H4a_credit_beta_industry_split: validated          # ★v4 핵심 강신호 — n=6588 Bonferroni m=5 PASS
+  sleeve_separation_def_pure_vs_fin: validated_structural  # rule §1.6 — 4/4 regime gap > 0
+                                                            # (★walk-forward 도 2/2 wf regime gap > 0)
+  M3_dollar_channel_rate_regime_switch: structural_TENTATIVE  # Welch z 4/4 비유의, Bonferroni 0/4
+  audit_date: "2026-05-31"
+  audit_axis_count: 12
+  hard_fail: 0
+  bit_identical_reproduction: true
+
+# ============================================================================
+# ★보강 1 (D축): walk-forward backtest (10Y rolling threshold, lookahead 차단)
+# ============================================================================
+audit_enhancement_walkforward:
+  script: raw/run_validation_v4_walkforward.py
+  metrics: raw/validation-metrics-v4-walkforward.json
+  method: "threshold_t = quantile_p75(history[t-120 : t]) — 매 month t 10Y rolling, .shift(1)"
+  in_sample: "2010-01-31 ~ 2026-05-31 (n=197 mo, 16.4년)"
+  oos_dropped: "pre-2010 (first 120mo rolling window 시작 이전)"
+  regime_distribution:
+    nfci_p75_wf: {n: 29, pct: 14.7}
+    baa10y_p75_wf: {n: 24, pct: 12.2}
+    intersection: 6
+  results:
+    direction_consistency: "★4/4 cell DEF_PURE ≥ FIN (방향 일관)"
+    cross_sleeve_gap:
+      nfci_p75_wf: {gap: +0.0045, welch_t: 0.463, welch_p: 0.6448}
+      baa10y_p75_wf: {gap: +0.0154, welch_t: 1.637, welch_p: 0.1090}
+    bonferroni_alpha_0125: "0/2 regime PASS (BAA10Y wf 가장 가까운 p=0.109)"
+  tier_verdict: "structural prior TENTATIVE 유지 (방향 일관 단 magnitude 약)"
+  promotion_pending: "n 증가 (multi-cycle wait) 또는 Block bootstrap longer block → Bonferroni 1+ PASS 시
+    structural VALIDATED 승격 가능"
+
+# ============================================================================
+# ★보강 3: NFCI ALFRED vintage (PIT 정확성) — 1줄 발견 + BAA10Y exogenous primary 강화
+# ============================================================================
+audit_enhancement_nfci_vintage:
+  script: 'fredapi get_series_first_release / get_series_vintage_dates(NFCI)'
+  csv: raw/fred/NFCI_first_release.csv
+  vintage_count: 780  # 2011-05-25 ~ 2026-05-28
+  first_release_period: "1971-01-08 ~ 1976-10-08 (n=301)"  # ★fredapi 한계 (pre-2011 vintage X)
+  alfred_pit_available_from: "2011-05-25"  # ALFRED vintage 실제 가용 시작
+  pre_2011_status: "first_release = retroactively constructed (실시간 publish 아님)"
+  revision_magnitude:
+    n_compare: 301
+    mean_abs_diff: 0.3519  # NFCI std=0.999 의 35%
+    max_abs_diff: 0.8850  # at 1974-08-23
+    pct_abs_diff_gt_005: 100.0
+    pct_abs_diff_gt_010: 98.7
+  implication: |
+    ★NFCI revision 폭 매우 큼 (mean abs 0.35 = NFCI std 35%). PIT 엄밀 시 2011-05 이후만 가용.
+    본 v4 walk-forward (2010-01~) 도 대부분 vintage 영향 받음 = PIT 미준수.
+    → ★BAA10Y (Treasury yield 기반, revision 거의 없음) 가 PIT-pure exogenous primary 강화.
+    → NFCI 결과는 cross-check secondary (단 vintage 한계 명시).
+  main_caveat_a_status: "정확성 한계 확인 — BAA10Y 우선 권고 강화 (정상 ALFRED PIT 분석 시 2011-05~ 만)"
+
+
 
 # ============================================================================
 # v4 노트 (2026-05-31 main APPROVED P3 sleeve 분리 + P1 대안 fetch 후 재검증)
@@ -529,6 +595,10 @@ status:
        (p<0.0001 Bonferroni m=5 PASS) — v3 n=752 short window 한계 해소 CONFIRMED"
     - "★Cross-sleeve Welch DEF_PURE - FIN gap 4/4 regime > 0 (방향 일관, p>0.34 비유의)"
     - "★main caveat 3건 적용: (a) NFCI current revision 명기 (b) BAA10Y exogenous primary (c) walk-forward todo"
+    - "★12축 audit PASS (hard-fail 0, bit-identical 재현) — tier 라벨 박제: H4a validated / sleeve_separation validated_structural / H1 contemp validated / H3+M3 structural_TENTATIVE / H1 fwd3M+H2 REJECTED"
+    - "★보강 1 walk-forward backtest (10Y rolling, lookahead 차단): in-sample 2010-01~2026-05 n=197. 방향 일관 4/4 유지, Bonferroni 0/2 PASS (BAA10Y wf p=0.109 최고) → structural TENTATIVE 유지"
+    - "★보강 2 H4a gap 표현 정정: '0.15 PASS/FAIL' → 부호분기 CONFIRMED Bonferroni + magnitude TENTATIVE (gap +0.117 < 0.15) 분리"
+    - "★보강 3 NFCI ALFRED vintage 한계 발견: pre-2011 vintage X, revision mean abs diff 0.35 (NFCI std 35%) → BAA10Y exogenous primary 강화"
     - "★small-N rigor 5의무 강제: Block bootstrap (block=4mo) + Welch + LOO + Bonferroni + verdict 5단계 자동 라벨"
     - "v3 격하 정정 완료 — main 독립검증 Tier3 verdict 3 결함 보수"
     - "★rule ~/.claude/rules/empirical-claim-presentation.md 5 의무 + §1.6 + §2 verdict 5단계 강제"
@@ -545,9 +615,9 @@ status:
        confidence_hooks PENDING_ALFRED / TENTATIVE 마킹"
     - "★promotion-log ERROR-202605302130 + ERROR-202605302245 prepend 완료 (v3 보수 root cause)"
   todo:
-    - "★STUDY DONE → main 12축 audit 호출 (AUDIT-GUIDE §1)"
-    - "★walk-forward NFCI/BAA10Y p75 threshold (main caveat c): 10Y rolling threshold + walk-forward backtest"
-    - "★NFCI realtime vintage (main caveat a): ALFRED NFCI vintage fetch → PIT 엄밀화"
+    - "★J축 거래비용 분석 = main 통합단계 (본 study 외)"
+    - "★structural VALIDATED 승격 대기: H3 walk-forward Bonferroni 1+ PASS 시 (n 증가 multi-cycle 필요)"
+    - "★ALFRED NFCI vintage 한계 (2011-05~만) → 2011-05 이후 walk-forward 별도 분석 (BAA10Y 우선)"
     - "★H9 VRP carry defensive 알파 검증 (VIX3M fetch 완료): VIX3M/VIX backwardation regime →
        defensive 후속 수익률 검증 (n=4651 daily, 2007-12~)"
     - "EDGAR XBRL 펀더멘털 적재 (main 빌드 필요) → H4·H5·H10·H11 검증"

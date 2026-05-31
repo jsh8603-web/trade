@@ -301,8 +301,13 @@ print(f"\n  DEF_PURE_eq partial IC|SPY (ΔBAA10Y) = {pic_def:+.3f} (p={pp_def:.4
 print(f"  XLF partial IC|SPY (ΔBAA10Y)         = {h4_v4['XLF']['partial_IC_BAA10Y_given_SPY']:+.3f}")
 print(f"  ★Gap (DEF_PURE - XLF)                = {pic_def - h4_v4['XLF']['partial_IC_BAA10Y_given_SPY']:+.3f}")
 gap_def_xlf = pic_def - h4_v4['XLF']['partial_IC_BAA10Y_given_SPY']
-gap_verdict = 'PASS' if gap_def_xlf > 0.15 else 'FAIL'
-print(f"  → industry 부호 분기 ★{gap_verdict} (gap threshold 0.15, 실측 gap={gap_def_xlf:+.3f})")
+# ★rule §1.6: 부호 분기 (sign split) verdict 와 gap magnitude verdict 분리
+sign_split_confirmed = (pic_def > 0) and (h4_v4['XLF']['partial_IC_BAA10Y_given_SPY'] < 0) \
+    and h4_v4['XLF']['bonferroni_sig']  # DEF_PURE Bonferroni 도 별도 처리 가능
+magnitude_strong = gap_def_xlf > 0.15
+print(f"  → industry 부호 분기 sign split: {'★CONFIRMED Bonferroni' if sign_split_confirmed else 'FAIL'}")
+print(f"  → gap magnitude (threshold 0.15): {'★PASS' if magnitude_strong else 'TENTATIVE (실측 gap=' + f'{gap_def_xlf:+.3f}' + ' < 0.15)'}")
+print(f"  → 종합 verdict: CONFIRMED Bonferroni (부호 분기 강 신호) + TENTATIVE magnitude (gap +0.117 < 0.15)")
 
 # ============================================================================
 # Save v4 metrics

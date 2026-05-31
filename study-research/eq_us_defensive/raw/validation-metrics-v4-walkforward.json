@@ -1,0 +1,92 @@
+{
+  "date": "2026-05-31",
+  "version": "v4-walkforward",
+  "method": {
+    "rolling_window_months": 120,
+    "threshold": "quantile p75 of history[t-120 : t]",
+    "lookahead_block": true
+  },
+  "walk_forward_regime_distribution": {
+    "nfci_p75_wf": {
+      "n": 29,
+      "pct": 0.14720812182741116
+    },
+    "baa10y_p75_wf": {
+      "n": 24,
+      "pct": 0.1218274111675127
+    },
+    "intersection": 6
+  },
+  "h3_wf_regime_conditional": {
+    "NFCI p75 wf :: DEFENSIVE_PURE_eq": {
+      "n": 29,
+      "mean_mo": -0.0046,
+      "ci95_lo": -0.0163,
+      "ci95_hi": 0.0069,
+      "p_block": 0.392,
+      "loo_p_max": 0.7774,
+      "raw_sig": false,
+      "bonferroni_sig": false
+    },
+    "NFCI p75 wf :: FINANCIALS_XLF": {
+      "n": 29,
+      "mean_mo": -0.0092,
+      "ci95_lo": -0.0242,
+      "ci95_hi": 0.0039,
+      "p_block": 0.1536,
+      "loo_p_max": 0.3746,
+      "raw_sig": false,
+      "bonferroni_sig": false
+    },
+    "BAA10Y p75 wf :: DEFENSIVE_PURE_eq": {
+      "n": 24,
+      "mean_mo": 0.0019,
+      "ci95_lo": -0.0066,
+      "ci95_hi": 0.0119,
+      "p_block": 0.5404,
+      "loo_p_max": 0.9968,
+      "raw_sig": false,
+      "bonferroni_sig": false
+    },
+    "BAA10Y p75 wf :: FINANCIALS_XLF": {
+      "n": 24,
+      "mean_mo": -0.0134,
+      "ci95_lo": -0.0229,
+      "ci95_hi": -0.0016,
+      "p_block": 0.0156,
+      "loo_p_max": 0.0506,
+      "raw_sig": true,
+      "bonferroni_sig": false
+    }
+  },
+  "h3_wf_cross_sleeve_welch": {
+    "NFCI p75 wf": {
+      "n_def": 29,
+      "n_fin": 29,
+      "mean_def": -0.0046,
+      "mean_fin": -0.0092,
+      "gap": 0.0045,
+      "welch_t": 0.463,
+      "welch_p": 0.6448
+    },
+    "BAA10Y p75 wf": {
+      "n_def": 24,
+      "n_fin": 24,
+      "mean_def": 0.0019,
+      "mean_fin": -0.0134,
+      "gap": 0.0154,
+      "welch_t": 1.637,
+      "welch_p": 0.109
+    }
+  },
+  "in_sample_period": {
+    "start": "2010-01-31",
+    "end": "2026-05-31",
+    "n": 197
+  },
+  "tier_promotion_verdict": {
+    "walk_forward_direction_consistent": true,
+    "walk_forward_any_bonferroni_pass": false,
+    "tier_recommendation": "structural TENTATIVE (\ubc29\ud5a5 \uc720\uc9c0, magnitude \uc57d)"
+  }
+}

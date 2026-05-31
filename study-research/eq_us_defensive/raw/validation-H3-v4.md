@@ -102,8 +102,9 @@ sleeve 분리 grouping (rule §1.6) 부호 분기 정합성 = **실증 (단 약 
 | **XLF** | **-0.059** | **<0.0001** | 6588 | **★PASS** |
 | **DEF_PURE_eq** | **+0.058** | **<0.0001** | 6588 | **★PASS** |
 
-★Gap (DEF_PURE - XLF) = **+0.117** (★rule §1.6 threshold 0.15 미달 단 강 통계 신호).
-**Industry 부호 분기**: PASS (DEF_PURE +0.058 vs XLF -0.059, 둘 다 p<0.0001 + Bonferroni 후 유의).
+★Gap (DEF_PURE - XLF) = **+0.117**:
+- **부호 분기 verdict**: ★**CONFIRMED Bonferroni** (DEF_PURE +0.058 vs XLF -0.059, 둘 다 p<0.0001 + Bonferroni m=5 PASS — industry sign split 강 신호)
+- **gap magnitude verdict**: rule §1.6 threshold 0.15 미달 (실측 +0.117) — 본 threshold 는 "정량 magnitude" 기준 (강한 분기 정의), 부호 분기 정합성과 별개. magnitude TENTATIVE 단 sign split 자체는 강 신호.
 
 ## 평가 (★v4 종합)
 
