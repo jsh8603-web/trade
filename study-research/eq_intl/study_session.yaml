@@ -1,6 +1,6 @@
 study_id: eq_intl
 asset_scope: [equity.intl]
-as_of: "2026-05-30"
+as_of: "2026-06-01"   # ★merit audit 2026-06-01 반영 (credit lookahead 격하 / fx·REER 라벨 정정 / jgb REJECT)
 
 # =============================================================================
 # 블록1: LENS (정성 렌즈 — LLM 주입용. 일반론+리포트의 정제 결과)
@@ -22,7 +22,7 @@ lens:
   report_relations:
     - "달러(broad DXY)↑ → EM 주식↓ (외화부채 부담·자본유출·원자재 압박). US real yield 고정 시에도 직접효과 잔존 = 가장 강한 단일 관계"
     - "US 10Y real yield↑ → 자본이 US 로 회귀 → EM·고듀레이션 신흥국 압박. 달러강세의 공통원인이기도 함(real yield→DXY→EM 매개)"
-    - "China credit impulse(신용자극)↑ → 6~12개월 lag 로 원자재·원자재수출국(브라질·인니·남아공) 지수 선행. EM 사이클의 marginal demand"
+    - "China credit impulse(신용자극)↑ → china/brazil/korea 지수와 동시(contemporaneous) 동조 경향. ★merit audit 2026-06-01: 일반론의 '6~12개월 선행(lead)' = 본 표본에서 미지지(lead 1-4Q 비유의), 동시상관조차 revised-vintage 착시(Q+1 PIT 정렬 시 붕괴) → 라이브 alpha 가치 격하. EM 사이클 marginal demand 의 정성 맥락 한정"
     - "글로벌 위험선호(VIX↓·HY OAS 축소) → EM 고베타 아웃퍼폼. risk-off 시 EM 이 가장 먼저·크게 빠짐(high beta to global risk)"
     - "원자재 가격↑ → 원자재수출국(LatAm·자원국) terms-of-trade 개선 → 통화·지수 동반 강세 / 원자재수입국(인도·한국·일본)은 반대"
     - "엔(JPY) 약세 → 일본 수출주 EPS↑(EWJ 현지수익↑) 그러나 unhedged USD 투자자는 환손실 — 헤지/언헤지 분기 핵심"
@@ -36,7 +36,8 @@ lens:
       → 달러베타·realized vol·credit beta 가중↑, 모멘텀 가중↓(crash 회피).
     [commodity 강세 사이클] = 원자재수출국 archetype 아웃퍼폼 → 해당 국가 commodity/terms-of-trade
       베타 가중↑. 동시에 원자재수입국(인도·한국·일본)은 반대 신호.
-    [글로벌 성장둔화·China 디레버리징] = EM 전반 언더퍼폼, China credit impulse 음전환이 선행지표.
+    [글로벌 성장둔화·China 디레버리징] = EM 전반 언더퍼폼. China credit impulse 는 동시 동조의 정성 맥락
+      한정(★merit audit 2026-06-01: '선행지표' 박제 격하 — lead 비유의 + 동시조차 revised-vintage lookahead 착시).
   estimation_note: >
     2026-05-30 기준 anchor(추정·확신도 중): 환(달러 방향)이 국가지수 횡단면 수익을 지배하는 국면이
     구조적으로 길어졌다(2022~ 고금리·강달러 잔재). 따라서 eq_intl lens 의 1차 축은 단일종목 §6
@@ -140,30 +141,59 @@ indicators:
     vintage_policy: point_in_time
     lag: 0
   # --- eq_intl 특화 (is_core: false, weight cap. 단 sleeve 승격 후보 = fx) ---
-  - id: fx_carry_momentum   # ★sleeve 승격 요청 후보(블록6/§6 3-test): unhedged 환은 1차 driver
+  - id: fx_carry_momentum   # ★sleeve 승격 후보. ★merit audit 2026-06-01: PIT-safe coincident exposure 로 수용 (predictive alpha 아님)
     family: macro_sensitivity
     is_core: false
     in_our_system: false   # main 선구축 FxStore(DXY/USDKRW) 일부 → 다국가 확장 필요
     source_or_collector: "블록6: FxStore 다국가 확장(현지/USD 환율). carry=금리차, momentum=환율 3-12m 추세"
     transform: own_history_z
     vintage_policy: point_in_time
-    lag: 0
-  - id: real_exchange_rate_valuation   # 환 밸류(REER 갭) — 장기 평균회귀
+    lag_routing: contemporaneous   # ★예측(lead) 전부 비유의 — coincident exposure 만 robust
+    role: coincident_exposure   # ★현재 환 노출 사이징(unhedged risk decomposition)용, predictive alpha 아님
+    validated_alpha: false   # ★예측 alpha 미지지. 단 동시 환 베타는 robust (PIT-safe: 가격·환율 개정 없음)
+    audit_note: >
+      ★merit audit 2026-06-01 (raw/validation-merit-eq_intl-20260601.md §4).
+      EM(brazil/india/korea/mexico) contemporaneous fx mom_3m = robust 부호 일치 (Rank-IC 음, local 약세→unhedged ETF 음,
+      Bonferroni 생존 5/30, half-split 부호 일치) — lens "환을 빼면 절반 놓친다" 강 지지.
+      ★단 lead(예측) 전부 비유의(Bonferroni 0) → 동시 효과는 mechanical(unhedged 가격=현지지수×환율 동시반영),
+      forward 예측 신호 아님. japan 은 약(엔약세 수출주 수혜 상쇄, 헤지/언헤지 분기 정합).
+      ★PIT-safe(가격·환율 = 개정 없음) → credit 과 달리 동시 노출 정당. dollar-orthogonalized 잔차 entry 권장
+      (L축 fx_carry↔β_dollar 중복은 별도 L축 블록서 처리, monthly R² 8.7%). ★점추정 magnitude 박제 금지.
+  - id: real_exchange_rate_valuation   # 환 밸류(REER 갭) — 장기 평균회귀. ★merit audit 2026-06-01: structural prior (단기 forward 신호 아님)
     family: valuation
     is_core: false
     in_our_system: false
-    source_or_collector: "블록6: BIS REER 또는 FRED 시리즈. 통화 고/저평가(terms-of-trade 조정)"
+    source_or_collector: "블록6: BIS REER 또는 FRED 시리즈(RB{BR,MX,IN,CN,KR}BIS). 통화 고/저평가(terms-of-trade 조정)"
     transform: own_history_z
     vintage_policy: point_in_time
     lag: 1
-  - id: china_credit_impulse   # EM·원자재수출국 6-12m 선행
+    tier: structural   # ★장기 valuation anchor. 단기 forward 예측 신호 아님
+    validated_alpha: false
+    audit_note: >
+      ★merit audit 2026-06-01 (raw/validation-merit-eq_intl-20260601.md §2): TENTATIVE DIRECTIONAL.
+      Bonferroni 0/20 생존. china 만 부호 prior(고평가→약세) 일관(half-split 음 양쪽, p=0.088 비유의).
+      brazil +상관은 valuation 평균회귀 아닌 commodity-통화 동시성(별 채널). REER forward 예측력 = 전반 약/비유의.
+      → structural(장기 valuation anchor) 한정, china sub-archetype 약 prior. ★점추정 magnitude 박제 금지.
+  - id: china_credit_impulse   # ★merit audit 2026-06-01: "6-12m 선행" 박제 격하 (lead REJECTED) + 동시조차 PIT 무효
     family: macro_driver
     is_core: false
     in_our_system: false
-    source_or_collector: "블록6: China TSF(total social financing) YoY. FRED/외부 소스"
+    source_or_collector: "블록6: China TSF/total credit(QCNPAMUSDA) 기반 credit impulse=Δ(YoY%). ★ALFRED first-release vintage 재측정 의무 (FRED revised = lookahead 착시)"
     transform: yoy
     vintage_policy: point_in_time
-    lag: 2
+    lag_routing: contemporaneous   # ★lag=2(선행) 박제 격하 — lead 1-4Q 전부 비유의 (부분 부호반전)
+    tier: structural_low
+    validated_alpha: false   # ★동시 +0.41 도 revised-vintage same-Q artifact. Q+1 PIT 정렬 시 붕괴 → 라이브 alpha 가치 0
+    audit_note: >
+      ★merit audit 2026-06-01 (raw/validation-merit-eq_intl-20260601.md §3, audit override).
+      탐구 1차 "동시 Rank-IC +0.30~+0.43 CONFIRMED" → 독립 재계산에서 lookahead 착시로 격하.
+      근거: QCNPAMUSDA 캐시 전 obs realtime_start 단일 스냅샷 = 완전 revised vintage.
+      Q+1(발표시차) 라이브-tradeable 정렬 시 동분기 Rank-IC 붕괴 — china +0.41→+0.05, brazil +0.30→+0.01,
+      korea +0.43→부호반전(-0.05). spec "6-12m 선행(lead)" = lead 1-4Q 전부 비유의(부분 음 부호) → REJECTED.
+      ★점추정 magnitude(+0.41) 박제 금지 · weight alpha tilt 금지 · risk modulator 한정.
+      ★PIT 대비 교훈: PIT 검증이 동시 신호 정당성을 가른다 — credit(revised-vintage same-Q 착시) 는 격하,
+      defensive VIX 처럼 PIT-pure(개정 없는 가격/IV) 동시 신호는 정당. 동시상관 robust ≠ alpha.
+      ★ALFRED first-release vintage 재측정 전 라이브 사이징 ⛔.
   - id: foreign_equity_flow   # 외국인 포트폴리오 flow(EM 단기수급)
     family: macro_driver
     is_core: false
@@ -217,10 +247,10 @@ relationships:
     node_b: china_credit_impulse
     edge_type: common_cause   # China 수요가 oil 과 원자재수출국 지수의 공통 driver → 직접 oil-equity 는 분해
     conditioning_set: [credit_beta_country]
-    lag_routing: lagged
+    lag_routing: contemporaneous   # ★merit audit 2026-06-01: credit lead(선행) 격하 → lagged 박제 철회, 동시 한정
     prior_sign: pos
-    prior_strength: 0.45
-    theory_basis: "China 신용자극→원자재수요→유가·원자재수출국 동반. 공통원인 China 분해 시 oil 직접효과 축소"
+    prior_strength: 0.20   # ★하향 (was 0.45): credit lead REJECTED + 동시 robust 도 lookahead 착시 격하. 약 prior 만 유지
+    theory_basis: "China 신용자극↔원자재수요↔유가·원자재수출국 동반(동시 정성 맥락). ★merit audit 2026-06-01: credit impulse 의 선행(lead) 예측력 미지지 + 동시상관조차 revised-vintage 착시 → lagged routing 격하·prior 약화. common_cause 구조 자체는 정성 유지하되 magnitude 박제 금지, EBIC 자체 발견에 맡김."
   - node_a: credit_beta_country
     node_b: realized_vol_country
     edge_type: direct
@@ -242,10 +272,10 @@ relationships:
     node_b: dollar_beta_country
     edge_type: direct
     conditioning_set: [rate_beta_country]
-    lag_routing: contemporaneous
+    lag_routing: contemporaneous   # ★coincident exposure (predictive 아님)
     prior_sign: pos
     prior_strength: 0.50
-    theory_basis: "환carry/모멘텀과 달러베타는 같은 환 채널 — 금리차 고정 후 잔차는 환추세 공유"
+    theory_basis: "환carry/모멘텀과 달러베타는 같은 환 채널(동시 노출) — 금리차 고정 후 잔차는 환추세 공유. ★merit audit 2026-06-01: fx 는 PIT-safe coincident exposure 로 수용(동시 robust, 예측 alpha 아님). ★L축 fx_carry↔β_dollar 중복 = 같은 베팅(monthly R² 8.7%) → dollar-orthogonalized 잔차 entry 로 이중계상 회피(별 L축 블록 처리)."
   - node_a: terms_of_trade
     node_b: oil_beta_country
     edge_type: common_cause   # 원자재가격이 terms-of-trade 와 oil-beta 의 공통 driver(수출국)
@@ -271,7 +301,7 @@ weight_rules:
       tech_exporter: +0.04    # β_dollar -1.380 [-1.522, -1.239] = dm_europe 와 비슷
       em_china: 0.00          # β_dollar -1.392 [-1.567, -1.218] but idio σ 30% 큼 caveat
       commodity_exporter: -0.02   # β_dollar -1.121 [-1.262, -0.979] mid + β_oil 양수 별도
-      dm_japan: -0.04          # β_dollar -0.979 [-1.121, -0.838] (JGB-UST spread 미반영 caveat)
+      dm_japan: -0.04          # β_dollar -0.979 [-1.121, -0.838]. ★merit audit 2026-06-01: JGB-UST spread = REJECTED (EWJ 월간 return 에 동시·예측 모두 비유의, |Rank-IC|<0.06 p>0.28, Bonferroni 0/4) → 'spread 미반영' 은 결함 아님(누락이 결함 아님). 단 regime-conditional 엔 carry-trade unwind 국면 한정 효과는 미탐구(H축)
       domestic_demand: -0.08   # β_dollar -0.720 [-0.843, -0.598] 가장 약
     granularity: ticker
   - indicator_id: oil_beta_country
@@ -314,7 +344,8 @@ weight_rules:
   - indicator_id: fx_carry_momentum   # is_core:false → cap 적용. 단 sleeve 승격 시 base↑
     base_weight: 0.04
     modulate_by: [regime, name_specific]
-    direction: "캐리 우호(금리차高+저변동) 국면 → carry 가중↑. risk-off 시 carry unwind → 즉시 가중↓(carry crash). ⚠️ unhedged ETF 에선 이 신호가 부당캡 → main 에 sleeve 승격 요청(블록6)"
+    role: coincident_exposure   # ★merit audit 2026-06-01: 현재 환 노출 사이징 (predictive alpha 아님)
+    direction: "★merit audit 2026-06-01: EM unhedged 현재 환 노출의 명시 사이징(coincident exposure) 용도 — predictive alpha 아님(lead REJECTED). 캐리 우호 국면 → 가중↑, risk-off carry unwind → 즉시 가중↓(carry crash). dollar-orthogonalized 잔차 entry 로 β_dollar 와 이중계상 회피(L축). ⚠️ unhedged ETF 부당캡 여부는 '예측 IC' 가 아닌 '동시 환 베타 robust' 근거로 재평가 → main sleeve 승격 검토(블록6)"
     granularity: ticker
 
 # =============================================================================
@@ -352,9 +383,11 @@ confidence_hooks:
     action_threshold: "PRIMARY 붕괴 → momentum 카드 retract. SECONDARY drift만 → regime 조건부 momentum 가중 재적합(TRANSITION)"
     feeds_weight: "needs_refit(fro_rel/logdet) → derive_weights 재실행 → mom_12_1 base_weight·delta_regime 갱신"
   - hypothesis_id: fx_sleeve_promotion   # 블록4 fx_carry 부당캡 → §6 3-test
-    confirm_signal: "fx_carry_momentum 의 native 신호가 cap(0.04) 때문에 Rank-IC 손실(uncapped 시뮬 IC > capped)"
-    reject_signal: "uncapped 해도 IC 개선 없음(부당캡 가설 기각 → is_core:false 유지)"
-    emit_where: "backtest A/B(capped vs uncapped) outcome 비교 + §6 3-test(부호상충/조건부상관 decoupling/신호스택 발산)"
+    # ★merit audit 2026-06-01: fx native 의 가치 = predictive alpha 아님(lead REJECTED), 동시 환 노출 사이징.
+    # 부당캡 판정 근거를 'forward 예측 IC' 에서 '동시 환 베타 robust(coincident exposure)' 로 정정.
+    confirm_signal: "fx_carry_momentum 의 동시 환 베타(coincident exposure)가 robust(EM mom_3m Rank-IC 부호 일치, Bonferroni 생존) 인데 cap(0.04) 가 unhedged risk decomposition 사이징을 부당 제약 → uncapped 시 환 risk 적정 사이징"
+    reject_signal: "동시 환 베타가 dollar_beta 와 완전 중복(dollar-orthogonalized 잔차 IC ≈ 0) → 별 sleeve 불요(is_core:false 유지)"
+    emit_where: "backtest A/B(capped vs uncapped) outcome 비교 + dollar-orthogonalized 잔차 분석(L축 이중계상 체크) + §6 3-test(부호상충/조건부상관 decoupling/신호스택 발산)"
     accumulate_in: "core/assume/weight_falsification(capped/uncapped 두 카드 IC 시계열 비교)"
     confidence_metric: "IC gap e-value + 3-test 통과 카운트"
     store: "main 에 sleeve 승격 요청 트리거(블록6 collector_plan fx 확장 선행)"
