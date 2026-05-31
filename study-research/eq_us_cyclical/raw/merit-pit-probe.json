@@ -1,0 +1,194 @@
+{
+  "NEWORDER": {
+    "series_id": "NEWORDER",
+    "median_pub_lag_days": 56.0,
+    "max_pub_lag_days": 86.0,
+    "n_vintage_obs": 351,
+    "sample_recent": [
+      {
+        "period": "2025-11-01",
+        "first_release_on": "2026-01-26"
+      },
+      {
+        "period": "2025-12-01",
+        "first_release_on": "2026-02-18"
+      },
+      {
+        "period": "2026-01-01",
+        "first_release_on": "2026-03-13"
+      },
+      {
+        "period": "2026-02-01",
+        "first_release_on": "2026-04-07"
+      },
+      {
+        "period": "2026-03-01",
+        "first_release_on": "2026-04-29"
+      },
+      {
+        "period": "2026-04-01",
+        "first_release_on": "2026-05-28"
+      }
+    ]
+  },
+  "AMTMNO": {
+    "series_id": "AMTMNO",
+    "median_pub_lag_days": 64.0,
+    "max_pub_lag_days": 109.0,
+    "n_vintage_obs": 179,
+    "sample_recent": [
+      {
+        "period": "2025-10-01",
+        "first_release_on": "2026-01-07"
+      },
+      {
+        "period": "2025-11-01",
+        "first_release_on": "2026-01-29"
+      },
+      {
+        "period": "2025-12-01",
+        "first_release_on": "2026-02-23"
+      },
+      {
+        "period": "2026-01-01",
+        "first_release_on": "2026-03-18"
+      },
+      {
+        "period": "2026-02-01",
+        "first_release_on": "2026-04-10"
+      },
+      {
+        "period": "2026-03-01",
+        "first_release_on": "2026-05-04"
+      }
+    ]
+  },
+  "DGORDER": {
+    "series_id": "DGORDER",
+    "median_pub_lag_days": 56.0,
+    "max_pub_lag_days": 86.0,
+    "n_vintage_obs": 322,
+    "sample_recent": [
+      {
+        "period": "2025-11-01",
+        "first_release_on": "2026-01-26"
+      },
+      {
+        "period": "2025-12-01",
+        "first_release_on": "2026-02-18"
+      },
+      {
+        "period": "2026-01-01",
+        "first_release_on": "2026-03-13"
+      },
+      {
+        "period": "2026-02-01",
+        "first_release_on": "2026-04-07"
+      },
+      {
+        "period": "2026-03-01",
+        "first_release_on": "2026-04-29"
+      },
+      {
+        "period": "2026-04-01",
+        "first_release_on": "2026-05-28"
+      }
+    ]
+  },
+  "ACOGNO": {
+    "series_id": "ACOGNO",
+    "median_pub_lag_days": 64.0,
+    "max_pub_lag_days": 109.0,
+    "n_vintage_obs": 179,
+    "sample_recent": [
+      {
+        "period": "2025-10-01",
+        "first_release_on": "2026-01-07"
+      },
+      {
+        "period": "2025-11-01",
+        "first_release_on": "2026-01-29"
+      },
+      {
+        "period": "2025-12-01",
+        "first_release_on": "2026-02-23"
+      },
+      {
+        "period": "2026-01-01",
+        "first_release_on": "2026-03-18"
+      },
+      {
+        "period": "2026-02-01",
+        "first_release_on": "2026-04-10"
+      },
+      {
+        "period": "2026-03-01",
+        "first_release_on": "2026-05-04"
+      }
+    ]
+  },
+  "PERMIT": {
+    "series_id": "PERMIT",
+    "median_pub_lag_days": 48.0,
+    "max_pub_lag_days": 130.0,
+    "n_vintage_obs": 321,
+    "sample_recent": [
+      {
+        "period": "2025-11-01",
+        "first_release_on": "2026-02-18"
+      },
+      {
+        "period": "2025-12-01",
+        "first_release_on": "2026-02-18"
+      },
+      {
+        "period": "2026-01-01",
+        "first_release_on": "2026-03-12"
+      },
+      {
+        "period": "2026-02-01",
+        "first_release_on": "2026-04-29"
+      },
+      {
+        "period": "2026-03-01",
+        "first_release_on": "2026-04-29"
+      },
+      {
+        "period": "2026-04-01",
+        "first_release_on": "2026-05-21"
+      }
+    ]
+  },
+  "CFNAI": {
+    "series_id": "CFNAI",
+    "median_pub_lag_days": 53.0,
+    "max_pub_lag_days": 117.0,
+    "n_vintage_obs": 180,
+    "sample_recent": [
+      {
+        "period": "2025-11-01",
+        "first_release_on": "2026-01-26"
+      },
+      {
+        "period": "2025-12-01",
+        "first_release_on": "2026-02-23"
+      },
+      {
+        "period": "2026-01-01",
+        "first_release_on": "2026-02-23"
+      },
+      {
+        "period": "2026-02-01",
+        "first_release_on": "2026-03-23"
+      },
+      {
+        "period": "2026-03-01",
+        "first_release_on": "2026-04-23"
+      },
+      {
+        "period": "2026-04-01",
+        "first_release_on": "2026-05-26"
+      }
+    ]
+  }
+}
