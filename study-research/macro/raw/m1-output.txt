@@ -1,0 +1,46 @@
+M1 거시-종목 factor linkage | 기간 2021-12-02~2024-12-04, n=756
+factors=['rate', 'dollar', 'oil'] (rate=Δus10y, dollar=dxy r, oil=oil r) / sleeves=['us_stock', 'tech', 'gold']
+⛔ 실현수익률 전용(U3 reflexive 차단) · 합성無
+
+=== [전체] n=756 ===
+  factor loading B (sleeve × [rate, dollar, oil]):
+    us_stock  rate=+0.0083 dollar=-0.879 oil=+0.020  idio_var=1.06e-04
+    tech      rate=+0.0088 dollar=-1.079 oil=+0.001  idio_var=1.97e-04
+    gold      rate=-0.0356 dollar=-0.577 oil=+0.085  idio_var=5.98e-05
+  팩터공분산 Λ diag(var): rate=5.015e-03 dollar=2.22e-05 oil=5.81e-04
+  factor-implied Σ_cross PD: eig_min=1.07e-04 (PD=✅)
+  implied vs 경험 sleeve 상관(off-diag):
+    us_stock~tech: implied=+0.119 경험=+0.960 Δ=-0.841
+    us_stock~gold: implied=+0.127 경험=+0.088 Δ=+0.039
+    tech~gold: implied=+0.110 경험=+0.069 Δ=+0.041
+
+=== [rate-UP] n=448 ===
+  factor loading B (sleeve × [rate, dollar, oil]):
+    us_stock  rate=-0.0000 dollar=-0.998 oil=+0.003  idio_var=1.13e-04
+    tech      rate=-0.0036 dollar=-1.210 oil=-0.025  idio_var=2.01e-04
+    gold      rate=-0.0299 dollar=-0.565 oil=+0.105  idio_var=6.09e-05
+  팩터공분산 Λ diag(var): rate=5.666e-03 dollar=2.61e-05 oil=6.67e-04
+  factor-implied Σ_cross PD: eig_min=1.11e-04 (PD=✅)
+  implied vs 경험 sleeve 상관(off-diag):
+    us_stock~tech: implied=+0.173 경험=+0.963 Δ=-0.790
+    us_stock~gold: implied=+0.162 경험=+0.107 Δ=+0.055
+    tech~gold: implied=+0.142 경험=+0.077 Δ=+0.065
+
+=== [rate-DOWN] n=308 ===
+  factor loading B (sleeve × [rate, dollar, oil]):
+    us_stock  rate=+0.0248 dollar=-0.593 oil=+0.044  idio_var=8.87e-05
+    tech      rate=+0.0329 dollar=-0.759 oil=+0.038  idio_var=1.80e-04
+    gold      rate=-0.0441 dollar=-0.605 oil=+0.045  idio_var=5.59e-05
+  팩터공분산 Λ diag(var): rate=4.044e-03 dollar=1.64e-05 oil=4.56e-04
+  factor-implied Σ_cross PD: eig_min=1.06e-04 (PD=✅)
+  implied vs 경험 sleeve 상관(off-diag):
+    us_stock~tech: implied=+0.061 경험=+0.956 Δ=-0.895
+    us_stock~gold: implied=+0.032 경험=+0.041 Δ=-0.009
+    tech~gold: implied=+0.028 경험=+0.045 Δ=-0.018
+
+=== regime별 factor loading 차이 (rate-UP − rate-DOWN) — 거시-종목 연관 국면조건부성 ===
+  us_stock  Δrate=-0.0248 Δdollar=-0.405 Δoil=-0.041
+  tech      Δrate=-0.0365 Δdollar=-0.451 Δoil=-0.064
+  gold      Δrate=+0.0142 Δdollar=+0.040 Δoil=+0.060
+
+해석: rate loading 부호·크기가 sleeve별로 다르고 regime 조건부면 = 거시→종목 차등전이(M1 입증).

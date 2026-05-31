@@ -1,0 +1,90 @@
+기간: 2021-12-02 ~ 2024-12-04, n=756일, 자산=['sp500', 'nasdaq', 'dxy', 'gold', 'oil', 'us10y']
+
+=== [전체기간] 전체 Pearson 상관 (n=756) ===
+        sp500  nasdaq    dxy   gold    oil  us10y
+sp500   1.000   0.960 -0.358  0.088  0.096 -0.095
+nasdaq  0.960   1.000 -0.325  0.069  0.048 -0.098
+dxy    -0.358  -0.325  1.000 -0.437 -0.121  0.410
+gold    0.088   0.069 -0.437  1.000  0.225 -0.370
+oil     0.096   0.048 -0.121  0.225  1.000  0.124
+us10y  -0.095  -0.098  0.410 -0.370  0.124  1.000
+
+regime 분포: rate-up=448일 / rate-down=308일
+
+=== [rate-UP 국면] 전체 Pearson 상관 (n=448) ===
+        sp500  nasdaq    dxy   gold    oil  us10y
+sp500   1.000   0.963 -0.433  0.107  0.065 -0.177
+nasdaq  0.963   1.000 -0.400  0.077  0.011 -0.184
+dxy    -0.433  -0.400  1.000 -0.445 -0.137  0.412
+gold    0.107   0.077 -0.445  1.000  0.314 -0.346
+oil     0.065   0.011 -0.137  0.314  1.000  0.066
+us10y  -0.177  -0.184  0.412 -0.346  0.066  1.000
+
+=== [rate-DOWN 국면] 전체 Pearson 상관 (n=308) ===
+        sp500  nasdaq    dxy   gold    oil  us10y
+sp500   1.000   0.956 -0.188  0.041  0.156  0.086
+nasdaq  0.956   1.000 -0.166  0.045  0.115  0.077
+dxy    -0.188  -0.166  1.000 -0.421 -0.082  0.402
+gold    0.041   0.045 -0.421  1.000  0.052 -0.408
+oil     0.156   0.115 -0.082  0.052  1.000  0.252
+us10y   0.086   0.077  0.402 -0.408  0.252  1.000
+
+=== regime별 상관 차이 (UP - DOWN), |Δ|>0.15 = 조건부성 강함 ===
+pair                full      up    down  Δ(up-dn)
+sp500~us10y       -0.095  -0.177   0.086    -0.264  <-- 조건부 강함
+gold~oil           0.225   0.314   0.052     0.262  <-- 조건부 강함
+nasdaq~us10y      -0.098  -0.184   0.077    -0.261  <-- 조건부 강함
+sp500~dxy         -0.358  -0.433  -0.188    -0.244  <-- 조건부 강함
+nasdaq~dxy        -0.325    -0.4  -0.166    -0.233  <-- 조건부 강함
+oil~us10y          0.124   0.066   0.252    -0.186  <-- 조건부 강함
+nasdaq~oil         0.048   0.011   0.115    -0.104
+sp500~oil          0.096   0.065   0.156    -0.091
+sp500~gold         0.088   0.107   0.041     0.066
+gold~us10y         -0.37  -0.346  -0.408     0.062
+dxy~oil           -0.121  -0.137  -0.082    -0.055
+nasdaq~gold        0.069   0.077   0.045     0.031
+dxy~gold          -0.437  -0.445  -0.421    -0.024
+dxy~us10y           0.41   0.412   0.402      0.01
+sp500~nasdaq        0.96   0.963   0.956     0.006
+
+=== RegimeGlasso partial-corr (직접효과; 전체상관과 차이=공통원인 분해) ===
+
+--- regime rate-DOWN (n=308, λ=0.050, glasso_α=0.0096, cond=327.4) ---
+partial-corr:
+        sp500  nasdaq    dxy   gold    oil  us10y
+sp500   1.000   0.894 -0.068 -0.003  0.059  0.035
+nasdaq  0.894   1.000 -0.022 -0.001 -0.015  0.011
+dxy    -0.068  -0.022  1.000 -0.283 -0.102  0.272
+gold   -0.003  -0.001 -0.283  1.000  0.098 -0.288
+oil     0.059  -0.015 -0.102  0.098  1.000  0.265
+us10y   0.035   0.011  0.272 -0.288  0.265  1.000
+Pearson vs partial 차이 (|Pearson|-|partial| 큰 것 = 매개효과):
+   nasdaq~dxy     Pearson= -0.166 partial= -0.022 매개=0.145
+   dxy~gold       Pearson= -0.421 partial= -0.283 매개=0.138
+   dxy~us10y      Pearson=  0.402 partial=  0.272 매개=0.129
+   sp500~dxy      Pearson= -0.188 partial= -0.068 매개=0.12
+   gold~us10y     Pearson= -0.408 partial= -0.288 매개=0.12
+   nasdaq~oil     Pearson=  0.115 partial= -0.015 매개=0.101
+
+--- regime rate-UP (n=448, λ=0.050, glasso_α=0.0096, cond=522.2) ---
+partial-corr:
+        sp500  nasdaq    dxy   gold    oil  us10y
+sp500   1.000   0.886 -0.127 -0.007  0.050 -0.006
+nasdaq  0.886   1.000 -0.042 -0.032 -0.036 -0.013
+dxy    -0.127  -0.042  1.000 -0.311 -0.053  0.244
+gold   -0.007  -0.032 -0.311  1.000  0.266 -0.235
+oil     0.050  -0.036 -0.053  0.266  1.000  0.179
+us10y  -0.006  -0.013  0.244 -0.235  0.179  1.000
+Pearson vs partial 차이 (|Pearson|-|partial| 큰 것 = 매개효과):
+   nasdaq~dxy     Pearson=   -0.4 partial= -0.042 매개=0.358
+   sp500~dxy      Pearson= -0.433 partial= -0.127 매개=0.306
+   sp500~us10y    Pearson= -0.177 partial= -0.006 매개=0.172
+   nasdaq~us10y   Pearson= -0.184 partial= -0.013 매개=0.172
+   dxy~us10y      Pearson=  0.412 partial=  0.244 매개=0.168
+   dxy~gold       Pearson= -0.445 partial= -0.311 매개=0.134
+   gold~us10y     Pearson= -0.346 partial= -0.235 매개=0.111
+   sp500~gold     Pearson=  0.107 partial= -0.007 매개=0.1
+
+=== effective_precision belief-mix Σ_eff (rate-UP 0.7 / DOWN 0.3) ===
+Σ_eff cond=453.06, within_trace=0.0058, between_trace=0.0000, dispersion=0.0000, chol_ok=True
+dispersion = regime간 평균 이격 = belief 불확실 시 공분산 inflate(transition de-risk) 신호

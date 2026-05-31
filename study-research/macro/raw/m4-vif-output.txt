@@ -1,0 +1,27 @@
+M4 factor 직교성 VIF | n=737, 2021-12-30~2024-12-04 | ⛔합성無
+가용 factor: rate(Δus10y)/dollar(Δlog dxy)/oil(Δlog oil)/vol(sp500 20d 실현변동성=VIX 대용)
+
+=== 상관행렬 (Pearson) ===
+         rate  dollar    oil    vol
+rate    1.000   0.415  0.119 -0.002
+dollar  0.415   1.000 -0.119 -0.027
+oil     0.119  -0.119  1.000 -0.021
+vol    -0.002  -0.027 -0.021  1.000
+
+=== VIF (1/(1−R²), <5 직교충분 / >10 심각) ===
+  [현 FACTORS 가용 3종]
+    VIF[rate   ]=1.25 ✅
+    VIF[dollar ]=1.25 ✅
+    VIF[oil    ]=1.05 ✅
+  [+vol(VIX 대용) 확장]
+    VIF[rate   ]=1.25 ✅
+    VIF[dollar ]=1.25 ✅
+    VIF[oil    ]=1.05 ✅
+    VIF[vol    ]=1.00 ✅
+
+=== vol(변동성) vs 기존 factor 상관 (직교성 직접 점검) ===
+  corr(vol, rate) = -0.002
+  corr(vol, dollar) = -0.027
+  corr(vol, oil) = -0.021
+
+해석: vol VIF·상관 낮으면 신규 factor 로 직교 추가 가능. 높으면 dollar/rate 와 공통분산 중복(L축 위반).

@@ -1,0 +1,24 @@
+## 2026년 5월 미국 거시경제 국면 전망 (Forecast)
+
+**주의:** 아래 내용은 2024년 중반의 데이터와 전망을 기반으로 한 2026년 5월 시점의 **예측**이며, 실제 상황과 다를 수 있습니다.
+
+---
+
+**1. 미국채 10-2년 금리차(T10Y2Y)**
+*   **역전 해소, 플러스(+) 전환.** Fed의 금리 인하로 단기금리가 장기금리보다 더 빠르게 하락하며, 장단기 금리차(스프레드)는 정상화(steepening)될 가능성이 높습니다.
+*   출처(데이터): [FRED T10Y2Y](https://fred.stlouisfed.org/series/T10Y2Y)
+
+**2. HY OAS (하이일드 신용스프레드)**
+*   **안정적 수준 유지 또는 소폭 확대 (중립적 리스크).** 경기 연착륙 시나리오 하에 현재(2024년)의 낮은 수준보다는 소폭 상승하나, 위험(risk-off)으로 간주될 만큼 급격히 확대되지는 않은 안정적 상태일 것으로 예상됩니다.
+*   출처(데이터): [FRED BAMLH0A0HYM2](https://fred.stlouisfed.org/series/BAMLH0A0HYM2)
+
+**3. Fed 정책금리 방향**
+*   **금리 인하 사이클 진행 중.** 2024년 말 또는 2025년부터 시작된 금리 인하가 지속되어, 정책금리는 5%대의 고점 대비 상당폭 하락한 3%대에 근접할 것으로 전망됩니다.
+*   출처(전망): [Federal Reserve Summary of Economic Projections](https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm)
+
+**4. Investment Clock 4국면**
+*   **리플레이션(Reflation) 또는 회복(Recovery) 초기 국면 진입 추정.** 인플레이션은 둔화되고 Fed가 금리 인하로 경기를 부양하는 국면으로, 경기 침체를 피하고 새로운 성장 사이클을 준비하는 단계일 가능성이 높습니다.
+
+**5. USD/DXY 달러 방향, 엔/JPY 캐리 트레이드 상태**
+*   **달러(DXY)는 하향 안정화, 엔 캐리 트레이드 매력도 감소.** 미국의 금리 인하로 주요국과의 금리차가 축소되면서 달러 강세는 완화될 것입니다. 이는 미-일 금리차 축소로 이어져 엔 캐리 트레이드의 유인이 감소하는 요인으로 작용합니다.
+*   출처(데이터): [TradingView DXY](https://www.tradingview.com/symbols/TVC-DXY/)
