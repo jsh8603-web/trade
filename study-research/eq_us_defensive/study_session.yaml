@@ -1,7 +1,67 @@
 study_id: eq_us_defensive
 asset_scope: [equity.us]
 as_of: "2026-05-31"
-version: v4-tier  # v4 + main 12축 audit PASS + tier 라벨 + 보강 3 (walk-forward + vintage + gap 표현)
+version: v4-tier-s17  # v4-tier + §1.7 소급 ADF 사전 검정 PASS
+
+# ============================================================================
+# ★§1.7 소급 검정 (main 결정 2026-05-31: 의심 건만 소급 적용)
+# rule empirical-claim-presentation.md §1.7-A: 단위근/공적분 사전 검정 의무
+# ============================================================================
+audit_section_1_7_retroactive_check:
+  trigger: "rule §1.7 신설 (2026-05-31, gold v2→v3 3차 root cause 자산화) 직후 main 결정"
+  scope: "eq_us_defensive NFCI/BAA10Y level regime classifier 부분 ADF 사전 검정"
+  date: "2026-05-31"
+  method: "statsmodels.tsa.stattools.adfuller(s, regression='c', autolag='AIC') — 모든 left/right-hand 시리즈"
+
+  # §1.7-A 단위근 검정 결과
+  adf_results:
+    NFCI_level_monthly:
+      n: 650, adf_stat: -3.638, p_adf: 0.0051
+      class: "★I(0) stationary"
+      rationale: "Chicago Fed standardize index 본질상 mean-reverting (mean=0 std=1 설계)"
+    BAA10Y_level_monthly:
+      n: 482, adf_stat: -3.674, p_adf: 0.0045
+      class: "★I(0) stationary"
+      rationale: "Moody Baa-10Y spread = mean-reverting credit cycle"
+    DEF_PURE_excess_return_monthly:
+      n: 315, adf_stat: -13.66, p_adf: 0.0
+      class: "I(0) stationary"
+      rationale: "monthly return (pct_change) = stationary 본질"
+    FIN_XLF_excess_return_monthly:
+      n: 313, adf_stat: -7.94, p_adf: 0.0
+      class: "I(0) stationary"
+    delta_NFCI:
+      n: 650, adf_stat: -6.79, p_adf: 0.0, class: "I(0) stationary"
+    delta_BAA10Y:
+      n: 482, adf_stat: -13.98, p_adf: 0.0
+      class: "I(0) stationary"
+      rationale: "★H4a 의 ΔBAA10Y partial IC 단위 §1.7-B 준수 (first-diff)"
+
+  # §1.7-A 공적분 검정 (참고 — 본 결과 무관, 둘 다 I(0))
+  cointegration_check:
+    series: "NFCI level vs BAA10Y level"
+    common_period: "1986-01-31 ~ 2026-05-31 (n=485)"
+    eg_coint_t: -3.7217
+    eg_coint_p: 0.0172
+    note: "p<0.05 cointegrated 결과 — 단 둘 다 I(0) 이라 cointegration 검정 ★불필요. 참고용"
+
+  # §1.7-A verdict
+  verdict:
+    NFCI_level_regime_classifier: "★PASS — I(0) stationary 확인, level threshold (NFCI > p75) 정당, 차분 불요"
+    BAA10Y_level_regime_classifier: "★PASS — I(0) stationary 확인, level threshold 정당"
+    H4a_partial_IC: "★PASS — ΔBAA10Y first-diff 단위 §1.7-B 준수 (이전부터)"
+    H1_partial_IC: "★PASS — ΔDFII10 first-diff 단위 §1.7-B 준수 (이전부터)"
+    overall: "★eq_us_defensive 전 검정 단위 §1.7-A 준수 확인 — spurious level-on-level risk 없음"
+
+  implication: |
+    main 우려 (NFCI level regime classifier 부분 ADF 사전 검정 미수행 = §1.7 잠재 위반)
+    → ★실측 결과 전부 I(0) stationary 확인. NFCI 가 Chicago Fed standardize index
+    (mean=0 std=1 설계) 본질 + BAA10Y 가 mean-reverting credit cycle 라 level 사용 정당.
+    validated 2건 (H4a ΔBAA10Y + H1 ΔDFII10) = first-diff 단위로 이전부터 §1.7-B 준수.
+    structural TENTATIVE H3 regime classifier 도 NFCI/BAA10Y 둘 다 I(0) → spurious risk 없음.
+    → ★전 verdict 유지 (격하 불요).
+
+
 
 # ============================================================================
 # ★main 12축 audit tier verdict (2026-05-31, hard-fail 0, bit-identical 재현 PASS)
