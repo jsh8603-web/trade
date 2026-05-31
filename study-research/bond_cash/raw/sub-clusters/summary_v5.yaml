@@ -43,7 +43,11 @@ kim_wright_vs_acm:
     → ACM revised PIT 한계는 KW cross-check 로 부분 완화되나 ★완전 제거 아님 (KW 도 추정 모델).
     Phase 7 driver = ACM_TP10_d20 + KW_TP10_d20 ★병기(둘 중 한 모델 의존 회피), corr_prior 진입 시
     두 series 일치 구간만 sign-prior 신뢰 상향.
-  audit_D_status: "부분 해소 — ACM 단독 lookahead 의존 완화. 단 monthly publish lag forward-shift 는 여전히 TODO(P1)."
+  audit_D_status: |
+    부분 해소 — ACM 단독 lookahead 의존 완화. ★audit v5(2026-06-01) 정정: ACM·KW 둘 다 FRED/NYFed
+    daily series(median gap 1일) = "monthly publish lag" 표현 부정확. 실제 PIT 잔여 = revision lag
+    (single-vintage revised series, ALFRED real-time vintage 미적용). magnitude freeze + sign-prior only
+    구조라 revision lookahead 가 alpha 박제로 이어지지 않아 hard 아님(P1 정확성 보강).
 
 # ============================================================
 # ★ P0-1 — walk-forward regime classifier (audit C축 해소)
@@ -114,7 +118,7 @@ phase7_entry:
 # 미해결 잔여 (H축, Phase 7 이후)
 # ============================================================
 unresolved_v5:
-  - {priority: P1, item: "ACM/KW monthly publish lag 1-month forward-shift PIT 정합", rationale: "D축 완전 해소 잔여"}
+  - {priority: P1, item: "ACM/KW revision-PIT 정합 (ALFRED real-time vintage 적용)", rationale: "D축 완전 해소 잔여 — daily series 이나 single-vintage revised, revision lookahead 잔존"}
   - {priority: P1, item: "TIPS sub-cluster DFII10 + T5YIE driver 추가", rationale: "H축 TIPS 핵심 driver 결락 (v4 상속)"}
   - {priority: P1, item: "BAMLH0A0HYM2 1996-2023 historical (ICE 라이센스) — HYG credit driver 등급 정합", rationale: "BAA=IG vs HYG=HY mismatch (v4 상속)"}
   - {priority: P2, item: "J축 ETF spread 차감 후 alpha 검증", rationale: "sign-prior only 단계라 hard 아님"}
@@ -137,3 +141,16 @@ self_report_12axis:
   K_multiple: "v4 BH-FDR q=0.10 on effective~84 = 0/105 reject 불변. walk-forward = 추가 OOS 검증층(보정 대상 아님)."
   L_integration: "통합 phase 시 credit/rate 공통인자 1회 계상 + PSD (phase7_entry.L_axis_integration_note)."
   ★audit_required: "별도 opus subagent 12축 audit 의무 (self-certify 금지, §5.5). raw parquet 재실행 + ADF + walk-forward 재현."
+
+# ============================================================
+# ★ 독립 12축 audit verdict (별도 opus subagent, 2026-06-01)
+# ============================================================
+main_audit_v5:
+  auditor: opus subagent (af6c34ec, raw parquet 직접 재계산)
+  evaluation_file: raw/evaluation-bond_cash-v5-audit-20260601.md
+  verdict: "★충실 (hard-fail 코어 4 = 0)"
+  reproduction: "KW vs ACM corr 0.8597/d20 0.7241/mean_diff 0.2553 + n=4814 + HYG 4 regime IS/OOS 부호반전 + sign-prior eligible 7 cluster 전부 exact 재현. 합성 지문 0(2020-03 HYG -5.5%/2022 TLT -29.4%/kurtosis 42.99 실재)."
+  hard_fail: "B PASS(실panel n=4814 합성0 차분 stationary) / C PASS(yaml↔raw ±0% 매직넘버0) / D 부분(hard아님, revision-PIT) / I PASS(universe 7+대체8 ETF PIT). hard-fail 0건."
+  validated_alpha_disguise: "없음 — 전 7 sub-cluster validated_alpha=false/structural_prior_low_confidence 일관. over-claim·환각 미발견."
+  register_eligible: true  # register(require_raw=True) 가능
+  v4_P0_remediation_confirmed: "C(regime in-sample artifact)+D(ACM lookahead) 실측 정직 해소 확인"
