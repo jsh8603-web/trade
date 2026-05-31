@@ -1,0 +1,78 @@
+ETF window: 2021-12-01 -> 2024-12-31 n=775
+Macro window: 2021-12-01 -> 2024-12-04 n=757
+
+==============================================================================
+§1. Epoch decomposition — cyclical sleeve mean ret & vol
+==============================================================================
+epoch                    period                    days   cyc_ann   def_ann  excess_ann   vol_cyc  sharpe_cyc
+E1_tightening_shock      2022-01-01 ~ 2022-09-30   188  -24.29%  -13.50%    -12.43%  +25.55%      -1.11
+E2_transition_rally      2022-10-01 ~ 2023-06-30   187  +38.73%  +12.23%    +23.65%  +21.25%      +1.63
+E3_rate_re_rise          2023-07-01 ~ 2023-10-31    85  -16.72%  -19.70%     +3.14%  +12.96%      -1.60
+E4_pivot_cuts            2023-11-01 ~ 2024-12-31   293  +28.72%  +18.43%     +8.27%  +14.13%      +1.75
+
+  Per-sector annualized return by epoch:
+epoch                    XLY     XLI     XLB     XLE     XLF    SOXX     XLP     XLU     XLV
+E1_tightening_shock   -37.9%  -26.8%  -30.4%  +47.9%  -27.2%  -50.4%  -15.6%   -8.6%  -17.1% 
+E2_transition_rally   +28.1%  +44.2%  +33.3%  +22.2%  +17.6%  +88.7%  +18.3%   +3.1%  +15.0% 
+E3_rate_re_rise       -27.5%  -21.8%  -21.3%  +18.0%  -10.2%  -32.6%  -21.6%  -22.0%  -16.2% 
+E4_pivot_cuts         +40.9%  +30.8%  +11.4%   +4.2%  +43.7%  +39.6%  +17.0%  +27.0%  +10.8% 
+
+==============================================================================
+§2. Driver loading: r_sleeve ~ Δus10y + r_dxy + r_oil (full + epoch)
+==============================================================================
+  joined daily n=756
+
+  Full sample (2021-12 ~ 2024-12, n=756):
+    cyclical sleeve    α=+0.156 β_us10y=+1.762/bp·100 β_dxy=-1.051 β_oil=+0.083  R²=0.188
+    defensive          α=+0.122 β_us10y=-1.465/bp·100 β_dxy=-0.488 β_oil=-0.003  R²=0.118
+    excess             α=+0.034 β_us10y=+3.227/bp·100 β_dxy=-0.563 β_oil=+0.086  R²=0.147
+
+  Per-sector loading (cross-asset driver):
+  sector     β_us10y      β_dxy      β_oil      R²
+  XLY        +0.0022    -1.1163    -0.0063   0.105
+  XLI        +0.0102    -0.8093    +0.0318   0.120
+  XLB        +0.0093    -1.1783    +0.0500   0.215
+  XLE        +0.0264    -0.5779    +0.4064   0.406
+  XLF        +0.0296    -1.0014    +0.0107   0.134
+  SOXX       +0.0281    -1.6219    +0.0074   0.097
+  XLP        -0.0046    -0.5134    -0.0177   0.091
+  XLU        -0.0354    -0.3988    +0.0229   0.105
+  XLV        -0.0039    -0.5527    -0.0129   0.091
+
+  Epoch-conditional cyclical sleeve loading (★국면조건부):
+  epoch                        n    β_us10y      β_dxy      β_oil      R²
+  E1_tightening_shock        188    +0.0143    -1.3387    +0.0584   0.212
+  E2_transition_rally        187    +0.0310    -1.1223    +0.1193   0.293
+  E3_rate_re_rise             85    -0.0274    -0.4009    +0.0472   0.131
+  E4_pivot_cuts              275    +0.0040    -0.5095    +0.0737   0.070
+
+==============================================================================
+§3. cross-asset vs within-sleeve corr (L축 caveat)
+==============================================================================
+  within-cyclical-sleeve pairwise corr matrix:
+       XLY   XLI   XLB   XLE   XLF  SOXX
+XLY   1.00  0.75  0.69  0.28  0.70  0.75
+XLI   0.75  1.00  0.86  0.49  0.84  0.67
+XLB   0.69  0.86  1.00  0.51  0.79  0.63
+XLE   0.28  0.49  0.51  1.00  0.48  0.26
+XLF   0.70  0.84  0.79  0.48  1.00  0.56
+SOXX  0.75  0.67  0.63  0.26  0.56  1.00
+
+  mean off-diagonal corr (within-cyclical sleeve) = 0.617
+  cyclical-defensive mean pairwise corr = 0.465
+
+  per-sector vs macro driver (rank-IC):
+  sector     d_us10y      r_dxy      r_oil
+  XLY         -0.114     -0.298     +0.045
+  XLI         -0.064     -0.322     +0.106
+  XLB         -0.090     -0.400     +0.176
+  XLE         +0.124     -0.156     +0.602
+  XLF         +0.007     -0.304     +0.111
+  SOXX        -0.036     -0.279     +0.075
+  XLP         -0.174     -0.272     -0.045
+  XLU         -0.237     -0.216     +0.008
+  XLV         -0.141     -0.277     -0.016
+
+  ★Kish design eff_N (within cyclical sleeve) = 6/(1+(N-1)·0.617) = 1.47
+
+Saved D:\projects\Inv\study-research\eq_us_cyclical\raw/m3-metrics.json

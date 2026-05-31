@@ -1,0 +1,141 @@
+{
+  "study_id": "eq_us_cyclical",
+  "phase": "industry-regime-delta-matrix",
+  "date": "2026-05-31",
+  "session": "btn-common-task",
+  "source": "raw/m3-findings.md + raw/m3_analysis.py + raw/m3-metrics.json (재계산 추적 가능)",
+  "frame": {
+    "period": "2021-12 ~ 2024-12",
+    "n_daily": 756,
+    "epochs": ["E1_tightening_shock", "E2_transition_rally", "E3_rate_re_rise", "E4_pivot_cuts"],
+    "epoch_n_daily": { "E1": 188, "E2": 187, "E3": 85, "E4": 275 },
+    "sleeve_sharpe": { "E1": -1.11, "E2": 1.63, "E3": -1.60, "E4": 1.75 }
+  },
+  "formula": {
+    "intent": "direction-aware (B 안)",
+    "formula": "point = ann_return / 100, clipped to clip_range",
+    "deprecated_A": "ann_return × sign(Sharpe_cyc) / 100  -- XLE anti-cyclical 본성 정 반대 표현으로 폐기",
+    "clip_range_default": [-0.15, 0.15]
+  },
+  "ann_return_pct": {
+    "E1": { "semi": -50.4, "materials": -30.4, "industrials": -26.8, "energy":  47.9 },
+    "E2": { "semi":  88.7, "materials":  33.3, "industrials":  44.2, "energy":  22.2 },
+    "E3": { "semi": -32.6, "materials": -21.3, "industrials": -21.8, "energy":  18.0 },
+    "E4": { "semi":  39.6, "materials":  11.4, "industrials":  30.8, "energy":   4.2 }
+  },
+  "delta_regime_unclipped": {
+    "_note": "B 안 (direction-aware) = ann_ret/100. magnitude 전수 보존 (transparency)",
+    "E1": { "semi": -0.504, "materials": -0.304, "industrials": -0.268, "energy":  0.479 },
+    "E2": { "semi":  0.887, "materials":  0.333, "industrials":  0.442, "energy":  0.222 },
+    "E3": { "semi": -0.326, "materials": -0.213, "industrials": -0.218, "energy":  0.180 },
+    "E4": { "semi":  0.396, "materials":  0.114, "industrials":  0.308, "energy":  0.042 }
+  },
+  "delta_regime_clipped_B": {
+    "_note": "B 안, clip [-0.15, +0.15]. R15 weight_card 입력 candidate",
+    "E1": { "semi": -0.150, "materials": -0.150, "industrials": -0.150, "energy":  0.150 },
+    "E2": { "semi":  0.150, "materials":  0.150, "industrials":  0.150, "energy":  0.150 },
+    "E3": { "semi": -0.150, "materials": -0.150, "industrials": -0.150, "energy":  0.150 },
+    "E4": { "semi":  0.150, "materials":  0.114, "industrials":  0.150, "energy":  0.042 }
+  },
+  "ci_heuristic_95pct": {
+    "_note": "Gaussian = ±vol_cyc/√n × 1.96 / 100. 정확 stationary bootstrap = Verify stage 의무",
+    "E1": { "vol_cyc_pct": 25.6, "se_pct_x196": 3.66, "ci_half": 0.0366 },
+    "E2": { "vol_cyc_pct": 21.3, "se_pct_x196": 3.05, "ci_half": 0.0305 },
+    "E3": { "vol_cyc_pct": 13.0, "se_pct_x196": 2.76, "ci_half": 0.0276 },
+    "E4": { "vol_cyc_pct": 14.1, "se_pct_x196": 1.67, "ci_half": 0.0167 }
+  },
+  "saturation_matrix": {
+    "_note": "14/16 cells = clip boundary (87.5%). 2 cells (XLB E4, XLE E4) 만 magnitude 보존",
+    "clipped_count": 14,
+    "magnitude_preserved_count": 2,
+    "preserved_cells": [
+      { "industry": "materials", "epoch": "E4", "value": 0.114 },
+      { "industry": "energy",    "epoch": "E4", "value": 0.042 }
+    ]
+  },
+  "james_stein_lambda": {
+    "_note": "sleeve 통합 vs sub-sleeve 분리. 결과 = 산업 간 이질성 커서 shrinkage 미적용 권고",
+    "sleeve_4_industry": { "E1": 1.00, "E2": 1.00, "E3": 1.00, "E4": 1.00 },
+    "sub_sleeve_3_industry_XLE_excluded": { "E1": 0.97, "E2": 1.00, "E3": 0.93, "E4": 0.99 },
+    "between_industry_variance_unclipped": {
+      "E1": 0.166, "E2": 0.072, "E3": 0.045, "E4": 0.025
+    },
+    "within_cell_variance_SE2_mean": {
+      "E1": 3.49e-4, "E2": 2.43e-4, "E3": 1.99e-4, "E4": 7.23e-5
+    },
+    "recommendation": "XLE 별도 sub-sleeve + SOXX 별도 (cycle amplifier) + cyclical_core (XLI/XLB) 만 James-Stein 적용"
+  },
+  "gates_pass_count": {
+    "semi":        { "G1": "PASS", "G2": "PARTIAL", "G3": "DEFERRED", "G4": "PASS", "G5": "PASS", "count": 3 },
+    "materials":   { "G1": "PASS", "G2": "PARTIAL", "G3": "DEFERRED", "G4": "PASS", "G5": "PASS", "count": 3 },
+    "industrials": { "G1": "PASS", "G2": "PASS_heuristic", "G3": "DEFERRED", "G4": "PASS", "G5": "PASS", "count": 4 },
+    "energy_B":    { "G1": "PASS", "G2": "PARTIAL", "G3": "DEFERRED", "G4": "PASS", "G5": "PASS", "count": 3, "note": "B 안 한정 G5 PASS. A 안 채택 시 G5 FAIL → count 2" }
+  },
+  "audit_12_axis_status": {
+    "_note": "AUDIT-GUIDE.md §1 12축. study = audit-ready 산출, formal audit 실행은 main",
+    "A_theory":       "PASS (4 산업 도메인 + 역사적 epoch 사례)",
+    "B_real_data":    "PASS (M3 raw 실측, 합성 無)",
+    "C_yaml_trace":   "PENDING (yaml v3 미작성, R15 보강안 명시)",
+    "D_PIT":          "PARTIAL (sleeve 평균 PIT 정합, ALFRED us10y vintage 미적용)",
+    "E_consult":      "PASS (자문 R2 이중계상 회피, 환각 risk 없음)",
+    "F_falsifier":    "PASS (XLB E4 underperform, semi E4 R²=0.070 명시. 기각 0건은 후보 식별 phase 정당화)",
+    "G_effective_N":  "PASS (Kish 1.47 명시, structural prior 라벨)",
+    "H_unresolved":   "PASS (각 §7 + synthesis §8 12 항목)",
+    "I_data_integrity": "PASS (ETF level, 본 frame 한정 survivor bias 작음)",
+    "J_economic":     "DEFERRED (regime weight candidate, alpha 주장 X)",
+    "K_multiple":     "DEFERRED (Verify stage 16 cell Bonferroni/FDR)",
+    "L_corr_integrity": "PASS (within-cyclical corr 매트릭스 사용, 거시 numeric 직접 X 로 cross-sleeve 중복 risk 없음)",
+    "hard_fail_check": {
+      "B": "PASS",
+      "C": "PENDING (yaml 미작성)",
+      "D": "PARTIAL (ALFRED 미적용)",
+      "I": "PASS"
+    }
+  },
+  "delta_arch_candidates": {
+    "immediately_available": {
+      "semi": ["book_to_bill_ratio", "dram_contract_asp"],
+      "materials": ["lme_copper_aluminum_zinc", "fertilizer_pk_spot", "rare_earth_lithium"],
+      "industrials": [],
+      "energy": ["opec_compliance_spare_capacity", "us_shale_production", "rig_count_bkr", "crack_spread"]
+    },
+    "deferred_edgar": {
+      "semi": ["inventory_days", "rnd_to_revenue", "forward_eps_revision_breadth", "gross_margin"],
+      "materials": ["gross_margin_trend_sub_mix", "capex_to_revenue_mining_chem", "inventory_turnover"],
+      "industrials": ["backlog_to_revenue", "capex_to_revenue", "operating_leverage", "segment_mix"],
+      "energy": ["reserves_to_production", "breakeven_price", "integrated_downstream_margin"]
+    },
+    "forbidden_in_arch": ["dollar_dxy", "oil_wti_brent", "ism_pmi", "us10y", "china_pmi", "global_demand"],
+    "total_candidates": 23,
+    "immediately_available_count": 9,
+    "deferred_count": 14
+  },
+  "sub_sleeve_recommendation": {
+    "cyclical_core":     { "members": ["industrials", "materials"], "shrinkage": "james_stein", "clip_range": [-0.15, 0.15] },
+    "cyclical_amplifier": { "members": ["semi"], "shrinkage": "none", "clip_range": [-0.30, 0.30], "rationale": "cycle amplifier (β_to_sleeve ~1.5)" },
+    "cyclical_oil_hedge": { "members": ["energy"], "shrinkage": "none", "clip_range": [-0.30, 0.30], "rationale": "anti-cyclical hedge, sleeve_mean shrinkage 시 신호 손실" }
+  },
+  "key_findings": [
+    "공식 의도 = direction-aware (B 안). XLE anti-cyclical 본성에서 결정. main 합의 의무.",
+    "XLE 별도 sub-sleeve treatment 의무. cyclical 일괄 처리 시 anti-cyclical hedge 신호 손실.",
+    "clip [-0.15, +0.15] saturation 14/16 cells (87.5%). 산업×regime swing 폭에 좁다.",
+    "G3 James-Stein λ ≈ 1.0. 산업 간 이질성 큼 → shrinkage 미적용 권고 (XLE/SOXX 분리).",
+    "δ_arch 후보 23 종 (즉시 가용 9 + EDGAR deferred 14).",
+    "12축 audit-ready (B/I PASS, C pending, D partial, E~L 정상). hard-fail risk 없음."
+  ],
+  "unresolved_for_main_consult": [
+    "spec 공식 의도 확정 (direction-aware B 안 채택 권고 — main 합의 의무, ★★최우선)",
+    "clip 범위 옵션 (A 확장 / B 산업별 / C 별도 channel — synthesis 권고 = C)",
+    "XLE / SOXX sub-sleeve 분리 구현 방식 (composed_weights 안 별도 sub-sleeve key 또는 별도 sleeve allocation key)",
+    "R15.5 의 δ_arch 후보 23 종 등록 결정 + collector 적재 우선순위",
+    "Verify stage (stationary bootstrap + Bonferroni + leave-one-epoch-out OOS) 의 실행 시점/주체",
+    "ALFRED us10y vintage 적용 (D 축 보강) — main 인프라 도착 시점",
+    "장기 frame 확장 (GFC/COVID/shale revolution) δ_regime robustness 재검증 계획"
+  ],
+  "trust_tier_label": {
+    "_note": "G축 tier label (validated alpha vs structural prior)",
+    "current": "structural_prior_low_confidence",
+    "rationale": "frame 한정 (3년 4 epoch), n<30 monthly 환산 (E3), 정확 bootstrap CI 미산출, EDGAR 펀더멘털 미적재. validated alpha 조건 (OOS Rank-IC>0.03 + t-stat>2.0 SE 보정) 미달."
+  },
+  "data_integrity_assertion": "⛔ 합성·시뮬 無. 모든 cell M3 실측 (raw/m3-findings.md + raw/m3_analysis.py) 재계산 추적 가능. CI heuristic = Gaussian (vol/√n×1.96). 정확 bootstrap = Verify stage 의무."
+}

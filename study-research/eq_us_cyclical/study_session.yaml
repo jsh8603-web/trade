@@ -1,0 +1,525 @@
+study_id: eq_us_cyclical
+asset_scope: [equity.us]
+as_of: "2026-05-31"
+version: v3
+basis_raw:
+  - raw/round-{1,2,3}-{question,gemini,claude}.md  # 자문 다회 (Gemini + Claude, 3R 수렴)
+  - raw/theory-notes.md                            # 이론 학습 (Damodaran/Chancellor/GZ/Grinold/Hamilton 6 최상위)
+  - raw/validation-H{3,4,5}.md + validation-H1-H6-deferred.md  # 실데이터 검증 (v2)
+  - raw/validation-metrics.json + run_validation.py + fred/*.csv + yfinance/sector_etf_close.csv
+  # ★v3 신규
+  - raw/m3-findings.md + m3-metrics.json + m3_analysis.py    # M3 거시연관 분석 (4 epoch × 산업 driver loading)
+  - raw/industry-{semi,materials,industrials,energy}-delta.md  # 4 산업 δ_regime/δ_arch 산출
+  - raw/industry-delta-synthesis.md + industry-delta-metrics.json  # 12축 audit-ready synthesis
+  - raw/long-frame-scenarioA.md + scenarioA_metrics.json + long_frame_scenarioA.py  # 24.8년 시나리오 A (Newey-West HAC + Bonferroni)
+  - raw/pit-vintage-prescan.md + long-frame-prescan.md  # ALFRED + 장기 frame 사전조사
+note: |
+  ★v3 = v2 핵심 보존 + main 합의 5건 반영 (2026-05-31 btn-Codlearn 회신).
+  - v2 (2026-05-30) = 17 indicators + 9 relationships + 12 weight_rules + 4단계 code_change_plan 보존.
+  - v3 신규 = industry × regime δ matrix (4 산업 × 4 epoch) + scenarioA long-frame β 비교 + collector 우선순위 갱신.
+  main 합의 5건 (synthesis §7 R15.1~R15.8 → yaml v3):
+    (1) 공식 의도 = direction-aware (B 안). XLE anti-cyclical 본성에서 A 안 (sign×Sharpe) 폐기.
+    (2) clip = 옵션 C 확정. cyclical_core (XLB/XLI) 만 R15 cap [-0.15, +0.15]. XLE/SOXX outlier = composed_weights 외 별도 sleeve allocation key.
+    (3) XLE/SOXX 별도 key = 점진 (코드폭 큼). v3 round = cyclical_core (XLB/XLI) δ_regime 만 활성, XLE/SOXX 별도 sleeve key = 후속 round (deferred).
+    (4) δ_arch 23종 등록 OK. collector 우선순위 = energy 4종 (즉시 가용) → materials → EDGAR → industrials 최후.
+    (5) Verify stage 주체 = main (G2 stationary bootstrap + G4 LOEO OOS + K Bonferroni + 산업 vol). 12축 audit subagent.
+  v2 H1/H6 DEFERRED + H3/H5 REJECT + H4 PARTIAL 보존. EDGAR 적재 후 재검증 의무.
+
+# ============================================================================
+# 블록1: LENS (정성 렌즈 — LLM 주입용)
+# ★가변: 블록5 flag 누적 → lens 갱신 경로. 본 v2 lens 는 이론 + 실검증 종합 후 보수화.
+# ============================================================================
+lens:
+  pricing_principle: >
+    P = M_norm × E_norm × C(regime, capital_cycle, credit_cycle).
+    M_norm = (1-g/ROE_norm)/(r_e-g) 펀더멘털만 (multiple-independent, H10 동어반복 차단).
+    g = min(ROE·(1-b), 명목 GDP 3.5-4%) Damodaran stable-growth cap. (r_e-g) ≥ 2% guardrail.
+    E_norm = mid-cycle EBIT margin × 추세매출 (사이클 성분 ↔ 구조 성분 분리, Damodaran).
+    경기민감주 = 매출(GDP/산업생산 탄력) + 영업레버리지(DOL) + 재무레버리지(DFL) 3중 증폭.
+    스팟 P/E는 trough 高 peak 低 (역방향 = peak_trap 본질) → 정상화 이익이 시스템 골격.
+  report_relations:
+    - "Capital Cycle (Chancellor): ROIC↑ → capex 가속 → 공급과잉 → 마진 붕괴 (lag 2-3년)"
+    - "Asset Growth Anomaly (Cooper-Gulen-Schill 2008 JF, Titman-Wei-Xie 2004 JFQA): 자산 성장 상위 ↔ fwd 음 IC (CMA 팩터)"
+    - "EBP (Gilchrist-Zakrajsek 2012 AER): TRACE+Merton DD 정공법 / 빈자판 = BAA10Y-AAA10Y 직교화"
+    - "Investment Clock (Greetham-Hartnett 2004): 가설 생성기로만, ground truth 금지"
+    - "Yield Curve Inversion (Estrella-Mishkin 1998): 10Y-2Y 역전 → 12-18M 후 침체 logit"
+    - "Grinold-Kahn IR = IC × √breadth × TC, breadth_eff = N/[1+(N-1)·ρ̄] (Choueifaty-Coignard 2008)"
+    - "QMJ (Asness-Frazzini-Pedersen 2019): trough/early-recovery 정크 랠리 → quality 교호항"
+    - "★실검증: ΔVIX 가 d_IG spread 보다 강한 동시 risk 공통원인 (VIX|IG IC=-0.343 / IG|VIX=-0.025)"
+  regime_reading: >
+    2국면(확장/수축) = testable layer (stat test power 확보, Fama-MacBeth + DK SE).
+    4국면(Reflation/Recovery/Overheat/Slowdown) = structured prior overlay (Bayesian shrinkage λ=τ²/(τ²+σ²/n)).
+    HMM = predicted prob P(S_t|y_{1:t-1}) = π_{t-1}·P (b(t) predictable 보존, mixture e-process supermartingale).
+    BOCD = break overlay만 (recurring 4국면 분류 불가).
+    룰베이스 BMA 주(primary) + filtered HMM 교차검증 + BOCD overlay 계층.
+    ★실검증: 매크로 → cyclical-defensive excess return lead-lag 신호 매우 약함 (IC < 0.10 at 316M).
+    Lead alpha 부재, contemporaneous risk-on/off 채널이 dominant.
+  estimation_note: >
+    2026-05 추정: 2024-Q4 커브 역전 해소 + ISM 50 회복 시도 → mid-cycle 진입 추정(확신도 중).
+    ★v2 검증 후 자기확신 축소:
+    (1) v1 IC=+0.658 = 합성 DGP 직접 인코딩 또는 look-ahead 강한 신호. 실 26년 sector ETF 검증
+        에서 ISM/EBP/rate 단순 lead-lag IC 모두 0.10 미만. 대폭 shrink 각오.
+    (2) H4 부분 통과: ΔVIX → cyclical-defensive excess 동시 IC=-0.378 매우 유의 (단 lead 부재 → contemp risk-off beta).
+    (3) H3·H5 reject (현 검증 단계): 종속 재정의·종목 단위 EDGAR 적재 후 재검증 필요.
+    (4) H1·H6 backbone 미검증 = 시스템 골격 핵심이 미입증 상태. EDGAR + Damodaran ERP 적재 1순위.
+    ⚠️ 본 lens는 backbone H1·H6 적재·재검증 시점에 큰 폭 갱신될 것 (블록5 hook 라이브 갱신 경로).
+
+# ============================================================================
+# 블록2: INDICATORS (정량 지표 — 우리 시스템 자료로 귀결)
+# ★v2: 정상화 ROE, fair_mult Band, EBP residual, VIX 추가. peak_trap floor_by_regime 추가.
+# ============================================================================
+indicators:
+  # --- §6 코어셋 (통일 하드룰) — Damodaran 정상화 ★ ---
+  - {id: fwd_ep_normalized, family: valuation, is_core: true, in_our_system: false,
+     source_or_collector: "EDGAR 7-10년 ROE 평균 + Damodaran implied ERP + bottom-up beta + GDP cap g → fair_mult Band Monte Carlo (★블록6 collector 1순위)",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 1}
+  - {id: roe_margin_trend, family: quality, is_core: true, in_our_system: false,
+     source_or_collector: "EDGAR 분기 ROE·영업마진 추세 (★블록6)", transform: yoy, vintage_policy: point_in_time, lag: 1}
+  - {id: earnings_revision_breadth, family: revision, is_core: true, in_our_system: false,
+     source_or_collector: "FINNHUB 무료티어 또는 EDGAR 8-K 가이던스 (★블록6)", transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  - {id: fwd_eps_momentum, family: revision, is_core: true, in_our_system: false,
+     source_or_collector: "EDGAR fwd EPS 변화율 (★블록6)", transform: yoy, vintage_policy: point_in_time, lag: 1}
+  - {id: price_mom_12_1, family: momentum, is_core: true, in_our_system: true,
+     source_or_collector: "가격 시계열(12M-1M). ★합성 패널 IC +0.054 약함, 일반화 보류, multi-sector 재측정", transform: rank, vintage_policy: point_in_time, lag: 0}
+  - {id: rate_beta, family: macro_sensitivity, is_core: true, in_our_system: true,
+     source_or_collector: "종목수익률 vs DGS10 일별 회귀. ★실검증: 섹터 단위에선 모든 β>0 (name-specific 미입증)", transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: dollar_beta, family: macro_sensitivity, is_core: true, in_our_system: true,
+     source_or_collector: "종목수익률 vs DTWEXBGS 회귀", transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: oil_beta, family: macro_sensitivity, is_core: true, in_our_system: true,
+     source_or_collector: "종목수익률 vs WTI 회귀", transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: credit_beta, family: macro_sensitivity, is_core: true, in_our_system: true,
+     source_or_collector: "종목수익률 vs BAA10Y-AAA10Y spread (★빈자 EBP proxy)", transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: realized_vol, family: risk, is_core: true, in_our_system: true,
+     source_or_collector: "60D 실현변동성", transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  # --- ★v2 신규 / 변경 ---
+  - {id: vix_beta, family: macro_sensitivity, is_core: false, in_our_system: true,
+     source_or_collector: "종목수익률 vs ΔVIX 일별. ★실검증 가장 강한 동시 risk 공통원인 (cyclical excess 동시 IC=-0.378 매우 유의)", transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: ebp_residual, family: macro_driver, is_core: false, in_our_system: false,
+     source_or_collector: "GZ 정공법(TRACE+Merton DD) 자체산출 → 부재 시 BAA10Y-AAA10Y 빈자판 (★블록6)", transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  - {id: yield_curve_10y_2y, family: macro_driver, is_core: false, in_our_system: true,
+     source_or_collector: "FRED T10Y2Y. Estrella-Mishkin 1998 침체 선행", transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: asset_growth_yoy, family: quality, is_core: false, in_our_system: false,
+     source_or_collector: "EDGAR 총자산 yoy (Cooper-Gulen-Schill 2008 CMA). 음부호. ★블록6", transform: yoy, vintage_policy: point_in_time, lag: 1}
+  - {id: capex_to_rev, family: quality, is_core: false, in_our_system: false,
+     source_or_collector: "EDGAR capex/매출 (Capital Cycle Theory, Chancellor). 음신호. ★블록6", transform: own_history_z, vintage_policy: point_in_time, lag: 1}
+  - {id: operating_leverage_nm, family: quality, is_core: false, in_our_system: false,
+     source_or_collector: "Novy-Marx 2011 = fixed_costs/book_assets (gross_margin proxy IC +0.084 약함 → 정밀 측정 필요). ★블록6", transform: own_history_z, vintage_policy: point_in_time, lag: 1}
+  - {id: ism_pmi_proxy, family: macro_driver, is_core: false, in_our_system: true,
+     source_or_collector: "★실검증 lead-lag IC<0.10 약함. AMTMNO/CFNAI SOI/AMTMNO-BUSINV 적재됨. 종속 재정의(섹터 단독·revision breadth) 후 재검증", transform: own_history_z, vintage_policy: point_in_time, lag: 1}
+
+# ============================================================================
+# 블록3: RELATIONSHIPS (관계 가설 — glasso prior, partial-corr)
+# ★v2 검증 반영: prior_strength 조정, conditioning_set 강화, VIX 노드 추가.
+# ============================================================================
+relationships:
+  # ★실검증 통과 (동시 효과 강함)
+  - {node_a: vix_beta, node_b: credit_beta, edge_type: common_cause,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.7,
+     theory_basis: "★실검증 IC d_VIX vs d_IG_spread: 둘 다 risk shock 공통원인 (VIX 흡수 채널, IG|VIX partial -0.025)"}
+  - {node_a: vix_beta, node_b: realized_vol, edge_type: direct,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.6,
+     theory_basis: "VIX 상승 = 실현변동성 동시 상승, risk-off 채널"}
+  # ★실검증 약화 (lead 부재, contemp만 유효)
+  - {node_a: credit_beta, node_b: realized_vol, edge_type: direct,
+     conditioning_set: [vix_beta], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.35,
+     theory_basis: "리스크오프 동시 동조. VIX 통제 시 partial 약화 (★실검증 d_IG|d_VIX partial=-0.025), VIX 노드 conditioning 필수"}
+  # ★실검증 lead 부재로 prior 대폭 하향
+  - {node_a: ism_pmi_proxy, node_b: fwd_eps_momentum, edge_type: undetermined,
+     conditioning_set: [yield_curve_10y_2y, ebp_residual], lag_routing: lagged, prior_sign: pos, prior_strength: 0.2,
+     theory_basis: "★실검증 cyclical-defensive excess 선행성 미입증(IC<0.10 at 316M). 종속 재정의 시 재검증. prior 0.6→0.2 대폭 하향"}
+  - {node_a: ebp_residual, node_b: fwd_eps_momentum, edge_type: undetermined,
+     conditioning_set: [vix_beta], lag_routing: lagged, prior_sign: neg, prior_strength: 0.25,
+     theory_basis: "★실검증 빈자 EBP lead 부재(k≥1 IC<0.05). GZ 정공법 적재 후 재검증. VIX 흡수 채널"}
+  # ★합성 패널 검증 후 prior 하향
+  - {node_a: operating_leverage_nm, node_b: fwd_eps_momentum, edge_type: undetermined,
+     conditioning_set: [ism_pmi_proxy, capex_to_rev], lag_routing: lagged, prior_sign: pos, prior_strength: 0.3,
+     theory_basis: "★합성 검증(proxy=gross_margin) IC +0.084 약함, book_to_bill 조건화 partial -0.013. Novy-Marx 정밀 proxy 적재 후 재검증"}
+  # 보류 — H1·H6 검증 후 prior 결정
+  - {node_a: rate_beta, node_b: fwd_ep_normalized, edge_type: undetermined,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: unsigned, prior_strength: 0.2,
+     theory_basis: "★실검증 H5 sign 분리 미입증 (모든 섹터 β>0). 종목 단위 EDGAR 적재 + rate-shock vs risk-on 분리 후 재검증"}
+  # 검증 통과 (Capital Cycle / CMA)
+  - {node_a: asset_growth_yoy, node_b: fwd_eps_momentum, edge_type: direct,
+     conditioning_set: [], lag_routing: lagged, prior_sign: neg, prior_strength: 0.6,
+     theory_basis: "Cooper-Gulen-Schill 2008 JF Asset Growth Anomaly, Capital Cycle 학술 정본. multi-sector OOS IC 검증 대기"}
+  - {node_a: capex_to_rev, node_b: fwd_eps_momentum, edge_type: direct,
+     conditioning_set: [asset_growth_yoy], lag_routing: lagged, prior_sign: neg, prior_strength: 0.55,
+     theory_basis: "Chancellor Capital Cycle: capex 과열 → 6-12M 후 마진 압박. AG 조건화 후 partial 측정"}
+
+# ============================================================================
+# 블록4: WEIGHT_RULES (★v2: 실검증 통과 신호 우선 + DEFERRED prior 약화 + peak_trap floor_by_regime)
+# ============================================================================
+weight_rules:
+  # ★실검증 PARTIAL — 동시 risk channel
+  - {indicator_id: vix_beta, base_weight: 0.18, modulate_by: [regime],
+     direction: "★실검증 가장 강한 동시 risk 공통원인. Slowdown/스트레스 국면 → vix_beta 가중↑ (방어 강화)", granularity: sleeve}
+  - {indicator_id: credit_beta, base_weight: 0.08, modulate_by: [regime],
+     direction: "★실검증 VIX 흡수 채널 (partial 약함) → base 0.10→0.08 하향. Slowdown 가중 유지", granularity: industry}
+  - {indicator_id: realized_vol, base_weight: 0.08, modulate_by: [regime],
+     direction: "Slowdown → 가중↑, 저변동 선호 방어", granularity: sleeve}
+  # ★Backbone — H1·H6 DEFERRED, 적재 후 핵심
+  - {indicator_id: fwd_ep_normalized, base_weight: 0.30, modulate_by: [regime, industry],
+     direction: "★최우선 알파 (DEFERRED 검증). Damodaran 정상화 마진 + Gordon fair_mult Band. trough → valuation 가중 추가↑ (peak_trap 차단). EDGAR 적재 후 활성", granularity: industry}
+  - {indicator_id: roe_margin_trend, base_weight: 0.10, modulate_by: [regime, industry],
+     direction: "Damodaran 정상화 인풋 + QMJ quality 교호항. EDGAR 적재 후", granularity: industry}
+  # ★실검증 약함 → base 대폭 하향
+  - {indicator_id: price_mom_12_1, base_weight: 0.06, modulate_by: [regime],
+     direction: "★실검증 합성 IC +0.054 약함. multi-sector OOS 재측정 전 base 0.18→0.06. early-cycle만 가중↑", granularity: sleeve}
+  - {indicator_id: rate_beta, base_weight: 0.04, modulate_by: [regime, name_specific],
+     direction: "★실검증 H5 REJECT (모든 섹터 β>0). 종목 EDGAR 적재 + rate-shock 분리 전 base 0.12→0.04, name_specific 보류", granularity: ticker}
+  - {indicator_id: ism_pmi_proxy, base_weight: 0.04, modulate_by: [regime],
+     direction: "★실검증 H3 REJECT (lead IC<0.10). 종속 재정의(섹터 단독·revision breadth) 후 재진입 전 base 캡 0.04", granularity: sleeve}
+  # CMA / Capital Cycle (Capital Returns + Cooper-Gulen-Schill)
+  - {indicator_id: asset_growth_yoy, base_weight: 0.08, modulate_by: [regime, industry],
+     direction: "Asset Growth Anomaly 음부호. Overheat/late-cycle → 가중↑ (과잉투자 페널티)", granularity: industry}
+  - {indicator_id: capex_to_rev, base_weight: 0.04, modulate_by: [regime, industry],
+     direction: "Capital Cycle 보조. asset_growth와 condition 후 잔차 적용. cap 0.06", granularity: industry}
+  - {indicator_id: operating_leverage_nm, base_weight: 0.04, modulate_by: [regime, industry],
+     direction: "Novy-Marx 정밀 proxy 후 활성. Recovery 초입 → high-DOL 가중↑. cap 0.06", granularity: industry}
+  # ★Peak_trap mechanism — DEFERRED H6 검증 후 활성
+  - {indicator_id: fwd_ep_normalized, base_weight: 0.0, modulate_by: [regime],
+     direction: "★H6 peak_trap 차단: peak regime → weight_card.floor 상향(deadzone 확대) = 신규진입 차단. floor_by_regime dict 확장 (블록7 weight_card)", granularity: sleeve}
+
+# ============================================================================
+# 블록5: CONFIDENCE_HOOKS (★코드 실구현 매핑 + 라이브 갱신 경로)
+# ============================================================================
+confidence_hooks:
+  - hypothesis_id: vix_credit_common_risk_factor   # H4 (PARTIAL 통과 부분)
+    confirm_signal: "Slowdown 진입 시 vix_beta + credit_beta 가중 카드의 outcome 손실 방어(Rank-IC 양 유지)"
+    reject_signal: "vix_beta 동시 IC가 baseline(예: -0.20) 위로 e-CUSUM 단측 붕괴 (효과 사라짐)"
+    emit_where: "judge 사후평가 매 청산 + backtest engine SELL outcome regime 분해"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    confidence_metric: "regime contemp IC e-process (Driscoll-Kraay SE × Politis-Romano block bootstrap 교차)"
+    store: "registry 카드 confidence_now + RulePerformance"
+    action_threshold: "동시 IC 붕괴 → vix_beta·credit_beta base 하향 / VIX|IG partial 회복 → IG 노드 복권"
+    feeds_weight: "route_lifecycle SECONDARY → derive_weights 재적합"
+  - hypothesis_id: ism_pmi_lead_redefinition     # H3 (REJECT, 재진입 hook)
+    confirm_signal: "종속 = sector 단독 (예: XLI revision breadth) 으로 재정의 후 lead-lag IC >= 0.15"
+    reject_signal: "종속 재정의 후에도 IC < 0.10 지속 (lead alpha 부재 확정)"
+    emit_where: "validation-* 재검증 스크립트 + backtest 종속 split"
+    accumulate_in: "Driscoll-Kraay panel HAC + block bootstrap"
+    confidence_metric: "Rank-IC + Newey-West q≥3 t-stat + 95% bootstrap CI"
+    store: "registry 카드 + sector-split metric"
+    action_threshold: "재정의 검증 통과 시 base 0.04 → 0.12 회복 / 실패 시 indicator 폐기"
+    feeds_weight: "프로토콜 재정의 검증 후 base_weight 활성"
+  - hypothesis_id: normalized_ep_trough_backbone   # H1 (DEFERRED, 적재 후 활성)
+    confirm_signal: "trough regime에서 정상화 E/P 최상위 분위 outcome Rank-IC ≥ +0.10 (Fama-MacBeth + DK SE 유의)"
+    reject_signal: "정상화 E/P가 스팟 E/P보다 OOS Rank-IC가 낮음 (정상화 무효) 또는 trough 프리미엄 t<2"
+    emit_where: "라이브 매수 outcome + backtest 분위 분해"
+    accumulate_in: "score_ic_breakdown_eprocess + Driscoll-Kraay panel"
+    confidence_metric: "Rank-IC e-process + Var(정상화 E/P)/Var(스팟 E/P) ratio (< 0.5 목표)"
+    store: "registry 카드 confidence_now + 정상화/스팟 비교 metric"
+    action_threshold: "통과 → fwd_ep_normalized base 활성 / 실패 → 스팟 E/P fallback + Damodaran 정상화 식 재조정"
+    feeds_weight: "raw/run_validation.py 확장 + EDGAR 적재 완료 시점 trigger"
+  - hypothesis_id: peak_trap_no_entry              # H6 (DEFERRED 검증, mechanism은 정의)
+    confirm_signal: "peak regime 진입 종목 outcome 평균 손실 OR 정상화 val_gap≈0 + revision breadth=0"
+    reject_signal: "peak entry 종목 outcome ≥ mid baseline (peak_trap 가설 무효)"
+    emit_where: "stock_track _apply_r15_sizing entry 시점 cycle_phase 체크"
+    accumulate_in: "regime 분해 outcome + Bayesian shrinkage(4국면 자동 강등)"
+    confidence_metric: "peak Win-Rate vs mid baseline + Bayesian posterior"
+    store: "weight_card.floor_by_regime dict + effective-DoF 필드"
+    action_threshold: "peak Win-Rate < 30% → floor 상향(deadzone 확대) / ≥50% → 완화"
+    feeds_weight: "weight_card.py floor_by_regime 확장(블록7 card 변경 항목)"
+  - hypothesis_id: capital_cycle_overcapex          # 신규 (Chancellor + CMA)
+    confirm_signal: "asset_growth_yoy 상위 분위 fwd 12M return 음 단조 (multi-sector)"
+    reject_signal: "반도체 밖에서 asset_growth → fwd IC ≥ 0 (CMA 미작동, 반도체 인공물 가능)"
+    emit_where: "backtest outcome decile spread + FF-style CMA 회귀"
+    accumulate_in: "Driscoll-Kraay panel + 분위 spread time-series"
+    confidence_metric: "long-short CMA spread Rank-IC e-process"
+    store: "registry 카드 confidence_now + spread metric"
+    action_threshold: "통과 → asset_growth + capex_to_rev base 유지 / 실패 → 반도체 한정 신호로 강등"
+    feeds_weight: "industry archetype delta_arch_by_type 보정"
+
+# ============================================================================
+# 블록6: COLLECTOR_PLAN — ★v3: main 합의 (4) 우선순위 갱신
+# v3 갱신: priority 0 (즉시 가용 9종) 추가 + ALFRED CFNAI 한정 우선순위 1.5 승격
+# v2 우선순위 1~4 (EDGAR/TRACE/FINNHUB/GICS) 유지
+# ============================================================================
+collector_plan:
+  # ★priority 0 — δ_arch 즉시 가용 9종 (EDGAR 적재 전 1차 충전)
+  # main 합의 (4) energy 4종 우선
+  - {missing: "rig count US (FRED BKRRIG 일별)", source: "FRED API", interface: VintageProvider, credential: FRED_API_KEY, priority: 0, delta_arch_target: energy}
+  - {missing: "US shale production (EIA 주간/월간)", source: "EIA API", interface: new, credential: EIA_API_KEY, priority: 0, delta_arch_target: energy}
+  - {missing: "OPEC+ compliance / spare capacity", source: "IEA monthly + OPEC 공식 부분", interface: new, credential: none, priority: 0, delta_arch_target: energy}
+  - {missing: "Crack spread (refining margin)", source: "CME futures + EIA 부분", interface: new, credential: none, priority: 0, delta_arch_target: energy}
+  - {missing: "SEMI book-to-bill ratio 월별", source: "SEMI 협회 공개", interface: new, credential: none, priority: 0, delta_arch_target: semi}
+  - {missing: "DRAM contract ASP", source: "DRAMeXchange/TrendForce 부분", interface: new, credential: none, priority: 0, delta_arch_target: semi}
+  - {missing: "LME 산업금속 (copper/aluminum/zinc) 일별", source: "LME public", interface: new, credential: none, priority: 0, delta_arch_target: materials}
+  - {missing: "농업 비료 P/K spot 가격", source: "USDA NASS + agritech 부분", interface: new, credential: none, priority: 0, delta_arch_target: materials}
+  - {missing: "rare earth / lithium 가격", source: "USGS + 부분 paid", interface: new, credential: none, priority: 0, delta_arch_target: materials}
+  # ★1순위 — Backbone H1·H6 적재 (v2 유지) + EDGAR 적재 시 δ_arch 14종 동시 진입
+  - {missing: "EDGAR 분기 펀더(10-Q 재무제표): ROE·영업마진·매출·총자산·capex·재고·backlog·segment·R&D·breakeven·reserves",
+     source: "edgar_provider.py 확장 (현 코드만, 실 적재 없음)",
+     interface: FundamentalsProvider, credential: none, priority: 1,
+     delta_arch_target: "semi(inventory_days/rnd_to_rev/gross_margin) + materials(margin_sub_mix/capex/turnover) + industrials(backlog/capex/op_leverage/segment_mix) + energy(reserves_to_production/breakeven/downstream_margin)"}
+  - {missing: "Damodaran implied ERP 월별 시계열", source: "NYU Stern Damodaran 데이터 페이지 (월간 CSV 갱신)", interface: VintageProvider, credential: none, priority: 1}
+  # ★1.5순위 (v3 승격) — H3 (CFNAI) 한정 ALFRED vintage (item6 사전조사 결과)
+  - {missing: "ALFRED vintage DB (CFNAI revision 보정, H3 재검증용)",
+     source: "FRED ALFRED API series/observations + realtime_start/end",
+     interface: VintageProvider, credential: FRED_API_KEY, priority: 1.5,
+     note: "★item6 사전조사 결과: M3 driver 3종 (us10y/dxy/oil) revision zero → ALFRED skip 가능. critical = CFNAI/NEWORDER/AMTMNO/BUSINV/DGORDER (5종 monthly). H3 재검증 즉시 진입."}
+  # 2순위 — H4 정공법
+  - {missing: "EBP GZ 정공법 = TRACE 채권 데이터 + issuer Merton DD + 채권 특성", source: "Favara/FEDS Notes (Fed) GZ 시리즈 부록 + TRACE", interface: VintageProvider, credential: TRACE_API_KEY, priority: 2}
+  # 3순위 — H8 (revision breadth)
+  - {missing: "컨센서스 earnings revision breadth", source: "FINNHUB 무료티어 또는 EDGAR 8-K 가이던스 파싱", interface: FundamentalsProvider, credential: FINNHUB_API_KEY, priority: 3}
+  # 4순위 — 추가 매크로
+  - {missing: "GICS 정확 섹터 분류 + ETF holdings", source: "FinanceDatabase(MIT) + XLY/XLI/XLB/XLE/XLF holdings", interface: new, credential: none, priority: 4}
+  - {missing: "FINNHUB forward EPS revision breadth (semi δ_arch)", source: "FactSet/IBES paid 또는 FINNHUB", interface: FundamentalsProvider, credential: FINNHUB_API_KEY, priority: 4, delta_arch_target: semi}
+
+# ============================================================================
+# 블록7: CODE_CHANGE_PLAN — ★4단계 정밀화 + v2 신규 변경 항목
+# ============================================================================
+code_change_plan:
+  # --- ① 학습 (learn) ---
+  - {stage: learn, file: core/data/weight_panel.py, symbol: build_indicator_matrix,
+     current: "VintageProvider.realtime PIT 행렬 + _REFLEXIVE_WORDS 게이트",
+     change: "★v2 indicators 17종 series_ids 등록 (fwd_ep_normalized·vix_beta·ebp_residual·asset_growth_yoy 등 신규). EDGAR vintage 적재 경로 추가",
+     risk: "series_ids 추가만 무회귀. 반사성 게이트 통과 self-test"}
+  - {stage: learn, file: scripts/train_weights.py, symbol: train_weight_cards,
+     current: "FRED 적재→panel→regime→GlassoWeightLearner→regime별 카드",
+     change: "domain='equity' scope='us_cyclical' 배치 추가. ★EDGAR 펀더 적재 함수 신규 (load_edgar_fundamentals_to_store). Damodaran ERP 월별 적재",
+     risk: "배치 추가 + EDGAR 신규 함수(opt-in). 라이브 미접촉"}
+  - {stage: learn, file: core/structure/conditional_correlation.py, symbol: "RegimeGlasso.fit / effective_precision",
+     current: "nonparanormal→EBIC glasso→EB shrink→regime별 Ω",
+     change: "★v2 블록3 partial-corr prior를 corr_prior 행렬 주입. 검증 통과 4 edge 강(asset_growth→fwd_eps neg, capex→fwd_eps neg, vix↔credit common_cause, vix→realized_vol direct) force-include. 약 edge(ism→eps, ebp→eps, rate→ep) prior_strength 0.2-0.25 hint only",
+     risk: "corr_prior opt-in 무회귀"}
+  # --- ② 규칙화 (card) ---
+  - {stage: card, file: core/assume/weight_card.py, symbol: "WeightAssumptionCard / composed_weights / floor",
+     current: "hierarchical pooling. soft archetype pi 혼합. floor 단일",
+     change: "(a) lens 정성필드(pricing_principle·report_relations·regime_reading) 추가 → judge lens_prompt. (b) ★floor_by_regime dict 확장 — peak regime floor 상향(deadzone 확대) = H6 peak_trap 차단 mechanism. (c) ★effective-DoF 필드 추가 — 4슬롯 delta_regime이 'OOS power 없으면 자동 2국면 붕괴' 명시 (Bayesian shrinkage λ=τ²/(τ²+σ²/n)). (d) fair_mult Band 산출(Damodaran 정상화 ROE+bottom-up beta+GDP cap g) 신규 모듈. (r-g)≥2% guardrail",
+     risk: "Optional 필드 추가 무회귀. frozen pin_hash에 lens·floor_by_regime·effective_dof 포함"}
+  - {stage: card, file: core/assume/registry.py, symbol: "AssumptionRegistry.register / get",
+     current: "id 규약 weight.equity.{regime} 조회 (stock_track _resolve_weight_card)",
+     change: "기존 id 유지 + composed_weights(pi) 보간(부록B). 종목 세분화는 archetype pi (early/mid/late cycle)로",
+     risk: "id 유지 = 무회귀. _resolve_weight_card 변경 없음"}
+  # --- ③ 주입 (inject) ---
+  - {stage: inject, file: core/stock_track.py, symbol: "_extract_indicator_z / _apply_r15_sizing / _resolve_weight_card",
+     current: "_extract_indicator_z: state.raw_external_data/raw_market_data 수치 feature 추출. _apply_r15_sizing: buy S_L1 + down-only 천장 불변식",
+     change: "v2 indicators(fwd_ep_normalized·vix_beta·ebp_residual·asset_growth_yoy) state 공급 채널 추가. 블록4 modulate_by(regime·industry) industry archetype pi 전달",
+     risk: "데이터 공급 중심 무회귀. 천장 불변식 보존"}
+  - {stage: inject, file: core/assume/judge.py, symbol: "_call_qwen_with_lens / synthesize_l1 / assert_ceiling_invariant",
+     current: "_qwen_accepts_lens 시그니처 검사 → lens=lens_prompt 주입 (기구현). synthesize_l1 + down-only",
+     change: "블록1 lens(pricing_principle·report_relations·regime_reading) → lens_prompt 문자열 조립 경로 추가. v2 보강 estimation_note(자기확신 축소)도 포함",
+     risk: "opt-in 무회귀. 천장 불변식 이미 보장"}
+  # --- ④ 해제 (falsify) ---
+  - {stage: falsify, file: core/assume/weight_falsification.py, symbol: score_ic_breakdown_eprocess,
+     current: "PRIMARY=score IC e-CUSUM 단측 / SECONDARY=Ω drift",
+     change: "★Driscoll-Kraay panel HAC × Politis-Romano stationary bootstrap 교차검증 모듈 추가. v2 검증 결과로 baseline_ic·sd 보수화 (실 IC<0.10 정상범위 인지)",
+     risk: "추가 self-test. e-process 폐형 보존(replay)"}
+  - {stage: falsify, file: core/assume/update_controller.py, symbol: "retract_now / UpdateController.step",
+     current: "RETRACT=disjunctive fast / ADOPT=conjunctive 5조건 AND",
+     change: "경기민감 dwell·K-window 파라미터 상향 (고변동 → false adopt 방지). 2국면 testable + 4국면 shrinkage 적용한 라이브 power 게이트",
+     risk: "파라미터 조정만 무회귀"}
+  - {stage: inject, file: core/brain/regime_to_weights.py, symbol: "SLEEVES / regime_to_weights",
+     current: "us_stock sleeve 기존재 (SLEEVE_BLOC[us_stock]=USD)",
+     change: "★신규 sleeve 불필요. us_cyclical = us_stock sub-panel. 종목 가중은 stock_track + composed_weights(pi)",
+     risk: "sleeve 미변경 무회귀"}
+  # --- ⑤ regime classifier (★v2 신규) ---
+  - {stage: inject, file: core/brain/regime_classifier.py, symbol: "RegimeClassifier",
+     current: "★Read 후 정밀화 필요 (1차 추정)",
+     change: "(a) predicted prob P(S_t|y_{1:t-1}) = π_{t-1}·P 산출 경로 추가 (b(t) predictable 보존). (b) 룰베이스 BMA(주) + filtered HMM(교차) + BOCD overlay 계층. (c) 입력 3-4개 절제(T10Y2Y + EBP/IG + ISM proxy + DTWEXBGS). (d) 2국면 testable + 4국면 shrinkage overlay",
+     risk: "신규 prob 산출 경로 추가 (filtered 기존 유지) + 점진 도입"}
+
+# ============================================================================
+# 블록8: INDUSTRY_REGIME_DELTA — ★v3 신규 (R15 weight_card 산업 layer 충전)
+# main 합의 5건 (2026-05-31 btn-Codlearn 회신) 반영
+# 산출 = synthesis §7 R15.1~R15.8 (raw/industry-delta-synthesis.md)
+# 추가 input = scenarioA long-frame 비교 (raw/long-frame-scenarioA.md)
+# ============================================================================
+industry_regime_delta:
+  formula:
+    intent: "direction-aware (B 안)"
+    formula: "point = epoch_ann_return / 100, clipped to clip_range"
+    deprecated_A: "ann_ret × sign(Sharpe_cyc) / 100 — XLE anti-cyclical 본성 정 반대 표현으로 폐기"
+    rationale: "synthesis §1.2 + scenarioA frame-conditional bias 비교. XLE β_dxy 부호 (-0.70 long-frame robust) sleeve 와 일치, direction-aware 적합"
+
+  clip_strategy:
+    main_decision: "옵션 C 확정"
+    cyclical_core:
+      members: [XLB, XLI]
+      clip_range: [-0.15, 0.15]
+      shrinkage: james_stein
+      status: "★v3 활성"
+    cyclical_amplifier:
+      members: [SOXX]
+      clip_range: [-0.30, 0.30]
+      shrinkage: none
+      status: "deferred (코드폭 큼) — 별도 sleeve allocation key 신설 후속 round"
+      rationale: "cycle amplifier (β_to_sleeve ~1.5), shrinkage 적용 시 신호 손실"
+    cyclical_oil_hedge:
+      members: [XLE]
+      clip_range: [-0.30, 0.30]
+      shrinkage: none
+      status: "deferred (코드폭 큼) — 별도 sleeve allocation key 신설 후속 round"
+      rationale: "anti-cyclical hedge (E1/E3 sleeve 부호 반대 outperform), sleeve_mean shrinkage 시 신호 손실"
+
+  delta_regime_matrix:
+    note: "★v3 round 활성 = cyclical_core (XLB/XLI) 만 R15 cap 반영. SOXX/XLE = deferred (별도 sleeve key)"
+    # B 안 (direction-aware), clip [-0.15, +0.15]
+    cyclical_core:
+      XLB:
+        E1_tightening_shock: -0.150  # unclipped -0.304, clip floor
+        E2_transition_rally: +0.150  # unclipped +0.333, clip ceiling
+        E3_rate_re_rise:     -0.150  # unclipped -0.213, clip floor
+        E4_pivot_cuts:       +0.114  # unclipped +0.114, magnitude 보존 ★
+      XLI:
+        E1_tightening_shock: -0.150  # unclipped -0.268, clip floor
+        E2_transition_rally: +0.150  # unclipped +0.442, clip ceiling
+        E3_rate_re_rise:     -0.150  # unclipped -0.218, clip floor
+        E4_pivot_cuts:       +0.150  # unclipped +0.308, clip ceiling
+    # deferred (별도 sleeve key 신설 후속 round)
+    deferred_separate_sleeve_key:
+      SOXX:
+        unclipped: {E1: -0.504, E2: +0.887, E3: -0.326, E4: +0.396}
+        proposed_clip: [-0.30, 0.30]
+        proposed_clipped: {E1: -0.300, E2: +0.300, E3: -0.300, E4: +0.300}
+      XLE:
+        unclipped: {E1: +0.479, E2: +0.222, E3: +0.180, E4: +0.042}
+        proposed_clip: [-0.30, 0.30]
+        proposed_clipped: {E1: +0.300, E2: +0.222, E3: +0.180, E4: +0.042}
+        anti_cyclical_note: "E1/E3 sleeve 부호 반대 outperform 보존 (B 안 direction-aware)"
+
+  james_stein_shrinkage:
+    cyclical_core:
+      method: james_stein
+      formula: "shrunk = λ × cell + (1-λ) × cyclical_core_mean"
+      lambda_by_epoch:
+        E1: 0.97
+        E2: 1.00
+        E3: 0.93
+        E4: 0.99
+      note: "λ ≈ 1.0 (산업 간 이질성 큼) → cell 추정 거의 그대로. shrinkage 효과 미미하나 graceful degradation 의무 보존"
+    cyclical_amplifier:
+      method: none
+      rationale: "1 산업 단독 (SOXX), deferred"
+    cyclical_oil_hedge:
+      method: none
+      rationale: "1 산업 단독 (XLE), anti-cyclical 본성으로 shrinkage 시 신호 손실, deferred"
+
+  delta_arch_candidates:
+    total: 23
+    immediately_available: 9
+    deferred_edgar: 14
+    forbidden_in_arch:
+      - dollar_dxy        # cross-sleeve, 배분레이어 위임
+      - oil_wti_brent     # cross-sleeve
+      - ism_pmi           # cross-sleeve
+      - us10y             # cross-sleeve
+      - china_pmi         # cross-sleeve
+      - global_demand     # cross-sleeve
+    by_industry:
+      semi:
+        immediately_available: [book_to_bill_ratio, dram_contract_asp]
+        deferred_edgar: [inventory_days, rnd_to_revenue, forward_eps_revision_breadth, gross_margin]
+      materials:
+        immediately_available: [lme_copper_aluminum_zinc, fertilizer_pk_spot, rare_earth_lithium]
+        deferred_edgar: [gross_margin_trend_sub_mix, capex_to_revenue_mining_chem, inventory_turnover]
+      industrials:
+        immediately_available: []
+        deferred_edgar: [backlog_to_revenue, capex_to_revenue, operating_leverage, segment_mix]
+      energy:
+        immediately_available: [opec_compliance_spare_capacity, us_shale_production, rig_count_bkr, crack_spread]
+        deferred_edgar: [reserves_to_production, breakeven_price, integrated_downstream_margin]
+
+  sub_archetype_weights:
+    # ★R15.8 sub-archetype mix metric (cancel-out 회피)
+    materials:
+      chemicals:    {weight: 0.30, metrics: [feedstock_spread, downstream_margin]}
+      metals:       {weight: 0.35, metrics: [lme_exposure, mining_capex]}
+      construction: {weight: 0.20, metrics: [housing_starts_lag, public_infra]}
+      fertilizer:   {weight: 0.15, metrics: [pk_spot, crop_price_lag]}
+    energy:
+      integrated_oil: {weight: 0.50, metrics: [crack_spread, downstream_margin]}
+      ep_pure:        {weight: 0.25, metrics: [breakeven, reserves_to_production]}
+      services:       {weight: 0.10, metrics: [rig_count_lag, capex_outlook]}
+      refining:       {weight: 0.15, metrics: [crack_spread, utilization]}
+    note: "commodity 방의 archetype pooling 패턴 참조. EDGAR 적재 후 sub-weight 재calibration"
+
+  invariants:
+    belief_truth_isolation:
+      statement: "δ_regime ← regime_tag (scalar mapping) only. 거시 numeric (Δus10y/r_dxy/r_oil) 직접 입력 금지."
+      enforcement: "macro layer (배분) 가 regime_tag emit → 산업 layer 가 tag 수신 → δ_regime weight 가산"
+      rationale: "reflexive loop 차단 + single-writer 원칙 (CONSULT-DECISIONS-layering 영속 원칙)"
+    single_writer:
+      delta_regime_source: regime_tag  # macro layer writes
+      delta_arch_source: fundamental    # industry layer writes
+      forbidden: "δ_regime 에 fundamental 누수 또는 δ_arch 에 macro 누수"
+
+  gates_pass:
+    semi:        {G1: PASS, G2: PARTIAL, G3: DEFERRED, G4: PASS, G5: PASS, count: 3}
+    materials:   {G1: PASS, G2: PARTIAL, G3: DEFERRED, G4: PASS, G5: PASS, count: 3}
+    industrials: {G1: PASS, G2: PASS_heuristic, G3: DEFERRED, G4: PASS, G5: PASS, count: 4}
+    energy_B:    {G1: PASS, G2: PARTIAL, G3: DEFERRED, G4: PASS, G5: PASS, count: 3,
+                  note: "B 안 한정. A 안 채택 시 G5 FAIL → 2"}
+
+  audit_12_axis_status:
+    A_theory:          PASS
+    B_real_data:       PASS
+    C_yaml_trace:      "v3 본 박제 진행"
+    D_PIT:             "PARTIAL — M3 driver 3종 revision zero, H3 CFNAI ALFRED 후속"
+    E_consult:         PASS
+    F_falsifier:       PASS
+    G_effective_N:     "PASS — Kish 1.47, structural_prior_low_confidence tier"
+    H_unresolved:      PASS
+    I_data_integrity:  "PASS — ETF level, holdings drift caveat"
+    J_economic:        DEFERRED
+    K_multiple:        "DEFERRED — Verify stage 16 cell Bonferroni"
+    L_corr_integrity:  PASS
+    hard_fail_check:   "B/I PASS, C 진행, D partial — hard-fail risk 없음"
+
+  scenarioA_long_frame:
+    # raw/long-frame-scenarioA.md 결과 압축
+    frame: "2001-07-13 ~ 2026-05-28 (24.8년, SOXX inception bottleneck)"
+    n_daily: 5937
+    nw_lag: 9
+    bonferroni_alpha: 0.00417
+    findings:
+      - "β_us10y +0.06~+0.09 (4 산업 PASS, M3 frame 대비 일반 rate-growth coupling 의 long-frame 드러남)"
+      - "β_dxy -0.45~-0.76 (4 산업 PASS, M3 frame 절댓값 1/2~1/3 = frame-specific bias 정량 확인, 부호 음수 유지)"
+      - "β_oil = 4 산업 Bonferroni fail (sleeve 전반 비유의), XLE +0.090 잔존 sensitivity tentative"
+      - "ΔR² XLE = -0.231 (M3 0.406 → long 0.175, 절반 frame-specific) = XLE 별도 sub-sleeve motivation reinforce"
+    trust_tier: "structural_prior_low_confidence — raw β prior 박제 X, frame-conditional bias 비교 reference only"
+
+  verify_stage_handoff:
+    owner: "main (12축 audit subagent)"
+    tasks:
+      - "G2 stationary bootstrap (Politis-Romano block √n) 정확 CI"
+      - "G4 leave-one-epoch-out OOS (R²_OOS vs R²_IS)"
+      - "K Bonferroni / FDR 16 cell 보정"
+      - "산업 자체 epoch vol 산출 (현재 sleeve vol proxy)"
+      - "Chow / Bai-Perron break detection (시나리오 E)"
+      - "regime-conditional β transferability (시나리오 D, regime tag group 분류)"
+
+  unresolved_for_followup_round:
+    - "XLE/SOXX 별도 sleeve allocation key 신설 (composed_weights 외) — 코드폭 큼"
+    - "long-frame rolling 60M window (시나리오 B) — Verify stage"
+    - "장기 frame 확장 시 M1 timeline epoch 14개 확장 — M1 layer 별도"
+    - "ETF holdings drift caveat (SOXX NVDA dominant post-2023 / XLE shale-pure-play post-2014)"
+    - "individual stock cohort analysis (EDGAR 적재 후 sub-archetype 별 종목 cohort 추적)"
+
+# ============================================================================
+# STATUS (v3 진행 추적)
+# ============================================================================
+status:
+  done:
+    - "2-1 방향성 자문 3R 수렴 (Gemini + Claude, 18 파일 raw)"
+    - "2-2 이론 학습 (theory-notes.md = 6 최상위 + 5 보완 + 1 비판적 자각)"
+    - "2-3 실데이터 검증 (validation-H{3,4,5}.md + validation-H1-H6-deferred.md): H3 REJECT, H4 PARTIAL, H5 REJECT, H1·H6 DEFERRED"
+    - "★실데이터 적재 완료: FRED 17 시리즈 (raw/fred/), yfinance 13 ETF/Index 26년 일별 (raw/yfinance/sector_etf_close.csv)"
+    - "★v2 yaml 7블록 (직전 v1 결과를 raw 참고로만 사용, basis_raw 명시) — 자문 그대로 코드화 X"
+    # ★v3 신규
+    - "★v3 M3 거시연관 분석 (raw/m3-findings.md): 4 epoch × 9 sector driver loading, β_dxy dominance, R²_E1=0.212 / R²_E4=0.070"
+    - "★v3 4 산업 δ_regime/δ_arch 매트릭스 (raw/industry-{semi,materials,industrials,energy}-delta.md + synthesis.md)"
+    - "★v3 12축 audit-ready synthesis (B/I PASS, C v3 박제 진행, D partial, hard-fail risk 없음)"
+    - "★v3 scenarioA long-frame 24.8년 단일회귀 (Newey-West HAC lag=9 + Bonferroni α/12, n=5937): M3 frame β magnitude frame-specific bias 정량 확인"
+    - "★v3 사전조사 2종 (raw/pit-vintage-prescan.md + long-frame-prescan.md): ALFRED scope + 장기 frame robustness 시나리오 5종 인벤토리"
+    - "★v3 main 합의 5건 반영: 공식 direction-aware / clip 옵션 C / cyclical_core 활성 + XLE-SOXX 후속 / δ_arch 23종 + energy collector 우선 / Verify main 위임"
+  todo:
+    - "★main Verify stage 착수 trigger 대기 (yaml v3 commit 후)"
+    - "★main 측 EDGAR 분기 펀더 + Damodaran implied ERP 적재 (블록6 우선순위 1) — H1·H6 backbone 재검증 + δ_arch 14종 deferred 활성"
+    - "★main 측 energy collector priority 0 적재 (FRED BKR + EIA shale + IEA OPEC + CME crack spread) — energy δ_arch 즉시 활성"
+    - "★ALFRED CFNAI 적재 (priority 1.5) — H3 PIT 재검증"
+    - "★후속 round: XLE/SOXX 별도 sleeve allocation key 신설 (코드폭 큼, 점진)"
+    - "GZ 정공법 EBP (TRACE+Merton DD) 적재 — H4 lead 신호 재검증"
+    - "FINNHUB revision breadth 적재 — H8 검증 진입"
+    - "Driscoll-Kraay panel HAC + Politis-Romano stationary bootstrap 자체 모듈 코드화 (블록7 falsify 항목)"

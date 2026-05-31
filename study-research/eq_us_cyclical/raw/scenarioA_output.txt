@@ -1,0 +1,88 @@
+==============================================================================
+Long-frame Scenario A — frame 2001-07-13 ~ 2026-05-29
+Industries: ['SOXX', 'XLB', 'XLI', 'XLE']  Drivers: Δus10y, r_dxy, r_oil
+Bonferroni α/12 = 0.00417 (raw α=0.05)
+==============================================================================
+
+[Data] sector ETF closes: D:\projects\Inv\study-research\eq_us_cyclical\raw\yfinance\sector_etf_close.csv
+       columns: ['SOXX', 'XLB', 'XLI', 'XLE'] | rows: 6257
+       first non-null per industry:
+         SOXX: 2001-07-13 ~ 2026-05-29 (n=6256)
+         XLB: 2001-07-13 ~ 2026-05-29 (n=6256)
+         XLI: 2001-07-13 ~ 2026-05-29 (n=6256)
+         XLE: 2001-07-13 ~ 2026-05-29 (n=6256)
+
+[Data] us10y (DGS10): D:\projects\Inv\study-research\eq_us_cyclical\raw\fred\DGS10.csv
+       rows: 6490 | window: 2001-07-13 ~ 2026-05-28
+
+[Data] yfinance fetch: DX-Y.NYB (dxy) + CL=F (oil WTI futures)
+       period: 2001-07-13 ~ 2026-05-29
+       dxy fetched: n=6277 | 2001-07-13 ~ 2026-05-28
+       oil fetched: n=6246 | 2001-07-13 ~ 2026-05-28
+
+[Panel] after driver inner-join: n=5938 | 2001-07-16 ~ 2026-05-28
+
+[Panel] per-industry valid rows (after driver join):
+         SOXX: n=5937
+         XLB: n=5937
+         XLI: n=5937
+         XLE: n=5937
+
+[HAC] Newey-West lag = floor(4·(n/100)^(2/9)) = floor(4·(5937/100)^(2/9)) = 9
+
+==============================================================================
+§1. Long-frame OLS + Newey-West HAC SE per industry
+==============================================================================
+Spec: r_{i,t} = α_i + β_{us10y} · Δus10y_t + β_{dxy} · r_dxy_t + β_{oil} · r_oil_t + ε_{i,t}
+Bonferroni-adjusted α = 0.00417  (12 simultaneous comparisons)
+
+industry      n       coef      point      NW_SE   t-stat      p-raw   CI95_low  CI95_high  Bonf_pass
+    SOXX   5937      alpha   +0.00077    0.00024    +3.23     0.0013   +0.00030   +0.00123       PASS
+                beta_us10y    +0.0913     0.0079   +11.58 5.2395e-31    +0.0758    +0.1067       PASS
+                  beta_dxy    -0.4501     0.0804    -5.60 2.1492e-08    -0.6077    -0.2926       PASS
+                  beta_oil    +0.0236     0.0106    +2.22 2.6507e-02    +0.0027    +0.0444       fail
+                        R²    +0.0718     adj R²    +0.0713
+
+     XLB   5937      alpha   +0.00045    0.00016    +2.74     0.0061   +0.00013   +0.00077       fail
+                beta_us10y    +0.0741     0.0062   +11.99 3.7867e-33    +0.0620    +0.0862       PASS
+                  beta_dxy    -0.7614     0.0637   -11.95 6.8017e-33    -0.8863    -0.6365       PASS
+                  beta_oil    +0.0296     0.0168    +1.77 7.7552e-02    -0.0033    +0.0625       fail
+                        R²    +0.1433     adj R²    +0.1428
+
+     XLI   5937      alpha   +0.00047    0.00016    +2.98     0.0029   +0.00016   +0.00078       PASS
+                beta_us10y    +0.0714     0.0055   +12.92 3.5908e-38    +0.0606    +0.0823       PASS
+                  beta_dxy    -0.4448     0.0598    -7.44 1.0038e-13    -0.5619    -0.3276       PASS
+                  beta_oil    +0.0229     0.0115    +1.98 4.7230e-02    +0.0003    +0.0454       fail
+                        R²    +0.1204     adj R²    +0.1200
+
+     XLE   5937      alpha   +0.00052    0.00022    +2.38     0.0171   +0.00009   +0.00094       fail
+                beta_us10y    +0.0864     0.0089    +9.75 1.8889e-22    +0.0690    +0.1038       PASS
+                  beta_dxy    -0.6985     0.0894    -7.81 5.7234e-15    -0.8737    -0.5232       PASS
+                  beta_oil    +0.0904     0.0606    +1.49 1.3553e-01    -0.0283    +0.2091       fail
+                        R²    +0.1747     adj R²    +0.1743
+
+==============================================================================
+§2. Frame-conditional bias — long-frame vs M3 frame (2021-12 ~ 2024-12)
+==============================================================================
+M3 frame β (raw/m3-metrics.json sector_loadings_full):
+industry   β_us10y_M3   β_dxy_M3   β_oil_M3    R²_M3
+    SOXX      +0.0281    -1.6219    +0.0074    0.097
+     XLB      +0.0093    -1.1783    +0.0500    0.215
+     XLI      +0.0102    -0.8093    +0.0318    0.120
+     XLE      +0.0264    -0.5779    +0.4064    0.406
+
+Long-frame β (this run, 2001-07 ~ 2026-05):
+industry   β_us10y_LF   β_dxy_LF   β_oil_LF    R²_LF
+    SOXX      +0.0913    -0.4501    +0.0236    0.072
+     XLB      +0.0741    -0.7614    +0.0296    0.143
+     XLI      +0.0714    -0.4448    +0.0229    0.120
+     XLE      +0.0864    -0.6985    +0.0904    0.175
+
+Frame difference (long-frame − M3, structural break candidate signal):
+industry     Δβ_us10y     Δβ_dxy     Δβ_oil      ΔR²
+    SOXX      +0.0632    +1.1718    +0.0162   -0.025
+     XLB      +0.0648    +0.4169    -0.0204   -0.072
+     XLI      +0.0613    +0.3646    -0.0089   -0.000
+     XLE      +0.0600    -0.1206    -0.3160   -0.231
+
+[Saved] D:\projects\Inv\study-research\eq_us_cyclical\raw\scenarioA_metrics.json
