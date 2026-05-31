@@ -1,10 +1,47 @@
 study_id: eq_us_defensive
 asset_scope: [equity.us]
 as_of: "2026-05-31"
-version: v3  # v1 합성 폐기 → v2 실측 calibrate → v3 격하 정정 (rule §1 5의무)
+version: v4  # v3 격하 → v4 sleeve 분리 + H3 재검증 (NFCI/BAA10Y full historical)
 
 # ============================================================================
-# v3 재칼리브레이션 노트 (★main 독립검증 verdict=Tier3 불충실 → 3 결함 보수)
+# v4 노트 (2026-05-31 main APPROVED P3 sleeve 분리 + P1 대안 fetch 후 재검증)
+# v3 의 ★INSUFFICIENT H3 (n=9, HY OAS post-2023~ 만) → v4 회복:
+#   ★FRED BAMLH0A0HYM2 = 가용 2023-05-30~ 만 발견 (handoff anchor "2000-01~" 잘못)
+#   대안 fetch (main APPROVED):
+#     - NFCI weekly 1971~ (Chicago Fed Financial Conditions, n=2890) PRIMARY
+#     - BAA10Y daily 1986~ (Moody IG credit spread, n=10101) SECONDARY exogenous
+#     - VIX3M daily 2007~ (CBOE 3M VIX, n=4651) term structure VRP carry
+# main caveat 3건 (적용):
+#   (a) NFCI 주간 개정 PIT → 본 v4 = current revision (★ALFRED walk-forward todo)
+#   (b) NFCI equity vol 내생성 → BAA10Y exogenous primary cross-check
+#   (c) regime threshold p75 = full-historical (lookahead) → walk-forward todo
+# 결과 (★rule §1 5의무 + §1.6 sleeve 분리 + §2 verdict 5단계):
+#   sleeve 정의 (★new): DEFENSIVE_PURE = {XLP, XLU, XLV} / FINANCIALS = {XLF} 독립
+#   H3 regime 4 axis × sleeve 2 = 8 cell: 방향성 일관 4/4 (DEF_PURE>0 / FIN<0)
+#                                        통계 비유의 (Bonferroni 0/8 PASS, LOO p>0.5 fragile)
+#   H4a BAA10Y daily n=6588 (★full historical): DEF_PURE +0.058 / XLF -0.059
+#                                                 (p<0.0001 Bonferroni PASS, 4/5 sector)
+#   Cross-sleeve Welch DEF_PURE - FIN gap: 4/4 regime > 0 (방향 일관, p>0.34 비유의)
+
+# ============================================================================
+# ★v4 NEW: SLEEVE_DEFINITIONS (rule §1.6 분석 unit ↔ portfolio label 분리)
+# ============================================================================
+sleeve_definitions:
+  DEFENSIVE_PURE: [XLP, XLU, XLV]      # rate-NEG bond proxy, factor β 동일부호 grouping
+  FINANCIALS: [XLF]                     # rate-POS NIM 채널, 독립 측정
+  XLC_mature: [XLC]                     # post-2018-06 별도 archetype (Comm Services)
+  portfolio_label_user_task: "미국 방어주 + 금융주" sleeve
+  rationale: |
+    rule §1.6: 분석 unit (β 측정) = factor β 동일부호 grouping. portfolio label (user task)
+    = 표시일 뿐. XLF 부호 반대 sub-sleeve eq-weight 결합 시 factor β cancel (★H3 위조 토양).
+    v4 결과 검증: 4/4 regime cross-sleeve gap > 0 (DEF_PURE outperforms FIN in stress)
+    = sleeve 분리 정당성 ★실증 (단 통계 비유의).
+  weighting_recommendation: |
+    Stress regime 진입 시: defensive ↑ / financial ↓ (RELATIVE 가중, eq-weight 회피).
+    Normal regime: factor exposure 균형 가능.
+
+# ============================================================================
+# v3 노트 (기존 ★main 독립검증 verdict=Tier3 불충실 → 3 결함 보수)
 # v1 = 합성 240m seed 20260530 prior-consistent 시뮬 = 폐기
 # v2 = 실데이터 검증 (FRED + Yahoo, 2003-01~2026-05) — ★3 결함 위에 calibrate
 #   결함 1: H3 데이터 커버리지 위조급 (classify_regime KeyError → silent Normal 280mo)
@@ -185,13 +222,41 @@ relationships:
      theory_basis: "★v3 hedge: defensive (XLU/XLP/XLV) partial IC mean=+0.09 (n=752 short).
        시장 베타 흡수 후 residual 회복력"}
 
-  # --- ★v3 NEW: H3 hy_oas_sleeve_regime (★INSUFFICIENT — prior_strength null 동결) ---
-  - {node_a: hy_oas_regime, node_b: sleeve_excess_return, edge_type: direct,
+  # --- ★v4 NEW: H3 v4 NFCI/BAA10Y stress regime + sleeve 분리 ---
+  - {node_a: credit_stress_regime_nfci_baa10y, node_b: def_pure_excess, edge_type: direct,
      conditioning_set: [], lag_routing: contemporaneous,
-     prior_sign: unsigned, prior_strength: null,  # ★v3 INSUFFICIENT (rule §1.5(e))
-     theory_basis: "★v3 INSUFFICIENT: Credit regime n=9 < 10 (rule §1.2 단정 verdict 금지).
-       raw mean -1.5%/월 단정 X — LOO p>0.05 + IID Bootstrap autocorr 무시 + 단일 cycle.
-       PENDING_ALFRED — full historical fetch (2000-01~) 후 verdict 결정"}
+     prior_sign: pos, prior_strength: 0.10,  # ★v4 약 신호 hedge (방향 일관 4/4, 통계 비유의)
+     theory_basis: "★v4: NFCI p75 (n=23) + BAA10Y p75 (n=113) stress regime — DEFENSIVE_PURE
+       excess 4/4 regime > 0 (mean +0.4%/월). Block bootstrap p>0.34 비유의 = TENTATIVE.
+       NFCI primary (1971~ full history) + BAA10Y exogenous (main caveat b 적용)"}
+
+  - {node_a: credit_stress_regime_nfci_baa10y, node_b: fin_excess, edge_type: direct,
+     conditioning_set: [], lag_routing: contemporaneous,
+     prior_sign: neg, prior_strength: 0.15,
+     theory_basis: "★v4: 4/4 regime FIN excess < 0 (mean -1.2%/월). NFCI p90 n=7 FIN
+       raw p<0.001 단 LOO p_max=0.87 fragile (single cycle dependency). TENTATIVE DIRECTIONAL"}
+
+  - {node_a: baa10y_change, node_b: def_pure_return, edge_type: direct,
+     conditioning_set: [SPY_return], lag_routing: contemporaneous,
+     prior_sign: pos, prior_strength: 0.058,  # ★v4 strong (n=6588 partial IC)
+     theory_basis: "★v4 strong: partial IC=+0.058 p<0.0001 (n=6588, BAA10Y 1986~ daily 26년
+       full-historical). Bonferroni m=5 PASS. credit ↑ 시 defensive 시장 베타 흡수 후
+       residual 회복력 = long anchor (v3 n=752 short window 한계 해소)"}
+
+  - {node_a: baa10y_change, node_b: xlf_return, edge_type: direct,
+     conditioning_set: [SPY_return], lag_routing: contemporaneous,
+     prior_sign: neg, prior_strength: 0.059,  # ★v4 strong
+     theory_basis: "★v4 strong: partial IC=-0.059 p<0.0001 (n=6588). Bonferroni PASS.
+       credit ↑ 시 banks provisioning channel 시장 베타 초과 penalty. industry 부호 분기
+       gap (DEF_PURE - XLF) = +0.117 (★rule §1.6 threshold 0.15 미달 단 강 통계 신호)"}
+
+  # --- v3 폐기: hy_oas_regime PENDING_ALFRED — v4 NFCI/BAA10Y 로 대체 (BofA HY 라이센스 X) ---
+  - {node_a: hy_oas_baml_direct, node_b: sleeve_excess_return, edge_type: direct,
+     conditioning_set: [], lag_routing: contemporaneous,
+     prior_sign: unsigned, prior_strength: null,  # ★v4 DEPRECATED (BofA-FRED 라이센스 X)
+     theory_basis: "★v4 DEPRECATED: BAMLH0A0HYM2 가용 2023-05~ 만 (BofA-FRED 라이센스 변경).
+       v3 PENDING_ALFRED 폐기 — NFCI+BAA10Y dual cross-check 로 대체 (main APPROVED).
+       BofA HY direct anchor 는 Bloomberg/ICE 유료 source 만 가용"}
 
   # --- M3 dollar (★v3 TENTATIVE — prior_strength 격하) ---
   - {node_a: dxy_change, node_b: defensive_return, edge_type: direct,
@@ -237,12 +302,13 @@ weight_rules:
        (표본 확장 후 재검증). XLF rate-regime 무관 +0.15 stable 만 유효",
      granularity: industry}
 
-  # ★v3 격하: 0.06 → 0.04 (H3 INSUFFICIENT)
-  - {indicator_id: credit_beta, base_weight: 0.04, modulate_by: [regime, industry],
-     direction: "★v3 격하: H3 INSUFFICIENT (n=9) 위에 base 추가 강등 (v1 0.12 → v2 0.06 → v3 0.04).
-       H4a industry-level 분기 (XLF -0.166 / defensive +0.09, n=752 short) 만 유효 — H3 regime
-       conditional 은 ALFRED full fetch 후 재검증 PENDING",
-     granularity: industry}
+  # ★v4 회복: 0.04 → 0.07 (BAA10Y n=6588 CONFIRMED Bonferroni)
+  - {indicator_id: credit_beta, base_weight: 0.07, modulate_by: [regime, industry, sleeve_grouping],
+     direction: "★v4 회복 (v3 0.04 → v4 0.07): BAA10Y daily n=6588 anchor —
+       DEF_PURE partial IC=+0.058 / XLF -0.059 (p<0.0001 Bonferroni PASS, 26년 full historical).
+       industry 부호 분기 ★실증. sleeve_grouping=[DEFENSIVE_PURE / FINANCIALS] 분리 측정 의무
+       (rule §1.6). H3 regime conditional 은 TENTATIVE (방향 일관 4/4, p>0.34 비유의)",
+     granularity: industry_sleeve_split}
 
   - {indicator_id: realized_vol, base_weight: 0.06, modulate_by: [regime],
      direction: "방어주 저변동 특성, 실측 검증 미수행",
@@ -287,18 +353,34 @@ confidence_hooks:
     action_threshold: "lag=0 IC 지속 → yield_curve_slope_beta base 0.08 유지 / 부활 시 lag=4M 모델 도입"
     feeds_weight: "yield_curve_slope_beta delta_arch_by_type XLF banks 가중 조정"
 
-  # ★v3 격하 + PENDING_ALFRED 동결 (이전 hy_oas_sleeve_inversion_h3_reversed 폐기)
-  - hypothesis_id: hy_oas_sleeve_h3_pending_alfred_v3
-    status: PENDING_ALFRED  # ★INSUFFICIENT — ALFRED full fetch 까지 e-process 동결
-    confirm_signal: "★ALFRED HY OAS full historical fetch (2000-01~) + n≥30 + p<0.05
-      (Block bootstrap or HAC SE) + LOO p<0.05 유지 후에만 verdict 결정"
-    reject_signal: "동일 조건 + Credit regime sleeve excess > +0.5%/월 안정 = 자문 BAB prior 부활"
-    emit_where: "ALFRED HY OAS fetch 완료 후 run_validation.py H3 block 재실행"
-    accumulate_in: "★PENDING — e-process 적재 정지 (INSUFFICIENT 상태에서 score 누적 금지)"
-    confidence_metric: "Block bootstrap (block=4 또는 Stationary) + Welch t-test + LOO sensitivity"
-    store: "WeightAssumptionCard.confidence_now (regime=credit sub-key) = PENDING_ALFRED"
-    action_threshold: "★v3: credit regime classifier 가중 0.04 cap, 부호 unsigned. ALFRED 후 해제"
-    feeds_weight: "credit_beta base 0.04 동결 → ALFRED 완료 후 재calibrate"
+  # ★v4 회복: NFCI/BAA10Y stress regime cross-check (v3 PENDING_ALFRED 해제)
+  - hypothesis_id: credit_stress_sleeve_split_h3_v4
+    status: TENTATIVE_DIRECTIONAL_CONFIRMED_방향  # 방향 일관 4/4, 통계 비유의
+    confirm_signal: "rolling 60M: NFCI p75 또는 BAA10Y p75 stress regime 진입 시
+      DEF_PURE excess > 0 AND FIN excess < 0 4/4 epoch 일관 유지 + Bonferroni 후 ≥1 PASS"
+    reject_signal: "방향 반전: DEF_PURE excess < 0 OR FIN excess > 0 2개 이상 regime 등장"
+    emit_where: "분기별 NFCI/BAA10Y p75 regime 재실측 (run_validation_v4.py H3 block)"
+    accumulate_in: "weight_falsification.score_ic_breakdown_eprocess (regime=credit_stress_v4)
+      — TENTATIVE 단계에서 e-process 약 가중 (방향 confirm + 통계 비유의 반영)"
+    confidence_metric: "Block bootstrap (block=4mo) + Welch t-test + LOO p_max + Bonferroni m=4"
+    store: "WeightAssumptionCard.confidence_now (regime=credit_stress_v4 sub-key)"
+    action_threshold: "v4 anchor: NFCI p75 n=23 / BAA10Y p75 n=113. DEF_PURE/FIN gap > 0 유지
+      → credit_beta base 0.07 유지. magnitude p<0.05 회복 시 base 0.10 승격"
+    feeds_weight: "credit_beta base 0.07 + sleeve_grouping 분리 의무 (rule §1.6)"
+    walk_forward_todo: "★main caveat (c) — full-historical p75 threshold lookahead. walk-forward
+      (10Y rolling threshold) 분석 follow-up"
+
+  - hypothesis_id: baa10y_credit_beta_industry_split_h4a_v4
+    status: CONFIRMED_BONFERRONI  # ★n=6588 strong anchor
+    confirm_signal: "rolling 24M partial IC(ΔBAA10Y, sector | SPY) — DEF_PURE > +0.04 AND XLF < -0.04
+      (Bonferroni m=5 α/5=0.01 PASS)"
+    reject_signal: "DEF_PURE < 0 OR XLF > 0 OR gap (DEF_PURE - XLF) < 0.05 12M 지속"
+    emit_where: "분기별 partial IC scan (run_validation_v4.py H4a block, BAA10Y daily)"
+    accumulate_in: "weight_falsification.score_ic_breakdown_eprocess (regime=credit_cycle_v4) full credit"
+    confidence_metric: "BAA10Y daily n=6588 partial IC anchor (DEF_PURE +0.058 / XLF -0.059)"
+    store: "registry credit_beta confidence_now (industry_split=true)"
+    action_threshold: "★v4 anchor 유지 → credit_beta base 0.07 + sleeve_grouping=[DEF/FIN] 분리"
+    feeds_weight: "credit_beta delta_arch_by_type 의 banks(-0.059) / def_pure(+0.058) 동적 강도"
 
   - hypothesis_id: credit_beta_sub_sleeve_split_h4a
     confirm_signal: "rolling 24M partial IC(ΔHY, sector | SPY) gap (defensive mean - XLF) > +0.15
@@ -330,10 +412,27 @@ confidence_hooks:
 # 블록6: COLLECTOR_PLAN (★v3 — 우선순위 명시)
 # ============================================================================
 collector_plan:
-  # ★Priority 1 — v3 INSUFFICIENT/TENTATIVE 해제용 (필수)
-  - {missing: "BAMLH0A0HYM2 (HY OAS) 일별 historical full (현 2023-05~만, 2000-01~ 가용)",
-     priority: 1, blocks: "H3 INSUFFICIENT 해제 + H4a n=752 → n=5800+ 확장 + M3 표본 확장",
-     source: "FRED ALFRED 직접 fetch", interface: VintageProvider, credential: none}
+  # ★v4 정정: BAMLH0A0HYM2 = FRED 가용 2023-05~만 (BofA-FRED 라이센스 변경, handoff anchor 잘못)
+  - {missing: "★BAMLH0A0HYM2 (HY OAS) full historical 1996-12~",
+     priority: BLOCKED, blocks: "직접 HY OAS anchor 가설 — 본 source 미가용",
+     status: "★FRED 미공급 (BofA-FRED 라이센스 제약). 대안 source: Bloomberg/ICE 유료",
+     replacement_v4: "NFCI weekly 1971~ + BAA10Y daily 1986~ dual cross-check (main APPROVED)"}
+  # ★v4 완료 (self-fetch)
+  - {missing: "NFCI weekly Chicago Fed Financial Conditions Index",
+     priority: COMPLETED_v4, source: "FRED NFCI", n: 2890,
+     range: "1971-01-08 ~ 2026-05-22", caveat: "주간 개정 PIT — current revision 사용"}
+  - {missing: "BAA10Y daily Moody IG credit spread",
+     priority: COMPLETED_v4, source: "FRED BAA10Y", n: 10101,
+     range: "1986-01-02 ~ 2026-05-28", caveat: "★exogenous primary cross-check (NFCI equity vol 내생성 회피)"}
+  - {missing: "AAA10Y daily Moody high grade spread",
+     priority: COMPLETED_v4, source: "FRED AAA10Y", n: 10848, range: "1983-01-03 ~ 2026-05-28"}
+  - {missing: "VIX3M daily CBOE 3M VIX (term structure)",
+     priority: COMPLETED_v4, source: "yfinance ^VIX3M", n: 4651,
+     range: "2007-12-03 ~ 2026-05-29", use: "VRP carry defensive 알파 H9 prerequisite"}
+  # 기존 Priority 1 유지
+  - {missing: "DFII10 ALFRED PIT vintage (현 spot only)",
+     priority: 1, blocks: "H1 predictive 재검증 정확성",
+     source: "FRED ALFRED API", interface: VintageProvider, credential: none}
   - {missing: "DFII10 ALFRED PIT vintage (현 spot only)",
      priority: 1, blocks: "H1 predictive 재검증 정확성",
      source: "FRED ALFRED API", interface: VintageProvider, credential: none}
@@ -419,6 +518,18 @@ code_change_plan:
 # ============================================================================
 status:
   done:
+    - "★v4 sleeve 분리 + H3 재검증 완료 (main APPROVED P3 + P1 대안 fetch)"
+    - "★sleeve_definitions: DEFENSIVE_PURE={XLP,XLU,XLV} / FINANCIALS={XLF} 독립 측정.
+       rule §1.6 분석 unit ↔ portfolio label 분리 실증 (4/4 regime gap > 0)"
+    - "★HY OAS BAMLH0A0HYM2 가용 2023-05~만 발견 (handoff '2000-01~' anchor 잘못) → main OBSERVE 기록"
+    - "★대안 fetch (main APPROVED): NFCI 1971~ weekly + BAA10Y 1986~ daily + VIX3M 2007~ + AAA10Y 1983~"
+    - "★H3 재검증 (NFCI/BAA10Y cross-check + sleeve 분리): 방향성 일관 4/4 (DEF_PURE>0 / FIN<0).
+       Block bootstrap p>0.34 / Bonferroni m=4 α/4=0.0125 0/8 PASS / LOO p>0.5 fragile → TENTATIVE DIRECTIONAL"
+    - "★H4a v4 BAA10Y daily n=6588 (26년 full historical): DEF_PURE +0.058 / XLF -0.059
+       (p<0.0001 Bonferroni m=5 PASS) — v3 n=752 short window 한계 해소 CONFIRMED"
+    - "★Cross-sleeve Welch DEF_PURE - FIN gap 4/4 regime > 0 (방향 일관, p>0.34 비유의)"
+    - "★main caveat 3건 적용: (a) NFCI current revision 명기 (b) BAA10Y exogenous primary (c) walk-forward todo"
+    - "★small-N rigor 5의무 강제: Block bootstrap (block=4mo) + Welch + LOO + Bonferroni + verdict 5단계 자동 라벨"
     - "v3 격하 정정 완료 — main 독립검증 Tier3 verdict 3 결함 보수"
     - "★rule ~/.claude/rules/empirical-claim-presentation.md 5 의무 + §1.6 + §2 verdict 5단계 강제"
     - "★run_validation.py: classify_regime KeyError → OutOfSample 라벨 분리 (v2 silent default fix)"
@@ -434,12 +545,14 @@ status:
        confidence_hooks PENDING_ALFRED / TENTATIVE 마킹"
     - "★promotion-log ERROR-202605302130 + ERROR-202605302245 prepend 완료 (v3 보수 root cause)"
   todo:
-    - "★run_validation.py + m3_macro_linkage.py 재실행 → validation-metrics.json + m3-metrics.json
-       v3 값 박제 (H1 fwd3M IC / H3 OOS regime n / M3 Welch z + Bonferroni)"
-    - "★v4 sleeve 분리 작업 (handoff §Priority 3): DEFENSIVE_PURE/FINANCIALS 재정의 +
-       누락 지표 (earnings_stability·VIX_term·yield_curve_steepness·credit_beta full) +
-       산업별 subagent 4 (staples/utility/healthcare/banks) 병렬"
-    - "ALFRED BAMLH0A0HYM2 + DFII10 PIT fetch → H3 INSUFFICIENT 해제 + H1 predictive 재검증"
-    - "EDGAR 펀더멘털 적재 → H4·H5·H10·H11 검증"
+    - "★STUDY DONE → main 12축 audit 호출 (AUDIT-GUIDE §1)"
+    - "★walk-forward NFCI/BAA10Y p75 threshold (main caveat c): 10Y rolling threshold + walk-forward backtest"
+    - "★NFCI realtime vintage (main caveat a): ALFRED NFCI vintage fetch → PIT 엄밀화"
+    - "★H9 VRP carry defensive 알파 검증 (VIX3M fetch 완료): VIX3M/VIX backwardation regime →
+       defensive 후속 수익률 검증 (n=4651 daily, 2007-12~)"
+    - "EDGAR XBRL 펀더멘털 적재 (main 빌드 필요) → H4·H5·H10·H11 검증"
+    - "FFIEC Call Reports (main 빌드 필요) → H5 Banks NIM/NPL/CET1 검증"
+    - "earnings_stability (Asness QMJ) — EDGAR 5Y EPS std/mean 자체 파싱 가능 (P2 후속)"
+    - "M3 결과 main M4 factor seed 입력 (v3 TENTATIVE + v4 NFCI/BAA10Y 신규)"
     - "신규 4 모듈 self-test 작성 (factor_beta_decomp / structural_break / kci_test / normalize_kpi)"
-    - "M3 결과 main M4 factor seed 입력 (★v3 TENTATIVE 명시)"
+    - "Bloomberg/ICE 유료 source HY OAS direct anchor 도입 검토 (BofA-FRED 라이센스 대안)"
