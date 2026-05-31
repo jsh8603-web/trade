@@ -1,0 +1,139 @@
+# bond_cash v5 통합 summary (2026-06-01, main 단일세션 — Phase 7 옵션 A 구현 완료)
+# v4 = audit 12축 격하 5건 반영 (e17d51fd)
+# v5 = ★ P0-1 walk-forward regime classifier + P0-2 Kim-Wright ACM 대체 실측 → Phase 7 진입 ready
+# ★ 본 yaml = audit C축(regime in-sample artifact) + D축(ACM revised PIT) 의 실측 해소 산출.
+#    결론 불변: 전 7 sub-cluster sign/direction prior 만, magnitude/alpha 박제 ⛔ (small-N + 비정상 rigor).
+
+study_id: bond_cash
+phase: 7_walkforward_kw_implemented
+session: bc9afbe0 (신 main, 단일세션 순차)
+date: 2026-06-01
+predecessor: raw/sub-clusters/summary_v4.yaml
+audit_verdict_addressed: raw/evaluation-bond_cash-20260531.md  # main 12축 audit subagent (opus-1m) PARTIAL, a75ab5a2
+provenance:
+  script: study-research/bond_cash/raw/_v2_analysis/phase7_walkforward_kw.py
+  outputs:
+    - raw/sub-clusters/_walkforward_v5.json   # walk-forward IS/OOS sign match per cell + HYG regime
+    - raw/sub-clusters/_kw_vs_acm.json        # Kim-Wright vs ACM cross-check
+  run_log: raw/_v2_analysis/phase7_run.log
+  data_excluded_from_commit: true  # data/ 28MB parquet+xls = fetch_p0.py + phase7 재실행 복원 (binary 미커밋)
+
+# ============================================================
+# ★ P0-2 — Kim-Wright term premium = ACM real-time 대체 (audit D축 해소)
+# ============================================================
+kim_wright_vs_acm:
+  rationale: |
+    audit D축 격하 = ACM(Adrian-Crump-Moench) published xlsx 가 full-history revised series
+    → latest revision = lookahead 잔존 가능. Kim-Wright(FRED THREEFYTP10/5, THREEFFTP10) cross-check 로
+    ACM 단독 의존 완화. 둘 다 모델 추정치이나 독립 모델(KW=affine 3-factor / ACM=5-factor)이라
+    교차검증 가치 有.
+  series_fetched:
+    - {id: THREEFYTP10, role: kw_term_premium_10y, rows: 9084, range: "1990-01-02~2026-05-22"}
+    - {id: THREEFYTP5,  role: kw_term_premium_5y,  rows: 9084, range: "1990-01-02~2026-05-22"}
+    - {id: THREEFFTP10, role: kw_forward_tp_10y_hence, rows: 9084, range: "1990-01-02~2026-05-22"}
+  cross_check_10y:
+    common_n: 9084
+    level_corr_acm_kw: 0.8597
+    d20_corr_acm_kw: 0.7241
+    mean_diff_acm_minus_kw: 0.2553   # ACM 이 체계적으로 약간 높음 (bp)
+    std_diff: 0.6763
+  interpretation: |
+    level corr 0.86 (<0.95) = 두 모델 본질 동일 아님, ★material 차이 (Fed FEDS Notes 2017
+    long-maturity material difference 정합). d20(20일 변화) corr 0.72 = 단기 변화 방향은 더 약하게 일치.
+    → ACM revised PIT 한계는 KW cross-check 로 부분 완화되나 ★완전 제거 아님 (KW 도 추정 모델).
+    Phase 7 driver = ACM_TP10_d20 + KW_TP10_d20 ★병기(둘 중 한 모델 의존 회피), corr_prior 진입 시
+    두 series 일치 구간만 sign-prior 신뢰 상향.
+  audit_D_status: "부분 해소 — ACM 단독 lookahead 의존 완화. 단 monthly publish lag forward-shift 는 여전히 TODO(P1)."
+
+# ============================================================
+# ★ P0-1 — walk-forward regime classifier (audit C축 해소)
+# ============================================================
+walk_forward_regime:
+  rationale: |
+    audit C축 격하 = hy_credit regime-conditional IC(in-sample) bonferroni_pass 박제 = over-fit 의심.
+    expanding-window walk-forward(n_splits=5)로 IS→OOS 부호 일치 실측 = regime cell 이 실제 OOS 에서
+    예측력 유지하는지 검증. ★합성 0, 실 panel 2007-12-18~2026-05-29 n=4814.
+  hyg_regime_cells:   # MOVE_Z 기반 4 regime (rate dir × vol level)
+    - {cell: rate_up_vol_high, n: 1036, sign_match_rate: 0.75, mean_ic_is: 0.0059,  mean_ic_oos: -0.0762,
+       verdict: "★ OOS 부호 반전 (IS 양 → OOS 음) — in-sample artifact"}
+    - {cell: rate_up_vol_low,  n: 1140, sign_match_rate: 0.75, mean_ic_is: 0.0809,  mean_ic_oos: 0.1119,
+       verdict: "OOS 부호 유지 (양→양) — ★유일 상대적 안정 cell, 단 split 변동 큼(split2 -0.079)"}
+    - {cell: rate_down_vol_high, n: 999, sign_match_rate: 0.75, mean_ic_is: 0.0183, mean_ic_oos: -0.0246,
+       verdict: "★ OOS 부호 반전 — in-sample artifact"}
+    - {cell: rate_down_vol_low, n: 1405, sign_match_rate: 0.25, mean_ic_is: -0.0021, mean_ic_oos: 0.0346,
+       verdict: "★ sign_match 0.25 < chance, OOS 부호 반전 — 신호 부재"}
+  finding: |
+    4 regime cell 중 ★3개가 OOS 부호 반전 (mean_ic_is ↔ mean_ic_oos 부호 불일치). rate_up_vol_low 만
+    OOS 부호 유지하나 split 간 변동 큼(개별 split ic_oos -0.079~+0.276). individual split 에 ic_oos -0.54
+    (rate_up_vol_high split3) 등 극단 변동 = regime-conditional IC magnitude OOS 불안정 확정.
+    → ★ audit C축 진단 완전 입증: v1 의 "HYG regime IC bonferroni-pass" = in-sample over-fit.
+  audit_C_status: "해소 — walk-forward expanding-window 으로 regime cell OOS 불안정 실측. regime-conditional
+    magnitude IC corr_prior 진입 ⛔. MOVE_Z regime gate = rate_up_vol_low cell 한정 sign-prior 검토 가능(TENTATIVE)."
+
+# ============================================================
+# sub-cluster v5 walk-forward sign-prior eligibility (★ magnitude 박제 ⛔, 방향만)
+# ============================================================
+# eligible = 6 driver × 3 forward horizon = 18 spec 중 IS/OOS 부호 일치 spec 수.
+# ★ sign-prior eligibility 는 magnitude/IC robustness 아님 — 방향(부호) 안정성만. 전 cluster validated_alpha=false 불변.
+sub_cluster_sign_prior_v5:
+  drivers_v5: [MOVE_Z, ACM_TP10_d20, KW_TP10_d20, DGS10_chg20, T10Y2Y_d20, BAA10Y_chg20]
+  n_splits: 5
+  eligibility:
+    tsy_long:   {etf: TLT, sign_prior_eligible: "12/18", tier: structural_prior_low_confidence, validated_alpha: false}
+    tsy_mid:    {etf: IEF, sign_prior_eligible: "13/18", tier: structural_prior_low_confidence, validated_alpha: false}
+    tsy_short:  {etf: SHY, sign_prior_eligible: "15/18", tier: structural_prior_low_confidence, validated_alpha: false}
+    ig_credit:  {etf: LQD, sign_prior_eligible: "15/18", tier: structural_prior_low_confidence, validated_alpha: false}
+    hy_credit:  {etf: HYG, sign_prior_eligible: "13/18", tier: structural_prior_low_confidence, validated_alpha: false}
+    cash_tbill: {etf: BIL, sign_prior_eligible: "12/18", tier: structural_prior_low_confidence, validated_alpha: false}
+    tips:       {etf: TIP, sign_prior_eligible: "17/18", tier: structural_prior_low_confidence, validated_alpha: false}
+  interpretation: |
+    방향(sign) prior 는 cluster 별 12~17/18 spec 에서 IS/OOS 일치 = 부호 prior 는 상대적 안정.
+    ★단 magnitude/IC 는 walk-forward 에서 OOS 불안정(HYG regime cell 3/4 부호반전) = v4 결론 불변:
+    bond_cash = sign/direction prior 만 corr_prior 진입 가능, magnitude alpha 박제 ⛔.
+    가장 자명한 부호(rate↑→bond price↓, DGS10_chg20 negative)가 eligibility 의 주축 — 신규 alpha 아님.
+
+# ============================================================
+# Phase 7 진입 결정 (★ supervisor 직접 alpha 라벨 ⛔ — 별도 12축 audit subagent 게이트)
+# ============================================================
+phase7_entry:
+  status: ready
+  corr_prior_injection_policy:
+    allowed: "sign/direction prior 만 (magnitude freeze). DGS10_chg20 (전 sub-cluster rate sensitivity 부호) 중심."
+    forbidden:
+      - "magnitude IC 점추정 박제 (walk-forward OOS 불안정)"
+      - "regime-conditional IC corr_prior (3/4 cell OOS 부호 반전)"
+      - "validated_alpha 라벨 (전 cluster false 불변)"
+    conditional:
+      - "MOVE_Z regime gate = rate_up_vol_low cell 한정 sign-prior, 추가 OOS 확증 후 (TENTATIVE)"
+      - "ACM_TP10_d20 + KW_TP10_d20 병기 — 두 series 일치 구간만 sign-prior 신뢰 상향"
+  L_axis_integration_note: |
+    통합 phase 시 ig_credit/hy_credit 의 credit driver(BAA10Y_chg20) = eq_us_defensive H4a credit-beta 와
+    공통인자 중복 점검 의무 (1회 계상). rate driver(DGS10) = 전 자산군 공통 → PSD eigh-floor.
+
+# ============================================================
+# 미해결 잔여 (H축, Phase 7 이후)
+# ============================================================
+unresolved_v5:
+  - {priority: P1, item: "ACM/KW monthly publish lag 1-month forward-shift PIT 정합", rationale: "D축 완전 해소 잔여"}
+  - {priority: P1, item: "TIPS sub-cluster DFII10 + T5YIE driver 추가", rationale: "H축 TIPS 핵심 driver 결락 (v4 상속)"}
+  - {priority: P1, item: "BAMLH0A0HYM2 1996-2023 historical (ICE 라이센스) — HYG credit driver 등급 정합", rationale: "BAA=IG vs HYG=HY mismatch (v4 상속)"}
+  - {priority: P2, item: "J축 ETF spread 차감 후 alpha 검증", rationale: "sign-prior only 단계라 hard 아님"}
+  - {priority: P2, item: "L축 통합 PSD + credit/rate 공통인자 1회 계상", rationale: "Phase 7 통합 단계 의무"}
+
+# ============================================================
+# 12축 self-report (★ self-certify 아님 — 별도 opus subagent audit 게이트 의무, §5.5)
+# ============================================================
+self_report_12axis:
+  A_theory: "Adrian-Crump-Moench(ACM) + Kim-Wright affine term-structure + Fed FEDS Notes 2017 model-diff. 저자·연도 명시."
+  B_empirical: "실 panel 2007-12-18~2026-05-29 n=4814, walk-forward n_splits=5. 합성 0. KW fetch n=9084 실측."
+  C_yaml_trace: "★ 본 yaml 수치 = _walkforward_v5.json + _kw_vs_acm.json raw 재계산 path 박제. ±5% 추적성."
+  D_pit: "ACM revised series PIT 한계 → KW cross-check 부분 해소. monthly publish lag forward-shift = P1 잔여."
+  E_hallucination: "KW endpoint(THREEFYTP10/5, THREEFFTP10) = R3 발견 FRED 실 series, fetch 검증."
+  F_falsification: "walk-forward 3/4 regime cell OOS 부호 반전 = regime IC 가설 기각 record. p-hacking 차단."
+  G_effective_n: "regime cell n=999~1405, walk-forward valid_splits=4. structural_prior_low_confidence tier."
+  H_unresolved: "monthly lag / TIPS driver / HY 등급 mismatch = unresolved_v5 박제."
+  I_survivorship: "ETF universe(TLT/IEF/SHY/LQD/HYG/BIL/TIP) 현재 생존. 상폐 bond ETF 미포함 caveat."
+  J_economic: "sign-prior only, alpha 미주장 → 비용 차감 후 alpha 주장 X (hard 아님)."
+  K_multiple: "v4 BH-FDR q=0.10 on effective~84 = 0/105 reject 불변. walk-forward = 추가 OOS 검증층(보정 대상 아님)."
+  L_integration: "통합 phase 시 credit/rate 공통인자 1회 계상 + PSD (phase7_entry.L_axis_integration_note)."
+  ★audit_required: "별도 opus subagent 12축 audit 의무 (self-certify 금지, §5.5). raw parquet 재실행 + ADF + walk-forward 재현."

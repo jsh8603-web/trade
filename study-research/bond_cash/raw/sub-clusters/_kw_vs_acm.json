@@ -1,0 +1,12 @@
+{
+  "common_period": [
+    "1990-01-02",
+    "2026-05-22"
+  ],
+  "n": 9084,
+  "level_corr_acm_kw": 0.8597,
+  "mean_diff_acm_minus_kw": 0.2553,
+  "std_diff": 0.6763,
+  "d20_corr_acm_kw": 0.7241,
+  "interpretation": "level corr \uac00 \ub9e4\uc6b0 \ub192\uc73c\uba74(>0.95) \ub458\uc774 \ubcf8\uc9c8 \ub3d9\uc77c, \ub0ae\uc73c\uba74 \ubaa8\ub378 \ucc28\uc774 material \u2014 Fed FEDS Notes 2017 \uc758 long-maturity material difference \uac80\uc99d."
+}
