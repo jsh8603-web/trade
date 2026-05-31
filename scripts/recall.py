@@ -23,57 +23,44 @@
   python3 scripts/recall.py tag loss,extreme_fear  # 복수 태그 (AND)
 """
 
-import json, os, sys
+import json, sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from dotenv import load_dotenv
-import requests
 
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from core.db import db
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 KST = timezone(timedelta(hours=9))
 
 
-def headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-    }
-
-
 def query_raw(table_or_view: str, params: dict = None) -> list:
-    """Supabase REST API query -- 파라미터 그대로 전달"""
-    url = f"{SUPABASE_URL}/rest/v1/{table_or_view}"
-    r = requests.get(url, headers=headers(), params=params or {}, timeout=15)
-    if r.ok:
-        return r.json()
-    print(f"[error] {r.status_code}: {r.text[:200]}", file=sys.stderr)
-    return []
+    """DB query -- 파라미터 그대로 전달 (order/limit/select 분리)"""
+    p = dict(params or {})
+    order = p.pop("order", None)
+    limit = p.pop("limit", None)
+    select = p.pop("select", "*")
+    return db.select(table_or_view, filters=p or None, order=order,
+                     limit=int(limit) if limit is not None else None, select=select)
 
 
 def query(table_or_view: str, params: dict = None, limit: int = 50) -> list:
-    """Supabase REST API query (PostgREST format)"""
-    url = f"{SUPABASE_URL}/rest/v1/{table_or_view}"
-    p = params or {}
+    """DB query (PostgREST 필터 문법 그대로)"""
+    p = dict(params or {})
     # Set default order based on table/view
-    if "order" not in p:
+    order = p.pop("order", None)
+    if order is None:
         if table_or_view == "v_daily_summary":
-            p["order"] = "trade_date.desc"
+            order = "trade_date.desc"
         elif table_or_view == "v_scalp_recall":
-            p["order"] = "entry_time.desc"
+            order = "entry_time.desc"
         elif table_or_view == "scalp_trade_log":
-            p["order"] = "entry_time.desc"
+            order = "entry_time.desc"
         else:
-            p["order"] = "created_at.desc"
-    if "limit" not in p:
-        p["limit"] = str(limit)
-    r = requests.get(url, headers=headers(), params=p, timeout=15)
-    if r.ok:
-        return r.json()
-    print(f"[error] {r.status_code}: {r.text[:200]}", file=sys.stderr)
-    return []
+            order = "created_at.desc"
+    lim = p.pop("limit", None)
+    lim = int(lim) if lim is not None else limit
+    select = p.pop("select", "*")
+    return db.select(table_or_view, filters=p or None, order=order, limit=lim, select=select)
 
 
 def fmt_krw(v):
@@ -331,28 +318,28 @@ def cmd_agent_perf():
 def cmd_retrospective():
     """회고 리포트: 결정 정확도 + 놓친 기회 + 나쁜 거래"""
     # Query v_decision_accuracy
-    r = requests.get(f"{SUPABASE_URL}/rest/v1/v_decision_accuracy", headers=headers(), timeout=15)
-    if r.ok and r.json():
+    rows = db.select("v_decision_accuracy")
+    if rows:
         print("=== 결정 정확도 ===")
-        for row in r.json():
+        for row in rows:
             print(f"  {row['decision']:<6} | 1h: {row.get('accuracy_1h','?')}% (avg {row.get('avg_1h_pct','?')}%) | 4h: {row.get('accuracy_4h','?')}% | 24h: {row.get('accuracy_24h','?')}%")
     else:
         print("=== 결정 정확도 === (데이터 없음 또는 뷰 미생성)")
 
     # Missed opportunities
-    r = requests.get(f"{SUPABASE_URL}/rest/v1/v_missed_opportunities", headers=headers(), params={"limit": "5"}, timeout=15)
-    if r.ok and r.json():
-        print(f"\n=== 놓친 기회 TOP {len(r.json())} ===")
-        for row in r.json():
+    rows = db.select("v_missed_opportunities", limit=5)
+    if rows:
+        print(f"\n=== 놓친 기회 TOP {len(rows)} ===")
+        for row in rows:
             print(f"  {row['created_at'][:16]} | +{row.get('outcome_24h_pct',0):.1f}% 상승 | FGI:{row.get('fear_greed_value','?')}")
     else:
         print("\n=== 놓친 기회 === (데이터 없음)")
 
     # Bad trades
-    r = requests.get(f"{SUPABASE_URL}/rest/v1/v_bad_trades", headers=headers(), params={"limit": "5"}, timeout=15)
-    if r.ok and r.json():
-        print(f"\n=== 나쁜 매수 TOP {len(r.json())} ===")
-        for row in r.json():
+    rows = db.select("v_bad_trades", limit=5)
+    if rows:
+        print(f"\n=== 나쁜 매수 TOP {len(rows)} ===")
+        for row in rows:
             print(f"  {row['created_at'][:16]} | {row.get('outcome_4h_pct',0):+.1f}% | 금액: {row.get('trade_amount',0):,}")
     else:
         print("\n=== 나쁜 매수 === (데이터 없음)")
@@ -360,10 +347,10 @@ def cmd_retrospective():
 
 def cmd_near_miss():
     """니어미스 분석"""
-    r = requests.get(f"{SUPABASE_URL}/rest/v1/v_near_miss_analysis", headers=headers(), params={"limit": "20"}, timeout=15)
-    if r.ok and r.json():
-        print(f"=== 니어미스 + AI거부 {len(r.json())}건 ===")
-        for row in r.json():
+    rows = db.select("v_near_miss_analysis", limit=20)
+    if rows:
+        print(f"=== 니어미스 + AI거부 {len(rows)}건 ===")
+        for row in rows:
             print(f"  {row['recorded_at'][:16]} | {row.get('agent_type','?')} | 점수:{row.get('total_score','?')}/{row.get('threshold','?')} ({row.get('points_from_threshold','')}pt) | {row.get('evaluation','?')}")
             if row.get('was_ai_vetoed'):
                 print(f"    AI거부: {row.get('ai_veto_reason','?')} | 4h후: {row.get('outcome_4h_pct','?')}%")
@@ -373,10 +360,10 @@ def cmd_near_miss():
 
 def cmd_filters():
     """필터 효과 분석"""
-    r = requests.get(f"{SUPABASE_URL}/rest/v1/v_filter_effectiveness", headers=headers(), timeout=15)
-    if r.ok and r.json():
+    rows = db.select("v_filter_effectiveness")
+    if rows:
         print("=== 필터 효과 ===")
-        for row in r.json():
+        for row in rows:
             print(f"  {row.get('block_filter','?')}: {row.get('total_blocked',0)}건 차단 | 손실방지: {row.get('filter_save_rate','?')}% | 평균결과: {row.get('avg_outcome_if_traded','?')}%")
     else:
         print("=== 필터 효과 === (데이터 없음 또는 뷰 미생성)")
@@ -384,10 +371,10 @@ def cmd_filters():
 
 def cmd_health():
     """시스템 건강도"""
-    r = requests.get(f"{SUPABASE_URL}/rest/v1/v_system_health", headers=headers(), timeout=15)
-    if r.ok and r.json():
+    rows = db.select("v_system_health")
+    if rows:
         print("=== 시스템 건강도 (24h) ===")
-        for row in r.json():
+        for row in rows:
             print(f"  {row.get('execution_mode','?')}: {row.get('total_runs',0)}회 | 성공률: {row.get('success_rate','?')}% | 평균: {row.get('avg_duration_ms','?')}ms | 최근: {(row.get('last_run') or '')[:16]}")
     else:
         print("=== 시스템 건강도 === (최근 24시간 데이터 없음)")
@@ -395,10 +382,10 @@ def cmd_health():
 
 def cmd_veto():
     """AI 거부권 분석"""
-    r = requests.get(f"{SUPABASE_URL}/rest/v1/v_ai_veto_effectiveness", headers=headers(), timeout=15)
-    if r.ok and r.json():
+    rows = db.select("v_ai_veto_effectiveness")
+    if rows:
         print("=== AI 거부권 효과 ===")
-        for row in r.json():
+        for row in rows:
             print(f"  {row.get('ai_veto_reason','?')}: {row.get('total_vetoes',0)}건 | 정확도: {row.get('veto_accuracy_pct','?')}% | 매수했다면: {row.get('avg_outcome_if_bought','?')}%")
     else:
         print("=== AI 거부권 === (데이터 없음 또는 뷰 미생성)")

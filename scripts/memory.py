@@ -38,16 +38,20 @@ import os
 import sys
 import time
 import re
+import uuid
 import yaml
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from core.db import db
+
 load_dotenv(PROJECT_ROOT / ".env")
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 KST = timezone(timedelta(hours=9))
 TABLE = "claude_memories"
 
@@ -169,64 +173,63 @@ def sync_index():
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Supabase REST helpers
+# DB helpers (core.db adapter — sqlite/supabase 백엔드 스위치)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def _headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=representation",
-    }
-
-
 def _get(params: dict = None, single=False) -> list | dict | None:
-    import requests
-    url = f"{SUPABASE_URL}/rest/v1/{TABLE}"
-    r = requests.get(url, headers=_headers(), params=params or {}, timeout=15)
-    if not r.ok:
-        print(f"[memory] GET error: {r.status_code} {r.text}", file=sys.stderr)
-        return [] if not single else None
-    data = r.json()
+    """조회. 기존 PostgREST params dict 를 adapter select() 인자로 변환.
+
+    params: {"col": "op.val", ..., "select": "a,b", "order": "c.desc", "limit": N}
+    """
+    params = dict(params or {})
+    select = params.pop("select", "*")
+    order = params.pop("order", None)
+    limit = params.pop("limit", None)
+    if limit is not None:
+        limit = int(limit)
+    # 나머지 키 = PostgREST 필터 (op.val 문법 그대로)
+    filters = params or None
+    try:
+        rows = db.select(TABLE, filters=filters, order=order, limit=limit, select=select)
+    except Exception as e:
+        print(f"[memory] SELECT error: {e}", file=sys.stderr)
+        return None if single else []
     if single:
-        return data[0] if data else None
-    return data
+        return rows[0] if rows else None
+    return rows
 
 
 def _post(data: dict) -> dict | None:
-    import requests
-    url = f"{SUPABASE_URL}/rest/v1/{TABLE}"
-    r = requests.post(url, headers=_headers(), json=data, timeout=15)
-    if not r.ok:
-        print(f"[memory] POST error: {r.status_code} {r.text}", file=sys.stderr)
+    try:
+        return db.insert(TABLE, data)
+    except Exception as e:
+        print(f"[memory] INSERT error: {e}", file=sys.stderr)
         return None
-    result = r.json()
-    return result[0] if isinstance(result, list) and result else result
 
 
 def _patch(mem_id: str, data: dict) -> bool:
-    import requests
-    url = f"{SUPABASE_URL}/rest/v1/{TABLE}?id=eq.{mem_id}"
-    r = requests.patch(url, headers=_headers(), json=data, timeout=15)
-    return r.ok
+    try:
+        return db.update(TABLE, {"id": f"eq.{mem_id}"}, data) > 0
+    except Exception as e:
+        print(f"[memory] UPDATE error: {e}", file=sys.stderr)
+        return False
 
 
 def _delete_db(mem_id: str) -> bool:
-    import requests
-    url = f"{SUPABASE_URL}/rest/v1/{TABLE}?id=eq.{mem_id}"
-    r = requests.delete(url, headers=_headers(), timeout=15)
-    return r.ok
+    try:
+        return db.delete(TABLE, {"id": f"eq.{mem_id}"}) > 0
+    except Exception as e:
+        print(f"[memory] DELETE error: {e}", file=sys.stderr)
+        return False
 
 
-def _rpc(fn_name: str, payload: dict) -> list:
-    import requests
-    url = f"{SUPABASE_URL}/rest/v1/rpc/{fn_name}"
-    r = requests.post(url, headers=_headers(), json=payload, timeout=30)
-    if not r.ok:
-        print(f"[memory] RPC {fn_name} error: {r.status_code} {r.text}", file=sys.stderr)
+def _rpc_match(embedding: list, k: int = 5) -> list:
+    """벡터 유사도 top-k (pgvector match_* 대체)."""
+    try:
+        return db.rpc_match(TABLE, embedding, column="embedding", k=k)
+    except Exception as e:
+        print(f"[memory] rpc_match error: {e}", file=sys.stderr)
         return []
-    return r.json()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -282,6 +285,7 @@ def cmd_store(args):
     embedding = get_embedding(embed_text)
 
     data = {
+        "id": str(uuid.uuid4()),  # PG gen_random_uuid() 대체 (sqlite 는 default 없음)
         "title": title,
         "content": content,
         "category": category,
@@ -291,7 +295,7 @@ def cmd_store(args):
         "relevance_score": 1.0,
     }
     if embedding:
-        data["embedding"] = str(embedding)
+        data["embedding"] = embedding  # raw list (adapter 가 백엔드별 직렬화)
 
     result = _post(data)
     if result:
@@ -336,10 +340,7 @@ def cmd_recall(args):
     embedding = get_query_embedding(query)
     semantic_results = []
     if embedding:
-        semantic_results = _rpc("match_similar_memories", {
-            "query_embedding": str(embedding),
-            "match_limit": limit,
-        })
+        semantic_results = _rpc_match(embedding, k=limit)
 
     if semantic_results:
         _batch_touch([r["id"] for r in semantic_results])
@@ -416,16 +417,10 @@ def cmd_recall_context(args):
 
 def _batch_touch(ids: list[str]):
     """여러 메모리의 access_count를 한 번에 갱신 (비동기)."""
-    import requests
     now = datetime.now(timezone.utc).isoformat()
     for mid in ids[:10]:  # 최대 10건만 갱신 (속도 보호)
         try:
-            requests.patch(
-                f"{SUPABASE_URL}/rest/v1/{TABLE}?id=eq.{mid}",
-                headers=_headers(),
-                json={"last_accessed": now},
-                timeout=3,
-            )
+            db.update(TABLE, {"id": f"eq.{mid}"}, {"last_accessed": now})
         except Exception:
             pass  # touch 실패는 무시
 
@@ -518,7 +513,7 @@ def cmd_update(args):
             c = args.content or row["content"]
             emb = get_embedding(f"{t}\n{c[:2000]}")
             if emb:
-                data["embedding"] = str(emb)
+                data["embedding"] = emb  # raw list (adapter 가 백엔드별 직렬화)
 
     if _patch(args.id, data):
         # 인덱스 갱신
@@ -621,11 +616,49 @@ def cmd_consolidate(args):
 
 
 def cmd_decay(args):
-    """관련성 감쇠."""
-    _rpc("decay_memory_relevance", {})
+    """관련성 감쇠 (서버 RPC decay_memory_relevance 를 클라이언트에서 재현).
+
+    공식 (migration 046):
+      relevance = GREATEST(0.05,
+        (pinned ? 1.0
+         : last_accessed IS NULL ? 0.93^(age_days from created_at)
+         : 0.95^(age_days from last_accessed))
+        * (1 + ln(max(access_count,1)) * 0.1))
+      WHERE NOT pinned
+    """
+    import math
+    now = datetime.now(timezone.utc)
+    rows = _get({
+        "pinned": "eq.false",
+        "select": "id,pinned,created_at,last_accessed,access_count",
+    })
+    updated = 0
+    for r in rows or []:
+        if r.get("pinned"):
+            continue
+        acc = r.get("access_count") or 0
+        last = r.get("last_accessed")
+        if last:
+            base_ts, decay_base = last, 0.95
+        else:
+            base_ts, decay_base = r.get("created_at"), 0.93
+        try:
+            ref = datetime.fromisoformat(str(base_ts).replace("Z", "+00:00"))
+            if ref.tzinfo is None:
+                ref = ref.replace(tzinfo=timezone.utc)
+            age_days = (now - ref).total_seconds() / 86400.0
+        except (ValueError, TypeError):
+            age_days = 0.0
+        rel = (decay_base ** age_days) * (1.0 + math.log(max(acc, 1)) * 0.1)
+        rel = max(0.05, rel)
+        _patch(r["id"], {
+            "relevance_score": rel,
+            "updated_at": now.isoformat(),
+        })
+        updated += 1
     # 인덱스 재동기화 (decay 후 점수 변경)
     n = sync_index()
-    print(f"✅ decay 완료 (인덱스 동기화: {n}건)")
+    print(f"✅ decay 완료 ({updated}건 갱신, 인덱스 동기화: {n}건)")
 
 
 def cmd_stats(args):
@@ -697,6 +730,7 @@ def cmd_import_md(args):
         time.sleep(0.3)
 
         data = {
+            "id": str(uuid.uuid4()),  # PG gen_random_uuid() 대체 (sqlite 는 default 없음)
             "title": title or f.stem,
             "content": content,
             "category": category,
@@ -707,7 +741,7 @@ def cmd_import_md(args):
             "relevance_score": 1.0,
         }
         if embedding:
-            data["embedding"] = str(embedding)
+            data["embedding"] = embedding  # raw list (adapter 가 백엔드별 직렬화)
 
         result = _post(data)
         if result:

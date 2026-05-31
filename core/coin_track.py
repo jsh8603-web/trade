@@ -8,13 +8,13 @@ Orchestrator + ExternalDataAgent를 import+위임 방식으로 감싼다.
 from __future__ import annotations
 
 import json
-import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from core.asset_track import AssetTrack, MarketState
+from core.db import db
 
 if TYPE_CHECKING:
     from agents.base_agent import Decision
@@ -102,24 +102,13 @@ class CoinTrack(AssetTrack):
     def _load_past_decisions(self) -> list:
         if self._past_decisions_override is not None:
             return self._past_decisions_override
-        # mock-only 환경: .env 없으면 빈 리스트
-        supabase_url = os.environ.get("SUPABASE_URL", "")
-        supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-        if not (supabase_url and supabase_key):
-            return []
         try:
-            import requests  # noqa: PLC0415
-            resp = requests.get(
-                f"{supabase_url}/rest/v1/decisions",
-                params={
-                    "select": "id,decision,reason,confidence,current_price,profit_loss,created_at",
-                    "order": "created_at.desc",
-                    "limit": "5",
-                },
-                headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"},
-                timeout=5,
+            return db.select(
+                "decisions",
+                select="id,decision,reason,confidence,current_price,profit_loss,created_at",
+                order="created_at.desc",
+                limit=5,
             )
-            return resp.json() if resp.status_code == 200 else []
         except Exception:
             return []
 

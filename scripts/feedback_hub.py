@@ -22,30 +22,22 @@ Feedback Hub — 자율 개선 파이프라인의 핵심
 from __future__ import annotations
 
 import json
-import os
 import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
-import requests
-
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
+
+load_dotenv(PROJECT_DIR / ".env")
+
+from core.db import db
+
 STATE_FILE = PROJECT_DIR / "data" / "feedback_hub_state.json"
 KST = timezone(timedelta(hours=9))
-
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-
-
-def _headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
 
 
 def _load_state() -> dict:
@@ -105,27 +97,20 @@ def calibrate_confidence(days: int = 14, cached_decisions: list[dict] | None = N
         ]
 
     if rows is None:
-        if not SUPABASE_URL or not SUPABASE_KEY:
-            return {"confidence_bias": 0.0, "calibration_error": 0.0, "samples": 0}
-
         cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
         try:
-            r = requests.get(
-                f"{SUPABASE_URL}/rest/v1/decisions",
-                headers=_headers(),
-                params={
-                    "select": "confidence,decision,was_correct_4h,outcome_4h_pct",
+            rows = db.select(
+                "decisions",
+                select="confidence,decision,was_correct_4h,outcome_4h_pct",
+                filters={
                     "created_at": f"gte.{cutoff}",
                     "was_correct_4h": "not.is.null",
-                    "limit": "200",
                 },
-                timeout=10,
+                limit=200,
             )
-            if r.status_code != 200 or not r.json():
+            if not rows:
                 return {"confidence_bias": 0.0, "calibration_error": 0.0, "samples": 0}
-
-            rows = r.json()
         except Exception as e:
             print(f"[feedback_hub] calibration 예외: {e}", file=sys.stderr)
             return {"confidence_bias": 0.0, "calibration_error": 0.0, "samples": 0}
@@ -200,28 +185,19 @@ def score_rl_models(days: int = 14) -> dict:
     Returns:
         {model_name: {"accuracy": float, "samples": int, "should_disable": bool}}
     """
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return {}
-
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
     try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/rl_model_predictions",
-            headers=_headers(),
-            params={
-                "select": "sb3_action,dt_action,multi_agent_action,offline_action,"
-                         "ensemble_direction,return_after_4h",
+        rows = db.select(
+            "rl_model_predictions",
+            select="sb3_action,dt_action,multi_agent_action,offline_action,"
+                   "ensemble_direction,return_after_4h",
+            filters={
                 "created_at": f"gte.{cutoff}",
                 "return_after_4h": "not.is.null",
-                "limit": "200",
             },
-            timeout=10,
+            limit=200,
         )
-        if r.status_code != 200:
-            return {}
-
-        rows = r.json()
         if not rows:
             return {}
 
@@ -298,28 +274,19 @@ def evaluate_rag_quality(days: int = 14, cached_decisions: list[dict] | None = N
         ]
 
     if rows is None:
-        if not SUPABASE_URL or not SUPABASE_KEY:
-            return {"rag_benefit": 0.0, "samples": 0}
-
         cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
         try:
-            r = requests.get(
-                f"{SUPABASE_URL}/rest/v1/decisions",
-                headers=_headers(),
-                params={
-                    "select": "was_correct_4h,market_data_snapshot,source",
+            rows = db.select(
+                "decisions",
+                select="was_correct_4h,market_data_snapshot,source",
+                filters={
                     "created_at": f"gte.{cutoff}",
                     "was_correct_4h": "not.is.null",
                     "source": "eq.agent",
-                    "limit": "200",
                 },
-                timeout=10,
+                limit=200,
             )
-            if r.status_code != 200:
-                return {"rag_benefit": 0.0, "samples": 0}
-
-            rows = r.json()
         except Exception as e:
             print(f"[feedback_hub] RAG quality 예외: {e}", file=sys.stderr)
             return {"rag_benefit": 0.0, "samples": 0}

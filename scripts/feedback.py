@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import io
 import json
-import os
 import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -32,7 +31,11 @@ if sys.stderr and sys.stderr.encoding != "utf-8":
 from dotenv import load_dotenv
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
+
+from core.db import db
 
 STATE_FILE = PROJECT_DIR / "data" / "orchestrator_state.json"
 KST = timezone(timedelta(hours=9))
@@ -87,31 +90,15 @@ def _save_state(state: dict) -> None:
 
 
 def _save_to_db(fb_type: str, content: str, action: str = None) -> bool:
-    """Supabase feedback 테이블에 저장한다."""
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not supabase_url or not supabase_key:
-        return False
-
-    import requests
+    """feedback 테이블에 저장한다."""
     try:
         row = {
             "type": fb_type,
             "content": content,
             "applied": False,
         }
-        resp = requests.post(
-            f"{supabase_url}/rest/v1/feedback",
-            json=row,
-            headers={
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal",
-            },
-            timeout=10,
-        )
-        return resp.status_code in (200, 201)
+        db.insert("feedback", row, returning=False)
+        return True
     except Exception:
         return False
 
@@ -310,40 +297,22 @@ def cmd_status():
 
 
 def cmd_history():
-    """Supabase에 저장된 피드백 이력 조회"""
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not supabase_url or not supabase_key:
-        print("SUPABASE 환경변수 미설정")
-        return
-
-    import requests
+    """저장된 피드백 이력 조회"""
     try:
-        resp = requests.get(
-            f"{supabase_url}/rest/v1/feedback",
-            headers={
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-            },
-            params={
-                "select": "type,content,applied,created_at",
-                "order": "created_at.desc",
-                "limit": "10",
-            },
-            timeout=10,
+        rows = db.select(
+            "feedback",
+            select="type,content,applied,created_at",
+            order="created_at.desc",
+            limit=10,
         )
-        if resp.ok:
-            rows = resp.json()
-            if not rows:
-                print("피드백 이력 없음")
-                return
-            print("=== 최근 피드백 이력 ===\n")
-            for r in rows:
-                applied = "적용됨" if r.get("applied") else "미적용"
-                created = r.get("created_at", "?")[:16]
-                print(f"  [{r['type']}] {r['content'][:50]} ({applied}, {created})")
-        else:
-            print(f"조회 실패: {resp.status_code}")
+        if not rows:
+            print("피드백 이력 없음")
+            return
+        print("=== 최근 피드백 이력 ===\n")
+        for r in rows:
+            applied = "적용됨" if r.get("applied") else "미적용"
+            created = (r.get("created_at") or "?")[:16]
+            print(f"  [{r['type']}] {r['content'][:50]} ({applied}, {created})")
     except Exception as e:
         print(f"조회 예외: {e}")
 

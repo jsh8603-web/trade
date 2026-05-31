@@ -34,7 +34,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from dotenv import load_dotenv
 load_dotenv()
 
-import requests
+import requests  # Telegram 알림 전용
+
+from core.db import db
 
 # ── 설정 ──────────────────────────────────────────────
 
@@ -42,14 +44,6 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 PARAM_FILE = PROJECT_DIR / "data" / "auto_learner_params.json"
 HISTORY_FILE = PROJECT_DIR / "data" / "auto_learner_history.json"
 LOG_FILE = PROJECT_DIR / "logs" / "auto_learner.log"
-
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json",
-}
 
 TARGET_WIN_RATE = 0.60
 MIN_TRADES_FOR_EVAL = 10      # 최소 매매 수
@@ -121,40 +115,34 @@ def send_telegram(text: str):
 
 
 def db_query(table: str, params: dict = None) -> list:
-    """Supabase REST API 쿼리"""
+    """로컬 DB 쿼리 (PostgREST params → db.select)"""
+    params = dict(params or {})
+    select = params.pop("select", "*")
+    order = params.pop("order", None)
+    limit = params.pop("limit", None)
+    if limit is not None:
+        try:
+            limit = int(limit)
+        except (TypeError, ValueError):
+            limit = None
     try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            headers=HEADERS,
-            params=params or {},
-            timeout=15,
-        )
-        if r.ok:
-            return r.json()
+        return db.select(table, filters=params or None, order=order,
+                         limit=limit, select=select)
     except Exception as e:
         log.warning(f"DB 쿼리 실패 ({table}): {e}")
     return []
 
 
 def db_insert(table: str, row: dict):
-    """Supabase REST API 삽입"""
+    """로컬 DB 삽입"""
     try:
         from utils.machine import get_machine_name
         row.setdefault("machine_name", get_machine_name())
-        r = requests.post(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            headers={**HEADERS, "Prefer": "return=minimal"},
-            json=row,
-            timeout=10,
-        )
-        if r.status_code == 400 and "machine_name" in r.text:
+        try:
+            db.insert(table, row, returning=False)
+        except Exception:
             row.pop("machine_name", None)
-            requests.post(
-                f"{SUPABASE_URL}/rest/v1/{table}",
-                headers={**HEADERS, "Prefer": "return=minimal"},
-                json=row,
-                timeout=10,
-            )
+            db.insert(table, row, returning=False)
     except Exception as e:
         log.warning(f"DB 삽입 실패 ({table}): {e}")
 

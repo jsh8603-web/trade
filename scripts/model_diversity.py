@@ -21,58 +21,38 @@ from __future__ import annotations
 
 import json
 import math
-import os
 import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
-import requests
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
+from core.db import db
+
 KST = timezone(timedelta(hours=9))
 DIVERSITY_FILE = PROJECT_DIR / "data" / "model_diversity.json"
-
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 MODELS = ["sb3", "dt", "multi_agent", "offline", "historical"]
 
 
-def _headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-
-
 def _fetch_decisions(days: int = 7) -> list[dict]:
-    """Supabase에서 최근 N일 decisions를 조회한다."""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return []
+    """로컬 DB에서 최근 N일 decisions를 조회한다."""
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/decisions",
-            headers=_headers(),
-            params={
-                "select": "market_data_snapshot,created_at",
-                "created_at": f"gte.{cutoff}",
-                "order": "created_at.desc",
-                "limit": "500",
-            },
-            timeout=15,
-        )
-        if r.status_code == 200:
-            return r.json() or []
-        return []
+        return db.select(
+            "decisions",
+            filters={"created_at": f"gte.{cutoff}"},
+            order="created_at.desc",
+            limit=500,
+            select="market_data_snapshot,created_at",
+        ) or []
     except Exception as e:
-        print(f"[model_diversity] Supabase 조회 실패: {e}", file=sys.stderr)
+        print(f"[model_diversity] DB 조회 실패: {e}", file=sys.stderr)
         return []
 
 

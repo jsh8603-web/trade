@@ -19,22 +19,21 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
-import requests
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from core.db import db
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 WEIGHTS_FILE = PROJECT_DIR / "data" / "regime_weights_learned.json"
 KST = timezone(timedelta(hours=9))
-
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 MODELS = ["sb3", "dt", "multi_agent", "offline", "historical"]
 
@@ -53,39 +52,22 @@ DEFAULT_REGIME_WEIGHTS = {
 }
 
 
-def _headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-
-
 def _fetch_decisions(days: int = 30) -> list[dict]:
-    """Supabase에서 레짐 정보가 포함된 최근 결정들을 가져온다."""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return []
-
+    """로컬 DB에서 레짐 정보가 포함된 최근 결정들을 가져온다."""
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
     try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/decisions",
-            headers=_headers(),
-            params={
-                "select": "market_data_snapshot,was_correct_4h,outcome_4h_pct,confidence,created_at",
+        return db.select(
+            "decisions",
+            filters={
                 "created_at": f"gte.{cutoff}",
                 "was_correct_4h": "not.is.null",
-                "limit": "500",
             },
-            timeout=15,
-        )
-        if r.status_code != 200:
-            print(f"[regime_learner] Supabase 조회 실패: {r.status_code}", file=sys.stderr)
-            return []
-        return r.json() or []
+            limit=500,
+            select="market_data_snapshot,was_correct_4h,outcome_4h_pct,confidence,created_at",
+        ) or []
     except Exception as e:
-        print(f"[regime_learner] Supabase 조회 예외: {e}", file=sys.stderr)
+        print(f"[regime_learner] DB 조회 예외: {e}", file=sys.stderr)
         return []
 
 

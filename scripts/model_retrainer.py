@@ -23,26 +23,23 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
-import requests
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
+from core.db import db
+
 KST = timezone(timedelta(hours=9))
 STATE_FILE = PROJECT_DIR / "data" / "feedback_hub_state.json"
 QUEUE_FILE = PROJECT_DIR / "data" / "model_retrain_queue.json"
-
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 # 재훈련 파라미터
 MIN_DISABLED_HOURS = 24       # 비활성화 후 최소 대기 시간
@@ -52,15 +49,6 @@ ACCURACY_IMPROVEMENT_THRESHOLD = 0.05  # 복원 기준: 이전 대비 +5%
 
 # GPU 필요 모델 (큐잉만 하고 직접 실행하지 않음)
 DEFERRED_MODELS = {"dt", "multi_agent", "offline"}
-
-
-def _headers():
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=representation",
-    }
 
 
 def _now_kst() -> str:
@@ -126,40 +114,20 @@ def _save_feedback_state(state: dict):
 
 def _get_decisions_count_since(since_iso: str) -> int:
     """지정 시각 이후 decisions 건수 조회"""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return 0
     try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/decisions",
-            headers={
-                "apikey": SUPABASE_KEY,
-                "Authorization": f"Bearer {SUPABASE_KEY}",
-                "Content-Type": "application/json",
-                "Prefer": "count=exact",
-            },
-            params={
-                "select": "id",
-                "created_at": f"gte.{since_iso}",
-                "limit": "0",
-            },
-            timeout=10,
+        rows = db.select(
+            "decisions",
+            filters={"created_at": f"gte.{since_iso}"},
+            select="id",
+            limit=5000,
         )
-        # count=exact 헤더로 Content-Range에서 총 개수 파싱
-        content_range = r.headers.get("Content-Range", "")
-        if "/" in content_range:
-            total = content_range.split("/")[-1]
-            if total != "*":
-                return int(total)
-        # fallback
-        return len(r.json()) if r.status_code == 200 else 0
+        return len(rows)
     except Exception:
         return 0
 
 
 def _log_training_queue_to_db(model_name: str, reason: str, previous_accuracy: float):
     """rl_training_cycles 테이블에 queued 상태로 기록"""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return None
     try:
         from utils.machine import get_machine_name
         machine = get_machine_name()
@@ -170,10 +138,9 @@ def _log_training_queue_to_db(model_name: str, reason: str, previous_accuracy: f
     cycle_id = str(uuid.uuid4())
 
     try:
-        r = requests.post(
-            f"{SUPABASE_URL}/rest/v1/rl_training_cycles",
-            headers=_headers(),
-            json={
+        db.insert(
+            "rl_training_cycles",
+            {
                 "id": cycle_id,
                 "algorithm": model_name,
                 "status": "queued",
@@ -187,13 +154,8 @@ def _log_training_queue_to_db(model_name: str, reason: str, previous_accuracy: f
                 }, ensure_ascii=False),
                 "started_at": datetime.now(timezone.utc).isoformat(),
             },
-            timeout=15,
         )
-        if r.status_code in (200, 201):
-            return cycle_id
-        else:
-            print(f"[model_retrainer] DB queued 기록 실패: {r.status_code}", file=sys.stderr)
-            return cycle_id
+        return cycle_id
     except Exception as e:
         print(f"[model_retrainer] DB queued 예외: {e}", file=sys.stderr)
         return cycle_id
@@ -202,7 +164,7 @@ def _log_training_queue_to_db(model_name: str, reason: str, previous_accuracy: f
 def _update_training_status_db(cycle_id: str, status: str, error_message: str = None,
                                 elapsed_seconds: float = None):
     """rl_training_cycles 상태 업데이트"""
-    if not SUPABASE_URL or not SUPABASE_KEY or not cycle_id:
+    if not cycle_id:
         return
     data = {"status": status}
     if error_message:
@@ -213,13 +175,7 @@ def _update_training_status_db(cycle_id: str, status: str, error_message: str = 
         data["completed_at"] = datetime.now(timezone.utc).isoformat()
 
     try:
-        requests.patch(
-            f"{SUPABASE_URL}/rest/v1/rl_training_cycles",
-            headers=_headers(),
-            json=data,
-            params={"id": f"eq.{cycle_id}"},
-            timeout=10,
-        )
+        db.update("rl_training_cycles", {"id": f"eq.{cycle_id}"}, data)
     except Exception:
         pass
 
@@ -535,9 +491,6 @@ def _evaluate_model_accuracy(model_name: str) -> float | None:
     rl_model_predictions에서 최근 데이터를 조회하여 계산.
     재훈련 직후이므로 과거 데이터 기반으로 추정한다.
     """
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return None
-
     action_key_map = {
         "sb3": "sb3_action",
         "dt": "dt_action",
@@ -553,25 +506,15 @@ def _evaluate_model_accuracy(model_name: str) -> float | None:
 
     try:
         cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/rl_model_predictions",
-            headers={
-                "apikey": SUPABASE_KEY,
-                "Authorization": f"Bearer {SUPABASE_KEY}",
-                "Content-Type": "application/json",
-            },
-            params={
-                "select": f"{action_key},ensemble_direction,return_after_4h",
+        rows = db.select(
+            "rl_model_predictions",
+            filters={
                 "created_at": f"gte.{cutoff}",
                 "return_after_4h": "not.is.null",
-                "limit": "100",
             },
-            timeout=10,
+            select=f"{action_key},ensemble_direction,return_after_4h",
+            limit=100,
         )
-        if r.status_code != 200:
-            return None
-
-        rows = r.json()
         if not rows or len(rows) < 3:
             return None
 

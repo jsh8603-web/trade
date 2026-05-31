@@ -16,7 +16,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import sys
 import time
@@ -33,6 +32,7 @@ from dotenv import load_dotenv
 load_dotenv(PROJECT_DIR / ".env")
 
 from scripts.atomic_write import atomic_json_save
+from core.db import db
 
 KST = timezone(timedelta(hours=9))
 STATE_FILE = PROJECT_DIR / "data" / "nl_feedback_state.json"
@@ -259,13 +259,6 @@ def save_feedback_to_db(entry: dict) -> bool:
     Returns:
         저장 성공 여부
     """
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not supabase_url or not supabase_key:
-        return False
-
-    import requests
-
     try:
         row = {
             "type": entry["type"],
@@ -276,18 +269,8 @@ def save_feedback_to_db(entry: dict) -> bool:
             ),
             "applied": False,
         }
-        resp = requests.post(
-            f"{supabase_url}/rest/v1/feedback",
-            json=row,
-            headers={
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal",
-            },
-            timeout=10,
-        )
-        return resp.status_code in (200, 201)
+        db.insert("feedback", row, returning=False)
+        return True
     except Exception:
         return False
 
