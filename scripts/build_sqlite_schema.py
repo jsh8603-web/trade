@@ -30,6 +30,9 @@ import sqlite3
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MIG_DIR = os.path.join(ROOT, "supabase", "migrations")
 OUT_SQL = os.path.join(ROOT, "core", "db", "schema.sql")
+# 수동 DDL sidecar: 변환기가 자동 생성하지 못하는 항목(VIEW, aspirational 테이블).
+# generated 테이블 뒤에 그대로 append 됨. PG->SQLite 호환은 수동 작성.
+MANUAL_SQL = os.path.join(ROOT, "core", "db", "views.sql")
 REPORT = os.path.join(ROOT, ".l0-schema-report.txt")
 
 
@@ -139,16 +142,25 @@ def keep(stmt: str) -> bool:
 
 def convert(stmt: str) -> str:
     s = stmt
+    # 'timestamp' 가 컬럼 식별자로 쓰인 경우(타입이 아닌) quote 처리.
+    # 미보정 시 아래 \bTIMESTAMP\b 타입치환이 컬럼명까지 TEXT 로 바꿔 'TEXT TEXT' 깨짐 발생.
+    #   "timestamp TIMESTAMPTZ ..." (컬럼정의)  -> '"timestamp" TIMESTAMPTZ ...'
+    #   "(timestamp DESC)" / "(timestamp," (인덱스 컬럼) -> '("timestamp" ...'
+    s = re.sub(r"\btimestamp\b(?=\s+(?:timestamptz|timestamp\b|timestamp\s+with))",
+               '"timestamp"', s, flags=re.I)
+    s = re.sub(r"\(\s*timestamp\b(?=\s*(?:,|\)|\s+(?:ASC|DESC)\b))",
+               '("timestamp"', s, flags=re.I)
     s = re.sub(r"\bBIGSERIAL\b", "INTEGER", s, flags=re.I)
     s = re.sub(r"\bSMALLSERIAL\b", "INTEGER", s, flags=re.I)
     s = re.sub(r"\bSERIAL\b", "INTEGER", s, flags=re.I)
     s = re.sub(r"\bJSONB\b", "TEXT", s, flags=re.I)
     s = re.sub(r"\bJSON\b", "TEXT", s, flags=re.I)
     s = re.sub(r"\bvector\(\s*\d+\s*\)", "BLOB", s, flags=re.I)
-    s = re.sub(r"\bTIMESTAMP\s+WITH\s+TIME\s+ZONE\b", "TEXT", s, flags=re.I)
-    s = re.sub(r"\bTIMESTAMP\s+WITHOUT\s+TIME\s+ZONE\b", "TEXT", s, flags=re.I)
-    s = re.sub(r"\bTIMESTAMPTZ\b", "TEXT", s, flags=re.I)
-    s = re.sub(r"\bTIMESTAMP\b", "TEXT", s, flags=re.I)
+    # (?<!") : 위에서 quote 처리한 컬럼 식별자 "timestamp" 는 타입치환 대상에서 제외.
+    s = re.sub(r'(?<!")\bTIMESTAMP\s+WITH\s+TIME\s+ZONE\b', "TEXT", s, flags=re.I)
+    s = re.sub(r'(?<!")\bTIMESTAMP\s+WITHOUT\s+TIME\s+ZONE\b', "TEXT", s, flags=re.I)
+    s = re.sub(r'(?<!")\bTIMESTAMPTZ\b', "TEXT", s, flags=re.I)
+    s = re.sub(r'(?<!")\bTIMESTAMP\b', "TEXT", s, flags=re.I)
     s = re.sub(r"\bUUID\b", "TEXT", s, flags=re.I)
     s = re.sub(r"\bDOUBLE\s+PRECISION\b", "REAL", s, flags=re.I)
     s = re.sub(r"\bNUMERIC\s*\([^)]*\)", "REAL", s, flags=re.I)
@@ -294,7 +306,14 @@ def header(files):
     )
 
 
-def validate(stmts):
+def read_manual():
+    """수동 DDL sidecar(views.sql) 본문 반환. 없으면 ''."""
+    if not os.path.exists(MANUAL_SQL):
+        return ""
+    return open(MANUAL_SQL, encoding="utf-8").read()
+
+
+def validate(stmts, manual_sql=""):
     con = sqlite3.connect(":memory:")
     failures = []
     for st in stmts:
@@ -303,20 +322,30 @@ def validate(stmts):
         except Exception as e:
             head_s = re.sub(r"\s+", " ", st)[:100]
             failures.append("%s: %s :: %s" % (type(e).__name__, e, head_s))
+    # 수동 DDL(VIEW 등)은 base 테이블 생성 후 일괄 적용해야 참조가 풀림.
+    if manual_sql.strip():
+        try:
+            con.executescript(manual_sql)
+        except Exception as e:
+            failures.append("%s(manual): %s" % (type(e).__name__, e))
     n_tables = con.execute(
         "SELECT count(*) FROM sqlite_master WHERE type='table'").fetchone()[0]
+    n_views = con.execute(
+        "SELECT count(*) FROM sqlite_master WHERE type='view'").fetchone()[0]
     con.close()
-    return n_tables, failures
+    return n_tables, n_views, failures
 
 
 def main():
     check_only = "--check" in sys.argv
     files, stmts = build()
-    n_tables, failures = validate(stmts)
+    manual_sql = read_manual()
+    n_tables, n_views, failures = validate(stmts, manual_sql)
     lines = [
         "files=%d" % len(files),
         "statements_kept=%d" % len(stmts),
         "tables_created=%d" % n_tables,
+        "views_created=%d" % n_views,
         "failures=%d" % len(failures),
         "",
         "--- FAILED STATEMENTS ---",
@@ -325,9 +354,12 @@ def main():
     open(REPORT, "w", encoding="utf-8").write("\n".join(lines))
     if not check_only:
         os.makedirs(os.path.dirname(OUT_SQL), exist_ok=True)
-        open(OUT_SQL, "w", encoding="utf-8").write(
-            header(files) + "\n" + "\n\n".join(stmts) + "\n")
-    print("L0_SCHEMA tables=%d stmts=%d failures=%d" % (n_tables, len(stmts), len(failures)))
+        body = header(files) + "\n" + "\n\n".join(stmts) + "\n"
+        if manual_sql.strip():
+            body += "\n" + manual_sql.rstrip() + "\n"
+        open(OUT_SQL, "w", encoding="utf-8").write(body)
+    print("L0_SCHEMA tables=%d views=%d stmts=%d failures=%d"
+          % (n_tables, n_views, len(stmts), len(failures)))
     return 0 if not failures else 2
 
 
