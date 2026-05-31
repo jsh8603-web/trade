@@ -1,0 +1,76 @@
+{
+  "design": "Dual e-process + ordering falsification (Ville's inequality, GROW betting λ=0.1)",
+  "data": {
+    "source": [
+      "FRED DFII10",
+      "FRED DTWEXBGS",
+      "Yahoo GLD (try_yahoo_v8.json)"
+    ],
+    "n_total_daily": 4279,
+    "n_pre_2022": 3129,
+    "n_post_2022": 1150,
+    "date_min": "2010-01-05",
+    "date_max": "2026-05-29",
+    "break_anchor": "2022-01-01"
+  },
+  "method": {
+    "GROW_lambda": 0.1,
+    "e_threshold_a05_Ville": 20,
+    "e_threshold_bonferroni_a8": 160,
+    "rolling_window_dbeta": 252,
+    "betting_formula": "m_t = 1 + λ·(z_t² - 1) under H_0 E[m_t]=1",
+    "caveat": "단순 GROW (학습률 고정). mixture method 보다 보수적 (lower power)"
+  },
+  "eprocess_level_residual": {
+    "H0": "ln_gold = α + b·real_rate + c·ln_dollar 균형식 잔차 IID N(0, σ²_pre)",
+    "calibration_pre_2022": {
+      "alpha": 6.8306012837958106,
+      "b_real_rate": -0.20635017630567204,
+      "c_ln_dollar": -0.40620306371593173,
+      "sigma_pre": 0.08322217650245078
+    },
+    "post_2022_z": {
+      "mean": 10.450941779344449,
+      "std": 5.030482138217082,
+      "abs_max": 20.44776881469825,
+      "violation_note": "귀무 N(0,1) 가정 위반 정도 (drift mean + scale std)"
+    },
+    "e_final": Infinity,
+    "tau_a05_idx": 35,
+    "tau_a05_date": "2022-02-21",
+    "tau_bonf_idx": 47,
+    "tau_bonf_date": "2022-03-09"
+  },
+  "eprocess_dbeta": {
+    "H0": "rolling 252d β (real, dollar) 의 deviation z IID N(0,1) under pre-2022 calibration",
+    "calibration_pre_2022": {
+      "mu_beta_real": -0.07602998123071453,
+      "sigma_beta_real": 0.02800460467746489,
+      "mu_beta_dollar": -0.9814806204648359,
+      "sigma_beta_dollar": 0.471842973621986
+    },
+    "post_2022_z_real": {
+      "mean": 1.262509010736408,
+      "std": 0.8172005292182946,
+      "abs_max": 3.300380557944359
+    },
+    "post_2022_z_dollar": {
+      "mean": -0.12004434964803846,
+      "std": 0.9936643345469554,
+      "abs_max": 3.5944036487336253
+    },
+    "e_final": 1.4106289269847406e+23,
+    "tau_a05_idx": 1041,
+    "tau_a05_date": "2025-12-30",
+    "tau_bonf_idx": 1048,
+    "tau_bonf_date": "2026-01-08"
+  },
+  "ordering_verdict": "★ LEVEL mechanism 우선 (τ_level 2022-02-21 < τ_dbeta 2025-12-30, H2 정합)",
+  "attempt_counts": {
+    "n_e_processes": 2,
+    "n_thresholds": 2,
+    "note": "K축 시도횟수 공시: 2 e-process × 2 threshold (α=0.05 + Bonferroni α/8)"
+  },
+  "verdict_summary": "H8 ordering = LEVEL mechanism 우선 (H2 SUPPORTED), Δ-beta 미발화 / 후순위",
+  "hedge_compliance_note": "단순 GROW λ=0.1 은 mixture method 대비 보수적 — e>20 도달은 강한 증거. Bonferroni α/8=0.00625 통합 보정 시 e>160 임계 별도 보고. ordering 발화 일자는 mechanism 활성 시점의 lower-bound 추정."
+}

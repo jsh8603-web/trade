@@ -1,9 +1,11 @@
 # H2 검증 — level intercept shift (★척추)
 
 > **명제**: ln_gold ~ α + b·real_rate + c·ln_dollar 의 절편 α 가 2022Q3~2024 상향 break, Δ-beta 불변.
-> **결정적 평가**: **★STRONGLY SUPPORTED (broader 정의)** — strict (단일 α shift in stable vector) 부분 + 균형식 *자체* 재구성 + level 잔차의 단조 증폭(+39%→+391%).
+> **★v3 격하 평가**: **★PARTIAL** (이전 v2 = ★STRONGLY SUPPORTED). 격하 사유 = main audit subagent a55fa51b verdict (2026-05-31): 자체 h2_result.json 의 `coint_support=false` + Johansen rank=0 (cointegration 부재) 와 'STRONGLY SUPPORTED' 단정 ★자체 모순 over-claim. unexplained level trend +39%→+391% 의 **descriptive 관찰** 은 유지하되, 'balance equation 재구성' 단정은 cointegration 부재로 ill-posed → descriptive trend only.
+> **★v3 단정 회피 라벨**: "균형식 재구성" 단정 X, "unexplained level 의 descriptive 증폭 + cointegration 사전 검정 미통과" 박제.
 > **데이터**: FRED DFII10·DTWEXBGS + GLD ETF. n=4280 일, 2010-01-04~2026-05-29. ⛔ 합성·시뮬 0건.
 > **스크립트**: `raw/analyze-h2.py` + 보강 한 줄 (unexplained level). **산출**: `raw/h2_result.json` + `raw/h2_rolling_r2.csv`.
+> **rule 자산화**: ~/.claude/rules/empirical-claim-presentation.md §1.7 (ADF/coint 사전 검정 + return/diff 단위 강제 + self-audit B 축 sub-check 4종 의무화).
 
 ---
 

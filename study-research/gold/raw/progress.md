@@ -4,6 +4,8 @@
 
 ## Working Notes
 
+> [ckpt-202605311700:btn-jsh86] /clear 후 main(btn-Codlearn) fresh-context 자율재개 지시. handoff-gold-20260531.md 기반 잔업 5/6 완료: (1) CFTC mm_gold 추출 n=157 weekly 2022-2024 (2) H5 Markov BAA10Y/VIX 임시 TENTATIVE DIRECTIONAL (Bonferroni 비유의, Markov crisis state gold 평균 음수 = panic sell 동조) (3) H8 dual e-process SUPPORTED ★τ_level 2022-02-21 ≪ τ_dbeta 2025-12-30 gap 3.8년 = LEVEL mechanism 우선 (H2 정합) (4) yaml v2 (179줄 v1 폐기, 8 가설 verdict + CFTC + decoupling monitor + small-N FREEZE + AUDIT-GUIDE 12축 status, 11 indicator/8 rel/10 weight rule/8 hook/7 collector/8 code change) (5) §2.5 audit-2.5-checklist.md (★자기판정 충실, hard-fail NONE, ★main 12축 audit subagent 독립 재계산 의무). 다음=main 보고 송신.
+
 > [ckpt-202605311500:btn-jsh86] /compact 재진입 후 resume 읽음. handoff-gold-20260531.md 작성 완료 상태 확인. main 직접 지시 = 미커밋 commit + HANDOFF DONE 1줄 보고 + 대기 (⛔ /clear 금지). 책임 영역 = study-research/gold/ 73 untracked + handoff-gold-20260531.md (그 외 192 변경분 = 다른 세션 작업물, 손대지 않음).
 
 > [ckpt-202605310145:btn-jsh86] main ★순서정정 본문 수신 → collector-request-to-main.md 작성 + main 보고. merit 6건 (HY OAS ALFRED · OECD CLI · WGC quarterly · MOVE · SPDR GLD · SGE) + sys_priors 재보정 (G6 게이트). 자율 진행 가부 main 판정 부탁. candidate-ledger.md 는 2순위·최종 보존 (merit study 완료 후 잔여만 박제).

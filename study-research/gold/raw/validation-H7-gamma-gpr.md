@@ -3,6 +3,7 @@
 > **명제 (γ)**: VECM 에서 decoupling 이 단기 Δ-beta 아닌 γ 하락으로 발현. cointegration 점진 붕괴 → 균형 회귀 압력 소멸.
 > **명제 (GPR)**: GPR 평균(force_include) + tail-amplified(q90 > OLS).
 > **결정적 평가**: **★SUPPORTED** — γ proxy +0.86 변동 (cointegration 점진 붕괴) + GPR OLS 유의 + ★q90/OLS = 5.91×, gap/SE = 10.76σ.
+> **§1.7 소급 점검 (2026-05-31, btn-jsh86)**: rolling 504d EG 회귀는 ln_gold ~ real_rate + ln_dollar level 회귀 (H8 와 동일 구조). 단 본 H7 가설 = ★잔차 ADF stat 의 *시간 변화* 자체를 측정 (= γ 점진 붕괴 의미) = level 회귀 잔차 stationarity 약화가 가설의 측정 대상이므로 ★constructive (H2/H8 의 'level 회귀 e-process 박제' 와 본질 다름). GPR q90 quantile regression 은 Δgold ~ GPR level (return 단위 좌변) 으로 spurious 부적용. ★verdict SUPPORTED 유지.
 > **데이터**: FRED DFII10/DTWEXBGS + GLD + GPR Daily (Caldara-Iacoviello, 1985~). n=5990 일 (GPR 정렬 후). ⛔ 합성·시뮬 0건.
 > **스크립트**: `raw/analyze-h7.py`. **산출**: `raw/h7_result.json` + `raw/h7_rolling_eg.csv`.
 

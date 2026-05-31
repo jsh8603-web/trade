@@ -1,0 +1,209 @@
+{
+  "design": "Baur-Lucey 2010 threshold + Markov-switching + Newey-West HAC + block bootstrap",
+  "data": {
+    "source": [
+      "FRED BAA10Y",
+      "FRED VIXCLS",
+      "Yahoo GLD ETF (try_yahoo_v8.json)"
+    ],
+    "n_daily": 4279,
+    "date_min": "2010-01-05",
+    "date_max": "2026-05-29",
+    "missing_handling": "ffill + dropna"
+  },
+  "multi_test_correction": {
+    "n_hypotheses_total": 8,
+    "bonferroni_alpha_per_test": 0.00625,
+    "note": "α/8=0.00625, 본 가설 단일 γ_crisis p-value 도 이 임계 적용"
+  },
+  "attempt_counts": {
+    "n_models_tested": 4,
+    "models": [
+      "threshold q90 BAA",
+      "threshold q95 BAA (robust)",
+      "threshold q90 VIX",
+      "Markov-switching 2-state"
+    ],
+    "note": "K축 시도횟수 공시: 4 모델 보고"
+  },
+  "model_A1_threshold_BAA_q90": {
+    "label": "d_baa",
+    "quantile_threshold": 0.9,
+    "threshold_value": 0.029999999999999805,
+    "n_crisis_obs": 509,
+    "n_total": 4279,
+    "alpha": 0.0004651618073164191,
+    "beta_baseline": 0.06070563857637482,
+    "gamma_crisis_extra": -0.02524253096338995,
+    "se_gamma_NW_HAC": 0.023015283688422438,
+    "t_gamma": -1.0967725319018293,
+    "p_gamma_NW_two_sided_normal": 0.27274084049952374,
+    "ci95_gamma_block_bootstrap_22d": [
+      -0.06398260814635325,
+      0.02399887416794749
+    ],
+    "boot_n_successful": 2000,
+    "NW_lag_truncation": 8,
+    "R2": 0.017601267117437147
+  },
+  "model_A1_threshold_BAA_q95": {
+    "label": "d_baa_q95",
+    "quantile_threshold": 0.95,
+    "threshold_value": 0.040000000000000036,
+    "n_crisis_obs": 256,
+    "n_total": 4279,
+    "alpha": 0.00044449408752547653,
+    "beta_baseline": 0.06168827741156339,
+    "gamma_crisis_extra": -0.031874063228868314,
+    "se_gamma_NW_HAC": 0.02314372971963774,
+    "t_gamma": -1.3772224103456747,
+    "p_gamma_NW_two_sided_normal": 0.16844349520276491,
+    "ci95_gamma_block_bootstrap_22d": [
+      -0.06997558937917507,
+      0.019475261726128016
+    ],
+    "boot_n_successful": 2000,
+    "NW_lag_truncation": 8,
+    "R2": 0.01829354718802345
+  },
+  "model_A2_threshold_VIX_q90": {
+    "label": "d_vix",
+    "quantile_threshold": 0.9,
+    "threshold_value": 1.5499999999999994,
+    "n_crisis_obs": 428,
+    "n_total": 4279,
+    "alpha": 0.00026194392534845405,
+    "beta_baseline": -0.0002561451238929101,
+    "gamma_crisis_extra": 0.00014833669497776774,
+    "se_gamma_NW_HAC": 0.00033825922652823626,
+    "t_gamma": 0.43852963450617155,
+    "p_gamma_NW_two_sided_normal": 0.6610023927696349,
+    "ci95_gamma_block_bootstrap_22d": [
+      -0.0004037056950598234,
+      0.0007636488288909805
+    ],
+    "boot_n_successful": 2000,
+    "NW_lag_truncation": 8,
+    "R2": 0.0011029932386358299
+  },
+  "model_B_markov_switching": {
+    "converged": true,
+    "params": {
+      "p[0->0]": 0.9781194199108382,
+      "p[1->0]": 0.09504213654611733,
+      "const[0]": 0.00046269581831506366,
+      "const[1]": -0.0003401465085609715,
+      "sigma2[0]": 5.730132611586659e-05,
+      "sigma2[1]": 0.00031368290832975535
+    },
+    "param_names": [
+      "p[0->0]",
+      "p[1->0]",
+      "const[0]",
+      "const[1]",
+      "sigma2[0]",
+      "sigma2[1]"
+    ],
+    "log_likelihood": 13924.271806921584,
+    "aic": -27836.54361384317,
+    "regime_means": [
+      0.00046269581831506366,
+      -0.0003401465085609715
+    ],
+    "regime_sigma2": [
+      5.730132611586659e-05,
+      0.00031368290832975535
+    ],
+    "state0_avg_prob": 0.8130360124497985,
+    "state1_avg_prob": 0.18696398755019705,
+    "smoothed_probs_state1_head5": [
+      0.27646437884653796,
+      0.33538290220022554,
+      0.34498906345470204,
+      0.3843877694186207,
+      0.4897580608298896
+    ],
+    "smoothed_probs_state1_tail5": [
+      0.16033931763349307,
+      0.15493748249659506,
+      0.1813282159860108,
+      0.18533780139613315,
+      0.19589303003826275
+    ]
+  },
+  "state_conditional_corr_d_baa": {
+    "crisis_state(prob>0.5)": {
+      "n": 683,
+      "pearson_r": 0.08260763257704463,
+      "t": 2.163120077932014,
+      "p_normal_approx": 0.030531945219859136
+    },
+    "normal_state(prob<=0.5)": {
+      "n": 3596,
+      "pearson_r": 0.1757078192215526,
+      "t": 10.700149155787107,
+      "p_normal_approx": 0.0
+    }
+  },
+  "state_conditional_corr_d_vix": {
+    "crisis_state(prob>0.5)": {
+      "n": 683,
+      "pearson_r": -0.03913421025428981,
+      "t": -1.022028350158513,
+      "p_normal_approx": 0.30676748257471687
+    },
+    "normal_state(prob<=0.5)": {
+      "n": 3596,
+      "pearson_r": -0.0225224085859064,
+      "t": -1.3505605104789056,
+      "p_normal_approx": 0.1768362578195577
+    }
+  },
+  "model_HY_OAS_partial_n_limited": {
+    "label": "d_hy_OAS",
+    "quantile_threshold": 0.9,
+    "threshold_value": 0.06999999999999984,
+    "n_crisis_obs": 84,
+    "n_total": 794,
+    "alpha": 0.0012706591891915294,
+    "beta_baseline": 0.009758290763238892,
+    "gamma_crisis_extra": -0.015218856594160198,
+    "se_gamma_NW_HAC": 0.017291737844301165,
+    "t_gamma": -0.8801230235615602,
+    "p_gamma_NW_two_sided_normal": 0.37879266785997867,
+    "ci95_gamma_block_bootstrap_22d": [
+      -0.04476126638218944,
+      0.03182637602576449
+    ],
+    "boot_n_successful": 2000,
+    "NW_lag_truncation": 5,
+    "R2": 0.0019244016319303059,
+    "caveat": "n=3년 한정 (full history main collector 의존 FRED ALFRED). 위기 표본 (2008/2020/2022) 부재 → 본 결과는 tentative directional only."
+  },
+  "verdict": "TENTATIVE DIRECTIONAL (방향성 약 prior, Bonferroni 보정 후 비유의)",
+  "verdict_components": [
+    {
+      "test": "BAA q90 γ_crisis",
+      "value": -0.02524253096338995,
+      "p": 0.27274084049952374,
+      "ci95": [
+        -0.06398260814635325,
+        0.02399887416794749
+      ],
+      "sign_negative": true,
+      "p_bonferroni_0.00625": false
+    },
+    {
+      "test": "VIX q90 γ_crisis",
+      "value": 0.00014833669497776774,
+      "p": 0.6610023927696349,
+      "ci95": [
+        -0.0004037056950598234,
+        0.0007636488288909805
+      ],
+      "sign_negative": false,
+      "p_bonferroni_0.00625": false
+    }
+  ],
+  "hedge_compliance_note": "n_daily≥3000 으로 large-N 영역이지만 Bonferroni α/8 multi-test 적용 후 유의성 보고. HY OAS 부분 검증은 n=3년 한정 → tentative directional only. Markov-switching 은 regime persistence 자기상관으로 effective-N 축소 — t-stat 보수해석."
+}
