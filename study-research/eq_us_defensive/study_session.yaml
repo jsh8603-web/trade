@@ -34,6 +34,21 @@ audit_enhancement_walkforward:
     nfci_p75_wf: {n: 29, pct: 14.7}
     baa10y_p75_wf: {n: 24, pct: 12.2}
     intersection: 6
+  # ★G축 보강 (main audit follow-up 2026-05-31): effective_n distinct crisis episodes
+  effective_n_baa10y:
+    distinct_crisis_episodes: 4  # ★실측 (gap<4mo 기준 consecutive months collapse)
+    raw_stress_months: 24
+    cluster_ratio: 6  # 24mo / 4 episodes = 평균 6mo/episode (autocorr cluster)
+    episodes:
+      - {epoch: 1, start: "2010-06", end: "2010-11", n_months: 3, label: "post-GFC after-shock"}
+      - {epoch: 2, start: "2011-08", end: "2012-08", n_months: 11, label: "Eurozone sovereign crisis"}
+      - {epoch: 3, start: "2015-09", end: "2016-03", n_months: 7, label: "oil crash + China devaluation"}
+      - {epoch: 4, start: "2020-03", end: "2020-05", n_months: 3, label: "COVID-19 shock"}
+    implication: |
+      ★raw n=24 stress months 는 4 episodes 로 cluster — autocorr 무시 (rule §1.4) 시 표본 6배 overstate.
+      BAA10Y FIN LOO p_max=0.051 (★거의 robust 단 경계성) = episode 의존 명시:
+      특정 episode (예: 2011-12 Eurozone 11mo dominant) 제거 시 p 약화 가능성.
+      효과적 statistical power = 4 episode 수준 (8 episodes/decade ≈ 1 cycle/decade 통상).
   results:
     direction_consistency: "★4/4 cell DEF_PURE ≥ FIN (방향 일관)"
     cross_sleeve_gap:
@@ -41,8 +56,18 @@ audit_enhancement_walkforward:
       baa10y_p75_wf: {gap: +0.0154, welch_t: 1.637, welch_p: 0.1090}
     bonferroni_alpha_0125: "0/2 regime PASS (BAA10Y wf 가장 가까운 p=0.109)"
   tier_verdict: "structural prior TENTATIVE 유지 (방향 일관 단 magnitude 약)"
-  promotion_pending: "n 증가 (multi-cycle wait) 또는 Block bootstrap longer block → Bonferroni 1+ PASS 시
-    structural VALIDATED 승격 가능"
+  # ★main audit follow-up 보강: promotion_pending 수정 (n→독립 episode)
+  promotion_pending: |
+    ★독립 stress episode 증가 (현 effective_n≈4 distinct episodes, multi-cycle wait) 시
+    Bonferroni 1+ PASS 후 structural VALIDATED 승격 가능.
+    이전 표현 "n 증가" = raw stress months 24 overstate — episode-aware 정정 (G축 보강).
+    BAA10Y FIN LOO 0.051 경계성 = single episode (Eurozone 11mo dominant) 의존 가능성 명시.
+  # ★D축 보강 (main audit follow-up 2026-05-31): NFCI vintage 정직 명시
+  pit_status_one_liner: |
+    ★NFCI walk-forward = quantile-window causal (rolling history[t-120:t-1]) 단 ★value 는
+    current-revision 사용 (★value-vintage lookahead 잔존) — 진정한 PIT 미준수.
+    BAA10Y primary = ★PIT-pure (Treasury yield, revision 거의 없음).
+    NFCI ALFRED 진짜 PIT walk-forward (2011-05~ vintage 가용 범위) = ★todo 정직 유지.
 
 # ============================================================================
 # ★보강 3: NFCI ALFRED vintage (PIT 정확성) — 1줄 발견 + BAA10Y exogenous primary 강화
@@ -599,6 +624,13 @@ status:
     - "★보강 1 walk-forward backtest (10Y rolling, lookahead 차단): in-sample 2010-01~2026-05 n=197. 방향 일관 4/4 유지, Bonferroni 0/2 PASS (BAA10Y wf p=0.109 최고) → structural TENTATIVE 유지"
     - "★보강 2 H4a gap 표현 정정: '0.15 PASS/FAIL' → 부호분기 CONFIRMED Bonferroni + magnitude TENTATIVE (gap +0.117 < 0.15) 분리"
     - "★보강 3 NFCI ALFRED vintage 한계 발견: pre-2011 vintage X, revision mean abs diff 0.35 (NFCI std 35%) → BAA10Y exogenous primary 강화"
+    - "★★eq_us_defensive 사이클 CLOSE (main 12축 audit follow-up 2026-05-31):
+       H4a credit beta industry split validated + H1 contemporaneous validated = ★2 validated alpha 확보 (통합사이클 첫 validated alpha).
+       sleeve 분리 validated_structural OOS 안정 실증.
+       H3 structural TENTATIVE 정직 유지 (방향 4/4 OOS 일관, Bonferroni 미달, effective_n≈4 episodes).
+       H1 fwd3M + H2 slope = REJECTED 정직. M3 dollar = structural TENTATIVE."
+    - "★보강 final (main audit follow-up): G축 effective_n=4 distinct episodes 박제 (raw 24mo overstate 정정) +
+       D축 NFCI value-vintage lookahead 잔존 정직 명시 + BAA10Y PIT-pure primary 한 줄"
     - "★small-N rigor 5의무 강제: Block bootstrap (block=4mo) + Welch + LOO + Bonferroni + verdict 5단계 자동 라벨"
     - "v3 격하 정정 완료 — main 독립검증 Tier3 verdict 3 결함 보수"
     - "★rule ~/.claude/rules/empirical-claim-presentation.md 5 의무 + §1.6 + §2 verdict 5단계 강제"
@@ -616,8 +648,10 @@ status:
     - "★promotion-log ERROR-202605302130 + ERROR-202605302245 prepend 완료 (v3 보수 root cause)"
   todo:
     - "★J축 거래비용 분석 = main 통합단계 (본 study 외)"
-    - "★structural VALIDATED 승격 대기: H3 walk-forward Bonferroni 1+ PASS 시 (n 증가 multi-cycle 필요)"
-    - "★ALFRED NFCI vintage 한계 (2011-05~만) → 2011-05 이후 walk-forward 별도 분석 (BAA10Y 우선)"
+    - "★structural VALIDATED 승격 대기: H3 walk-forward Bonferroni 1+ PASS 시 — ★effective_n
+       기준 = distinct stress episode 증가 (현 4 episodes, multi-cycle wait). 단순 n 아님 (G축 보강)"
+    - "★NFCI 진정한 PIT walk-forward = ALFRED 2011-05~ 가용 범위 (★todo 정직 유지). 본 v4 walk-forward 의
+       NFCI value 는 current-revision (value-vintage lookahead 잔존). BAA10Y = PIT-pure primary (D축 보강)"
     - "★H9 VRP carry defensive 알파 검증 (VIX3M fetch 완료): VIX3M/VIX backwardation regime →
        defensive 후속 수익률 검증 (n=4651 daily, 2007-12~)"
     - "EDGAR XBRL 펀더멘털 적재 (main 빌드 필요) → H4·H5·H10·H11 검증"
