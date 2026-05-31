@@ -110,3 +110,21 @@ note: direction.md / theory-notes.md §1 / 블록6 collector_plan / validation-*
 | **observe-only** | etf_flow_probation, halving_phase_conditional | 1.5yr 더 누적 후 promotion 결정 |
 | **evt** | funding_trend_follow (★자문 부호 정반대 정정) | promotion-log ERROR 후보 (자문 가설 그대로 코드화 위험 사례) |
 | **pointer** | direction.md §5, theory-notes §1, audit-guide 12축 (Hard-fail 4) | 다음 세션 SSOT 정독 우선순위 |
+
+---
+
+## 🔬 cycle2 (H7~H12) 12축 audit verdict 반영 (2026-06-01, opus subagent a8a0931a)
+
+> evaluation-crypto-cycle2-audit-20260601.md — 종합 **부분** (hard 코어 B/C/D/I = 0, byte-identical 재현·합성0). cycle3 yaml v3 통합 시 아래 tier 강제.
+
+| 가설 | audit verdict | cycle3 통합 조치 |
+|---|---|---|
+| **H11 attention** | ★over-claim 격하 (방 self-audit 미포착) — IC 0.1117 raw p=0.2837 비유의·CI 0 포함·U-shape(변동성 효과) | prior 0.20→**0.05~0.10 observe-only**, TENTATIVE. weekly base 재검증 전 보류 |
+| **H9 BTC-nasdaq regime** | 조건부 — ANOVA p=0.0006 per-hyp K=36 생존이나 full-family K=174 미생존(KW p=0.0002만 경계). regime 전이 6.55/yr 불안정 | prior 0.15 유지 가능하되 **walk-forward strict OOS PASS 를 통합 게이트로** |
+| **H7 network value** | ledger 탈락 동의 | 미투입 |
+| **H8 tx utility** | ledger 탈락 동의 | 미투입 |
+| **H10 BTC-gold** | ledger 탈락 동의 | 미투입 |
+| **H12 defi utility** | ledger 탈락 동의 | 미투입 |
+| **prior ladder** | on-chain sharpe 1.27 effective_n~16 신뢰 낮음 (mvrv 0.55 가중 근거 약) | 통합 전 Deflated Sharpe(K=174) 적용 |
+
+★통합 전 의무: Deflated Sharpe (K=174 full-family) + FRED ALFRED first-release vintage 적용. validation-h11 verdict 격하 반영 완료(2026-06-01).

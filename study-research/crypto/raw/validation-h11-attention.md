@@ -32,17 +32,20 @@ note: PyTrends 'all' timeframe = monthly aggregate, LTW weekly base 와 다름 (
 - **B SE**: monthly aggregate (PyTrends 'all') = autocorr 약. Newey-West HAC lag=1m. PASS |Rank-IC|=0.1117
 - **D PIT**: PyTrends weekly release Sunday 0:00 UTC, T+1 가능
 - **E 자문 환각**: LTW 2021 정량 +0.5~+0.7 점추정 prior 박제 X — 본 표본 monthly Rank-IC 0.1117 기준 hedge
-- **F 반증조건**: (i) β CI 0 포함? (Rank-IC 0.1117 > 0.03 hard B) (ii) post-2021 부호반전? NO
+- **F 반증조건**: (i) β CI 0 포함? ★YES — block-bootstrap CI95%=[-0.137,+0.302] 0 포함, raw Spearman p=0.2837(무보정도 유의X). |IC|>0.03 게이트만 쓰고 p-value 누락 = 검증 결함 (audit 2026-06-01 catch). (ii) post-2021 부호반전? NO (iii) ★U-shape: +1σ mean +0.1041 / 중간 -0.0100 / -1σ mean +0.1047 = 양 꼬리 모두 양 = 변동성 효과지 방향성 attention 신호 아님
 - **G effective N**: N_eff=61 — 약 충분
 - **I 생존편향**: BTC only (멀티코인 attention 확장 후속)
 - **K 시도횟수**: K=16 (4 horizon × 2 MVRV regime × bull/bear). 본 라운드 = base 1 + post-2021 sub = 2. Bonferroni α/16=0.00313
 
 ## verdict
-**PARTIAL CONFIRMED (attn_z > +1σ → 상위 mean, walk-forward 후속)**
+**★TENTATIVE DIRECTIONAL** (이전 "PARTIAL CONFIRMED" 격하 — 12축 audit 2026-06-01, evaluation-crypto-cycle2-audit-20260601.md)
+- 격하 사유: raw Spearman p=0.2837 (무보정도 유의X) + block-bootstrap CI95% 0 포함 + U-shape(변동성 효과)
+- cycle3 yaml v3 통합 시: prior 0.20 → **0.05~0.10 observe-only(probation)**, weekly base 재검증(LTW 2021 직접 비교) 전 보류
+- ★validation 결함 학습: |IC|>0.03 게이트 단독 = 유의성 근거 아님. Rank-IC 는 반드시 p-value + bootstrap CI 동반 (B/F축)
 
 ## hedge 어휘
 - monthly aggregate 한계 — weekly base 후속 fetch (today 5-y) 가 LTW 2021 직접 비교 가능
-- 점추정 magnitude (LTW +0.5~+0.7) 박제 X — 본 표본 Rank-IC 0.1117 보고만
+- 점추정 magnitude (LTW +0.5~+0.7) 박제 X — 본 표본 Rank-IC 0.1117 비유의 (p=0.28) observe-only
 
 ## 후속 의문
 - (i) weekly fetch (today 5-y) 보강 + LTW 2021 직접 표본 매핑
