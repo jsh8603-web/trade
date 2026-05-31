@@ -7,10 +7,15 @@ date: 2026-05-30
 
 ## Working Notes
 
-> [ckpt-202605302322:btn-profile] crypto 2-3 완료
+> [ckpt-202605312355:btn-profile] crypto handoff + commit
+> (1) 마지막 결정: handoff-crypto-20260531.md 작성 + git add crypto/ + handoff
+> (2) 다음 의도: commit "feat(crypto/study): v2 yaml+실측7validation+merit-queue+handoff" → main "HANDOFF DONE" 1줄 → compact
+> (3) 동기화: main 의 collector 11종+모델 3종 구현 응답 대기. 인계 = D:/projects/Inv/handoff-crypto-20260531.md
+
+> [ckpt-202605302322:btn-profile] crypto 2-3 완료 **STATUS**: resolved (2026-05-31 handoff 흡수)
 > (1) 마지막 결정: 7 validation md 실측 → yaml v2 + summary.md + 8축 self-audit
 > (2) 다음 의도: btn-Codlearn 에 [crypto→main] 보고 송신 + task #6 완료
-> (3) 동기화: v1 폐기 (raw/study_session.v1.yaml.deprecated), v2 = D:/projects/Inv/study-research/crypto/study_session.yaml 302줄
+> (3) 동기화: v1 폐기 (raw/study_session.v1.yaml.deprecated), v2 = study_session.yaml 302줄
 
 ## Phase 완료 체크
 
