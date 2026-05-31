@@ -1,7 +1,7 @@
 study_id: eq_us_defensive
 asset_scope: [equity.us]
-as_of: "2026-05-31"
-version: v4-tier-s17  # v4-tier + §1.7 소급 ADF 사전 검정 PASS
+as_of: "2026-06-01"
+version: v5-tier-vixterm  # v4-tier-s17 + VIX term-structure merit 통합 (★기존 audit_tier_verdict 2026-05-31 보존)
 
 # ============================================================================
 # ★§1.7 소급 검정 (main 결정 2026-05-31: 의심 건만 소급 적용)
@@ -16,24 +16,33 @@ audit_section_1_7_retroactive_check:
   # §1.7-A 단위근 검정 결과
   adf_results:
     NFCI_level_monthly:
-      n: 650, adf_stat: -3.638, p_adf: 0.0051
+      n: 650
+      adf_stat: -3.638
+      p_adf: 0.0051
       class: "★I(0) stationary"
       rationale: "Chicago Fed standardize index 본질상 mean-reverting (mean=0 std=1 설계)"
     BAA10Y_level_monthly:
-      n: 482, adf_stat: -3.674, p_adf: 0.0045
+      n: 482
+      adf_stat: -3.674
+      p_adf: 0.0045
       class: "★I(0) stationary"
       rationale: "Moody Baa-10Y spread = mean-reverting credit cycle"
     DEF_PURE_excess_return_monthly:
-      n: 315, adf_stat: -13.66, p_adf: 0.0
+      n: 315
+      adf_stat: -13.66
+      p_adf: 0.0
       class: "I(0) stationary"
       rationale: "monthly return (pct_change) = stationary 본질"
     FIN_XLF_excess_return_monthly:
-      n: 313, adf_stat: -7.94, p_adf: 0.0
+      n: 313
+      adf_stat: -7.94
+      p_adf: 0.0
       class: "I(0) stationary"
-    delta_NFCI:
-      n: 650, adf_stat: -6.79, p_adf: 0.0, class: "I(0) stationary"
+    delta_NFCI: {n: 650, adf_stat: -6.79, p_adf: 0.0, class: "I(0) stationary"}
     delta_BAA10Y:
-      n: 482, adf_stat: -13.98, p_adf: 0.0
+      n: 482
+      adf_stat: -13.98
+      p_adf: 0.0
       class: "I(0) stationary"
       rationale: "★H4a 의 ΔBAA10Y partial IC 단위 §1.7-B 준수 (first-diff)"
 
@@ -80,6 +89,14 @@ audit_tier_verdict:
   audit_axis_count: 12
   hard_fail: 0
   bit_identical_reproduction: true
+  # ★vix_term merit audit 2026-06-01 (독립 12축, hard-fail 0) — 추가 통합, 위 2026-05-31 verdict 보존
+  vix_term_structure_contemporaneous: validated_risk_overlay  # 동시 RankIC -0.141 NW t=-9.6 n=4398 Bonferroni m=6 PASS
+  vix_term_structure_forward: REJECTED                        # fwd 5d/20d 비유의 (p=0.41~0.82) — predictive alpha 아님
+  vix_term_audit_date: "2026-06-01"
+  vix_term_audit_note: |
+    ★PIT-pure 정당 (VIX 무개정 시장 종가 = revised-vintage 착시 부재 → credit impulse/NFCI value-vintage 와 본질 다름).
+    동시(contemporaneous) modulator 한정 — predictive alpha 아님 (forward REJECTED). risk-overlay 라벨.
+    L축 credit(ΔBAA10Y) corr=-0.147 (R²≈2.2% 약 overlap) — 통합 시 공통 stress factor 1회 계상 권고.
 
 # ============================================================================
 # ★보강 1 (D축): walk-forward backtest (10Y rolling threshold, lookahead 차단)
@@ -181,7 +198,7 @@ sleeve_definitions:
   DEFENSIVE_PURE: [XLP, XLU, XLV]      # rate-NEG bond proxy, factor β 동일부호 grouping
   FINANCIALS: [XLF]                     # rate-POS NIM 채널, 독립 측정
   XLC_mature: [XLC]                     # post-2018-06 별도 archetype (Comm Services)
-  portfolio_label_user_task: "미국 방어주 + 금융주" sleeve
+  portfolio_label_user_task: "미국 방어주 + 금융주 sleeve"
   rationale: |
     rule §1.6: 분석 unit (β 측정) = factor β 동일부호 grouping. portfolio label (user task)
     = 표시일 뿐. XLF 부호 반대 sub-sleeve eq-weight 결합 시 factor β cancel (★H3 위조 토양).
@@ -304,6 +321,16 @@ indicators:
      transform: level, vintage_policy: point_in_time, lag: 0}
   - {id: realized_vol, family: risk, is_core: true, in_our_system: true,
      source_or_collector: "가격 시계열 60D 실현 변동성", transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  # ★vix_term merit audit 2026-06-01: PIT-pure 정당 (credit 착시와 대비), 동시 risk-overlay 한정
+  - {id: vix_term_structure, family: risk, is_core: false, in_our_system: false,
+     lag_routing: contemporaneous,
+     source_or_collector: "★vix_term merit (VIX3M/VIX ratio own-history 252d z). 동시 RankIC(ratio_z, DEF_PURE
+       excess|SPY)=-0.141 (NW HAC t=-9.6, n=4398, Bonferroni m=6 PASS, half-split OOS -0.134/-0.150 부호일치).
+       backwardation(ratio<1) 국면 방어주 동시 아웃퍼폼. ★PIT-pure (VIX 무개정 시장 종가 = revised-vintage
+       착시 부재 — credit impulse/NFCI value-vintage 와 본질 다름, 동시여도 정당). ★risk-overlay modulator —
+       predictive alpha 아님 (forward 5d/20d REJECTED p=0.41~0.82). credit(ΔBAA10Y) corr=-0.147 약 overlap,
+       통합 시 공통 stress factor 1회 계상. FRED VIXCLS + yfinance ^VIX3M (2007-12~)",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 0}
 
   # --- 방어주 특화 (is_core:false + weight cap) ---
   - {id: dividend_yield, family: valuation, is_core: false, in_our_system: false,
@@ -421,6 +448,24 @@ relationships:
      conditioning_set: [], lag_routing: contemporaneous,
      prior_sign: pos, prior_strength: 0.15,
      theory_basis: "M3 실측: XLF β_dxy = +0.152 (E3) / +0.155 (E4) — rate-regime 무관 안정 양"}
+
+  # --- ★vix_term merit (audit 2026-06-01, PIT-pure 정당 — credit 착시와 대비) ---
+  - {node_a: vix_term_ratio_z, node_b: def_pure_excess, edge_type: direct,
+     conditioning_set: [SPY_return], lag_routing: contemporaneous,
+     prior_sign: neg, prior_strength: 0.14,  # ★동시 risk-overlay modulator, predictive alpha 아님
+     theory_basis: "★vix_term merit audit 2026-06-01 (충실, hard0): backwardation(VIX3M/VIX ratio_z↓) →
+       DEF_PURE 동시 아웃퍼폼. 동시 RankIC=-0.141 (NW HAC t=-9.6, n=4398, Bonferroni m=6 PASS).
+       ★PIT-pure 정당 (VIX 무개정 시장 종가, lookahead 착시 없음 — credit impulse revised-vintage 격하와
+       정반대 = 정당 동시 신호). ★risk-overlay (regime modulator) 한정 — predictive alpha 아님
+       (forward 5d/20d REJECTED). credit(ΔBAA10Y) corr=-0.147 약 overlap → 통합 시 공통 stress factor
+       1회 계상 권고 (L축)"}
+
+  - {node_a: vix_term_ratio_z, node_b: fin_excess, edge_type: direct,
+     conditioning_set: [SPY_return], lag_routing: contemporaneous,
+     prior_sign: pos, prior_strength: 0.034,  # ★raw only (Bonferroni FAIL), 방어주 반대 부호 = sleeve 분리 정합
+     theory_basis: "★vix_term: FIN 동시 RankIC=+0.034 (raw p=0.017, Bonferroni m=6 FAIL).
+       backwardation 국면 금융주 동시 언더퍼폼 (방어주와 부호 반대 = rule §1.6 sleeve 분리 재확인).
+       n_bw=478 단일 클러스터 의존 hedge — 약 prior, 비유의"}
 
 # ============================================================================
 # 블록4: WEIGHT_RULES (★v3 — base_weight 격하 + hedge direction 적용)
@@ -558,6 +603,28 @@ confidence_hooks:
     action_threshold: "표본 확장 후 confirm → dollar_beta modulate_by=[regime, industry] 강화.
       reject → rate-regime conditioning 제거"
     feeds_weight: "dollar_beta base 0.06 + rate-regime modulator strength 보수적 조정"
+
+  # ★vix_term merit (audit 2026-06-01, 충실): H9 VRP carry todo 의 실측 anchor. 동시 risk-overlay 한정
+  - hypothesis_id: vix_term_structure_risk_overlay_h9
+    status: VALIDATED_CONTEMPORANEOUS_RISK_OVERLAY  # 동시 CONFIRMED / 예측 REJECTED — alpha 아님
+    confirm_signal: "rolling: backwardation(VIX3M/VIX ratio_z < 0) 동시 국면 DEF_PURE excess > 0 AND
+      FIN excess < 0 부호 일관 유지 (동시 modulator 검증, 선행 아님)"
+    reject_signal: "동시 RankIC 부호 반전 (DEF_PURE > 0) 12M 지속 OR forward 5d/20d 가 |IC|>0.05 + p<0.10
+      등장 (예측력 발생 시 risk-overlay → predictive 재분류 검토)"
+    predictive_monitor: "★현 forward 5d/20d REJECTED (p=0.41~0.82) — predictive alpha 아님 정직 유지.
+      forward IC 유의 등장 시에만 선행 신호 승격 검토"
+    emit_where: "raw/validation-vix-term-structure.py 재실행 (동시/예측 분리 측정)"
+    accumulate_in: "weight_falsification.score_ic_breakdown_eprocess (regime=vix_term_overlay)
+      — ★risk-overlay 단계 약 가중 (동시 confirm, predictive alpha 아님)"
+    confidence_metric: "동시 RankIC NW HAC + Block bootstrap (block=10d) + Welch regime gap + Bonferroni m=6"
+    store: "WeightAssumptionCard.confidence_now (regime=vix_term_overlay sub-key)"
+    action_threshold: "★PIT-pure 정당 (VIX 무개정 종가 — credit 착시와 대비) → risk-overlay modulator 로
+      defensive tilt during backwardation 약 가중. ★선행 신호 가중 부적격 (forward null).
+      credit_beta 와 공통 stress factor 1회 계상 (L축 corr=-0.147 overlap)"
+    feeds_weight: "vix_term_structure risk-overlay modulator (predictive alpha 아님). defensive↑/financial↓
+      backwardation 동시 진단 용도"
+    l_axis_overlap_note: "★ratio_z vs ΔBAA10Y(credit) corr=-0.147 (R²≈2.2% 약 overlap, credit 통제 후 IC
+      -0.137→-0.121 거의 유지 = 대부분 독립). 통합 상관행렬 공통 stress factor 1회 계상 권고. real-rate corr~0 무관"
 
 # ============================================================================
 # 블록6: COLLECTOR_PLAN (★v3 — 우선순위 명시)
@@ -706,14 +773,21 @@ status:
        weight_rules base 격하 (rate 0.10→0.08 / dollar 0.08→0.06 / credit 0.06→0.04) +
        confidence_hooks PENDING_ALFRED / TENTATIVE 마킹"
     - "★promotion-log ERROR-202605302130 + ERROR-202605302245 prepend 완료 (v3 보수 root cause)"
+    - "★v5 vix_term merit 통합 (audit 2026-06-01 충실, hard0): vix_term_structure indicator (family=risk,
+       lag_routing=contemporaneous, prior≈0.14, risk-overlay) + relationship (vix_term_ratio_z→def_pure_excess
+       neg 0.14 / →fin_excess pos 0.034 raw) + confidence_hook H9 VRP carry anchor.
+       ★동시 RankIC -0.141 (NW t=-9.6, n=4398, Bonferroni m=6 PASS) CONFIRMED / forward REJECTED.
+       ★PIT-pure 정당 (VIX 무개정 종가 = credit impulse revised-vintage 격하와 정반대). risk-overlay 한정,
+       predictive alpha 아님. L축 credit corr=-0.147 약 overlap → 통합 공통 stress factor 1회 계상"
   todo:
     - "★J축 거래비용 분석 = main 통합단계 (본 study 외)"
     - "★structural VALIDATED 승격 대기: H3 walk-forward Bonferroni 1+ PASS 시 — ★effective_n
        기준 = distinct stress episode 증가 (현 4 episodes, multi-cycle wait). 단순 n 아님 (G축 보강)"
     - "★NFCI 진정한 PIT walk-forward = ALFRED 2011-05~ 가용 범위 (★todo 정직 유지). 본 v4 walk-forward 의
        NFCI value 는 current-revision (value-vintage lookahead 잔존). BAA10Y = PIT-pure primary (D축 보강)"
-    - "★H9 VRP carry defensive 알파 검증 (VIX3M fetch 완료): VIX3M/VIX backwardation regime →
-       defensive 후속 수익률 검증 (n=4651 daily, 2007-12~)"
+    - "★H9 VRP carry = ★vix_term merit 으로 검증 완료 (audit 2026-06-01 충실): backwardation 국면
+       DEF_PURE 동시 아웃퍼폼 (RankIC -0.141 CONFIRMED) / forward 예측 REJECTED → risk-overlay 한정,
+       선행 알파 아님. credit overlap 통합 1회 계상 = main 통합단계 후속"
     - "EDGAR XBRL 펀더멘털 적재 (main 빌드 필요) → H4·H5·H10·H11 검증"
     - "FFIEC Call Reports (main 빌드 필요) → H5 Banks NIM/NPL/CET1 검증"
     - "earnings_stability (Asness QMJ) — EDGAR 5Y EPS std/mean 자체 파싱 가능 (P2 후속)"
