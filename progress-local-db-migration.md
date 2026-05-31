@@ -26,7 +26,7 @@ note: Supabase→로컬 SQLite 전환 추적. 루트 progress.md 미변경(격�
   - ⚠️ python 경로 = `C:/Users/jsh86/AppData/Local/Programs/Python/Python312/python.exe` (PATH에 `python` 없음 — bash `python` 호출 시 command not found)
 - [x] **L1 — PostgREST→SQL 변환 엔진** · `model: opus` ✅ (L0에 통합, core/db/filters.py)
   - eq/ne/gt/gte/lt/lte/like/ilike/in/is/not + order(.desc/.asc) 변환. NOW()-INTERVAL은 caller가 ISO 문자열로 전달(어댑터 규약). test_filter_operators/test_order passed
-- [ ] **L2 — 핵심 쓰기 경로 전환** (save_decision·execute_trade DB부·run_agents) · `model: opus` 🔶 진행중. ✅완전(REST=0+AST+import OK): save_decision/execute_trade/dynamic_risk. 🔶부분(DB호출 일부만, REST 잔존): run_agents.py(3 잔존:portfolio/feedback), evaluate_switches.py(3 잔존:실코드구조 불일치로 미적용), run_agents.sh(5 잔존:Phase5/5b/5c `$PYTHON -c` 블록). ⚠️**smoke 실패**: schema 재적용 버그(altrang_trades 중복, catch 보강함) + 테스트 execution_mode 오류. 재검증 필요. SACRED 실주문·run_cycle 미변경. 핸드오프=.l2-handoff.md
+- [x] **L2 — 핵심 쓰기 경로 전환** (save_decision·execute_trade DB부·run_agents) · `model: opus` ✅ (commit b459d87) 6파일 전부 REST=0+AST OK(2회 일관)+module import OK+**round-trip PASS**(save_decision→SQLite id 발급, execution_logs 저장/조회). schema 재적용 버그 수정(already another table or index catch). SACRED 보존: execute_trade 실주문 orders/JWT·live_trader run_cycle 미변경. 핸드오프=.l2-handoff.md
 - [ ] **L3 — 읽기/학습 경로 전환** (dynamic_risk·strategy_health·model_retrainer·regime_learner·evaluate_switches) · `wf: harness2`
 - [ ] **L4 — RL/RAG 경로** (data_collector psycopg2→sqlite, embedding numpy 코사인) · `wf: harness2`
 - [ ] **L5 — 잔여 75파일 일괄 전환** · `wf: harness2`
