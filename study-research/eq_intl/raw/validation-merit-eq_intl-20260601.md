@@ -87,10 +87,10 @@ indicators: [jgb_ust_spread, real_exchange_rate_valuation(REER/terms_of_trade), 
 
 - 다중비교: m=15, Bonferroni α/m=0.0033. raw p<0.05 **4/15**. Bonferroni 생존 **3/15 = 전부 contemporaneous**(china/brazil/korea 동분기, p≤0.0005). **lead(예측) 측정은 전부 비유의**(china lead3Q −0.198 p=0.036 raw 1건이나 부호 **음** = prior(양) 반대 + Bonferroni 탈락).
 - **★spec↔code drift 발견 (감사 §1.3·E97)**: yaml spec = "credit impulse **6-12m 선행(예측)**". 실측 = **동분기 co-movement 만 robust(Rank-IC +0.30~+0.43, Bonferroni 생존), forward lead 1-4Q 는 전부 비유의/부호반전**. 즉 credit impulse 는 china/brazil/korea 지수와 **동시(contemporaneous) 강 동조**하나 **선행 예측력 없음**.
-- **verdict**:
-  - **contemporaneous co-movement = ★CONFIRMED(robust)**: china/brazil/korea Rank-IC +0.30~+0.43, HAC-t +3.5~+5.3, Bonferroni 3/3 생존, n=83~101. credit cycle 과 EM 지수의 동시 동조 = 강 신호.
+- **verdict (★독립 audit override 2026-06-01, evaluation-merit-eq_intl-audit-20260601.md)**:
+  - **contemporaneous co-movement = ★격하 → structural_low_confidence (lookahead artifact)**: 탐구 1차 "CONFIRMED robust" 라벨은 ★over-claim. audit 독립 재계산 = QCNPAMUSDA 캐시 전 obs `realtime_start=2026-05-31` 단일 스냅샷 = 완전 revised vintage. Q+1 라이브-tradeable 정렬 시 동분기 Rank-IC **붕괴**: china +0.413→+0.054(−87%), brazil +0.303→+0.010(−97%), korea +0.427→−0.046(부호반전). → 동분기 +0.41 = revised-vintage same-Q artifact, **라이브 가치 0** (D-hard). validated_alpha:false, 동시 점추정(+0.41) 박제 ⛔, ALFRED first-release 재측정 의무.
   - **lead/예측(spec 의 "선행") = ★REJECTED**: lead 1-4Q 전부 비유의(부분 음 부호). yaml 의 "6-12m 선행" 박제는 **본 표본(quarterly, revised credit)에서 미지지** → 격하.
-- ★해석 caveat: credit 은 revised+분기 후행발표라 동시상관에 **lookahead/동시성 오염** 가능(D축). 동시 robust 도 라이브 사이징엔 vintage(ALFRED first-release) 재검 의무. block2 `china_credit_impulse` = **동시 regime-coincident 지표(coincident, NOT leading)** 로 라벨 정정, lag=2(선행) 박제 격하.
+- ★해석 caveat: block2 `china_credit_impulse` = lag=2(선행) 박제 격하 + **coincident 라벨조차 PIT 무효**(Q 진행 중엔 동분기 impulse 미지). structural_low_confidence/validated_alpha:false. ALFRED first-release vintage 재측정 전 라이브 사이징 ⛔.
 
 ## §4. fx_carry_momentum vs 해당국 ETF — **verdict: 동시 CONFIRMED(robust, EM) / 예측-lead REJECTED**
 
