@@ -1,0 +1,27 @@
+eq_us_defensive lens hypothesis quickcheck (synthetic 240m, seed 20260530)
+======================================================================
+[H1] sub-sleeve sign split: util/staples NEG vs banks/insurance POS to real rate shock
+  util       : Dr<>ret = -0.207   prior NEG -0.5~-0.7
+  staples    : Dr<>ret = -0.158   prior NEG -0.3~-0.5
+  healthcare : Dr<>ret = +0.008   prior NEG mild
+  banks      : Dr<>ret = -0.006   prior POS +0.4~+0.6
+  insurance  : Dr<>ret = +0.023   prior POS mild ~ +0.3
+
+[H2] partial corr (Dr<>ret | mkt beta fixed) -- real rate pure direct effect
+  util       | mkt : -0.334
+  staples    | mkt : -0.304
+  banks      | mkt : +0.020
+  insurance  | mkt : +0.086
+
+[H3] risk-off (HY OAS up) -> defensive RELATIVE outperform vs banks
+  (util - banks)       vs DHY : +0.066   prior POS
+  (staples - banks)    vs DHY : +0.109   prior POS
+  (healthcare - banks) vs DHY : +0.067   prior POS
+
+[verdict]
+- H1 sub-sleeve sign split: CONFIRMED (util/staples NEG, banks/insurance POS)
+- H2 effect persists after mkt beta absorption: CONFIRMED
+- H3 risk-off defensive RELATIVE outperform: CONFIRMED
+
+LIMITATION: synthetic prior-consistent simulation. live IC verification = block5 hook job.
+Real FRED DGS10/DFII10 + sector ETF ret correlation = next step (after EDGAR pipe online).

@@ -1,0 +1,212 @@
+{
+  "date": "2026-05-30",
+  "data_period_daily": "2003-01-03 -> 2026-05-28",
+  "h1_real_rate_dichotomy": {
+    "XLU": {
+      "beta": -0.0106,
+      "rankIC": -0.07,
+      "p": 0.0,
+      "partial_IC_given_SPY": -0.167,
+      "partial_p": 0.0,
+      "n": 5844
+    },
+    "XLP": {
+      "beta": 0.0114,
+      "rankIC": 0.053,
+      "p": 0.0001,
+      "partial_IC_given_SPY": -0.04,
+      "partial_p": 0.0025,
+      "n": 5844
+    },
+    "XLV": {
+      "beta": 0.015,
+      "rankIC": 0.081,
+      "p": 0.0,
+      "partial_IC_given_SPY": -0.011,
+      "partial_p": 0.3848,
+      "n": 5844
+    },
+    "XLF": {
+      "beta": 0.0462,
+      "rankIC": 0.17,
+      "p": 0.0,
+      "partial_IC_given_SPY": 0.129,
+      "partial_p": 0.0,
+      "n": 5844
+    },
+    "XLC": {
+      "beta": -0.0191,
+      "rankIC": -0.084,
+      "p": 0.0002,
+      "partial_IC_given_SPY": -0.046,
+      "partial_p": 0.0416,
+      "n": 1980
+    },
+    "SPY": {
+      "beta": 0.0218,
+      "rankIC": 0.115,
+      "p": 0.0,
+      "partial_IC_given_SPY": null,
+      "partial_p": null,
+      "n": 5844
+    }
+  },
+  "h1_sign_split_confirmed": true,
+  "h2_yield_curve_lead_lag": {
+    "lag_0": {
+      "rankIC": 0.171,
+      "p": 0.0023,
+      "n": 317
+    },
+    "lag_1": {
+      "rankIC": -0.007,
+      "p": 0.9082,
+      "n": 316
+    },
+    "lag_2": {
+      "rankIC": 0.015,
+      "p": 0.786,
+      "n": 315
+    },
+    "lag_3": {
+      "rankIC": -0.014,
+      "p": 0.7985,
+      "n": 314
+    },
+    "lag_4": {
+      "rankIC": -0.078,
+      "p": 0.1673,
+      "n": 313
+    },
+    "lag_5": {
+      "rankIC": -0.086,
+      "p": 0.1306,
+      "n": 312
+    },
+    "lag_6": {
+      "rankIC": 0.025,
+      "p": 0.6625,
+      "n": 311
+    },
+    "lag_8": {
+      "rankIC": -0.048,
+      "p": 0.3991,
+      "n": 309
+    },
+    "lag_12": {
+      "rankIC": 0.054,
+      "p": 0.3498,
+      "n": 305
+    }
+  },
+  "h2_best_lag": "lag_0",
+  "h3_hy_oas_regime": {
+    "Credit Stress (all)": {
+      "n": 9,
+      "sleeve_mean_mo": -0.0151,
+      "sleeve_95CI": [
+        -0.0281,
+        -0.004
+      ],
+      "sleeve_p": 0.0052,
+      "def_only_mean_mo": -0.0196,
+      "def_only_95CI": [
+        -0.0339,
+        -0.0059
+      ],
+      "def_only_p": 0.0036
+    },
+    "Credit only (~infl)": {
+      "n": 8,
+      "sleeve_mean_mo": -0.0179,
+      "sleeve_95CI": [
+        -0.0312,
+        -0.0066
+      ],
+      "sleeve_p": 0.001,
+      "def_only_mean_mo": -0.0234,
+      "def_only_95CI": [
+        -0.0367,
+        -0.0108
+      ],
+      "def_only_p": 0.0
+    },
+    "Inflation Shock (all)": {
+      "n": 1,
+      "note": "insufficient"
+    },
+    "Inflation only (~cred)": {
+      "n": 0,
+      "note": "insufficient"
+    },
+    "Both regimes": {
+      "n": 1,
+      "note": "insufficient"
+    },
+    "Normal": {
+      "n": 308,
+      "sleeve_mean_mo": -0.0002,
+      "sleeve_95CI": [
+        -0.0028,
+        0.0024
+      ],
+      "sleeve_p": 0.8682,
+      "def_only_mean_mo": 0.0,
+      "def_only_95CI": [
+        -0.0033,
+        0.0033
+      ],
+      "def_only_p": 0.9872
+    }
+  },
+  "h4_credit_beta": {
+    "XLU": {
+      "beta_dHY": -0.0218,
+      "rankIC": -0.099,
+      "p": 0.0069,
+      "partial_IC_given_SPY": 0.076,
+      "partial_p": 0.038,
+      "n": 752
+    },
+    "XLP": {
+      "beta_dHY": -0.012,
+      "rankIC": -0.057,
+      "p": 0.1208,
+      "partial_IC_given_SPY": 0.105,
+      "partial_p": 0.0038,
+      "n": 752
+    },
+    "XLV": {
+      "beta_dHY": -0.0308,
+      "rankIC": -0.177,
+      "p": 0.0,
+      "partial_IC_given_SPY": 0.091,
+      "partial_p": 0.0125,
+      "n": 752
+    },
+    "XLF": {
+      "beta_dHY": -0.0774,
+      "rankIC": -0.448,
+      "p": 0.0,
+      "partial_IC_given_SPY": -0.166,
+      "partial_p": 0.0,
+      "n": 752
+    },
+    "XLC": {
+      "beta_dHY": -0.0706,
+      "rankIC": -0.403,
+      "p": 0.0,
+      "partial_IC_given_SPY": 0.005,
+      "partial_p": 0.8877,
+      "n": 752
+    },
+    "SPY": {
+      "beta_dHY": -0.0798,
+      "rankIC": -0.521,
+      "p": 0.0,
+      "partial_IC_given_SPY": null,
+      "partial_p": null,
+      "n": 752
+    }
+  }
+}
