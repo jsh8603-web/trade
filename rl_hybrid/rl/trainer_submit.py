@@ -31,6 +31,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+from core.db import db
 from rl_hybrid.rl.train import (
     evaluate,
     get_trader_class,
@@ -101,37 +102,14 @@ def evaluate_on_real_data(model_path: str, algo: str, days: int = 180,
 
 
 def submit_to_db(result: dict) -> bool:
-    """훈련 결과를 Supabase DB에 업로드"""
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-
-    if not supabase_url or not supabase_key:
-        logger.warning("SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY 미설정 -- 로컬 JSON으로 저장")
-        return save_local(result)
-
+    """훈련 결과를 DB에 업로드"""
     try:
-        import requests
-        resp = requests.post(
-            f"{supabase_url}/rest/v1/rl_training_results",
-            headers={
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-                "Content-Type": "application/json",
-                "Prefer": "return=representation",
-            },
-            json=result,
-            timeout=30,
-        )
-        if resp.status_code in (200, 201):
-            data = resp.json()
-            record_id = data[0]["id"] if data else "?"
-            logger.info(f"DB 업로드 성공: id={record_id}")
-            return True
-        else:
-            logger.error(f"DB 업로드 실패: {resp.status_code} {resp.text}")
-            return save_local(result)
+        row = db.insert("rl_training_results", result)
+        record_id = row.get("id", "?") if row else "?"
+        logger.info(f"DB 업로드 성공: id={record_id}")
+        return True
     except Exception as e:
-        logger.error(f"DB 연결 실패: {e}")
+        logger.error(f"DB 업로드 실패: {e} -- 로컬 JSON으로 저장")
         return save_local(result)
 
 

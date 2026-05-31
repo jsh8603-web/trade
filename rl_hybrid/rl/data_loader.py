@@ -1,18 +1,22 @@
-"""과거 데이터 로더 — Upbit API + Supabase에서 훈련 데이터 구성
+"""과거 데이터 로더 — Upbit API + 로컬 DB에서 훈련 데이터 구성
 
 히스토리컬 캔들 데이터를 로드하고, 기술 지표를 계산하여
-Gymnasium 환경에 공급한다.
+Gymnasium 환경에 공급한다. 외부 시그널은 core.db 어댑터 경유.
 """
 
 import json
 import logging
 import os
+import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
 import requests
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from core.db import db
 
 logger = logging.getLogger("rl.data_loader")
 
@@ -420,39 +424,17 @@ class HistoricalDataLoader:
               "macro_score", "eth_btc_score", "fusion_score"}, ...]
             시간순 정렬 (과거 → 최근)
         """
-        db_url = os.environ.get("SUPABASE_DB_URL")
-        if not db_url:
-            logger.warning("SUPABASE_DB_URL 미설정 -- 외부 시그널 로드 불가")
-            return []
+        since = (datetime.utcnow() - timedelta(days=days)).isoformat()
 
         try:
-            import psycopg2
-        except ImportError:
-            logger.warning("psycopg2 미설치 -- 외부 시그널 로드 불가")
-            return []
-
-        since = datetime.utcnow() - timedelta(days=days)
-
-        query = """
-            SELECT recorded_at, fgi_value, news_sentiment,
-                   whale_score, funding_rate, long_short_ratio,
-                   kimchi_premium_pct, macro_score, eth_btc_score,
-                   fusion_score, fusion_signal
-            FROM external_signal_log
-            WHERE recorded_at >= %s
-            ORDER BY recorded_at ASC
-        """
-
-        try:
-            conn = psycopg2.connect(db_url)
-            cur = conn.cursor()
-            cur.execute(query, (since,))
-            columns = [desc[0] for desc in cur.description]
-            rows = cur.fetchall()
-            cur.close()
-            conn.close()
-
-            signals = [dict(zip(columns, row)) for row in rows]
+            signals = db.select(
+                "external_signal_log",
+                select=("recorded_at,fgi_value,news_sentiment,whale_score,"
+                        "funding_rate,long_short_ratio,kimchi_premium_pct,"
+                        "macro_score,eth_btc_score,fusion_score,fusion_signal"),
+                filters={"recorded_at": f"gte.{since}"},
+                order="recorded_at.asc",
+            )
             logger.info(f"외부 시그널 로드 완료: {len(signals)}건 ({days}일)")
             return signals
 

@@ -450,21 +450,7 @@ def phase6_time_patterns(model, candles: list[dict], steps: int = 150_000):
 def record_to_db(phase_results: dict):
     """훈련 결과를 DB에 기록한다."""
     try:
-        import requests
-        from dotenv import load_dotenv
-        load_dotenv(PROJECT_DIR / ".env")
-
-        url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-        if not url or not key:
-            return
-
-        headers = {
-            "apikey": key,
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-            "Prefer": "return=minimal",
-        }
+        from core.db import db
 
         row = {
             "model_type": "ppo_v2_comprehensive",
@@ -474,12 +460,7 @@ def record_to_db(phase_results: dict):
             "notes": json.dumps(phase_results, ensure_ascii=False, default=str),
         }
 
-        requests.post(
-            f"{url}/rest/v1/rl_training_log",
-            json=row,
-            headers=headers,
-            timeout=10,
-        )
+        db.insert("rl_training_log", row, returning=False)
         log("DB 기록 완료")
     except Exception as e:
         log(f"DB 기록 실패: {e}")

@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 import logging
 import math
-import os
 import pickle
 import sys
 import time
@@ -25,7 +24,11 @@ import requests
 from dotenv import load_dotenv
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
+
+from core.db import db
 
 log = logging.getLogger("train_lgbm")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -33,14 +36,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 KST = timezone(timedelta(hours=9))
 MODEL_DIR = PROJECT_DIR / "data" / "scalp_models"
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
-
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json",
-}
 
 # ── 스캘핑 파라미터 ──
 TP_PCT = 0.8   # 익절 기준 (%)
@@ -418,12 +413,7 @@ def register_model_version(metrics: dict):
         "is_active": True,
         "notes": f"v5 보수적 기준, {metrics['train_size']}건 학습",
     }
-    requests.post(
-        f"{SUPABASE_URL}/rest/v1/scalp_model_versions",
-        json=row,
-        headers={**HEADERS, "Prefer": "return=minimal"},
-        timeout=10,
-    )
+    db.insert("scalp_model_versions", row, returning=False)
     log.info("DB 모델 버전 등록 완료")
 
 

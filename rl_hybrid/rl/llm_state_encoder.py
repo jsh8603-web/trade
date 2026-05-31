@@ -29,6 +29,7 @@ except ImportError:
     TORCH_AVAILABLE = False
     logger.warning("PyTorch 미설치 -- LLM state encoder 비활성화")
 
+from core.db import db
 from rl_hybrid.rl.state_encoder import StateEncoder, OBSERVATION_DIM
 
 # 상수
@@ -586,37 +587,14 @@ def _load_historical_embeddings() -> list[list[float]]:
         [[float] * 3072, ...] 임베딩 리스트
     """
     try:
-        from rl_hybrid.config import config
-
-        url = config.supabase.url
-        key = config.supabase.service_role_key
-        if not url or not key:
-            logger.error("Supabase 설정 누락")
-            return []
-
-        headers = {
-            "apikey": key,
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-        }
-
         # 최근 500개 임베딩 로드 (학습에 충분한 양)
-        resp = requests.get(
-            f"{url}/rest/v1/rag_analysis_vectors",
-            headers=headers,
-            params={
-                "select": "embedding",
-                "order": "created_at.desc",
-                "limit": 500,
-            },
-            timeout=30,
+        data = db.select(
+            "rag_analysis_vectors",
+            select="embedding",
+            order="created_at.desc",
+            limit=500,
         )
 
-        if resp.status_code != 200:
-            logger.error(f"임베딩 로드 실패: {resp.status_code}")
-            return []
-
-        data = resp.json()
         embeddings = []
         for row in data:
             emb = row.get("embedding")
@@ -634,19 +612,9 @@ def _load_historical_embeddings() -> list[list[float]]:
 
         return embeddings
 
-    except ImportError:
-        logger.error("requests 라이브러리 필요")
-        return []
     except Exception as e:
         logger.error(f"과거 임베딩 로드 실패: {e}")
         return []
-
-
-# requests import (top-level은 피하고 함수 내에서만 사용)
-try:
-    import requests
-except ImportError:
-    pass
 
 
 # ────────────────────────────────────────────────────────

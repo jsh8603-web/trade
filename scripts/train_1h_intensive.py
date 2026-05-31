@@ -525,22 +525,8 @@ def run_full_training(
 
 
 def _save_to_db(summary: dict):
-    """Supabase에 학습 결과 저장 (반드시 저장 — 실패 시 로컬 백업)"""
-    import requests as req
-
-    url = os.environ.get("SUPABASE_URL", "").rstrip("/")
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not url or not key:
-        logger.error("DB 저장 불가: SUPABASE_URL 또는 SUPABASE_SERVICE_ROLE_KEY 미설정")
-        _save_db_fallback(summary)
-        return
-
-    headers = {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }
+    """학습 결과 저장 (반드시 저장 — 실패 시 로컬 백업)"""
+    from core.db import db
 
     saved = 0
     failed = 0
@@ -575,17 +561,8 @@ def _save_to_db(summary: dict):
         }
 
         try:
-            r = req.post(
-                f"{url}/rest/v1/rl_training_log",
-                headers=headers,
-                json=row,
-                timeout=10,
-            )
-            if r.status_code in (200, 201):
-                saved += 1
-            else:
-                logger.error(f"DB 저장 실패 Phase {phase_result['phase']}: {r.status_code} {r.text[:200]}")
-                failed += 1
+            db.insert("rl_training_log", row, returning=False)
+            saved += 1
         except Exception as e:
             logger.error(f"DB 저장 예외 Phase {phase_result['phase']}: {e}")
             failed += 1

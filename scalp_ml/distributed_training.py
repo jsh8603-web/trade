@@ -30,7 +30,11 @@ import requests
 from dotenv import load_dotenv
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
+
+from core.db import db
 
 logging.basicConfig(
     level=logging.INFO,
@@ -45,14 +49,6 @@ log = logging.getLogger("dist_train")
 KST = timezone(timedelta(hours=9))
 MODEL_DIR = PROJECT_DIR / "data" / "scalp_models"
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
-
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json",
-}
 
 
 def log_to_db(machine: str, phase: str, status: str, metrics: dict = None, error: str = None,
@@ -79,12 +75,7 @@ def log_to_db(machine: str, phase: str, status: str, metrics: dict = None, error
         elif status in ("completed", "failed"):
             row["completed_at"] = datetime.now(KST).isoformat()
 
-        requests.post(
-            f"{SUPABASE_URL}/rest/v1/scalp_training_tasks",
-            json=row,
-            headers={**HEADERS, "Prefer": "return=minimal"},
-            timeout=10,
-        )
+        db.insert("scalp_training_tasks", row, returning=False)
     except Exception as e:
         log.warning(f"DB 기록 실패: {e}")
 
@@ -327,19 +318,14 @@ def _daemon_collector():
             # DB에도 5분마다 기록
             if now.minute % 5 == 0 and now.second < 61:
                 try:
-                    requests.post(
-                        f"{SUPABASE_URL}/rest/v1/scalp_market_snapshot",
-                        json={
-                            "price": row.get("price"),
-                            "volume_1m": row.get("volume"),
-                            "rsi_1m": None,
-                            "ob_imbalance": row.get("ob_imbalance_5"),
-                            "trade_intensity": row.get("trade_intensity"),
-                            "spread_bps": row.get("spread_bps"),
-                        },
-                        headers=HEADERS,
-                        timeout=5,
-                    )
+                    db.insert("scalp_market_snapshot", {
+                        "price": row.get("price"),
+                        "volume_1m": row.get("volume"),
+                        "rsi_1m": None,
+                        "ob_imbalance": row.get("ob_imbalance_5"),
+                        "trade_intensity": row.get("trade_intensity"),
+                        "spread_bps": row.get("spread_bps"),
+                    }, returning=False)
                 except Exception:
                     pass
 

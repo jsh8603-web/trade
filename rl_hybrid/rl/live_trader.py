@@ -31,6 +31,7 @@ import requests
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+from core.db import db
 from rl_hybrid.config import config
 from rl_hybrid.rl.state_encoder import StateEncoder
 from rl_hybrid.rl.decision_blender import DecisionBlender
@@ -339,21 +340,13 @@ class LiveTrader:
           - None : 스냅샷 없음 (빈 테이블 / 첫 실행)
           - _DB_QUERY_ERROR : DB 연결 에러 / 키 없음 / 예외 → halt 필요
         """
-        url = os.environ.get("SUPABASE_URL", "")
-        key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-        if not url or not key:
-            return self._DB_QUERY_ERROR
         try:
-            r = requests.get(
-                f"{url}/rest/v1/portfolio_snapshots",
-                params={"order": "created_at.desc", "limit": "1"},
-                headers={"apikey": key, "Authorization": f"Bearer {key}"},
-                timeout=10,
+            rows = db.select(
+                "portfolio_snapshots",
+                order="created_at.desc",
+                limit=1,
             )
-            if r.ok:
-                rows = r.json()
-                return rows[0] if rows else None
-            return self._DB_QUERY_ERROR
+            return rows[0] if rows else None
         except Exception as e:
             logger.warning(f"DB 스냅샷 조회 에러: {e}")
             return self._DB_QUERY_ERROR

@@ -27,6 +27,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+from core.db import db
 from rl_hybrid.rl.train import prepare_data, evaluate, get_trader_class
 from rl_hybrid.rl.environment import BitcoinTradingEnv
 from rl_hybrid.config import SystemConfig
@@ -346,35 +347,21 @@ def _shadow_validate(trader, candidate_name: str, sys_config=None) -> bool:
     최근 20개 decisions의 시점에서 모델 예측이 실제 결과와 일치하는지 검증.
     정확도 50% 이상이면 통과.
     """
-    import requests as _req
-
-    supabase_url = os.getenv("SUPABASE_URL", "")
-    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not supabase_url or not supabase_key:
-        logger.info("Shadow validation: Supabase 미설정 → 기본 통과")
-        return True
-
     try:
-        r = _req.get(
-            f"{supabase_url}/rest/v1/decisions",
-            headers={
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-            },
-            params={
-                "select": "decision,outcome_4h_pct,current_price,rsi_value,fear_greed_value",
+        rows = db.select(
+            "decisions",
+            select="decision,outcome_4h_pct,current_price,rsi_value,fear_greed_value",
+            filters={
                 "outcome_4h_pct": "not.is.null",
                 "source": "eq.agent",
-                "order": "created_at.desc",
-                "limit": "20",
             },
-            timeout=10,
+            order="created_at.desc",
+            limit=20,
         )
-        if r.status_code != 200 or not r.json():
+        if not rows:
             logger.info("Shadow validation: 데이터 부족 → 기본 통과")
             return True
 
-        rows = r.json()
         if len(rows) < 5:
             logger.info(f"Shadow validation: {len(rows)}건 (5건 미만) → 기본 통과")
             return True

@@ -60,35 +60,33 @@ $FearGreed = Get-Content "$SnapshotDir\fear_greed.json" -Raw -Encoding UTF8
 $News = Get-Content "$SnapshotDir\news.json" -Raw -Encoding UTF8
 $Portfolio = Get-Content "$SnapshotDir\portfolio.json" -Raw -Encoding UTF8
 
-# Supabase에서 과거 결정 조회
+# 과거 결정 조회 (로컬 DB)
 $PastDecisions = "[]"
-if ($env:SUPABASE_URL -and $env:SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-        $headers = @{
-            "apikey"        = $env:SUPABASE_SERVICE_ROLE_KEY
-            "Authorization" = "Bearer $($env:SUPABASE_SERVICE_ROLE_KEY)"
-        }
-        $PastDecisions = Invoke-RestMethod `
-            -Uri "$($env:SUPABASE_URL)/rest/v1/decisions?select=*&order=created_at.desc&limit=10" `
-            -Headers $headers -Method Get 2>$null | ConvertTo-Json -Depth 10
-    }
-    catch { $PastDecisions = "[]" }
+try {
+    $pdScript = @"
+import sys, json
+sys.path.insert(0, r'$ProjectDir')
+from core.db import db
+rows = db.select('decisions', order='created_at.desc', limit=10)
+print(json.dumps(rows, ensure_ascii=False, default=str))
+"@
+    $PastDecisions = & $Python -c $pdScript
 }
+catch { $PastDecisions = "[]" }
 
-# 미반영 피드백 조회
+# 미반영 피드백 조회 (로컬 DB)
 $Feedback = "[]"
-if ($env:SUPABASE_URL -and $env:SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-        $headers = @{
-            "apikey"        = $env:SUPABASE_SERVICE_ROLE_KEY
-            "Authorization" = "Bearer $($env:SUPABASE_SERVICE_ROLE_KEY)"
-        }
-        $Feedback = Invoke-RestMethod `
-            -Uri "$($env:SUPABASE_URL)/rest/v1/feedback?select=*&applied=eq.false&order=created_at.desc" `
-            -Headers $headers -Method Get 2>$null | ConvertTo-Json -Depth 10
-    }
-    catch { $Feedback = "[]" }
+try {
+    $fbScript = @"
+import sys, json
+sys.path.insert(0, r'$ProjectDir')
+from core.db import db
+rows = db.select('feedback', filters={'applied': 'eq.false'}, order='created_at.desc')
+print(json.dumps(rows, ensure_ascii=False, default=str))
+"@
+    $Feedback = & $Python -c $fbScript
 }
+catch { $Feedback = "[]" }
 
 # 로컬 피드백 편향치 (사용자 개입)
 $UserBiasState = "{}"
@@ -133,20 +131,19 @@ except Exception as e:
 }
 catch { $EthData = "{}" }
 
-# 성과 리뷰 조회
+# 성과 리뷰 조회 (로컬 DB)
 $PerformanceReviews = "[]"
-if ($env:SUPABASE_URL -and $env:SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-        $headers = @{
-            "apikey"        = $env:SUPABASE_SERVICE_ROLE_KEY
-            "Authorization" = "Bearer $($env:SUPABASE_SERVICE_ROLE_KEY)"
-        }
-        $PerformanceReviews = Invoke-RestMethod `
-            -Uri "$($env:SUPABASE_URL)/rest/v1/performance_reviews?select=*&order=reviewed_at.desc&limit=5" `
-            -Headers $headers -Method Get 2>$null | ConvertTo-Json -Depth 10
-    }
-    catch { $PerformanceReviews = "[]" }
+try {
+    $prScript = @"
+import sys, json
+sys.path.insert(0, r'$ProjectDir')
+from core.db import db
+rows = db.select('performance_reviews', order='reviewed_at.desc', limit=5)
+print(json.dumps(rows, ensure_ascii=False, default=str))
+"@
+    $PerformanceReviews = & $Python -c $prScript
 }
+catch { $PerformanceReviews = "[]" }
 
 $Now = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 

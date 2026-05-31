@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import pickle
+import sys
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -23,6 +24,10 @@ import numpy as np
 log = logging.getLogger("week2.ensemble")
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
+
+from core.db import db
 W2_MODEL_DIR = PROJECT_DIR / "data" / "week2_models"
 ENSEMBLE_DIR = W2_MODEL_DIR / "ensemble"
 KST = timezone(timedelta(hours=9))
@@ -95,33 +100,14 @@ def _eval_model(model, env, episodes: int, tag: str) -> dict:
 # ═══════════════════════════════════════════════════
 
 def _phase1_offline_data():
-    """Supabase decisions → 오프라인 데이터셋 + 합성 전문가 시연"""
-    import os
-    import requests
-
-    SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-    SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-    HEADERS = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-
-    # 1) Supabase에서 decisions 데이터 가져오기
+    """decisions → 오프라인 데이터셋 + 합성 전문가 시연"""
+    # 1) decisions 데이터 가져오기
     decisions = []
-    if SUPABASE_URL and SUPABASE_KEY:
-        try:
-            resp = requests.get(
-                f"{SUPABASE_URL}/rest/v1/decisions",
-                headers=HEADERS,
-                params={"select": "*", "order": "created_at.asc", "limit": 500},
-                timeout=15,
-            )
-            if resp.status_code == 200:
-                decisions = resp.json()
-                log.info(f"  Supabase decisions 로드: {len(decisions)}건")
-        except Exception as e:
-            log.warning(f"  Supabase 연결 실패: {e}")
+    try:
+        decisions = db.select("decisions", order="created_at.asc", limit=500)
+        log.info(f"  decisions 로드: {len(decisions)}건")
+    except Exception as e:
+        log.warning(f"  decisions 조회 실패: {e}")
 
     # 2) 합성 전문가 시연 생성 (결정에 기반한 state-action 쌍)
     candles = _load_4h_candles(180)

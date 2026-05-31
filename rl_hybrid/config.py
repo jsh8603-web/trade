@@ -52,7 +52,12 @@ class RAGConfig:
 
 @dataclass
 class SupabaseConfig:
-    """Supabase 설정 (기존 .env 재사용)"""
+    """[DEPRECATED] 레거시 Supabase 연결 설정.
+
+    DB 접근은 core.db 어댑터(INV_DB_BACKEND=sqlite 기본) 로 일원화됨.
+    이 블록은 더 이상 코드에서 참조되지 않으나, supabase 백엔드 롤백 시
+    .env 재사용 호환을 위해 보존. 신규 코드는 `from core.db import db` 사용.
+    """
     url: str = os.getenv("SUPABASE_URL", "")
     service_role_key: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     db_url: str = os.getenv("SUPABASE_DB_URL", "")

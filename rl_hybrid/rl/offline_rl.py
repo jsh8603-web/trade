@@ -40,6 +40,7 @@ except ImportError:
     TORCH_AVAILABLE = False
     logger.warning("PyTorch 미설치 -- Offline RL 비활성화")
 
+from core.db import db
 from rl_hybrid.rl.state_encoder import StateEncoder, OBSERVATION_DIM
 
 
@@ -112,15 +113,7 @@ class OfflineDatasetBuilder:
         Returns:
             구축된 전이 수
         """
-        from rl_hybrid.config import config
-
-        if not config.supabase.url or not config.supabase.service_role_key:
-            logger.error("Supabase 설정 없음 -- .env에 SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY 설정 필요")
-            return 0
-
         decisions = self._fetch_decisions(
-            config.supabase.url,
-            config.supabase.service_role_key,
             date_from=date_from,
             date_to=date_to,
             min_confidence=min_confidence,
@@ -137,55 +130,37 @@ class OfflineDatasetBuilder:
 
     def _fetch_decisions(
         self,
-        supabase_url: str,
-        service_role_key: str,
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
         min_confidence: float = 0.0,
         limit: int = 10000,
     ) -> list[dict]:
-        """Supabase REST API로 decisions 조회"""
-        import urllib.request
-        import urllib.parse
-
-        # 쿼리 파라미터 구성
-        params = {
-            "select": "*",
-            "order": "created_at.asc",
-            "limit": str(limit),
-        }
-
-        # 필터 구성 (PostgREST 문법)
-        filters = []
+        """DB에서 decisions 조회 (PostgREST 필터 문법)"""
+        # 필터 구성 (PostgREST 문법). created_at 양쪽 경계는 list 로 AND.
+        filters: dict = {}
+        created_at_conds = []
         if date_from:
-            filters.append(f"created_at=gte.{date_from}")
+            created_at_conds.append(f"gte.{date_from}")
         if date_to:
-            filters.append(f"created_at=lte.{date_to}")
+            created_at_conds.append(f"lte.{date_to}")
+        if created_at_conds:
+            filters["created_at"] = (
+                created_at_conds if len(created_at_conds) > 1 else created_at_conds[0]
+            )
         if min_confidence > 0:
-            filters.append(f"confidence=gte.{min_confidence}")
-
-        query = urllib.parse.urlencode(params)
-        for f in filters:
-            query += f"&{f}"
-
-        url = f"{supabase_url}/rest/v1/decisions?{query}"
-
-        req = urllib.request.Request(
-            url,
-            headers={
-                "apikey": service_role_key,
-                "Authorization": f"Bearer {service_role_key}",
-                "Content-Type": "application/json",
-            },
-        )
+            filters["confidence"] = f"gte.{min_confidence}"
 
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                logger.info(f"Supabase에서 {len(data)}건 decisions 로드")
-                return data
+            data = db.select(
+                "decisions",
+                filters=filters or None,
+                order="created_at.asc",
+                limit=limit,
+            )
+            logger.info(f"DB에서 {len(data)}건 decisions 로드")
+            return data
         except Exception as e:
-            logger.error(f"Supabase 조회 실패: {e}")
+            logger.error(f"DB 조회 실패: {e}")
             return []
 
     def _build_transitions(self, decisions: list[dict]):

@@ -1,33 +1,34 @@
-"""Supabase 라이브 데이터 수집기 — 과거 매매 결과를 RL 훈련 데이터로 변환
+"""라이브 데이터 수집기 — 과거 매매 결과를 RL 훈련 데이터로 변환
 
-Supabase의 decisions, market_context_log, agent_switches 테이블에서
+decisions, external_signal_log, agent_switches, portfolio_snapshots 테이블에서
 실제 매매 결과를 가져와 RL 환경의 리플레이 버퍼로 구성한다.
+core.db 어댑터(INV_DB_BACKEND=sqlite 기본) 경유 — 백엔드 무관.
 """
 
 import logging
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
-import psycopg2
-import psycopg2.extras
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from rl_hybrid.config import config
+from core.db import db
 
 logger = logging.getLogger("rl.data_collector")
 
 
+def _cutoff_iso(days: int) -> str:
+    """현재로부터 days 일 전의 ISO 문자열 (PG NOW()-INTERVAL 대체)."""
+    return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+
 class LiveDataCollector:
-    """Supabase에서 라이브 매매 데이터를 수집하여 RL 훈련 데이터로 변환"""
+    """라이브 매매 데이터를 수집하여 RL 훈련 데이터로 변환"""
 
     def __init__(self):
-        self.db_url = config.supabase.db_url
-        if not self.db_url:
-            raise ValueError("SUPABASE_DB_URL이 설정되지 않았습니다")
-
-    def _get_conn(self):
-        return psycopg2.connect(self.db_url)
+        # core.db 어댑터가 백엔드를 관리 — 연결 설정 불필요.
+        pass
 
     def collect_decisions(self, days: int = 30, limit: int = 500) -> list[dict]:
         """과거 매매 결정 + 시장 맥락 + 결과 수집
@@ -38,12 +39,9 @@ class LiveDataCollector:
               "market_context", ...}, ...]
         """
         try:
-            conn = self._get_conn()
-            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-            cur.execute("""
+            results = db.execute_raw("""
                 SELECT
-                    d.id::text,
+                    d.id,
                     d.decision,
                     d.confidence,
                     d.current_price,
@@ -57,7 +55,7 @@ class LiveDataCollector:
                     d.outcome_24h_pct,
                     d.was_correct_4h,
                     d.was_correct_24h,
-                    d.created_at::text,
+                    d.created_at,
                     d.market_data_snapshot,
                     esl.fusion_score,
                     esl.fusion_signal,
@@ -72,15 +70,11 @@ class LiveDataCollector:
                     esl.eth_btc_score
                 FROM decisions d
                 LEFT JOIN external_signal_log esl ON d.external_signal_id = esl.id
-                WHERE d.created_at > NOW() - INTERVAL '1 day' * %s
+                WHERE d.created_at > ?
                   AND d.outcome_24h_pct IS NOT NULL
                 ORDER BY d.created_at DESC
-                LIMIT %s
-            """, (days, limit))
-
-            results = [dict(row) for row in cur.fetchall()]
-            cur.close()
-            conn.close()
+                LIMIT ?
+            """, (_cutoff_iso(days), limit))
 
             logger.info(f"매매 결정 수집: {len(results)}건 ({days}일)")
             return results
@@ -92,10 +86,7 @@ class LiveDataCollector:
     def collect_switch_outcomes(self, days: int = 30) -> list[dict]:
         """전략 전환 성과 데이터 수집 (메타 학습용)"""
         try:
-            conn = self._get_conn()
-            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-            cur.execute("""
+            results = db.execute_raw("""
                 SELECT
                     from_agent,
                     to_agent,
@@ -105,21 +96,17 @@ class LiveDataCollector:
                     market_state,
                     profit_after_4h,
                     profit_after_24h,
-                    switch_time::text,
+                    switch_time,
                     CASE
                         WHEN profit_after_24h > 1.0 THEN 'good'
                         WHEN profit_after_24h < -1.0 THEN 'bad'
                         ELSE 'neutral'
                     END AS outcome
                 FROM agent_switches
-                WHERE switch_time > NOW() - INTERVAL '1 day' * %s
+                WHERE switch_time > ?
                   AND profit_after_24h IS NOT NULL
                 ORDER BY switch_time DESC
-            """, (days,))
-
-            results = [dict(row) for row in cur.fetchall()]
-            cur.close()
-            conn.close()
+            """, (_cutoff_iso(days),))
 
             logger.info(f"전환 성과 수집: {len(results)}건")
             return results
@@ -131,10 +118,7 @@ class LiveDataCollector:
     def collect_portfolio_history(self, days: int = 30) -> list[dict]:
         """포트폴리오 스냅샷 히스토리 (보상 계산용)"""
         try:
-            conn = self._get_conn()
-            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-            cur.execute("""
+            results = db.execute_raw("""
                 SELECT
                     total_value_krw,
                     btc_balance,
@@ -142,15 +126,11 @@ class LiveDataCollector:
                     btc_avg_price,
                     btc_current_price,
                     profit_loss_pct,
-                    created_at::text
+                    created_at
                 FROM portfolio_snapshots
-                WHERE created_at > NOW() - INTERVAL '1 day' * %s
+                WHERE created_at > ?
                 ORDER BY created_at ASC
-            """, (days,))
-
-            results = [dict(row) for row in cur.fetchall()]
-            cur.close()
-            conn.close()
+            """, (_cutoff_iso(days),))
 
             logger.info(f"포트폴리오 히스토리: {len(results)}건")
             return results

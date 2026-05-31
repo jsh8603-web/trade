@@ -92,38 +92,23 @@ def get_embedding(text: str) -> list | None:
 
 
 def query_similar_decisions(embedding: list, limit: int = 3) -> list[dict]:
-    """Supabase RPC match_similar_decisions를 호출하여 유사 결정을 조회.
+    """core.db rpc_match 로 유사 결정을 조회 (decisions.state_embedding 코사인).
 
-    REST API로 직접 RPC 호출 (psycopg2는 dotted username 문제로 사용 불가).
+    백엔드 무관 (INV_DB_BACKEND=sqlite 기본). 임베딩은 raw float list 그대로.
     """
-    supabase_url = os.getenv("SUPABASE_URL", "")
-    supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not supabase_url or not supabase_key:
-        print("[recall_rag] SUPABASE 환경변수 미설정", file=sys.stderr)
-        return []
-
     try:
-        import requests
-        r = requests.post(
-            f"{supabase_url}/rest/v1/rpc/match_similar_decisions",
-            headers={
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "query_embedding": str(embedding),
-                "match_limit": limit,
-            },
-            timeout=15,
+        from core.db import db
+        rows = db.rpc_match(
+            "decisions", embedding,
+            column="state_embedding", k=limit,
         )
-        if r.ok:
-            return r.json()
-        else:
-            print(f"[recall_rag] RPC REST 호출 실패 ({r.status_code}): {r.text[:300]}", file=sys.stderr)
-            return []
+        for r in rows:
+            sim = r.pop("_similarity", None)
+            if sim is not None:
+                r["similarity"] = sim
+        return rows
     except Exception as e:
-        print(f"[recall_rag] REST RPC 예외: {e}", file=sys.stderr)
+        print(f"[recall_rag] rpc_match 예외: {e}", file=sys.stderr)
         return []
 
 

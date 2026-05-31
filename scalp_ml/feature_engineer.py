@@ -9,20 +9,20 @@ ML 학습용 피처 매트릭스로 변환한다.
 from __future__ import annotations
 
 import logging
-import os
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-import requests
 from dotenv import load_dotenv
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
+from core.db import db
+
 KST = timezone(timedelta(hours=9))
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "") or os.getenv("SUPABASE_ANON_KEY", "")
-WORKER_TOKEN = os.getenv("WORKER_TOKEN", "")
 
 log = logging.getLogger("feature_eng")
 
@@ -65,28 +65,16 @@ class FeatureEngineer:
 
     def __init__(self, db_client=None):
         self.db = db_client
-        self.headers = {
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
-        }
-        if WORKER_TOKEN:
-            self.headers["x-worker-token"] = WORKER_TOKEN
 
     def fetch_snapshots(self, hours: int = 24) -> list[dict]:
         """최근 N시간의 시장 스냅샷 조회"""
         cutoff = (datetime.now(KST) - timedelta(hours=hours)).isoformat()
         try:
-            resp = requests.get(
-                f"{SUPABASE_URL}/rest/v1/scalp_market_snapshot",
-                params={
-                    "select": "*",
-                    "recorded_at": f"gt.{cutoff}",
-                    "order": "recorded_at.asc",
-                },
-                headers=self.headers,
-                timeout=15,
+            return db.select(
+                "scalp_market_snapshot",
+                filters={"recorded_at": f"gt.{cutoff}"},
+                order="recorded_at.asc",
             )
-            return resp.json() if resp.ok else []
         except Exception as e:
             log.warning(f"스냅샷 조회 실패: {e}")
             return []
@@ -95,19 +83,15 @@ class FeatureEngineer:
         """사후 추적 완료된 시그널 조회 (학습 데이터)"""
         cutoff = (datetime.now(KST) - timedelta(days=days)).isoformat()
         try:
-            resp = requests.get(
-                f"{SUPABASE_URL}/rest/v1/signal_attempt_log",
-                params={
-                    "select": "*",
+            return db.select(
+                "signal_attempt_log",
+                filters={
                     "signal_type": "neq.no_signal",
                     "outcome_5m_pct": "not.is.null",
                     "recorded_at": f"gt.{cutoff}",
-                    "order": "recorded_at.asc",
                 },
-                headers=self.headers,
-                timeout=15,
+                order="recorded_at.asc",
             )
-            return resp.json() if resp.ok else []
         except Exception as e:
             log.warning(f"시그널 조회 실패: {e}")
             return []

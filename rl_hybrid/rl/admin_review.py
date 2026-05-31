@@ -19,6 +19,8 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+from core.db import db
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
@@ -28,25 +30,14 @@ logger = logging.getLogger("rl.admin")
 
 def get_submissions_from_db() -> list[dict]:
     """DB에서 제출 목록 조회"""
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-
-    if not supabase_url or not supabase_key:
-        return get_submissions_local()
-
     try:
-        import requests
-        resp = requests.get(
-            f"{supabase_url}/rest/v1/rl_training_results"
-            "?order=avg_return_pct.desc&limit=50",
-            headers={
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-            },
-            timeout=15,
+        rows = db.select(
+            "rl_training_results",
+            order="avg_return_pct.desc",
+            limit=50,
         )
-        if resp.status_code == 200:
-            return resp.json()
+        if rows:
+            return rows
     except Exception as e:
         logger.warning(f"DB 조회 실패: {e}")
 
@@ -228,24 +219,15 @@ def promote_model(submission_id: int):
 
 def _update_db_status(submission: dict, status: str):
     """DB에서 제출 상태 업데이트"""
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
     record_id = submission.get("id")
-
-    if not supabase_url or not supabase_key or not record_id:
+    if not record_id:
         return
 
     try:
-        import requests
-        requests.patch(
-            f"{supabase_url}/rest/v1/rl_training_results?id=eq.{record_id}",
-            headers={
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-                "Content-Type": "application/json",
-            },
-            json={"status": status, "updated_at": datetime.now().isoformat()},
-            timeout=10,
+        db.update(
+            "rl_training_results",
+            {"id": f"eq.{record_id}"},
+            {"status": status, "updated_at": datetime.now().isoformat()},
         )
     except Exception:
         pass

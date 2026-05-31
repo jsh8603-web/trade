@@ -27,7 +27,6 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-import requests
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
@@ -94,25 +93,9 @@ HISTORY_PATH = PROJECT_DIR / "data" / "training_history.json"
 from dotenv import load_dotenv
 load_dotenv(PROJECT_DIR / ".env")
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-
-
-def _supabase_headers() -> dict:
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=representation",
-    }
-
-
 def _save_to_db(result: dict) -> bool:
-    """학습 결과를 Supabase rl_training_log 테이블에 반드시 저장"""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        logger.error("Supabase 설정 없음 — DB 저장 불가, 로컬 백업")
-        _save_db_fallback_row(result)
-        return False
+    """학습 결과를 rl_training_log 테이블에 반드시 저장"""
+    from core.db import db
 
     baseline = result.get("baseline", {})
     new_stats = result.get("new_stats", {})
@@ -140,18 +123,9 @@ def _save_to_db(result: dict) -> bool:
     }
 
     try:
-        r = requests.post(
-            f"{SUPABASE_URL}/rest/v1/rl_training_log",
-            headers=_supabase_headers(),
-            json=row,
-            timeout=10,
-        )
-        if r.status_code in (200, 201):
-            logger.info("DB 저장 완료 (rl_training_log)")
-            return True
-        else:
-            logger.warning(f"DB 저장 실패: {r.status_code} {r.text[:200]}")
-            return False
+        db.insert("rl_training_log", row, returning=False)
+        logger.info("DB 저장 완료 (rl_training_log)")
+        return True
     except Exception as e:
         logger.error(f"DB 저장 예외: {e}")
         _save_db_fallback_row(result)

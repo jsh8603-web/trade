@@ -262,32 +262,23 @@ def main():
 
     # DB 기록
     try:
-        import requests
-        from dotenv import load_dotenv
-        load_dotenv(PROJECT_DIR / ".env")
-        url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-        if url and key:
-            best_m = results.get(best_vid, {}).get("metrics", {})
-            row = {
-                "model_type": "ppo_v4_deep_parallel",
-                "training_steps": total_steps,
-                "reward_mean": best_m.get("mean_reward", 0),
-                "reward_std": best_m.get("std_profit", 0),
-                "notes": json.dumps({
-                    "method": "deep_parallel_6variant",
-                    "best_variant": best_vid,
-                    "elapsed_min": round(elapsed / 60, 1),
-                    "results": {str(k): v.get("metrics", {}) for k, v in results.items() if "metrics" in v},
-                }, ensure_ascii=False, default=str),
-            }
-            requests.post(
-                f"{url}/rest/v1/rl_training_log", json=row,
-                headers={"apikey": key, "Authorization": f"Bearer {key}",
-                          "Content-Type": "application/json", "Prefer": "return=minimal"},
-                timeout=10,
-            )
-            log("DB 기록 완료")
+        from core.db import db
+
+        best_m = results.get(best_vid, {}).get("metrics", {})
+        row = {
+            "model_type": "ppo_v4_deep_parallel",
+            "training_steps": total_steps,
+            "reward_mean": best_m.get("mean_reward", 0),
+            "reward_std": best_m.get("std_profit", 0),
+            "notes": json.dumps({
+                "method": "deep_parallel_6variant",
+                "best_variant": best_vid,
+                "elapsed_min": round(elapsed / 60, 1),
+                "results": {str(k): v.get("metrics", {}) for k, v in results.items() if "metrics" in v},
+            }, ensure_ascii=False, default=str),
+        }
+        db.insert("rl_training_log", row, returning=False)
+        log("DB 기록 완료")
     except Exception as e:
         log(f"DB 기록 실패: {e}")
 

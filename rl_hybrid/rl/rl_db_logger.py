@@ -1,83 +1,53 @@
-"""RL DB 로거 — 모든 RL 훈련/추론/모델 버전을 Supabase에 기록
+"""RL DB 로거 — 모든 RL 훈련/추론/모델 버전을 DB에 기록
 
 모든 RL 모듈이 이 모듈을 통해 DB에 기록한다.
-REST API(service role key) 사용 — psycopg2 불필요.
+core.db 어댑터(INV_DB_BACKEND=sqlite 기본) 경유 — 백엔드 무관.
 """
 
-import json
 import logging
 import os
+import sys
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-import requests
-
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from core.db import db
 
 logger = logging.getLogger("rl.db_logger")
 
-# Supabase 설정
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
-
-def _headers() -> dict:
-    return {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-        "Prefer": "return=representation",
-    }
-
-
-def _post(table: str, data: dict) -> Optional[dict]:
-    """Supabase REST API로 단일 레코드 삽입"""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        logger.warning("Supabase 설정 없음 -- DB 기록 스킵")
-        return None
-
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    # None 값 필터링 + datetime 직렬화
+def _clean(data: dict) -> dict:
+    """None 값 필터링 + datetime → ISO 문자열. dict/list 는 어댑터가 직렬화."""
     clean = {}
     for k, v in data.items():
         if v is None:
             continue
         if isinstance(v, datetime):
             clean[k] = v.isoformat()
-        elif isinstance(v, dict):
-            clean[k] = json.dumps(v, ensure_ascii=False)
         else:
             clean[k] = v
+    return clean
+
+
+def _post(table: str, data: dict) -> Optional[dict]:
+    """단일 레코드 삽입 (core.db 어댑터)"""
     try:
-        r = requests.post(url, headers=_headers(), json=clean, timeout=15)
-        if r.status_code in (200, 201):
-            result = r.json()
-            return result[0] if isinstance(result, list) and result else result
-        else:
-            logger.error(f"DB insert 실패 [{table}]: {r.status_code} - {r.text[:200]}")
-            return None
+        return db.insert(table, _clean(data))
     except Exception as e:
         logger.error(f"DB insert 예외 [{table}]: {e}")
         return None
 
 
 def _patch(table: str, match: dict, data: dict) -> bool:
-    """Supabase REST API로 레코드 업데이트"""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return False
-
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    params = {f"{k}": f"eq.{v}" for k, v in match.items()}
-    clean = {k: v.isoformat() if isinstance(v, datetime) else v
+    """레코드 업데이트 (core.db 어댑터)"""
+    clean = {k: (v.isoformat() if isinstance(v, datetime) else v)
              for k, v in data.items() if v is not None}
+    if not clean:
+        return False
     try:
-        r = requests.patch(url, headers=_headers(), json=clean, params=params, timeout=15)
-        return r.status_code in (200, 204)
+        n = db.update(table, match, clean)
+        return n > 0
     except Exception as e:
         logger.error(f"DB update 예외 [{table}]: {e}")
         return False
@@ -304,16 +274,11 @@ def update_model_version(version_id: str, **kwargs):
 
 def deactivate_all_models():
     """모든 모델 비활성화 (새 모델 승격 전)"""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return
-    url = f"{SUPABASE_URL}/rest/v1/rl_model_versions"
     try:
-        requests.patch(
-            url,
-            headers=_headers(),
-            json={"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()},
-            params={"is_active": "eq.true"},
-            timeout=10,
+        db.update(
+            "rl_model_versions",
+            {"is_active": "eq.true"},
+            {"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()},
         )
     except Exception as e:
         logger.error(f"모델 비활성화 실패: {e}")
@@ -366,23 +331,18 @@ def get_recent_training_cycles(
     limit: int = 20,
 ) -> list[dict]:
     """최근 훈련 사이클 조회"""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return []
-
-    url = f"{SUPABASE_URL}/rest/v1/rl_training_cycles"
-    params = {
-        "select": "*",
-        "order": "created_at.desc",
-        "limit": str(limit),
-    }
+    filters = {}
     if algorithm:
-        params["algorithm"] = f"eq.{algorithm}"
+        filters["algorithm"] = f"eq.{algorithm}"
     if module:
-        params["module"] = f"eq.{module}"
-
+        filters["module"] = f"eq.{module}"
     try:
-        r = requests.get(url, headers=_headers(), params=params, timeout=10)
-        return r.json() if r.status_code == 200 else []
+        return db.select(
+            "rl_training_cycles",
+            filters=filters or None,
+            order="created_at.desc",
+            limit=limit,
+        )
     except Exception:
         return []
 
@@ -400,31 +360,18 @@ def get_training_impact_analysis(days: int = 30) -> dict:
             "skip_candidates": [algo, ...],  # 3회 이상 훈련 + 개선율 < 30%
         }
     """
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return {"algorithms": {}, "recommended_priority": [], "skip_candidates": []}
-
     from datetime import timedelta
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
     try:
         # 1) 최근 훈련 사이클 조회 (완료된 것만)
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/rl_training_cycles",
-            headers=_headers(),
-            params={
-                "select": "id,algorithm,module,avg_sharpe,avg_return_pct,completed_at,pnl_24h_after,pnl_72h_after",
-                "status": "eq.completed",
-                "created_at": f"gte.{cutoff}",
-                "order": "completed_at.desc",
-                "limit": "100",
-            },
-            timeout=10,
+        cycles = db.select(
+            "rl_training_cycles",
+            select="id,algorithm,module,avg_sharpe,avg_return_pct,completed_at,pnl_24h_after,pnl_72h_after",
+            filters={"status": "eq.completed", "created_at": f"gte.{cutoff}"},
+            order="completed_at.desc",
+            limit=100,
         )
-        if r.status_code != 200:
-            logger.warning(f"훈련 사이클 조회 실패: {r.status_code}")
-            return {"algorithms": {}, "recommended_priority": [], "skip_candidates": []}
-
-        cycles = r.json()
         if not cycles:
             return {"algorithms": {}, "recommended_priority": [], "skip_candidates": []}
 
@@ -500,26 +447,15 @@ def get_training_impact_analysis(days: int = 30) -> dict:
 
 def get_model_prediction_accuracy(version_id: str = None) -> dict:
     """모델 예측 정확도 조회"""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return {}
-
-    url = f"{SUPABASE_URL}/rest/v1/rl_model_predictions"
-    params = {
-        "select": "prediction_quality",
-        "prediction_quality": "not.is.null",
-    }
+    sql = ("SELECT prediction_quality FROM rl_model_predictions "
+           "WHERE prediction_quality IS NOT NULL")
+    params: tuple = ()
     if version_id:
-        params["or"] = (
-            f"(sb3_version.eq.{version_id},"
-            f"dt_version.eq.{version_id},"
-            f"offline_version.eq.{version_id})"
-        )
+        sql += (" AND (sb3_version = ? OR dt_version = ? OR offline_version = ?)")
+        params = (version_id, version_id, version_id)
 
     try:
-        r = requests.get(url, headers=_headers(), params=params, timeout=10)
-        if r.status_code != 200:
-            return {}
-        results = r.json()
+        results = db.execute_raw(sql, params)
         total = len(results)
         correct = sum(1 for r in results if r["prediction_quality"] == "correct")
         return {

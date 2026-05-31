@@ -136,45 +136,42 @@ if [ -n "$RAG_OUTPUT" ] && [ "$RAG_OUTPUT" != "[]" ]; then
   echo "  RAG: 유사 과거 경험 조회 완료" >&2
 else
   # RAG 실패 시 fallback (최근 5건, 필수 컬럼만)
-  if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-    PAST_DECISIONS=$(curl -s \
-      "${SUPABASE_URL}/rest/v1/decisions?select=id,decision,reason,confidence,current_price,profit_loss,created_at&order=created_at.desc&limit=5" \
-      -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-      -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-      2>/dev/null || echo "[]")
-    echo "  RAG fallback: 최근 결정 조회" >&2
-  fi
+  PAST_DECISIONS=$("$PYTHON" -c "
+import sys, json
+sys.path.insert(0, '$PROJECT_DIR')
+from core.db import db
+rows = db.select('decisions', select='id,decision,reason,confidence,current_price,profit_loss,created_at', order='created_at.desc', limit=5)
+print(json.dumps(rows, ensure_ascii=False, default=str))
+" 2>/dev/null || echo "[]")
+  echo "  RAG fallback: 최근 결정 조회" >&2
 fi
 
 # 미반영 피드백 조회
-FEEDBACK="[]"
-if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-  FEEDBACK=$(curl -s \
-    "${SUPABASE_URL}/rest/v1/feedback?select=*&applied=eq.false&order=created_at.desc" \
-    -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-    -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-    2>/dev/null || echo "[]")
-fi
+FEEDBACK=$("$PYTHON" -c "
+import sys, json
+sys.path.insert(0, '$PROJECT_DIR')
+from core.db import db
+rows = db.select('feedback', filters={'applied': 'eq.false'}, order='created_at.desc')
+print(json.dumps(rows, ensure_ascii=False, default=str))
+" 2>/dev/null || echo "[]")
 
 # 초단타(스캘프) 최근 성과 조회 — 크로스 학습용
-SCALP_PERFORMANCE="[]"
-if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-  SCALP_PERFORMANCE=$(curl -s \
-    "${SUPABASE_URL}/rest/v1/scalp_trades?select=strategy,side,amount,pnl,price,created_at&order=created_at.desc&limit=20" \
-    -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-    -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-    2>/dev/null || echo "[]")
-fi
+SCALP_PERFORMANCE=$("$PYTHON" -c "
+import sys, json
+sys.path.insert(0, '$PROJECT_DIR')
+from core.db import db
+rows = db.select('scalp_trades', select='strategy,side,amount,pnl,price,created_at', order='created_at.desc', limit=20)
+print(json.dumps(rows, ensure_ascii=False, default=str))
+" 2>/dev/null || echo "[]")
 
 # 고래 감지 최근 동향 — 크로스 학습용
-WHALE_ACTIVITY="[]"
-if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-  WHALE_ACTIVITY=$(curl -s \
-    "${SUPABASE_URL}/rest/v1/whale_detections?select=side,amount,price,ratio,created_at&order=created_at.desc&limit=10" \
-    -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-    -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-    2>/dev/null || echo "[]")
-fi
+WHALE_ACTIVITY=$("$PYTHON" -c "
+import sys, json
+sys.path.insert(0, '$PROJECT_DIR')
+from core.db import db
+rows = db.select('whale_detections', select='side,amount,price,ratio,created_at', order='created_at.desc', limit=10)
+print(json.dumps(rows, ensure_ascii=False, default=str))
+" 2>/dev/null || echo "[]")
 
 # 로컬 피드백 편향치 (사용자 개입)
 USER_BIAS_STATE="{}"
@@ -209,14 +206,13 @@ except: print('{}')
 " 2>/dev/null || echo '{}')
 
 # 이전 결정 성과 평가 데이터 조회
-PERFORMANCE_REVIEW="[]"
-if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-  PERFORMANCE_REVIEW=$(curl -s \
-    "${SUPABASE_URL}/rest/v1/decisions?select=decision,confidence,current_price,profit_loss,reason,created_at&profit_loss=not.is.null&order=created_at.desc&limit=10" \
-    -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-    -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-    2>/dev/null || echo "[]")
-fi
+PERFORMANCE_REVIEW=$("$PYTHON" -c "
+import sys, json
+sys.path.insert(0, '$PROJECT_DIR')
+from core.db import db
+rows = db.select('decisions', select='decision,confidence,current_price,profit_loss,reason,created_at', filters={'profit_loss': 'not.is.null'}, order='created_at.desc', limit=10)
+print(json.dumps(rows, ensure_ascii=False, default=str))
+" 2>/dev/null || echo "[]")
 
 echo "[$(date)] 프롬프트 생성 완료 (ETH/성과 포함)" >&2
 

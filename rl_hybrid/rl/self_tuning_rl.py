@@ -44,6 +44,8 @@ try:
 except ImportError:
     TORCH_AVAILABLE = False
 
+from core.db import db
+
 # 저장 경로
 TUNER_MODEL_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -918,34 +920,14 @@ class ParameterTuner:
     def _log_to_supabase(self, record: dict):
         """strategy_history 테이블에 파라미터 변경 기록"""
         try:
-            import requests as _req
-            from rl_hybrid.config import config
-
-            url = config.supabase.url
-            key = config.supabase.service_role_key
-            if not url or not key:
-                return
-
-            headers = {
-                "apikey": key,
-                "Authorization": f"Bearer {key}",
-                "Content-Type": "application/json",
-            }
-
             payload = {
                 "version": f"auto-tune-{time.strftime('%Y%m%d-%H%M')}",
                 "content": json.dumps(record["proposed_params"], ensure_ascii=False),
                 "change_summary": f"Self-Tuning RL 자동 조정: {record['reason']}",
             }
-
-            _req.post(
-                f"{url}/rest/v1/strategy_history",
-                headers=headers,
-                json=payload,
-                timeout=10,
-            )
+            db.insert("strategy_history", payload)
         except Exception as e:
-            logger.error(f"Supabase 기록 실패: {e}")
+            logger.error(f"DB 기록 실패: {e}")
 
     def send_approval_request(self, proposal: dict) -> bool:
         """30% 이상 변경 시 텔레그램 알림으로 승인 요청

@@ -28,15 +28,17 @@ from pathlib import Path
 import requests
 from dotenv import load_dotenv
 
-# 프로젝트 루트 찾기
+# 프로젝트 루트 찾기 (scalp_ml/ 이므로 parent.parent = repo 루트)
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 load_dotenv(PROJECT_DIR / ".env")
 
+from core.db import db  # noqa: E402  (sys.path 보장 후 import)
+
 KST = timezone(timedelta(hours=9))
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-# Owner: SERVICE_ROLE_KEY (bypasses RLS), Non-owner: ANON_KEY (RLS enforced)
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "") or os.getenv("SUPABASE_ANON_KEY", "")
-WORKER_TOKEN = os.getenv("WORKER_TOKEN", "")  # Non-owner workers: per-worker UUID token
+# DB 접근은 core.db 백엔드(sqlite 기본/supabase 옵션)로 통합 — REST URL/KEY 직접 미사용.
+WORKER_TOKEN = os.getenv("WORKER_TOKEN", "")  # Non-owner workers: per-worker UUID token (tier/RLS)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -73,73 +75,72 @@ TIER_RESTRICTIONS = {
 }
 
 
+def _parse_get_params(params: dict):
+    """PostgREST GET params(dict) -> (filters, order, limit, select).
+
+    SupabaseClient.get 가 받던 PostgREST 스타일 params 를 core.db.select 인자로 분해.
+    select/order/limit 은 예약 키, 나머지는 filters(PostgREST 표현 그대로) 로 전달.
+    """
+    select = params.get("select", "*")
+    order = params.get("order")
+    limit = params.get("limit")
+    if limit is not None:
+        try:
+            limit = int(limit)
+        except (TypeError, ValueError):
+            limit = None
+    filters = {k: v for k, v in params.items()
+               if k not in ("select", "order", "limit", "offset")}
+    return filters or None, order, limit, select
+
+
 class SupabaseClient:
-    """Supabase REST API 클라이언트"""
+    """DB 클라이언트 shim — core.db 백엔드(sqlite/supabase)로 위임.
+
+    기존 메서드 시그니처(get/patch/insert/upsert) 를 유지해 호출부 무변경.
+    """
 
     def __init__(self):
-        self.url = SUPABASE_URL
-        self.headers = {
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Content-Type": "application/json",
-        }
-        # Non-owner workers: RLS token for tier-based access control
-        if WORKER_TOKEN:
-            self.headers["x-worker-token"] = WORKER_TOKEN
+        pass
 
     def get(self, table: str, params: dict) -> list[dict]:
         try:
-            resp = requests.get(
-                f"{self.url}/rest/v1/{table}",
-                params=params,
-                headers=self.headers,
-                timeout=15,
-            )
-            return resp.json() if resp.ok else []
+            filters, order, limit, select = _parse_get_params(params)
+            return db.select(table, filters=filters, order=order,
+                             limit=limit, select=select)
         except Exception as e:
             log.warning(f"DB GET 실패: {e}")
             return []
 
     def patch(self, table: str, filters: dict, data: dict) -> bool:
         try:
-            params = {k: f"eq.{v}" for k, v in filters.items()}
-            resp = requests.patch(
-                f"{self.url}/rest/v1/{table}",
-                params=params,
-                json=data,
-                headers={**self.headers, "Prefer": "return=minimal"},
-                timeout=15,
-            )
-            return resp.status_code < 300
+            pg_filters = {k: f"eq.{v}" for k, v in filters.items()}
+            db.update(table, pg_filters, data)
+            return True
         except Exception as e:
             log.warning(f"DB PATCH 실패: {e}")
             return False
 
     def insert(self, table: str, data: dict) -> bool:
         try:
-            resp = requests.post(
-                f"{self.url}/rest/v1/{table}",
-                json=data,
-                headers={**self.headers, "Prefer": "return=minimal"},
-                timeout=15,
-            )
-            return resp.status_code < 300
+            db.insert(table, data, returning=False)
+            return True
         except Exception as e:
             log.warning(f"DB INSERT 실패: {e}")
             return False
 
     def upsert(self, table: str, data: dict, on_conflict: str = "worker_id") -> bool:
         try:
-            resp = requests.post(
-                f"{self.url}/rest/v1/{table}",
-                json=data,
-                headers={
-                    **self.headers,
-                    "Prefer": "resolution=merge-duplicates,return=minimal",
-                },
-                timeout=15,
-            )
-            return resp.status_code < 300
+            # merge-duplicates 근사: on_conflict 키로 기존 row 확인 후 update/insert
+            key_val = data.get(on_conflict)
+            if key_val is not None:
+                existing = db.select(table, filters={on_conflict: f"eq.{key_val}"},
+                                     select=on_conflict, limit=1)
+                if existing:
+                    db.update(table, {on_conflict: f"eq.{key_val}"}, data)
+                    return True
+            db.insert(table, data, returning=False)
+            return True
         except Exception as e:
             log.warning(f"DB UPSERT 실패: {e}")
             return False
@@ -624,24 +625,14 @@ def self_register(args):
         print("초대코드가 필요합니다.")
         sys.exit(1)
 
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-
     # 1. 초대코드 유효성 확인
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/worker_invites",
-        params={"select": "*", "invite_code": f"eq.{invite_code}"},
-        headers=headers,
-        timeout=15,
-    )
-    if not resp.ok or not resp.json():
+    invites = db.select("worker_invites", filters={"invite_code": f"eq.{invite_code}"},
+                        select="*", limit=1)
+    if not invites:
         print("유효하지 않은 초대코드입니다.")
         sys.exit(1)
 
-    invite = resp.json()[0]
+    invite = invites[0]
 
     # 만료 체크
     from datetime import datetime, timezone
@@ -690,13 +681,8 @@ def self_register(args):
         sys.exit(1)
 
     # 이미 등록된 worker_id 체크
-    resp2 = requests.get(
-        f"{SUPABASE_URL}/rest/v1/compute_workers",
-        params={"select": "worker_id", "worker_id": f"eq.{worker_id}"},
-        headers=headers,
-        timeout=15,
-    )
-    if resp2.ok and resp2.json():
+    if db.select("compute_workers", filters={"worker_id": f"eq.{worker_id}"},
+                 select="worker_id", limit=1):
         print(f"'{worker_id}'는 이미 등록되어 있습니다. 다른 ID를 사용하세요.")
         sys.exit(1)
 
@@ -741,27 +727,20 @@ def self_register(args):
         "notes": f"자가등록: {datetime.now(KST).strftime('%Y-%m-%d %H:%M')} (초대 {invite_code})",
     }
 
-    resp3 = requests.post(
-        f"{SUPABASE_URL}/rest/v1/compute_workers",
-        json=worker_data,
-        headers={**headers, "Prefer": "return=minimal"},
-        timeout=15,
-    )
-
-    if resp3.status_code >= 300:
-        print(f"등록 실패: {resp3.text}")
+    try:
+        db.insert("compute_workers", worker_data, returning=False)
+    except Exception as e:
+        print(f"등록 실패: {e}")
         sys.exit(1)
 
     # 4. 초대코드 사용 처리
-    requests.patch(
-        f"{SUPABASE_URL}/rest/v1/worker_invites",
-        params={"invite_code": f"eq.{invite_code}"},
-        json={
+    db.update(
+        "worker_invites",
+        {"invite_code": f"eq.{invite_code}"},
+        {
             "used_at": datetime.now(KST).isoformat(),
             "used_by_worker_id": worker_id,
         },
-        headers={**headers, "Prefer": "return=minimal"},
-        timeout=15,
     )
 
     # 5. 결과 출력 — 토큰은 이 순간에만 표시
@@ -791,27 +770,17 @@ def self_register(args):
 
 def cmd_contacts(args):
     """등록된 연락처 목록 조회 (모든 티어 가능)"""
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-    if WORKER_TOKEN:
-        headers["x-worker-token"] = WORKER_TOKEN
-
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "name,role,aliases",
-                "is_active": "eq.true",
-                "order": "role.asc,name.asc"},
-        headers=headers, timeout=15,
-    )
-
-    if not resp.ok:
-        print(f"조회 실패: {resp.status_code} {resp.text}")
+    try:
+        contacts = db.select(
+            "telegram_contacts",
+            filters={"is_active": "eq.true"},
+            order="role.asc,name.asc",
+            select="name,role,aliases",
+        )
+    except Exception as e:
+        print(f"조회 실패: {e}")
         return
 
-    contacts = resp.json()
     if not contacts:
         print("등록된 연락처가 없습니다")
         return
@@ -826,58 +795,46 @@ def cmd_contacts(args):
 
 def cmd_send_msg(args):
     """등록된 사용자에게 텔레그램 메시지 발송"""
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-    if WORKER_TOKEN:
-        headers["x-worker-token"] = WORKER_TOKEN
-
     # 수신자 조회 (이름 또는 별명)
     target = None
     for param_key, param_val in [
         ("name", f"eq.{args.to}"),
         ("aliases", f"cs.{{{args.to}}}"),
     ]:
-        resp = requests.get(
-            f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-            params={"select": "chat_id,name,role",
-                    param_key: param_val, "is_active": "eq.true"},
-            headers=headers, timeout=10,
+        rows = db.select(
+            "telegram_contacts",
+            filters={param_key: param_val, "is_active": "eq.true"},
+            select="chat_id,name,role",
         )
-        if resp.ok and resp.json():
-            target = resp.json()[0]
+        if rows:
+            target = rows[0]
             break
 
     if not target:
         print(f"'{args.to}'을(를) 찾을 수 없습니다. --contacts 로 목록을 확인하세요.")
         return
 
-    # 발신자 이름 조회
+    # 발신자 이름 조회 (worker_id 또는 name 매칭 — PostgREST or 필터를 두 조회로 분해)
     sender_name = args.worker_id or platform.node()
-    my_resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_contacts",
-        params={"select": "name",
-                "or": f"(worker_id.eq.{sender_name},name.eq.{sender_name})",
-                "is_active": "eq.true"},
-        headers=headers, timeout=10,
-    )
-    if my_resp.ok and my_resp.json():
-        sender_name = my_resp.json()[0]["name"]
+    for col in ("worker_id", "name"):
+        rows = db.select(
+            "telegram_contacts",
+            filters={col: f"eq.{sender_name}", "is_active": "eq.true"},
+            select="name", limit=1,
+        )
+        if rows:
+            sender_name = rows[0]["name"]
+            break
 
     # 텔레그램 발송 (봇 토큰은 .env에 있는 경우만)
     tg_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     if not tg_token:
         # 봇 토큰 없으면 DB에 메시지만 기록 (listener가 전달)
-        requests.post(
-            f"{SUPABASE_URL}/rest/v1/telegram_messages",
-            json={"chat_id": target["chat_id"], "direction": "incoming",
-                  "message": f"[{sender_name}] {args.message}",
-                  "worker_name": sender_name},
-            headers={**headers, "Prefer": "return=minimal"},
-            timeout=10,
-        )
+        db.insert("telegram_messages", {
+            "chat_id": target["chat_id"], "direction": "incoming",
+            "message": f"[{sender_name}] {args.message}",
+            "worker_name": sender_name,
+        }, returning=False)
         print(f"메시지 저장 완료 (봇 토큰 없음 — listener가 전달 예정)")
         return
 
@@ -890,42 +847,29 @@ def cmd_send_msg(args):
     if r.ok:
         print(f"전송 완료: {target['name']} [{target['role']}]")
         # 기록
-        requests.post(
-            f"{SUPABASE_URL}/rest/v1/telegram_messages",
-            json={"chat_id": target["chat_id"], "direction": "incoming",
-                  "message": f"[{sender_name}] {args.message}",
-                  "worker_name": sender_name},
-            headers={**headers, "Prefer": "return=minimal"},
-            timeout=10,
-        )
+        db.insert("telegram_messages", {
+            "chat_id": target["chat_id"], "direction": "incoming",
+            "message": f"[{sender_name}] {args.message}",
+            "worker_name": sender_name,
+        }, returning=False)
     else:
         print(f"전송 실패: {r.text}")
 
 
 def cmd_my_inbox(args):
     """내 수신 메시지 확인"""
-    headers = {
-        "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json",
-    }
-    if WORKER_TOKEN:
-        headers["x-worker-token"] = WORKER_TOKEN
-
-    resp = requests.get(
-        f"{SUPABASE_URL}/rest/v1/telegram_messages",
-        params={"select": "worker_name,message,is_read,created_at",
-                "direction": "eq.incoming",
-                "order": "created_at.desc",
-                "limit": str(args.limit or 20)},
-        headers=headers, timeout=15,
-    )
-
-    if not resp.ok:
-        print(f"조회 실패: {resp.status_code}")
+    try:
+        messages = db.select(
+            "telegram_messages",
+            filters={"direction": "eq.incoming"},
+            order="created_at.desc",
+            limit=int(args.limit or 20),
+            select="worker_name,message,is_read,created_at",
+        )
+    except Exception as e:
+        print(f"조회 실패: {e}")
         return
 
-    messages = resp.json()
     if not messages:
         print("수신된 메시지가 없습니다")
         return
@@ -972,10 +916,6 @@ def main():
     parser.add_argument("--limit", type=int, default=20,
                         help="inbox 표시 개수 (기본 20)")
     args = parser.parse_args()
-
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        log.error("SUPABASE_URL / SUPABASE_ANON_KEY (또는 SERVICE_ROLE_KEY) 미설정")
-        sys.exit(1)
 
     # ── 자가등록 모드 ──
     if args.register:

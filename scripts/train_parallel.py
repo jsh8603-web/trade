@@ -276,34 +276,23 @@ def main():
 
     # DB 기록
     try:
-        import requests
-        from dotenv import load_dotenv
-        load_dotenv(PROJECT_DIR / ".env")
+        from core.db import db
 
-        url = os.getenv("SUPABASE_URL", "")
-        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-        if url and key:
-            headers = {
-                "apikey": key,
-                "Authorization": f"Bearer {key}",
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal",
-            }
-            best_m = results.get(best_phase, {}).get("metrics", {})
-            row = {
-                "model_type": "ppo_v3_parallel",
-                "training_steps": sum(phase_steps.values()),
-                "reward_mean": best_m.get("mean_reward", 0),
-                "reward_std": best_m.get("std_reward", 0),
-                "notes": json.dumps({
-                    "method": "parallel_6phase",
-                    "best_phase": best_phase,
-                    "elapsed_min": round(elapsed / 60, 1),
-                    "results": {str(k): v.get("metrics", {}) for k, v in results.items()},
-                }, ensure_ascii=False, default=str),
-            }
-            requests.post(f"{url}/rest/v1/rl_training_log", json=row, headers=headers, timeout=10)
-            log("DB 기록 완료")
+        best_m = results.get(best_phase, {}).get("metrics", {})
+        row = {
+            "model_type": "ppo_v3_parallel",
+            "training_steps": sum(phase_steps.values()),
+            "reward_mean": best_m.get("mean_reward", 0),
+            "reward_std": best_m.get("std_reward", 0),
+            "notes": json.dumps({
+                "method": "parallel_6phase",
+                "best_phase": best_phase,
+                "elapsed_min": round(elapsed / 60, 1),
+                "results": {str(k): v.get("metrics", {}) for k, v in results.items()},
+            }, ensure_ascii=False, default=str),
+        }
+        db.insert("rl_training_log", row, returning=False)
+        log("DB 기록 완료")
     except Exception as e:
         log(f"DB 기록 실패: {e}")
 

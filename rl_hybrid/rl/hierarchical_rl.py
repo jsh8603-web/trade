@@ -47,6 +47,7 @@ except ImportError:
     SB3_AVAILABLE = False
     logger.warning("stable-baselines3 미설치 -- Hierarchical RL 비활성화")
 
+from core.db import db
 from rl_hybrid.rl.state_encoder import StateEncoder, OBSERVATION_DIM
 from rl_hybrid.rl.reward import RewardCalculator, TRANSACTION_COST
 from rl_hybrid.rl.data_loader import HistoricalDataLoader
@@ -1558,15 +1559,6 @@ class HierarchicalOrchestrator:
             True if successful
         """
         try:
-            import requests
-            from dotenv import load_dotenv
-            load_dotenv(PROJECT_DIR / ".env")
-
-            supabase_url = os.getenv("SUPABASE_URL", "")
-            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-            if not supabase_url or not supabase_key:
-                return False
-
             row = {
                 "from_agent": strategy_result.get("meta_suggestion", "unknown"),
                 "to_agent": strategy_result["strategy"],
@@ -1581,25 +1573,9 @@ class HierarchicalOrchestrator:
                 "switched_at": time.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
             }
 
-            headers = {
-                "apikey": supabase_key,
-                "Authorization": f"Bearer {supabase_key}",
-                "Content-Type": "application/json",
-            }
-
-            resp = requests.post(
-                f"{supabase_url}/rest/v1/agent_switches",
-                headers=headers,
-                json=row,
-                timeout=10,
-            )
-
-            if resp.ok:
-                logger.info(f"메타 결정 DB 기록: {strategy_result['strategy']}")
-                return True
-            else:
-                logger.warning(f"DB 기록 실패: {resp.status_code}")
-                return False
+            db.insert("agent_switches", row)
+            logger.info(f"메타 결정 DB 기록: {strategy_result['strategy']}")
+            return True
 
         except Exception as e:
             logger.warning(f"DB 기록 예외: {e}")
