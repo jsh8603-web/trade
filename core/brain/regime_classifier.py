@@ -336,6 +336,9 @@ class RegimeClassifier:
         #   regime-IC OOS 아님. 보류 2종과의 유일한 차이 = tautology 안전 유무. (활성=검증완료 라는 인상 방지)
         # # 후보(OOS 검증 후 활성): "dollar_broad", "oil_wti" — 시장가격이라 regime 분류 tautology 위험
         # # (R1 FCI 경고 동형) + OOS 분류개선 미검증 → FRED 실데이터+regime-eval harness 확보 후 활성.
+        # # ★B(a) regime-eval harness REJECTED(2026-05-31, study-research/macro/raw/validation-bgroup-2026-05-31.md):
+        # #   forward 21d risk-off OOS Rank-IC 게이트 4/4 FAIL(dxy 부호반전 IS+0.075→OOS-0.056·전 신호 CI∋0)
+        # #   + baseline(real,term,VIX) 증분 -0.095 악화 → tautology 데이터 입증 = 보류 확정(활성화 차단).
         for name in ["industrial_production", "core_cpi", "yield_10y_2y", "nfci",
                      "credit_spread_baa", "credit_spread_hy_oas", "real_rate_10y",
                      "unemployment_rate", "breakeven_5y", "cfnai"]:
