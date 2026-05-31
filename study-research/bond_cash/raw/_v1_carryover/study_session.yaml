@@ -1,0 +1,301 @@
+study_id: bond_cash
+asset_scope: [bond, cash]
+as_of: "2026-05-30"
+
+# ===========================================================================
+# 메타: bond_cash 방의 특수성 — 2개 sleeve(bond, cash) 동시 스터디. 둘은 *상보 defensive
+#   pair*: Investment Clock(regime_to_weights L74~79) 에서 Reflation=bond top·cash neutral
+#   / Stagflation=cash top·bond down 으로 정확히 교차. 채권 = -듀레이션·Δyield (1차) +
+#   convexity·(Δyield)² (2차) + carry(쿠폰) — 듀레이션이 종목(ETF)간 가중을 가르는 1차 축
+#   이고, HY OAS·term spread 가 regime 분기점이다. stock_track 의 종목사이징(_extract_indicator_z)
+#   이 아니라 regime_to_weights 의 *sleeve* 레이어 + sleeve 내부 듀레이션 bucket(부록 B
+#   archetype) 으로 inject 한다. 매매 sleeve 임(macro 와 달리 자체 forward return 있음).
+# 핵심 데이터: 현재 in_our_system 은 T10Y2Y/BAA10Y/HY OAS/T5YIE/NFCI/CFNAI 6종. 본체인
+#   DGS10/DGS2/DFII10(real rate)/FEDFUNDS/MORTGAGE30US/장단기 듀레이션 ETF(TLT/IEF/SHY)는
+#   부재 → 블록6 collector_plan 으로 main 요청. 분석은 가용 6종으로 *진행 가능*(§2 ② 충족).
+# ===========================================================================
+
+# 블록1: LENS (정성 렌즈 — LLM 주입용. ★가변: 블록5 flag 누적이 estimation_note·regime_reading·블록4 가중을 미세변동)
+lens:
+  pricing_principle: >
+    채권 1차 근사: ΔP/P ≈ -Duration · Δy + 0.5 · Convexity · (Δy)² + carry(쿠폰 수익률).
+    Duration = 금리민감도 = -(1/P)·(∂P/∂y). 30Y 채권 D≈18~20, 10Y D≈8~9, 2Y D≈1.9, 3M ≈0.25(현금).
+    명목금리 y = real_rate + breakeven_inflation (Fisher 분해). 따라서 *real rate* 가 듀레이션
+    리스크 본체이고 *breakeven* 이 인플레 hedge 축이다. 현금은 short-duration(D≈0) → rate-shock
+    면역, 단 carry=단기금리(FEDFUNDS·DGS3MO). 신용채(HY/IG)는 위 + credit spread(=HY OAS / BAA10Y)
+    추가: HY 가격 = -Duration·Δ(treasury y) - SpreadDuration·Δ(spread) + carry. spread duration ≈ duration
+    이라 위험프리미엄 충격이 1:1 가산. 결국 채권/현금 자산군의 종목간 가중을 가르는 *프리미티브*는
+    (1) duration bucket(long/mid/short/cash) (2) credit quality(Tsy/IG/HY) (3) curve location(belly/wing).
+  report_relations:
+    - "Fed funds(=정책금리) → 2Y(DGS2)→ 10Y(DGS10) 전달경로: 단기금리 인상기 = 2Y 가 10Y 보다 더 오름 = bear flattening → 침체 선행 시그널"
+    - "10Y-2Y(T10Y2Y) 역전 → 12~18개월 침체 선행. 역전 *해소*(steepening) = recovery 진입 anchor. 데이터 보유"
+    - "DGS10 = DFII10(real rate) + T5YIE(breakeven) → 명목금리 변동을 *real vs inflation* 으로 분해해야 듀레이션·실물(금) 영향 갈라진다"
+    - "HY OAS(BAMLH0A0HYM2) 확대 → HY price↓ + 동시에 Tsy price↑(flight-to-quality) = HY 와 long Tsy 의 카운터-사이클 hedge 관계"
+    - "Investment Clock 4국면 × 채권: Reflation(성장↑인플레↓) → long Tsy top(real rate↓+disinflation), HY 매력↑. Recovery → bond down(rate↑), credit IG 유지. Overheat → bond down·real rate↑·breakeven↑, short-duration 방어. Stagflation → cash top·bond down(인플레↑+신용↓), HY 위험"
+    - "rate-shock 국면(real rate 급등) = 듀레이션 1차 페널티. 장기채(TLT) 손실>>중기(IEF)>>단기(SHY). 듀레이션 베타 = 종목간 가중 차등의 1차 근거"
+    - "curve carry trade: 정상커브(steep) 에선 장기채 매수 → 시간경과로 yield 하락(roll-down) → 추가 capital gain. 평탄/역전 커브에선 carry 사라짐"
+    - "credit cycle: 저금리·성장 → IG/HY spread 압축(차환 용이) → carry 우위 / 고금리·둔화 → spread 확대(default 위험) → HY 매도. NFCI/CFNAI 와 동조"
+    - "엔캐리(BOJ YCC vs Fed) → 미-일 금리차 축소 시 일본 자금 미국채 매도 = bear steepening 외력. 글로벌 채권 펀딩채널"
+  regime_reading: >
+    Reflation(성장↑인플레↓): bond=top(real rate↓), long-duration 가중↑, HY spread 압축으로 carry 유리.
+    Recovery(성장↑인플레↑초입): bond down(명목금리↑), credit IG 유지 cash neutral. duration 축소.
+    Overheat(성장↑인플레↑): bond down(real rate·breakeven 동반↑), short-duration·TIPS 방어, HY 균열 시작.
+    Stagflation(성장↓인플레↑): cash=top, bond=down(double penalty), HY 위험(default↑). long-duration 회피.
+    rate-shock(real rate 급등 sub-regime): 전체 채권 sleeve 축소·cash 가중↑·HY 회피·breakeven 가중↑.
+    risk-off(HY OAS spike): bond 내 long Tsy 가중↑(flight-to-quality)·HY 가중↓. credit↔duration 비대칭.
+  estimation_note: >
+    2026-05 추정(국면전환 anchor, 신뢰도 中, 외부지식 기반·OOS 재검증 대상): 커브 역전 해소 진행 +
+    Fed 인하 사이클 + HY OAS 안정(중립) → **Recovery 진입** 단계. 채권은 명목금리 하락 여지 있어
+    long-duration 점진 추가 매력, 단 인플레 끈끈하면 Overheat 회귀 위험. cash 는 단기금리(carry≈4~5%)
+    여전히 매력적이라 *유리한 옵션 가치* — 비중 급감 금지(Stagflation 회귀 hedge). 이 추정은
+    블록5 confidence_hooks (특히 duration_rate_sensitivity / curve_regime_transition) 가 OOS Rank-IC
+    로 갱신한다 — 어긋나면 (거부) flag 로 long-duration 가중 하향 + cash hedge 강화.
+
+# 블록2: INDICATORS (정량 — fred_adapter FRED_SERIES 17개 중 6개 활용 + 부족 6개 collector_plan)
+indicators:
+  # === in_our_system: True (지금 분석 가능) ===
+  - {id: yield_10y_2y, family: macro_driver, is_core: true, in_our_system: true,
+     source_or_collector: "fred_adapter FRED_SERIES[T10Y2Y] (커브 형태 본체, 역전·steepening anchor)",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: credit_spread_hy_oas, family: macro_driver, is_core: true, in_our_system: true,
+     source_or_collector: "fred_adapter FRED_SERIES[BAMLH0A0HYM2] (HY 자체 risk + cash flight 대용 신호)",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  - {id: credit_spread_baa, family: macro_driver, is_core: true, in_our_system: true,
+     source_or_collector: "fred_adapter FRED_SERIES[BAA10Y] (IG spread, HY 보완)",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+  - {id: breakeven_5y, family: macro_driver, is_core: true, in_our_system: true,
+     source_or_collector: "fred_adapter FRED_SERIES[T5YIE] (인플레 기대 → real rate 분해)",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: nfci, family: risk, is_core: false, in_our_system: true,
+     source_or_collector: "fred_adapter FRED_SERIES[NFCI] (금융상황 — HY 와 중복신호, 합산 cap)",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: fred_recession_prob, family: macro_driver, is_core: false, in_our_system: true,
+     source_or_collector: "fred_adapter FRED_SERIES[RECPROUSM156N] (침체확률 — curve↔credit 매개통제)",
+     transform: level, vintage_policy: point_in_time, lag: 1}
+  # === in_our_system: False (블록6 collector_plan, 추가 시 분석 깊이↑) ===
+  - {id: yield_10y_nominal, family: macro_driver, is_core: true, in_our_system: false,
+     source_or_collector: "FRED DGS10 — collector_plan 요청. 채권가격 1차 driver(=듀레이션 베타 input)",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: yield_2y_nominal, family: macro_driver, is_core: true, in_our_system: false,
+     source_or_collector: "FRED DGS2 — collector_plan 요청. 단기금리 + 커브 wing",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: real_rate_10y, family: macro_driver, is_core: true, in_our_system: false,
+     source_or_collector: "FRED DFII10 — collector_plan 요청. real rate 본체 = 듀레이션 리스크 분리축",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: fed_funds, family: macro_driver, is_core: true, in_our_system: false,
+     source_or_collector: "FRED FEDFUNDS — collector_plan 요청. cash sleeve carry 본체 + 정책 anchor",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: duration_bucket_id, family: risk, is_core: true, in_our_system: false,
+     source_or_collector: "ETF universe 기반 계산: TLT(D≈17)/IEF(D≈8)/SHY(D≈2)/BIL(D≈0.1). FinanceDataReader 또는 Yahoo 일별가",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: credit_quality_id, family: risk, is_core: true, in_our_system: false,
+     source_or_collector: "ETF universe 라벨: Tsy(GOVT/IEF/TLT)=AAA / IG(LQD)=A-/HY(HYG/JNK)=B+ → 정수 enum",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: roll_carry_yield, family: valuation, is_core: false, in_our_system: false,
+     source_or_collector: "DGS10-DGS2 + duration 으로 roll-down carry 추정(파생). collector_plan: 계산 함수만 추가",
+     transform: level, vintage_policy: point_in_time, lag: 0}
+  - {id: realized_vol_bond, family: risk, is_core: false, in_our_system: false,
+     source_or_collector: "TLT/IEF 20일 realized vol — Yahoo 일별가에서 계산(파생)",
+     transform: own_history_z, vintage_policy: point_in_time, lag: 0}
+
+# 블록3: RELATIONSHIPS (관계 가설 — glasso prior. partial-corr 기준!)
+relationships:
+  - {node_a: fed_funds, node_b: yield_2y_nominal, edge_type: direct,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.80,
+     theory_basis: "term structure expectations hypothesis — 2Y = 향후 2년 fed funds 기대평균 + term premium. partial-corr 매우 강(force-include 후보)"}
+  - {node_a: yield_2y_nominal, node_b: yield_10y_nominal, edge_type: direct,
+     conditioning_set: [fred_recession_prob], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.65,
+     theory_basis: "커브 본체 — 2Y·10Y 는 단기금리 기대(공통원인=Fed 정책) 매개 + term premium 독립. 침체확률 통제 시 직접엣지 남음"}
+  - {node_a: yield_10y_nominal, node_b: real_rate_10y, edge_type: direct,
+     conditioning_set: [breakeven_5y], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.85,
+     theory_basis: "Fisher 항등 분해: nominal = real + breakeven. breakeven 통제 시 real rate ↔ nominal 1:1 직접엣지"}
+  - {node_a: real_rate_10y, node_b: breakeven_5y, edge_type: common_cause,
+     conditioning_set: [fred_recession_prob, cfnai], lag_routing: contemporaneous, prior_sign: unsigned, prior_strength: 0.25,
+     theory_basis: "real rate↑·breakeven↑ 동조 = Overheat(성장+인플레 공통원인). 침체확률·활동 통제 후 edge 약화 → undetermined/0"}
+  - {node_a: credit_spread_hy_oas, node_b: yield_10y_2y, edge_type: direct,
+     conditioning_set: [fred_recession_prob, nfci], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.55,
+     theory_basis: "리스크오프 → HY widening + curve bear-flattening 동반(침체확률·NFCI 통제 후에도 직접 채널 잔존). macro 방 검증치 +0.55 재인용"}
+  - {node_a: credit_spread_hy_oas, node_b: credit_spread_baa, edge_type: direct,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.70,
+     theory_basis: "HY 와 IG 스프레드 동일 risk-premium 잠재인자(credit cycle). 강 partial-corr 예상"}
+  - {node_a: credit_spread_hy_oas, node_b: nfci, edge_type: direct,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.60,
+     theory_basis: "HY OAS 는 NFCI 구성요소 — 동일 잠재인자(중복신호). 합산 cap 정책 필요"}
+  - {node_a: yield_10y_2y, node_b: fred_recession_prob, edge_type: direct,
+     conditioning_set: [cfnai], lag_routing: lagged, prior_sign: neg, prior_strength: 0.50,
+     theory_basis: "역전(10Y-2Y<0) → 12~18M 침체확률↑. CFNAI(활동) 통제 후에도 lag 신호 잔존(NY Fed 모델 핵심)"}
+  - {node_a: duration_bucket_id, node_b: yield_10y_nominal, edge_type: direct,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: neg, prior_strength: 0.95,
+     theory_basis: "회계항등 ΔP/P = -D·Δy. 듀레이션 클수록 명목금리 변동에 가격 음의 민감. 이론 force-include 후보(prior 0.95)"}
+  - {node_a: credit_quality_id, node_b: credit_spread_hy_oas, edge_type: direct,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: neg, prior_strength: 0.75,
+     theory_basis: "신용등급 낮을수록(HY) HY OAS 변동 직격. Tsy 는 무관(부호=신용등급 enum 방향 약속)"}
+  - {node_a: roll_carry_yield, node_b: yield_10y_2y, edge_type: direct,
+     conditioning_set: [], lag_routing: contemporaneous, prior_sign: pos, prior_strength: 0.65,
+     theory_basis: "커브 steep → roll-down carry↑(시간경과로 yield 자동 하락). 정상커브에서만 작동, 역전 시 음수"}
+
+# 블록4: WEIGHT_RULES (★최종 산출 — 채권 sleeve 내부 종목/duration bucket 별 동적 가중 + cash 가중)
+# ★bond_cash 특화: regime_to_weights 의 SLEEVE-LEVEL 비중은 BASE_WEIGHTS+REGIME_DIRECTION 가 이미 처리.
+# 본 블록은 *sleeve 내부* (bond 안의 long/mid/short duration ETF 간, HY vs Tsy 간) 종목 가중 룰 +
+# regime_to_weights 의 SLEEVE 가중 자체를 belief 신뢰도로 변조하는 룰. 부록 B hierarchical pooling 으로
+# ticker 단위는 archetype shrinkage 처리(duration bucket = archetype). composed_weights(pi) 입력.
+weight_rules:
+  - {indicator_id: duration_bucket_id, base_weight: 0.30, modulate_by: [regime, name_specific],
+     direction: "Reflation·rate-down 국면 → long-duration(TLT) 가중↑ (real rate↓·disinflation 수혜). Overheat·rate-shock → short-duration(SHY/BIL) 가중↑ + long penalty. archetype=duration bucket(long/mid/short/cash)",
+     granularity: ticker}
+  - {indicator_id: credit_quality_id, base_weight: 0.20, modulate_by: [regime],
+     direction: "Reflation·Recovery → HY/IG 가중↑(carry 우위). Stagflation·risk-off → Tsy 가중↑(flight-to-quality), HY 회피",
+     granularity: ticker}
+  - {indicator_id: credit_spread_hy_oas, base_weight: 0.18, modulate_by: [regime],
+     direction: "OAS Z-score↑(widening) → HY 가중↓ + long Tsy 가중↑(역카운터). OAS 압축 안정 → HY carry 신뢰",
+     granularity: ticker}
+  - {indicator_id: yield_10y_2y, base_weight: 0.15, modulate_by: [regime],
+     direction: "Steepening (역전 해소) → Recovery 진입 anchor → bond sleeve 전체 가중 점진 회복 + long-duration 비중↑. 역전심화 → cash 가중↑·long 회피",
+     granularity: sleeve}
+  - {indicator_id: real_rate_10y, base_weight: 0.10, modulate_by: [regime],
+     direction: "real rate Z↑ → 듀레이션 페널티(전 ETF) + cash 가중↑. real rate↓ → long-duration 우위 회복",
+     granularity: sleeve}
+  - {indicator_id: breakeven_5y, base_weight: 0.07, modulate_by: [regime],
+     direction: "breakeven↑ → TIPS 가중↑(미보유 시 short-duration 우회) + 명목 long 페널티. Overheat 시 핵심",
+     granularity: ticker}
+
+# 블록5: CONFIDENCE_HOOKS (★신뢰도 누적 — 확신/거부 flag 코드 구현. weight_falsification 매핑)
+# 매 거래마다 flag 누적 → 가정 신뢰도 → 렌즈 미세변화 → 동적 가중. 채권 자체 매매 sleeve 이므로
+# forward return = sleeve 수익률(TLT/IEF/SHY ETF 단위) + sleeve 합산 PnL. 종목별 IC 와 sleeve IC 둘 다.
+confidence_hooks:
+  - hypothesis_id: duration_rate_sensitivity
+    confirm_signal: "rate-shock 국면 분류 시 long-duration(TLT) 페널티가 OOS drawdown 방어(국면조건부 Rank-IC 양수 유지)"
+    reject_signal: "rate-shock 페널티가 OOS 에서 음의 알파(과조정 — short-duration 으로 너무 일찍 회피) → e-CUSUM 단측 붕괴"
+    emit_where: "backtest engine SELL outcome + regime 분류 직후 사후평가(L1 score=duration_bucket_id·rate_z vs forward return)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (regime-conditional baseline_ic)"
+    confidence_metric: "국면조건부 Rank-IC e-process + duration beta hat 의 sign stability"
+    store: "registry weight.bond.{regime}.confidence_now + WeightAssumptionCard.secondary_falsification"
+    action_threshold: "e-value ≥ 1/alpha(alpha=0.05) → PRIMARY kill(rate-shock 카드 retract live) / 안정 → base_weight 0.30 유지 또는 +0.02 강화"
+    feeds_weight: "kill → derive_weights 재실행 시 duration_bucket_id IC→0 / 안정 → delta_regime 의 rate-shock 행 강화"
+  - hypothesis_id: hy_oas_credit_regime
+    confirm_signal: "HY OAS Z↑ 시 HY 가중↓ + long Tsy 가중↑ 사이징이 OOS 에서 sleeve PnL 방어(Rank-IC 양)"
+    reject_signal: "HY OAS Z 신호 score Rank-IC e-CUSUM 단측 붕괴 (예: OAS widening 후 HY 가 곧 회복하는 false signal 누적)"
+    emit_where: "backtest engine 신용 sleeve outcome + 라이브 judge 사후평가"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (e-CUSUM 단측)"
+    confidence_metric: "e-value anytime-valid 누적(Ville: 거짓 kill ≤ alpha=0.05)"
+    store: "registry WeightAssumptionCard(weight.bond.credit).confidence_now + ValidationVerdict.evidence"
+    action_threshold: "e-value ≥ 1/alpha → PRIMARY kill / 안정 → adopt 강화 (base_weight 0.18 → 0.20)"
+    feeds_weight: "kill → HY 신호 IC→0 (Tsy 만 신호) / 안정 → derive_weights HY OAS 가중 유지·소폭 상향"
+  - hypothesis_id: curve_inversion_recession_lag
+    confirm_signal: "10Y-2Y 역전→해소 전환이 Recovery 진입을 12~18M 선행, OOS bond sleeve return rebound 정합"
+    reject_signal: "curve 신호 lag 가 불안정(국면 오분류 → bond sleeve 가중 잘못 회복) → 단측 e-CUSUM 붕괴"
+    emit_where: "장기 backtest(2018~) 국면전환 정합 + lag 민감도 sweep"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    confidence_metric: "lag-aligned Rank-IC e-process + curve flip event window 의 sleeve return"
+    store: "weight.bond.transition 카드 confidence_now"
+    action_threshold: "붕괴 → curve(yield_10y_2y) 가중 0.15→0.10 하향 / 안정 → 유지 + steepening 시점 entry signal 강화"
+    feeds_weight: "transition anchor 신뢰도 → estimation_note(블록1) 갱신 + delta_regime[Recovery] 의 long-duration 비중 미세조정"
+  - hypothesis_id: carry_to_total_return
+    confirm_signal: "yield carry(쿠폰+roll-down) 가 forward 1M return 상관 양수 유지(OOS Rank-IC)"
+    reject_signal: "carry 신호 IC 가 spread widening 국면에서 음반전(carry 무효) → e-CUSUM 단측 붕괴"
+    emit_where: "backtest engine 채권 sleeve 보유기간 outcome (월별)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    confidence_metric: "Rank-IC e-process (carry vs forward return)"
+    store: "weight.bond.carry 카드 confidence_now"
+    action_threshold: "붕괴 → roll_carry_yield 가중 폐지(IC→0) / 안정 → 정상커브 국면에서 가중 강화"
+    feeds_weight: "신뢰도 → derive_weights carry 행 미세조정 (정상커브 시 가중↑, 평탄·역전 시 가중↓)"
+  - hypothesis_id: cash_optionality_value
+    confirm_signal: "cash sleeve 가중 floor (≥5%) 유지가 Stagflation/risk-off shock event 에서 sleeve 손실 방어(drawdown limit)"
+    reject_signal: "cash 보유의 기회비용(missed bond rally)이 사후 검증에서 sleeve return 유의 음(-) → e-CUSUM 양측 붕괴"
+    emit_where: "backtest engine sleeve allocator + shock event window outcome"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (양측 검정 옵션)"
+    confidence_metric: "shock event Conditional Value-at-Risk + 정상기간 carry cost trade-off"
+    store: "weight.cash.optionality 카드 confidence_now"
+    action_threshold: "carry cost 우세(reject) → cash floor 5%→3% / shock 방어 입증(confirm) → floor 5% 유지·상향"
+    feeds_weight: "BASE_WEIGHTS[cash]=0.09 의 동적 floor 보정 (regime_to_weights inject)"
+  - hypothesis_id: bond_sleeve_omega_drift
+    confirm_signal: "duration bucket × regime 의 partial-corr 구조(Ω)가 OOS 윈도에서 안정(‖ΔΩ‖ 작음)"
+    reject_signal: "‖ΔΩ‖/‖Ω‖ > tau_fro(0.5) 또는 |Δlogdet| > tau_logdet(1.0) — 구조 drift(예: HY-Tsy 상관 sign flip)"
+    emit_where: "배치 재학습 시점 Ω_new vs Ω_old 비교(train_weights 채권 sleeve 사이클)"
+    accumulate_in: "core/assume/weight_falsification.omega_drift + needs_refit"
+    confidence_metric: "상대 Frobenius + logdet divergence(SECONDARY, kill 아닌 re-fit trigger)"
+    store: "WeightAssumptionCard.secondary_falsification + omega_hash 갱신"
+    action_threshold: "drift>tau → TRANSITION(derive_weights 재실행) / score IC 견디면 비중 robust 유지"
+    feeds_weight: "re-fit → 새 Ω_eff → delta_regime/delta_arch(duration bucket) 갱신, omega_hash pin 교체"
+
+# 블록6: COLLECTOR_PLAN (★부족 자료 — main 에 요청. 있는 6종으로 분석은 이미 진행 가능)
+collector_plan:
+  - {missing: "DGS10 (10Y 국채 명목금리, 듀레이션 본체)", source: "FRED DGS10", interface: VintageProvider, credential: none}
+  - {missing: "DGS2 (2Y 국채 명목금리, 커브 단기 wing)", source: "FRED DGS2", interface: VintageProvider, credential: none}
+  - {missing: "DGS3MO (3M T-Bill, 현금 carry 대용)", source: "FRED DGS3MO", interface: VintageProvider, credential: none}
+  - {missing: "DFII10 (10Y TIPS = real rate 본체, breakeven 분해축)", source: "FRED DFII10", interface: VintageProvider, credential: none}
+  - {missing: "FEDFUNDS (정책금리, cash carry + 2Y 전달경로)", source: "FRED FEDFUNDS", interface: VintageProvider, credential: none}
+  - {missing: "MORTGAGE30US (30년 모기지, long Tsy + credit 잔차 채널)", source: "FRED MORTGAGE30US", interface: VintageProvider, credential: none}
+  - {missing: "장단기 채권 ETF 일별가 (TLT/IEF/SHY/BIL/LQD/HYG/JNK)", source: "Yahoo Finance 또는 FinanceDataReader(MIT)", interface: VintageProvider, credential: none}
+  - {missing: "ICE BofA US Treasury Index TR (장기 OOS 백테스트)", source: "FRED BAMLCC0A0CMTRIV", interface: VintageProvider, credential: none}
+  - {missing: "ECOS 한국 국채금리 (KTB 3Y/10Y, KR sleeve 채권 연동)", source: "ECOS API", interface: VintageProvider, credential: ECOS_API_KEY}
+  - {missing: "JGB 10Y (엔캐리 채널 — macro 방과 공유)", source: "FRED IRLTLT01JPM156N", interface: VintageProvider, credential: none}
+
+# 블록7: CODE_CHANGE_PLAN (★§4 4단계 — 파일:심볼:변경. 전부 Read 확인 후 작성)
+code_change_plan:
+  - stage: learn
+    file: core/brain/fred_adapter.py
+    symbol: FRED_SERIES (dict, L36~57)
+    current: "17 거시 시리즈. T10Y2Y/BAA10Y/HY OAS/T5YIE/NFCI/CFNAI 등 in-system. 채권 본체 DGS10/DGS2/DFII10/FEDFUNDS/MORTGAGE30US 부재"
+    change: "DGS10/DGS2/DGS3MO/DFII10/FEDFUNDS/MORTGAGE30US 6 시리즈 dict 추가 — 블록3 관계 노드 본체. 듀레이션 분해(real rate vs breakeven) 활성화. macro 방 요청 DFII10 와 공유 (중복 추가 금지: 한 번만 등록)"
+    risk: "dict 항목 추가만 = 무회귀. NullFredAdapter 폴백 유지. macro 방 collector_plan 과 union 후 main 이 단일 dict 로 통합"
+  - stage: learn
+    file: core/data/weight_panel.py
+    symbol: "_REFLEXIVE_WORDS (L53~57), build_indicator_matrix (L140~162)"
+    current: "포지션/체결/PnL 단어 반사성 게이트. word-boundary 매칭"
+    change: "신규 추가 series_id (DGS10/DGS2/...) 가 _REFLEXIVE_WORDS 와 무충돌 확인(외부 지표). duration_bucket_id/credit_quality_id 같은 *enum 파생* 도 외부 정의(ETF universe → 정수) 라 게이트 통과"
+    risk: "추가 없음, 게이트 통과 self-test 만 (assert_no_reflexive_series 호출 케이스 추가). 기존 로직 불변"
+  - stage: learn
+    file: core/structure/conditional_correlation.py
+    symbol: "RegimeGlasso.fit(X, regime_ids), effective_precision, corr_prior 인자"
+    current: "nonparanormal→EBIC glasso→EB shrink→Ω_eff. corr_prior=identity 기본"
+    change: "블록3 channel direct 엣지 4종 (fed_funds~yield_2y +0.80 / yield_10y~real_rate +0.85 / duration_bucket~yield_10y -0.95 / credit_quality~hy_oas -0.75) 을 corr_prior 행렬 force-include 후보. 이론강·항등 기반이므로 prior_strength≥0.75 만 채택"
+    risk: "corr_prior seam 재사용 = 추가 코드 0. prior 미주입 시 identity 폴백 무회귀. self-test로 bond_cash prior 케이스 추가. macro 방의 prior(dxy~real_rate 등) 와 직교 — 통합 시 별도 prior_matrix 블록"
+  - stage: learn
+    file: scripts/train_weights.py
+    symbol: train_weight_cards(...) (L79~131)
+    current: "배치: 패널→regime_history→glasso→regime별 카드 등록"
+    change: "domain=bond / domain=cash 배치 2건 추가(or domain=bond_cash 단일 배치). series_ids = 블록2 indicators 전체, regime_ids = Investment Clock 4국면 + sub-regime (rate-shock/risk-off). forward return = TLT/IEF/SHY/HYG 가격수익률(채권 sleeve 본질). cash 는 fed_funds carry"
+    risk: "배치 추가(opt-in domain 인자). 기존 stock/macro 배치 불변(무회귀). ETF 가격 데이터 부재 시 collector_plan 완료 후 활성"
+  - stage: card
+    file: core/assume/weight_card.py
+    symbol: "WeightAssumptionCard (L64~), composed_weights (L115~), delta_arch_by_type (L82)"
+    current: "regime별 정량 비중 카드 + hierarchical pooling. delta_arch_by_type 으로 soft archetype 이미 지원. lens 정성필드 미존재 (macro 방이 추가 제안)"
+    change: "(a) macro 방 lens 필드 추가(pricing_principle/report_relations/regime_reading) 공유. (b) 채권 archetype = duration bucket: {long, mid, short, cash_like}. delta_arch_by_type 로 ETF 별 membership 혼합 (TLT={long:1.0}, IEF={mid:0.7,long:0.3}, SHY={short:1.0}, BIL={cash_like:1.0}). (c) 카드 id 규약 weight.bond.{regime}, weight.cash.{regime}"
+    risk: "Pydantic Field 추가(default 빈값) = 미제공 시 무회귀. delta_arch_by_type 이미 지원 (macro 방 lens 와 통합). pin_hash 에 lens 포함 시 신규 카드만 영향. self-test로 bond_cash 카드 hash 안정성 검증"
+  - stage: card
+    file: core/assume/registry.py
+    symbol: "AssumptionRegistry.register / get(id, as_of)"
+    current: "카드 버전드 보관 + PIT 조회"
+    change: "카드 id 규약 등록: weight.bond.{Reflation|Recovery|Overheat|Stagflation}, weight.cash.{regime}, weight.bond.credit, weight.bond.transition, weight.bond.carry, weight.cash.optionality. macro 방 id (weight.macro.*) 와 namespace 분리"
+    risk: "id 추가만 = 무회귀. registry 인터페이스 불변"
+  - stage: inject
+    file: core/brain/regime_to_weights.py
+    symbol: "BASE_WEIGHTS (L64~67), REGIME_DIRECTION (L74~79), _belief_conditional_cov (L167~), regime_to_weights (L108~)"
+    current: "BASE_WEIGHTS bond=0.25/cash=0.09. REGIME_DIRECTION 표로 sleeve 가중 정적 결정. belief 동적 공분산 opt-in"
+    change: "(a) BASE_WEIGHTS bond/cash 를 블록4 weight_rules 의 confidence_now 로 **동적 보정** — kill 시 0 으로 수축, 안정 시 ±10% range. (b) REGIME_DIRECTION bond/cash 행은 정적 prior 유지(decay anchor). (c) belief 동적 공분산은 채권 ETF returns_history 가 들어오면 자동 활성. (d) 신규 sub-regime(rate-shock, risk-off) → 4국면 × bool flag 로 raw composition (sleeve cov override 만)"
+    risk: "BASE_WEIGHTS 동적 보정은 *opt-in*(confidence 부재 시 기존 정적값). REGIME_DIRECTION 불변. 무회귀(byte-identical 폴백). self-test로 dynamic vs static 케이스 분리"
+  - stage: inject
+    file: core/stock_track.py
+    symbol: "_extract_indicator_z (L224~), _resolve_weight_card (L208~), _apply_r15_sizing (L242~)"
+    current: "주식 종목 사이징용 S_L1=clamp_floor(Σw·z). bond_cash 는 *sleeve* 레이어 → 직접 영향 없음"
+    change: "bond_cash 는 stock_track 미적용(sleeve 레이어). 단 *ETF 종목* (TLT/IEF/HYG) 을 universe 로 둘 경우 _extract_indicator_z 가 duration_bucket_id, credit_quality_id 등 채권 지표 z 를 뽑게 분기(asset_class==bond). 현재 stock_track 의 series_ids 가 주식 지표 가정이라 *asset_class router* 추가 필요 OR ETF 는 별도 etf_track 모듈 신설(권장)"
+    risk: "분기 추가 = 기존 주식 path 불변(asset_class 디폴트=stock). 새 etf_track 모듈은 sleeve 와 stock_track 사이 *얇은* 어댑터, R15 사이징 천장 불변식 동일 적용"
+  - stage: inject
+    file: core/assume/judge.py
+    symbol: "synthesize_l1 호출부, assert_ceiling_invariant"
+    current: "L1 결정론 사이징 + LLM down-only 감쇠. 천장 불변식 S_out ≤ S_L1"
+    change: "macro 방 제안과 동일 — judge 컨텍스트에 bond 카드 lens(report_relations/regime_reading/pricing_principle) 주입. '현재 국면 X 에서 듀레이션 베타 Y, 신용 sleeve Z' 정성 근거. down-only 보존(천장 불변식 그대로)"
+    risk: "judge 입력 컨텍스트 추가만 = 사이징 로직 불변. down-only 보존. opt-in lens 부재 시 무회귀"
+  - stage: falsify
+    file: core/assume/weight_falsification.py
+    symbol: "score_ic_breakdown_eprocess (L66~), omega_drift (L89~), evaluate_weight_card (L151~)"
+    current: "PRIMARY=score IC e-CUSUM 단측 붕괴 kill / SECONDARY=Ω drift re-fit. DUAL"
+    change: "블록5 confidence_hooks 6종을 이 함수들에 매핑 — duration_rate_sensitivity / hy_oas_credit_regime / curve_inversion_recession_lag / carry_to_total_return = score_ic_breakdown_eprocess(국면조건부 baseline_ic). cash_optionality_value = score_ic_breakdown_eprocess (양측 옵션 — shock CVaR vs 기회비용). bond_sleeve_omega_drift = omega_drift+needs_refit. bond_cash 임계: alpha=0.05, tau_fro=0.5, regime별 baseline_ic 사전등록"
+    risk: "기존 DUAL 함수 재사용 = 추가 코드 최소(baseline_ic 상수 + 양측 검정 옵션 인자). self-test로 bond/cash 카드 kill/refit/cash floor 케이스 추가. 무회귀(stock/macro 임계 불변)"
+  - stage: falsify
+    file: core/assume/update_controller.py
+    symbol: "retract_now (L50~), UpdateController.step (L90~)"
+    current: "retract=빠름(disjunctive) / adopt=느림(5조건 AND). PRIMARY kill→RETIRE / SECONDARY→TRANSITION"
+    change: "bond/cash 카드 dwell·K-window 파라미터 설정 — 채권 regime 지속 길다(분기 단위) → dwell↑(성급 채택 방지), K-window=2분기. cash floor 카드는 별도 정책(shock event 가중치 낮은 즉시 발동). transition 시 same_regime=False"
+    risk: "파라미터 인자만 추가(기본값 분리). 기존 stock/macro 카드 dwell 불변(무회귀). step 라우팅 로직 불변. cash floor 즉시 발동은 추가 hook 으로 분리"

