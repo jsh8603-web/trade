@@ -1,0 +1,140 @@
+====================================================================================================
+eq_intl MERIT-INDICATOR 실데이터 탐구 (block6 4 지표) — 2026-06-01
+====================================================================================================
+  ETF japan    (EWJ): 1996-04-01 ~ 2026-05-01  n_month_ret=362
+  ETF brazil   (EWZ): 2000-08-01 ~ 2026-05-01  n_month_ret=310
+  ETF mexico   (EWW): 1996-04-01 ~ 2026-05-01  n_month_ret=362
+  ETF china    (FXI): 2004-11-01 ~ 2026-05-01  n_month_ret=259
+  ETF india    (INDA): 2012-03-01 ~ 2026-05-01  n_month_ret=171
+  ETF korea    (EWY): 2000-06-01 ~ 2026-05-01  n_month_ret=312
+  ETF taiwan   (EWT): 2000-07-01 ~ 2026-05-01  n_month_ret=311
+
+====================================================================================================
+§1. JGB-UST spread (FRED IRLTLT01JPM156N − DGS10) vs EWJ(japan) monthly log-return
+====================================================================================================
+  spread coverage: 1989-01-01 ~ 2026-04-01  n=448  (JP 10Y monthly, US 10Y daily→month-last)
+  ADF(spread level): t_rho=-2.53 (n=443)  → I(1) 의심 → Δ 차분 강제
+  [spec↔code] driver = Δspread (1차 차분, ADF I(1) → return 단위 정합); target = EWJ monthly log-return (contemporaneous + lead k).
+  contemporaneous: n=361  β=+0.01344 HAC-SE=0.01647 t=+0.82 p=0.414 95%CI=[-0.01883,+0.04572] R²=0.004
+  Spearman Rank-IC(contemp)=+0.047 HAC-t=+0.68 p=0.495 n=361
+  lead-lag k=1m: Rank-IC=-0.054 HAC-t=-1.07 p=0.287 n=362
+  lead-lag k=3m: Rank-IC=-0.003 HAC-t=-0.06 p=0.951 n=362
+  lead-lag k=6m: Rank-IC=+0.037 HAC-t=+0.80 p=0.425 n=362
+  half-split OOS: rho1=+0.052 rho2=+0.051 부호일치=True (1996-04-01~2011-04-01 | 2011-04-01~2026-04-01)
+
+====================================================================================================
+§2. REER own-history z (FRED BIS Real Broad EER) vs 해당국 ETF monthly return
+====================================================================================================
+  [spec↔code] driver = REER own-history rolling z(36m); target = 해당국 ETF forward monthly log-return (lead k=1/3/6m). prior: z↑(고평가) → 미래 return 음(평균회귀).
+  brazil   (RBBRBIS): REER 1994-01-01~2026-04-01 n=388 | ADF(REER lvl) t=-2.13
+     contemp Rank-IC(z, ret)=+0.135 HAC-t=+2.83 p=0.005 n=309
+     lead k=1m: Rank-IC=+0.011 HAC-t=+0.20 p=0.843 n=310
+     lead k=3m: Rank-IC=-0.001 HAC-t=-0.02 p=0.982 n=310
+     lead k=6m: Rank-IC=-0.020 HAC-t=-0.35 p=0.728 n=310
+     half-split: rho1=+0.106 rho2=+0.139 부호일치=True
+  mexico   (RBMXBIS): REER 1994-01-01~2026-04-01 n=388 | ADF(REER lvl) t=-2.40
+     contemp Rank-IC(z, ret)=+0.005 HAC-t=+0.11 p=0.912 n=361
+     lead k=1m: Rank-IC=-0.116 HAC-t=-2.23 p=0.026 n=362
+     lead k=3m: Rank-IC=-0.090 HAC-t=-1.77 p=0.078 n=362
+     lead k=6m: Rank-IC=-0.090 HAC-t=-1.74 p=0.082 n=362
+     half-split: rho1=-0.019 rho2=+0.039 부호일치=False
+  india    (RBINBIS): REER 1994-01-01~2026-04-01 n=388 | ADF(REER lvl) t=-2.55
+     contemp Rank-IC(z, ret)=+0.039 HAC-t=+0.55 p=0.585 n=170
+     lead k=1m: Rank-IC=-0.067 HAC-t=-0.94 p=0.346 n=171
+     lead k=3m: Rank-IC=-0.072 HAC-t=-1.04 p=0.299 n=171
+     lead k=6m: Rank-IC=-0.023 HAC-t=-0.33 p=0.739 n=171
+     half-split: rho1=+0.054 rho2=+0.008 부호일치=True
+  china    (RBCNBIS): REER 1994-01-01~2026-04-01 n=388 | ADF(REER lvl) t=-2.16
+     contemp Rank-IC(z, ret)=-0.106 HAC-t=-1.70 p=0.088 n=258
+     lead k=1m: Rank-IC=-0.061 HAC-t=-0.99 p=0.323 n=259
+     lead k=3m: Rank-IC=-0.045 HAC-t=-0.70 p=0.481 n=259
+     lead k=6m: Rank-IC=-0.044 HAC-t=-0.64 p=0.524 n=259
+     half-split: rho1=-0.110 rho2=-0.205 부호일치=True
+  korea    (RBKRBIS): REER 1994-01-01~2026-04-01 n=388 | ADF(REER lvl) t=-2.64
+     contemp Rank-IC(z, ret)=+0.042 HAC-t=+0.66 p=0.509 n=311
+     lead k=1m: Rank-IC=-0.071 HAC-t=-1.05 p=0.293 n=312
+     lead k=3m: Rank-IC=-0.032 HAC-t=-0.50 p=0.617 n=312
+     lead k=6m: Rank-IC=-0.029 HAC-t=-0.44 p=0.662 n=312
+     half-split: rho1=+0.004 rho2=+0.038 부호일치=True
+
+====================================================================================================
+§3. China credit impulse (FRED QCNPAMUSDA Total Credit, Q) vs FXI(china)/brazil
+====================================================================================================
+  credit level coverage: 1985-10-01 ~ 2025-07-01 n_q=160 | ADF(level) t=+2.48 → I(1) → YoY/Δ 사용
+  [spec↔code] driver = credit impulse = Δ(YoY% of total credit) (2차 차분, 표준 정의); target = FXI(china)/EWZ(brazil) quarterly log-return. prior: impulse↑ → lag 1~2Q 후 지수↑(양).
+  china   : contemp(same Q) Rank-IC=+0.413 HAC-t=+5.26 p=0.000 n=83
+     credit leads 1Q: Rank-IC=+0.054 HAC-t=+0.53 p=0.595 n=84
+     credit leads 2Q: Rank-IC=-0.047 HAC-t=-0.45 p=0.653 n=85
+     credit leads 3Q: Rank-IC=-0.198 HAC-t=-2.10 p=0.036 n=86
+     credit leads 4Q: Rank-IC=-0.095 HAC-t=-0.90 p=0.369 n=86
+  brazil  : contemp(same Q) Rank-IC=+0.303 HAC-t=+3.48 p=0.000 n=100
+     credit leads 1Q: Rank-IC=+0.010 HAC-t=+0.10 p=0.923 n=101
+     credit leads 2Q: Rank-IC=+0.005 HAC-t=+0.05 p=0.964 n=102
+     credit leads 3Q: Rank-IC=-0.046 HAC-t=-0.44 p=0.658 n=103
+     credit leads 4Q: Rank-IC=+0.021 HAC-t=+0.22 p=0.827 n=103
+  korea   : contemp(same Q) Rank-IC=+0.427 HAC-t=+5.23 p=0.000 n=101
+     credit leads 1Q: Rank-IC=-0.046 HAC-t=-0.43 p=0.670 n=102
+     credit leads 2Q: Rank-IC=-0.058 HAC-t=-0.61 p=0.539 n=103
+     credit leads 3Q: Rank-IC=-0.092 HAC-t=-0.93 p=0.353 n=104
+     credit leads 4Q: Rank-IC=-0.121 HAC-t=-1.10 p=0.273 n=104
+
+====================================================================================================
+§4. fx_carry_momentum (FRED FX 환율 모멘텀 3/12m) vs 해당국 ETF monthly return
+====================================================================================================
+  [spec↔code] driver = FX momentum = log(USD_per_local_t / USD_per_local_{t-h}), h=3/12m (USD↑=local 약세). target = 해당국 ETF forward monthly log-return. prior: USD/local 상승추세(local 약세) → unhedged ETF return 음(환손실).
+  japan    (DEXJPUS) mom_3m: contemp Rank-IC=-0.111 HAC-t=-1.99 p=0.047 n=362 | ADF(logFX) t=-2.35
+     mom_3m leads 1m: Rank-IC=-0.023 HAC-t=-0.40 p=0.692 n=362
+     mom_3m leads 3m: Rank-IC=+0.043 HAC-t=+0.81 p=0.417 n=362
+     half-split: rho1=-0.145 rho2=-0.086 부호일치=True
+  japan    (DEXJPUS) mom_12m: contemp Rank-IC=-0.074 HAC-t=-1.23 p=0.217 n=362 | ADF(logFX) t=-2.35
+     mom_12m leads 1m: Rank-IC=-0.038 HAC-t=-0.67 p=0.500 n=362
+     mom_12m leads 3m: Rank-IC=-0.048 HAC-t=-0.82 p=0.410 n=362
+     half-split: rho1=-0.155 rho2=+0.004 부호일치=False
+  brazil   (DEXBZUS) mom_3m: contemp Rank-IC=-0.432 HAC-t=-12.70 p=0.000 n=310 | ADF(logFX) t=-1.63
+     mom_3m leads 1m: Rank-IC=-0.012 HAC-t=-0.23 p=0.817 n=310
+     mom_3m leads 3m: Rank-IC=-0.024 HAC-t=-0.40 p=0.687 n=310
+     half-split: rho1=-0.412 rho2=-0.425 부호일치=True
+  brazil   (DEXBZUS) mom_12m: contemp Rank-IC=-0.192 HAC-t=-3.75 p=0.000 n=310 | ADF(logFX) t=-1.63
+     mom_12m leads 1m: Rank-IC=+0.012 HAC-t=+0.21 p=0.832 n=310
+     mom_12m leads 3m: Rank-IC=+0.034 HAC-t=+0.55 p=0.581 n=310
+     half-split: rho1=-0.171 rho2=-0.214 부호일치=True
+  india    (DEXINUS) mom_3m: contemp Rank-IC=-0.340 HAC-t=-5.81 p=0.000 n=171 | ADF(logFX) t=-0.97
+     mom_3m leads 1m: Rank-IC=+0.017 HAC-t=+0.25 p=0.801 n=171
+     mom_3m leads 3m: Rank-IC=-0.061 HAC-t=-0.86 p=0.387 n=171
+     half-split: rho1=-0.373 rho2=-0.312 부호일치=True
+  india    (DEXINUS) mom_12m: contemp Rank-IC=-0.167 HAC-t=-2.64 p=0.008 n=171 | ADF(logFX) t=-0.97
+     mom_12m leads 1m: Rank-IC=+0.056 HAC-t=+0.77 p=0.440 n=171
+     mom_12m leads 3m: Rank-IC=+0.060 HAC-t=+0.96 p=0.337 n=171
+     half-split: rho1=-0.203 rho2=-0.093 부호일치=True
+  korea    (DEXKOUS) mom_3m: contemp Rank-IC=-0.281 HAC-t=-5.51 p=0.000 n=312 | ADF(logFX) t=-1.64
+     mom_3m leads 1m: Rank-IC=+0.044 HAC-t=+0.73 p=0.463 n=312
+     mom_3m leads 3m: Rank-IC=+0.007 HAC-t=+0.14 p=0.888 n=312
+     half-split: rho1=-0.168 rho2=-0.399 부호일치=True
+  korea    (DEXKOUS) mom_12m: contemp Rank-IC=-0.118 HAC-t=-2.09 p=0.036 n=312 | ADF(logFX) t=-1.64
+     mom_12m leads 1m: Rank-IC=+0.055 HAC-t=+0.89 p=0.373 n=312
+     mom_12m leads 3m: Rank-IC=+0.011 HAC-t=+0.18 p=0.853 n=312
+     half-split: rho1=-0.005 rho2=-0.240 부호일치=True
+  mexico   (DEXMXUS) mom_3m: contemp Rank-IC=-0.349 HAC-t=-8.51 p=0.000 n=362 | ADF(logFX) t=-3.80
+     mom_3m leads 1m: Rank-IC=+0.004 HAC-t=+0.09 p=0.928 n=362
+     mom_3m leads 3m: Rank-IC=+0.053 HAC-t=+1.14 p=0.256 n=362
+     half-split: rho1=-0.316 rho2=-0.410 부호일치=True
+  mexico   (DEXMXUS) mom_12m: contemp Rank-IC=-0.119 HAC-t=-2.39 p=0.017 n=362 | ADF(logFX) t=-3.80
+     mom_12m leads 1m: Rank-IC=+0.064 HAC-t=+1.25 p=0.210 n=362
+     mom_12m leads 3m: Rank-IC=+0.117 HAC-t=+2.33 p=0.020 n=362
+     half-split: rho1=-0.093 rho2=-0.171 부호일치=True
+
+====================================================================================================
+§5. 다중비교 보정 (Bonferroni + BH-FDR) — 지표별 전체 lead-lag p 풀
+====================================================================================================
+
+[jgb] m=4 비교 | Bonferroni α/m=0.0125 | raw p<0.05: 0/4 | Bonferroni 생존: 0/4 | BH-FDR 생존: 0/4
+
+[reer] m=20 비교 | Bonferroni α/m=0.0025 | raw p<0.05: 2/20 | Bonferroni 생존: 0/20 | BH-FDR 생존: 0/20
+
+[credit] m=15 비교 | Bonferroni α/m=0.0033 | raw p<0.05: 4/15 | Bonferroni 생존: 3/15 | BH-FDR 생존: 3/15
+   Bonferroni 생존: ['china-contemp(p=0.0000)', 'brazil-contemp(p=0.0005)', 'korea-contemp(p=0.0000)']
+
+[fx] m=30 비교 | Bonferroni α/m=0.0017 | raw p<0.05: 10/30 | Bonferroni 생존: 5/30 | BH-FDR 생존: 6/30
+   Bonferroni 생존: ['brazil_mom3-contemp(p=0.0000)', 'brazil_mom12-contemp(p=0.0002)', 'india_mom3-contemp(p=0.0000)', 'korea_mom3-contemp(p=0.0000)', 'mexico_mom3-contemp(p=0.0000)']
+
+# Done. (재현: PYTHONUTF8=1 python raw/validation-merit-indicators.py)
