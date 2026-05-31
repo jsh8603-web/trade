@@ -17,6 +17,9 @@ if sys.stdout.encoding != "utf-8":
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 
 import requests
+from pathlib import Path as _Path
+sys.path.insert(0, str(_Path(__file__).resolve().parent.parent))
+from core.db import db  # 로컬 DB 어댑터 (Supabase REST 대체)
 
 KST = timezone(timedelta(hours=9))
 
@@ -57,38 +60,20 @@ def evaluate_pending_switches():
             print("[evaluate_switches] MACHINE_ROLE != primary — 전환 평가 스킵")
             return
 
-    url = os.getenv("SUPABASE_URL", "")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not url or not key:
-        print("SUPABASE 환경변수 미설정", file=sys.stderr)
-        return
-
-    headers = {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-    }
-
     # 미평가 + 4시간 이상 경과한 전환 조회
     cutoff_4h = (datetime.now(KST) - timedelta(hours=4)).isoformat()
-    resp = requests.get(
-        f"{url}/rest/v1/agent_switches",
-        params={
-            "select": "id,price_at_switch,created_at,price_after_4h",
-            "evaluated_at": "is.null",
-            "created_at": f"lt.{cutoff_4h}",
-            "order": "created_at.asc",
-            "limit": "20",
-        },
-        headers=headers,
-        timeout=10,
-    )
-
-    if resp.status_code != 200:
-        print(f"조회 실패: {resp.status_code}", file=sys.stderr)
+    try:
+        switches = db.select(
+            "agent_switches",
+            filters={"evaluated_at": "is.null", "created_at": f"lt.{cutoff_4h}"},
+            order="created_at.asc",
+            limit=20,
+            select="id,price_at_switch,created_at,price_after_4h",
+        )
+    except Exception as e:
+        print(f"조회 실패: {e}", file=sys.stderr)
         return
 
-    switches = resp.json()
     if not switches:
         print("평가할 전환 없음")
         return
@@ -108,20 +93,16 @@ def evaluate_pending_switches():
 
         if not price_at:
             # 전환 시 가격이 없으면 → 평가 불가로 마킹하여 큐에서 제거
-            patch_resp = requests.patch(
-                f"{url}/rest/v1/agent_switches",
-                params={"id": f"eq.{sw_id}"},
-                json={
+            try:
+                db.update("agent_switches", {"id": f"eq.{sw_id}"}, {
                     "outcome": "neutral",
                     "outcome_reason": "price_at_switch 누락 — 평가 불가",
                     "evaluated_at": now.isoformat(),
-                },
-                headers={**headers, "Prefer": "return=minimal"},
-                timeout=5,
-            )
-            if patch_resp.status_code in (200, 204):
+                })
                 evaluated += 1
                 print(f"  스킵 마킹: {sw_id[:8]}... (가격 없음)")
+            except Exception:
+                pass
             continue
 
         price_at = int(price_at)
@@ -159,16 +140,12 @@ def evaluate_pending_switches():
             update["evaluated_at"] = now.isoformat()
 
         if update:
-            patch_resp = requests.patch(
-                f"{url}/rest/v1/agent_switches",
-                params={"id": f"eq.{sw_id}"},
-                json=update,
-                headers={**headers, "Prefer": "return=minimal"},
-                timeout=5,
-            )
-            if patch_resp.status_code in (200, 204):
+            try:
+                db.update("agent_switches", {"id": f"eq.{sw_id}"}, update)
                 evaluated += 1
                 print(f"  평가 완료: {sw_id[:8]}... {update.get('outcome', '4h만')}")
+            except Exception:
+                pass
 
     print(f"총 {evaluated}/{len(switches)}건 평가 완료")
 

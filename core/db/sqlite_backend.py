@@ -54,7 +54,8 @@ class SQLiteBackend(DBBackend):
                     self._conn.execute(stmt)
                 except sqlite3.OperationalError as e:
                     msg = str(e).lower()
-                    if "duplicate column" in msg or "already exists" in msg:
+                    if ("duplicate column" in msg or "already exists" in msg
+                            or "already another table or index" in msg):
                         continue
                     raise
             self._conn.commit()

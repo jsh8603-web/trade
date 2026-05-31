@@ -151,26 +151,13 @@ market_data['news'] = news_data
 market_data['news']['overall_sentiment'] = news_sentiment.get('overall_sentiment', 'neutral')
 market_data['news']['sentiment_score'] = news_sentiment.get('sentiment_score', 0)
 
-# 3) 과거 결정 조회 (Supabase)
+# 3) 과거 결정 조회 (로컬 DB)
 past_decisions = []
-supabase_url = os.getenv('SUPABASE_URL', '')
-supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
-if supabase_url and supabase_key:
-    try:
-        import requests
-        resp = requests.get(
-            f'{supabase_url}/rest/v1/decisions',
-            params={'select': '*', 'order': 'created_at.desc', 'limit': '10'},
-            headers={
-                'apikey': supabase_key,
-                'Authorization': f'Bearer {supabase_key}',
-            },
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            past_decisions = resp.json()
-    except Exception as e:
-        print(f'[Agent] Supabase 조회 실패: {e}', file=sys.stderr)
+try:
+    from core.db import db
+    past_decisions = db.select('decisions', order='created_at.desc', limit=10)
+except Exception as e:
+    print(f'[Agent] decisions 조회 실패: {e}', file=sys.stderr)
 
 # 4) BTC 비중 계산
 btc_info = portfolio.get('coins', {}).get('BTC', portfolio.get('btc', {}))
@@ -321,11 +308,12 @@ ${SWITCH_INFO}"
 
 "$PYTHON" scripts/notify_telegram.py trade "$SUMMARY" "$DETAIL" 2>/dev/null || true
 
-# ── Phase 5: Supabase 기록 ──
-if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-  echo "[$(date)] Phase 5: Supabase 기록..." >&2
-  "$PYTHON" -c "
-import json, os, requests, sys
+# ── Phase 5: 로컬 DB 기록 ──
+echo "[$(date)] Phase 5: DB 기록..." >&2
+"$PYTHON" -c "
+import json, os, sys
+sys.path.insert(0, '$PROJECT_DIR')
+from core.db import db
 
 DECISION_MAP = {'buy': '매수', 'sell': '매도', 'hold': '관망'}
 
@@ -364,38 +352,19 @@ row = {
     'source': 'agent',
 }
 
-resp = requests.post(
-    os.environ['SUPABASE_URL'] + '/rest/v1/decisions',
-    json=row,
-    headers={
-        'apikey': os.environ['SUPABASE_SERVICE_ROLE_KEY'],
-        'Authorization': 'Bearer ' + os.environ['SUPABASE_SERVICE_ROLE_KEY'],
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal',
-    },
-    timeout=10,
-)
-if resp.status_code in (200, 201):
-    print(f'[Agent] Supabase 기록 완료 (HTTP {resp.status_code})', file=sys.stderr)
-else:
-    print(f'[Agent] Supabase 기록 실패! HTTP {resp.status_code}: {resp.text}', file=sys.stderr)
+try:
+    db.insert('decisions', row)
+    print('[Agent] decisions 기록 완료', file=sys.stderr)
+except Exception as e:
+    print(f'[Agent] decisions 기록 실패: {e}', file=sys.stderr)
 " 2>&1 || true
-fi
 
 # ── Phase 5b: market_data 기록 ──
-if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-  echo "[$(date)] Phase 5b: market_data + execution_logs 기록..." >&2
-  "$PYTHON" -c "
-import json, os, time, requests, sys
-
-supabase_url = os.environ['SUPABASE_URL']
-supabase_key = os.environ['SUPABASE_SERVICE_ROLE_KEY']
-headers = {
-    'apikey': supabase_key,
-    'Authorization': f'Bearer {supabase_key}',
-    'Content-Type': 'application/json',
-    'Prefer': 'return=minimal',
-}
+echo "[$(date)] Phase 5b: market_data + execution_logs 기록..." >&2
+"$PYTHON" -c "
+import json, os, time, sys
+sys.path.insert(0, '$PROJECT_DIR')
+from core.db import db
 
 # market_data 저장
 try:
@@ -419,11 +388,8 @@ try:
         'news_sentiment': news.get('overall_sentiment', 'neutral'),
         'cycle_id': '${CYCLE_ID}',
     }
-    resp = requests.post(f'{supabase_url}/rest/v1/market_data', json=row, headers=headers, timeout=10)
-    if resp.status_code in (200, 201):
-        print('[Agent] market_data 기록 완료', file=sys.stderr)
-    else:
-        print(f'[Agent] market_data 기록 실패: HTTP {resp.status_code}: {resp.text[:200]}', file=sys.stderr)
+    db.insert('market_data', row)
+    print('[Agent] market_data 기록 완료', file=sys.stderr)
 except Exception as e:
     print(f'[Agent] market_data 기록 예외: {e}', file=sys.stderr)
 
@@ -450,30 +416,18 @@ try:
         'raw_output': json.dumps(result, ensure_ascii=False)[:10000],
         'cycle_id': '${CYCLE_ID}',
     }
-    resp = requests.post(f'{supabase_url}/rest/v1/execution_logs', json=log_row, headers=headers, timeout=10)
-    if resp.status_code in (200, 201):
-        print('[Agent] execution_logs 기록 완료', file=sys.stderr)
-    else:
-        print(f'[Agent] execution_logs 기록 실패: HTTP {resp.status_code}: {resp.text[:200]}', file=sys.stderr)
+    db.insert('execution_logs', log_row)
+    print('[Agent] execution_logs 기록 완료', file=sys.stderr)
 except Exception as e:
     print(f'[Agent] execution_logs 기록 예외: {e}', file=sys.stderr)
 " 2>&1 || true
-fi
 
 # ── Phase 5c: portfolio_snapshots 기록 ──
-if [ -n "${SUPABASE_URL:-}" ] && [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-  echo "[$(date)] Phase 5c: portfolio_snapshots 기록..." >&2
-  "$PYTHON" -c "
-import json, os, requests, sys
-
-supabase_url = os.environ['SUPABASE_URL']
-supabase_key = os.environ['SUPABASE_SERVICE_ROLE_KEY']
-headers = {
-    'apikey': supabase_key,
-    'Authorization': f'Bearer {supabase_key}',
-    'Content-Type': 'application/json',
-    'Prefer': 'return=minimal',
-}
+echo "[$(date)] Phase 5c: portfolio_snapshots 기록..." >&2
+"$PYTHON" -c "
+import json, os, sys
+sys.path.insert(0, '$PROJECT_DIR')
+from core.db import db
 
 try:
     from utils.machine import skip_trade_db, get_machine_name
@@ -505,18 +459,11 @@ try:
     if machine_name:
         row['machine_name'] = machine_name
 
-    resp = requests.post(
-        f'{supabase_url}/rest/v1/portfolio_snapshots',
-        json=row, headers=headers, timeout=10,
-    )
-    if resp.status_code in (200, 201):
-        print('[Agent] portfolio_snapshots 기록 완료', file=sys.stderr)
-    else:
-        print(f'[Agent] portfolio_snapshots 기록 실패: HTTP {resp.status_code}: {resp.text[:200]}', file=sys.stderr)
+    db.insert('portfolio_snapshots', row)
+    print('[Agent] portfolio_snapshots 기록 완료', file=sys.stderr)
 except Exception as e:
     print(f'[Agent] portfolio_snapshots 기록 예외: {e}', file=sys.stderr)
 " 2>&1 || true
-fi
 
 # ── Phase 6: 과거 전환 성과 평가 (학습 데이터 축적) ──
 echo "[$(date)] Phase 6: 전환 성과 평가..." >&2

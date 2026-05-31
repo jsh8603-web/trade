@@ -40,6 +40,7 @@ UPBIT_API = "https://api.upbit.com/v1"
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
+from core.db import db  # 로컬 DB 어댑터 (Supabase REST 대체)
 LOCK_FILE = PROJECT_DIR / "data" / "trading.lock"
 KST = timezone(timedelta(hours=9))
 
@@ -628,18 +629,6 @@ def _record_trade_to_db(result: dict, source: str = "manual"):
         from utils.machine import skip_trade_db
         if skip_trade_db("decisions"):
             return
-        url = os.environ.get("SUPABASE_URL", "")
-        key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-        if not url or not key:
-            return
-
-        headers = {
-            "apikey": key,
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-            "Prefer": "return=minimal",
-        }
-
         # decisions 테이블에 기록
         side = result.get("side", "")
         action_kr = "매수" if side == "bid" else "매도" if side == "ask" else "관망"
@@ -736,29 +725,9 @@ def _record_trade_to_db(result: dict, source: str = "manual"):
                 "error": result.get("error"),
             }, ensure_ascii=False)
 
-        r = requests.post(
-            f"{url}/rest/v1/decisions",
-            json=decision_row,
-            headers=headers,
-            timeout=10,
-        )
-        if r.ok:
-            print(f"[DB] 매매 기록 저장 완료 (source={source})", file=sys.stderr)
-        elif r.status_code == 400 and "dry_run" in r.text:
-            # dry_run 컬럼 없으면 제거 후 재시도
-            decision_row.pop("dry_run", None)
-            r2 = requests.post(
-                f"{url}/rest/v1/decisions",
-                json=decision_row,
-                headers=headers,
-                timeout=10,
-            )
-            if r2.ok:
-                print(f"[DB] 매매 기록 저장 완료 (dry_run 컬럼 없음, source={source})", file=sys.stderr)
-            else:
-                print(f"[DB] 매매 기록 저장 실패: {r2.status_code} {r2.text[:200]}", file=sys.stderr)
-        else:
-            print(f"[DB] 매매 기록 저장 실패: {r.status_code} {r.text[:200]}", file=sys.stderr)
+        # machine_name/dry_run 등 테이블에 없는 컬럼은 어댑터가 자동 제거
+        db.insert("decisions", decision_row)
+        print(f"[DB] 매매 기록 저장 완료 (source={source})", file=sys.stderr)
 
     except Exception as e:
         print(f"[DB] 매매 기록 저장 오류: {e}", file=sys.stderr)

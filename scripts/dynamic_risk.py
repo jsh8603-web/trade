@@ -37,6 +37,10 @@ import requests
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
+import sys as _sys
+if str(PROJECT_DIR) not in _sys.path:
+    _sys.path.insert(0, str(PROJECT_DIR))
+from core.db import db  # 로컬 DB 어댑터 (Supabase REST 대체)
 STATE_FILE = PROJECT_DIR / "data" / "dynamic_risk.json"
 KST = timezone(timedelta(hours=9))
 
@@ -66,21 +70,14 @@ def _fetch_recent_decisions(days: int = 7) -> list[dict]:
     cutoff = (datetime.now(KST) - timedelta(days=days)).isoformat()
 
     try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/decisions",
-            headers=_headers(),
-            params={
-                "select": "outcome_4h_pct,outcome_24h_pct,created_at,decision",
-                "created_at": f"gte.{cutoff}",
-                "decision": "in.(buy,sell)",
-                "order": "created_at.asc",
-            },
-            timeout=15,
+        return db.select(
+            "decisions",
+            filters={"created_at": f"gte.{cutoff}", "decision": "in.(buy,sell)"},
+            order="created_at.asc",
+            select="outcome_4h_pct,outcome_24h_pct,created_at,decision",
         )
-        if r.status_code == 200:
-            return r.json()
     except Exception as e:
-        print(f"[dynamic_risk] Supabase 조회 실패: {e}", file=sys.stderr)
+        print(f"[dynamic_risk] DB 조회 실패: {e}", file=sys.stderr)
 
     return []
 

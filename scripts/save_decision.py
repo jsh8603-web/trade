@@ -23,6 +23,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 import requests
 
+# 로컬 DB 어댑터 (Supabase REST 대체)
+if str(Path(__file__).resolve().parent.parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from core.db import db
+
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 # ── RAG 임베딩 ──────────────────────────────────────────────────────────────
@@ -184,84 +189,13 @@ def _get_mgmt_token() -> str:
         return ""
 
 
-def _update_embedding_via_sql(decision_id: str, embedding: list, embedding_text: str):
-    """벡터 임베딩을 업데이트한다.
-
-    1차: Supabase REST API PATCH (PostgREST가 vector 타입 문자열을 처리)
-    2차: Management API SQL fallback (REST 실패 시)
-    """
-    # decision_id UUID 형식 검증
-    import re as _re
-    if not _re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', str(decision_id), _re.IGNORECASE):
-        print(f"[save_decision] 유효하지 않은 decision_id 형식: {decision_id}", file=sys.stderr)
-        return
-
-    vec_str = "[" + ",".join(str(v) for v in embedding) + "]"
-
-    # 방법 1: REST API PATCH (더 빠르고 간단)
-    if SUPABASE_URL and SUPABASE_KEY:
-        try:
-            r = _get_session().patch(
-                f"{SUPABASE_URL}/rest/v1/decisions?id=eq.{decision_id}",
-                headers={
-                    "apikey": SUPABASE_KEY,
-                    "Authorization": f"Bearer {SUPABASE_KEY}",
-                    "Content-Type": "application/json",
-                    "Prefer": "return=minimal",
-                },
-                json={
-                    "state_embedding": vec_str,
-                    "embedding_text": embedding_text,
-                },
-                timeout=15,
-            )
-            if r.ok:
-                print("[save_decision] 임베딩 저장 완료 (REST API)", file=sys.stderr)
-                return
-            else:
-                print(f"[save_decision] REST API 임베딩 PATCH 실패 ({r.status_code}), Management API fallback", file=sys.stderr)
-        except Exception as e:
-            print(f"[save_decision] REST API 임베딩 예외: {e}, Management API fallback", file=sys.stderr)
-
-    # 방법 2: Management API SQL fallback
-    token = _get_mgmt_token()
-    if not token:
-        print("[save_decision] Management API 토큰 추출 실패 -- 임베딩 저장 건너뜀", file=sys.stderr)
-        return
-
-    ref = "REDACTED_PROJECT_REF"
-
-    def _sql_escape(s: str) -> str:
-        """Escape a string for safe inclusion in a PostgreSQL SQL literal."""
-        s = s.replace("\\", "\\\\")
-        s = s.replace("'", "''")
-        s = s.replace("\x00", "")          # strip null bytes
-        s = s.replace("\r", "\\r")
-        s = s.replace("\n", "\\n")
-        return s
-
-    safe_text = _sql_escape(embedding_text)
-    safe_id = _sql_escape(str(decision_id))
-    safe_vec = _sql_escape(vec_str)
-    sql = (
-        f"UPDATE decisions SET state_embedding = '{safe_vec}'::vector, "
-        f"embedding_text = '{safe_text}' WHERE id = '{safe_id}'"
-    )
-
+def _update_embedding_via_sql(decision_id, embedding: list, embedding_text: str):
+    """벡터 임베딩을 로컬 DB(decisions.state_embedding BLOB)에 업데이트."""
     try:
-        r = _get_session().post(
-            f"https://api.supabase.com/v1/projects/{ref}/database/query",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-            },
-            json={"query": sql},
-            timeout=30,
-        )
-        if r.ok:
-            print("[save_decision] 임베딩 저장 완료 (Management API)", file=sys.stderr)
-        else:
-            print(f"[save_decision] 임베딩 저장 실패 ({r.status_code}): {r.text[:200]}", file=sys.stderr)
+        # embedding 은 raw list 그대로 — 어댑터가 float32 BLOB 로 직렬화
+        db.update("decisions", {"id": f"eq.{decision_id}"},
+                  {"state_embedding": embedding, "embedding_text": embedding_text})
+        print("[save_decision] 임베딩 저장 완료", file=sys.stderr)
     except Exception as e:
         print(f"[save_decision] 임베딩 저장 예외: {e}", file=sys.stderr)
 
@@ -311,31 +245,14 @@ def supabase_headers():
 
 
 def supabase_post(table: str, row: dict) -> dict | None:
-    """Supabase 테이블에 INSERT. 실패 시 stderr에 로그."""
+    """로컬 DB 테이블에 INSERT. 실패 시 stderr에 로그."""
     from utils.machine import skip_trade_db, get_machine_name
     if skip_trade_db(table):
         return None
     row.setdefault("machine_name", get_machine_name())
     try:
-        r = _get_session().post(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            headers=supabase_headers(),
-            json=row,
-            timeout=10,
-        )
-        if r.status_code == 400 and "machine_name" in r.text:
-            # machine_name 컬럼이 없는 테이블 — 컬럼 제거 후 재시도 (세션 재사용)
-            row.pop("machine_name", None)
-            r = _get_session().post(
-                f"{SUPABASE_URL}/rest/v1/{table}",
-                headers=supabase_headers(),
-                json=row,
-                timeout=10,
-            )
-        if not r.ok:
-            print(f"[save_decision] {table} INSERT 실패 ({r.status_code}): {r.text[:500]}", file=sys.stderr)
-        r.raise_for_status()
-        return r.json()
+        # machine_name 등 테이블에 없는 컬럼은 어댑터가 자동 제거
+        return db.insert(table, row)
     except Exception as e:
         print(f"[save_decision] {table} INSERT 예외: {e}", file=sys.stderr)
         return None
@@ -787,16 +704,12 @@ def update_past_performance():
     profit_loss가 NULL인 과거 결정을 찾아,
     결정 시점 가격 vs 현재 가격으로 성과를 기록한다.
     """
-    r = requests.get(
-        f"{SUPABASE_URL}/rest/v1/decisions"
-        "?profit_loss=is.null&order=created_at.desc&limit=20",
-        headers=supabase_headers(),
-        timeout=10,
+    decisions = db.select(
+        "decisions",
+        filters={"profit_loss": "is.null"},
+        order="created_at.desc",
+        limit=20,
     )
-    if not r.ok:
-        return
-
-    decisions = r.json()
     if not decisions:
         return
 
@@ -838,12 +751,8 @@ def update_past_performance():
     for pl_value, ids in groups.items():
         id_filter = ",".join(f"'{i}'" for i in ids)
         try:
-            requests.patch(
-                f"{SUPABASE_URL}/rest/v1/decisions?id=in.({id_filter})",
-                headers=supabase_headers(),
-                json={"profit_loss": float(pl_value)},
-                timeout=10,
-            )
+            db.update("decisions", {"id": f"in.({id_filter})"},
+                      {"profit_loss": float(pl_value)})
         except Exception as e:
             print(f"[save_decision] 성과 일괄 업데이트 실패: {e}", file=sys.stderr)
 
@@ -854,27 +763,15 @@ def mark_feedback_applied():
     if skip_trade_db("feedback"):
         return
     try:
-        r = requests.get(
-            f"{SUPABASE_URL}/rest/v1/feedback?applied=eq.false&select=id",
-            headers=supabase_headers(),
-            timeout=10,
-        )
-        if not r.ok:
-            return
-        feedbacks = r.json()
+        feedbacks = db.select("feedback", filters={"applied": "eq.false"}, select="id")
         if not feedbacks:
             return
 
         ids = ",".join(f"'{f['id']}'" for f in feedbacks)
-        requests.patch(
-            f"{SUPABASE_URL}/rest/v1/feedback?id=in.({ids})",
-            headers=supabase_headers(),
-            json={
-                "applied": True,
-                "applied_at": datetime.now(KST).isoformat(),
-            },
-            timeout=10,
-        )
+        db.update("feedback", {"id": f"in.({ids})"}, {
+            "applied": True,
+            "applied_at": datetime.now(KST).isoformat(),
+        })
         print(f"[save_decision] {len(feedbacks)}건 피드백 applied 처리", file=sys.stderr)
     except Exception as e:
         print(f"[save_decision] 피드백 applied 갱신 실패: {e}", file=sys.stderr)
@@ -968,10 +865,6 @@ def save_market_data_record(data: dict) -> dict | None:
 
 def main():
     start_time = time.time()
-
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        print(json.dumps({"error": "SUPABASE 환경변수 미설정"}))
-        sys.exit(1)
 
     # 입력: 파이프 또는 인자
     if len(sys.argv) > 1:

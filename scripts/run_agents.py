@@ -19,6 +19,8 @@ from pathlib import Path
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 
+from core.db import db  # 로컬 DB 어댑터 (Supabase REST 대체)
+
 from dotenv import load_dotenv
 import requests
 
@@ -424,17 +426,6 @@ async def collect_internal_data() -> tuple[dict, dict, dict]:
     return market_data, portfolio, ai_signal
 
 
-def supabase_headers() -> dict:
-    """Supabase REST API 공통 헤더"""
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-    return {
-        "apikey": key,
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        "Prefer": "return=minimal",
-    }
-
-
 def save_execution_log(
     execution_mode: str,
     duration_ms: int,
@@ -447,11 +438,6 @@ def save_execution_log(
     """execution_logs 테이블에 파이프라인 실행 기록을 저장한다."""
     from utils.machine import skip_trade_db
     if skip_trade_db("execution_logs"):
-        return False
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not supabase_url or not supabase_key:
-        log("execution_logs 저장 스킵: Supabase 미설정")
         return False
 
     has_errors = bool(errors and errors.get("pipeline_errors"))
@@ -475,18 +461,9 @@ def save_execution_log(
         row["decision_id"] = decision_id
 
     try:
-        resp = requests.post(
-            f"{supabase_url}/rest/v1/execution_logs",
-            json=row,
-            headers=supabase_headers(),
-            timeout=10,
-        )
-        if resp.status_code in (200, 201):
-            log("execution_logs 기록 완료")
-            return True
-        else:
-            log(f"execution_logs 기록 실패 (HTTP {resp.status_code}): {resp.text[:300]}")
-            return False
+        db.insert("execution_logs", row)
+        log("execution_logs 기록 완료")
+        return True
     except Exception as e:
         log(f"execution_logs 기록 예외: {e}")
         return False
@@ -496,11 +473,6 @@ def save_market_data_record(market_data: dict, external_data: dict) -> bool:
     """market_data 테이블에 시장 데이터 스냅샷을 저장한다."""
     from utils.machine import skip_trade_db
     if skip_trade_db("market_data"):
-        return False
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-    if not supabase_url or not supabase_key:
-        log("market_data 저장 스킵: Supabase 미설정")
         return False
 
     ticker = market_data.get("ticker", {})
@@ -528,18 +500,9 @@ def save_market_data_record(market_data: dict, external_data: dict) -> bool:
     }
 
     try:
-        resp = requests.post(
-            f"{supabase_url}/rest/v1/market_data",
-            json=row,
-            headers=supabase_headers(),
-            timeout=10,
-        )
-        if resp.status_code in (200, 201):
-            log("market_data 기록 완료")
-            return True
-        else:
-            log(f"market_data 기록 실패 (HTTP {resp.status_code}): {resp.text[:300]}")
-            return False
+        db.insert("market_data", row)
+        log("market_data 기록 완료")
+        return True
     except Exception as e:
         log(f"market_data 기록 예외: {e}")
         return False
@@ -657,21 +620,16 @@ def main():
 
         # RAG 실패 시 기존 방식 fallback (최근 5건만)
         if not past_decisions:
-            supabase_url = os.environ.get("SUPABASE_URL", "")
-            supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-            if supabase_url and supabase_key:
-                try:
-                    resp = requests.get(
-                        f"{supabase_url}/rest/v1/decisions",
-                        params={"select": "id,decision,reason,confidence,current_price,profit_loss,created_at", "order": "created_at.desc", "limit": "5"},
-                        headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"},
-                        timeout=5,
-                    )
-                    if resp.status_code == 200:
-                        past_decisions = resp.json()
-                        log(f"RAG fallback: 최근 {len(past_decisions)}건 조회")
-                except Exception as e:
-                    log(f"Supabase 조회 실패: {e}")
+            try:
+                past_decisions = db.select(
+                    "decisions",
+                    select="id,decision,reason,confidence,current_price,profit_loss,created_at",
+                    order="created_at.desc",
+                    limit=5,
+                )
+                log(f"RAG fallback: 최근 {len(past_decisions)}건 조회")
+            except Exception as e:
+                log(f"decisions 조회 실패: {e}")
                 
         # 포트폴리오 메타 데이터 주입 — holdings list를 정규화해 portfolio["btc"]로 노출
         btc_info = _normalize_portfolio_btc(portfolio)
@@ -1045,12 +1003,10 @@ def main():
     except Exception:
         pass
         
-    # Phase 5: Supabase 기록 (decisions + market_data + execution_logs)
+    # Phase 5: 로컬 DB 기록 (decisions + market_data + execution_logs)
     from utils.machine import skip_trade_db
-    supabase_url = os.environ.get("SUPABASE_URL", "")
-    supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-    if supabase_url and supabase_key and not skip_trade_db("decisions"):
-        log("Phase 5: Supabase 기록...")
+    if not skip_trade_db("decisions"):
+        log("Phase 5: DB 기록...")
 
         # 5a. decisions 테이블
         resp = None
@@ -1105,19 +1061,11 @@ def main():
                 decision_row["external_signal_id"] = output["external_signal_id"]
             if output.get("buy_score_id"):
                 decision_row["buy_score_id"] = output["buy_score_id"]
-            decision_headers = supabase_headers()
-            decision_headers["Prefer"] = "return=representation"
-            resp = requests.post(
-                f"{supabase_url}/rest/v1/decisions",
-                json=decision_row,
-                headers=decision_headers,
-                timeout=10,
-            )
-            if resp.status_code in (200, 201):
+            resp_data_for_emb = db.insert("decisions", decision_row)
+            if resp_data_for_emb:
                 log("decisions 기록 완료")
                 # 임베딩 생성 (RAG 벡터검색용)
                 try:
-                    resp_data_for_emb = resp.json()
                     emb_decision_id = None
                     if isinstance(resp_data_for_emb, list) and resp_data_for_emb:
                         emb_decision_id = resp_data_for_emb[0].get("id")
@@ -1162,8 +1110,8 @@ def main():
                     except Exception as _rl_db_err:
                         log(f"RL prediction DB 기록 실패 (비치명적): {_rl_db_err}")
             else:
-                log(f"decisions 기록 실패 (HTTP {resp.status_code}): {resp.text[:300]}")
-                pipeline_errors.append({"phase": "phase5", "source": "decisions", "error": resp.text[:300]})
+                log("decisions 기록 실패 (db.insert None 반환)")
+                pipeline_errors.append({"phase": "phase5", "source": "decisions", "error": "db.insert None"})
         except Exception as e:
             log(f"decisions 기록 예외: {e}")
             pipeline_errors.append({"phase": "phase5", "source": "decisions", "error": str(e)})
@@ -1273,7 +1221,7 @@ def main():
     # Phase 5c: portfolio_snapshots 기록
     try:
         from utils.machine import skip_trade_db, get_machine_name
-        if not skip_trade_db("portfolio_snapshots") and supabase_url and supabase_key:
+        if not skip_trade_db("portfolio_snapshots"):
             if "error" not in portfolio:
                 log("Phase 5c: portfolio_snapshots 기록...")
                 krw_balance = int(portfolio.get("krw_balance", 0))
@@ -1289,21 +1237,8 @@ def main():
                     "cycle_id": _CYCLE_ID,
                     "machine_name": get_machine_name(),
                 }
-                snap_resp = requests.post(
-                    f"{supabase_url}/rest/v1/portfolio_snapshots",
-                    json=snap_row,
-                    headers={
-                        "apikey": supabase_key,
-                        "Authorization": f"Bearer {supabase_key}",
-                        "Content-Type": "application/json",
-                        "Prefer": "return=minimal",
-                    },
-                    timeout=10,
-                )
-                if snap_resp.status_code in (200, 201):
-                    log("[Agent] portfolio_snapshots 기록 완료")
-                else:
-                    log(f"[Agent] portfolio_snapshots 실패: HTTP {snap_resp.status_code}: {snap_resp.text[:200]}")
+                db.insert("portfolio_snapshots", snap_row)
+                log("[Agent] portfolio_snapshots 기록 완료")
             else:
                 log("[Agent] portfolio_snapshots 스킵: 포트폴리오 수집 실패")
     except Exception as e:
@@ -1311,27 +1246,14 @@ def main():
 
     # Phase 5d: 피드백 applied 처리
     try:
-        if supabase_url and supabase_key:
-            from utils.machine import skip_trade_db as _skip_fb
-            if not _skip_fb("feedback"):
-                _fb_headers = {
-                    "apikey": supabase_key,
-                    "Authorization": f"Bearer {supabase_key}",
-                    "Content-Type": "application/json",
-                }
-                _fb_r = requests.get(
-                    f"{supabase_url}/rest/v1/feedback?applied=eq.false&select=id",
-                    headers=_fb_headers, timeout=10,
-                )
-                _fb_data = _fb_r.json() if _fb_r.ok else []
-                if _fb_data:
-                    _fb_ids = ",".join(str(f['id']) for f in _fb_data if f.get('id'))
-                    requests.patch(
-                        f"{supabase_url}/rest/v1/feedback?id=in.({_fb_ids})",
-                        headers=_fb_headers, timeout=10,
-                        json={"applied": True, "applied_at": datetime.now(KST).isoformat()},
-                    )
-                    log(f"[Agent] {len(_fb_data)}건 피드백 applied 처리")
+        from utils.machine import skip_trade_db as _skip_fb
+        if not _skip_fb("feedback"):
+            _fb_data = db.select("feedback", filters={"applied": "eq.false"}, select="id")
+            if _fb_data:
+                _fb_ids = ",".join(f"'{f['id']}'" for f in _fb_data if f.get('id'))
+                db.update("feedback", {"id": f"in.({_fb_ids})"},
+                          {"applied": True, "applied_at": datetime.now(KST).isoformat()})
+                log(f"[Agent] {len(_fb_data)}건 피드백 applied 처리")
     except Exception as e:
         log(f"Phase 5d 피드백 applied 예외: {e}")
 
