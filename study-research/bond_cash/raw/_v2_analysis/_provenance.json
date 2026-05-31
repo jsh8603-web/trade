@@ -1,0 +1,275 @@
+{
+  "fetched_at": "2026-05-31T04:02:27+00:00",
+  "fetcher": "fetch_p0.py",
+  "session": "btn-powerbi",
+  "main_directive": "option A (P0 self-fetch)",
+  "sources": {
+    "DGS10": {
+      "kind": "fred",
+      "url": "https://fred.stlouisfed.org/series/DGS10",
+      "cat": "rate_nominal",
+      "rows": 16086,
+      "start": "1962-01-02",
+      "end": "2026-05-28",
+      "elapsed_sec": 2.1,
+      "first_release_default": true
+    },
+    "DGS2": {
+      "kind": "fred",
+      "url": "https://fred.stlouisfed.org/series/DGS2",
+      "cat": "rate_nominal",
+      "rows": 12494,
+      "start": "1976-06-01",
+      "end": "2026-05-28",
+      "elapsed_sec": 0.53,
+      "first_release_default": true
+    },
+    "DGS3MO": {
+      "kind": "fred",
+      "url": "https://fred.stlouisfed.org/series/DGS3MO",
+      "cat": "rate_nominal",
+      "rows": 11184,
+      "start": "1981-09-01",
+      "end": "2026-05-28",
+      "elapsed_sec": 0.64,
+      "first_release_default": true
+    },
+    "DFII10": {
+      "kind": "fred",
+      "url": "https://fred.stlouisfed.org/series/DFII10",
+      "cat": "rate_real_tips",
+      "rows": 5855,
+      "start": "2003-01-02",
+      "end": "2026-05-28",
+      "elapsed_sec": 0.75,
+      "first_release_default": true
+    },
+    "FEDFUNDS": {
+      "kind": "fred",
+      "url": "https://fred.stlouisfed.org/series/FEDFUNDS",
+      "cat": "rate_policy",
+      "rows": 862,
+      "start": "1954-07-01",
+      "end": "2026-04-01",
+      "elapsed_sec": 0.46,
+      "first_release_default": true
+    },
+    "MORTGAGE30US": {
+      "kind": "fred",
+      "url": "https://fred.stlouisfed.org/series/MORTGAGE30US",
+      "cat": "rate_mortgage",
+      "rows": 2879,
+      "start": "1971-04-02",
+      "end": "2026-05-28",
+      "elapsed_sec": 0.61,
+      "first_release_default": true
+    },
+    "BAMLH0A0HYM2": {
+      "kind": "fred",
+      "url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
+      "cat": "credit_hy_oas",
+      "rows": 786,
+      "start": "2023-05-30",
+      "end": "2026-05-28",
+      "elapsed_sec": 0.71,
+      "first_release_default": true
+    },
+    "BAA10Y": {
+      "kind": "fred",
+      "url": "https://fred.stlouisfed.org/series/BAA10Y",
+      "cat": "credit_baa_spread",
+      "rows": 10101,
+      "start": "1986-01-02",
+      "end": "2026-05-28",
+      "elapsed_sec": 0.41,
+      "first_release_default": true
+    },
+    "NFCI": {
+      "kind": "fred",
+      "url": "https://fred.stlouisfed.org/series/NFCI",
+      "cat": "financial_conditions",
+      "rows": 2890,
+      "start": "1971-01-08",
+      "end": "2026-05-22",
+      "elapsed_sec": 0.38,
+      "first_release_default": true
+    },
+    "TLT": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/TLT/",
+      "cat": "tsy_long",
+      "rows": 5997,
+      "start": "2002-07-30",
+      "end": "2026-05-29",
+      "elapsed_sec": 3.0
+    },
+    "TLH": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/TLH/",
+      "cat": "tsy_long",
+      "rows": 4876,
+      "start": "2007-01-11",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.52
+    },
+    "EDV": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/EDV/",
+      "cat": "tsy_long",
+      "rows": 4613,
+      "start": "2008-01-29",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.4
+    },
+    "IEF": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/IEF/",
+      "cat": "tsy_mid",
+      "rows": 5997,
+      "start": "2002-07-30",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.39
+    },
+    "SHY": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/SHY/",
+      "cat": "tsy_short",
+      "rows": 5997,
+      "start": "2002-07-30",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.3
+    },
+    "VGSH": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/VGSH/",
+      "cat": "tsy_short",
+      "rows": 4153,
+      "start": "2009-11-23",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.42
+    },
+    "BIL": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/BIL/",
+      "cat": "cash_tbill",
+      "rows": 4781,
+      "start": "2007-05-30",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.38
+    },
+    "SHV": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/SHV/",
+      "cat": "cash_tbill",
+      "rows": 4876,
+      "start": "2007-01-11",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.26
+    },
+    "HYG": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/HYG/",
+      "cat": "hy_credit",
+      "rows": 4815,
+      "start": "2007-04-11",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.27
+    },
+    "JNK": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/JNK/",
+      "cat": "hy_credit",
+      "rows": 4650,
+      "start": "2007-12-04",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.47
+    },
+    "LQD": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/LQD/",
+      "cat": "ig_credit",
+      "rows": 5997,
+      "start": "2002-07-30",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.71
+    },
+    "TIP": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/TIP/",
+      "cat": "tips",
+      "rows": 5655,
+      "start": "2003-12-05",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.47
+    },
+    "VTIP": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/VTIP/",
+      "cat": "tips",
+      "rows": 3423,
+      "start": "2012-10-16",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.5
+    },
+    "STIP": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/STIP/",
+      "cat": "tips",
+      "rows": 3894,
+      "start": "2010-12-03",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.45
+    },
+    "^MOVE": {
+      "kind": "yfinance",
+      "url": "https://finance.yahoo.com/quote/^MOVE/",
+      "cat": "vol_bond",
+      "rows": 5821,
+      "start": "2002-11-12",
+      "end": "2026-05-29",
+      "elapsed_sec": 0.4
+    },
+    "ACM": {
+      "kind": "ny_fed_xls",
+      "url": "https://www.newyorkfed.org/medialibrary/media/research/data_indicators/ACMTermPremium.xls",
+      "cat": "term_premium",
+      "rows": 16203,
+      "start": "1961-06-14",
+      "end": "2026-05-28",
+      "elapsed_sec": 2.29,
+      "sheet_names": [
+        "ACM Monthly",
+        "ACM Daily"
+      ],
+      "columns": [
+        "ACMY01",
+        "ACMY02",
+        "ACMY03",
+        "ACMY04",
+        "ACMY05",
+        "ACMY06",
+        "ACMY07",
+        "ACMY08",
+        "ACMY09",
+        "ACMY10",
+        "ACMTP01",
+        "ACMTP02",
+        "ACMTP03",
+        "ACMTP04",
+        "ACMTP05",
+        "ACMTP06",
+        "ACMTP07",
+        "ACMTP08",
+        "ACMTP09",
+        "ACMTP10"
+      ]
+    }
+  },
+  "tries": {
+    "fred": 9,
+    "yfinance": 15,
+    "ny_fed_xls": 1,
+    "errors_count": 0
+  },
+  "errors": []
+}

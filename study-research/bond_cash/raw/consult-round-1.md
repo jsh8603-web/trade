@@ -56,6 +56,7 @@ channels: 1자문씩 진행 (9 작업방 동시 점유 방지)
 #### ★ 액션 (Q7 자문 답)
 - **MOVE 가용 ✅** — yfinance `^MOVE` 즉시 사용 + FRED rid=209 안에서 정확한 series_id 확인 필요
 - 본 작업 즉시 검증 가능: `yf.Ticker("^MOVE").history(start="1988-01-01")` (MOVE inception 1988)
+  - **★ 2026-05-31 (btn-powerbi) Phase 4-1 fetch 실측 정정**: yfinance `^MOVE` 실제 가용 시계열 = **2002-11-12 ~ present (5,821 rows)**. MOVE 지수 inception 자체 (1988) 와 yfinance 무료 historical 가용 (2002-11~) 분리. 1988-2002 historical 필요 시 Bloomberg / ICE 별도 (유료 검토). E축 환각 정정 박제.
 - → 별 Phase (Phase 5 sub-cluster 검증) 에서 실측 후 yaml block2 indicators 등록
 
 #### MOVE 사용 layer (Q13 자문 답 직접 가능)
