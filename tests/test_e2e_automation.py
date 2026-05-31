@@ -162,22 +162,19 @@ def feedback_hub_state_with_disabled(state_dir):
 
 class TestPhase8DynamicRisk:
 
-    @patch("scripts.dynamic_risk.requests.get")
-    def test_happy_path_normal_risk(self, mock_get, env_vars, state_dir, monkeypatch):
+    @patch("scripts.dynamic_risk.db.select")
+    def test_happy_path_normal_risk(self, mock_select, env_vars, state_dir, monkeypatch):
         """Phase 8 with positive Sharpe returns NORMAL risk level."""
         import scripts.dynamic_risk as dr
 
         monkeypatch.setattr(dr, "STATE_FILE", state_dir / "dynamic_risk.json")
 
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = [
+        mock_select.return_value = [
             {"outcome_4h_pct": 1.0, "created_at": datetime.now(KST).isoformat(), "decision": "buy"},
             {"outcome_4h_pct": 0.5, "created_at": datetime.now(KST).isoformat(), "decision": "buy"},
             {"outcome_4h_pct": 0.3, "created_at": datetime.now(KST).isoformat(), "decision": "sell"},
             {"outcome_4h_pct": -0.2, "created_at": datetime.now(KST).isoformat(), "decision": "buy"},
         ]
-        mock_get.return_value = mock_resp
 
         result = dr.update_risk()
 
@@ -186,18 +183,15 @@ class TestPhase8DynamicRisk:
         assert result["sample_count"] == 4
         assert (state_dir / "dynamic_risk.json").exists()
 
-    @patch("scripts.dynamic_risk.requests.get")
-    def test_empty_supabase_returns_normal(self, mock_get, env_vars, state_dir, monkeypatch):
+    @patch("scripts.dynamic_risk.db.select")
+    def test_empty_supabase_returns_normal(self, mock_select, env_vars, state_dir, monkeypatch):
         """No decisions data -> NORMAL risk (insufficient samples)."""
         import scripts.dynamic_risk as dr
 
         monkeypatch.setattr(dr, "STATE_FILE", state_dir / "dynamic_risk.json")
         monkeypatch.setattr(dr, "DEFAULT_MAX_AMOUNT", 100000)
 
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = []
-        mock_get.return_value = mock_resp
+        mock_select.return_value = []
 
         result = dr.update_risk()
 
@@ -205,8 +199,8 @@ class TestPhase8DynamicRisk:
         assert result["sharpe_7d"] is None
         assert result["adjusted_amount"] == 100000
 
-    @patch("scripts.dynamic_risk.requests.get")
-    def test_consecutive_losses_penalty(self, mock_get, env_vars, state_dir, monkeypatch):
+    @patch("scripts.dynamic_risk.db.select")
+    def test_consecutive_losses_penalty(self, mock_select, env_vars, state_dir, monkeypatch):
         """5+ consecutive losses -> CRITICAL risk, minimum amount forced."""
         import scripts.dynamic_risk as dr
 
@@ -214,13 +208,10 @@ class TestPhase8DynamicRisk:
         monkeypatch.setattr(dr, "DEFAULT_MAX_AMOUNT", 100000)
 
         # 6 consecutive losses
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = [
+        mock_select.return_value = [
             {"outcome_4h_pct": -1.0, "created_at": (datetime.now(KST) - timedelta(hours=i)).isoformat(), "decision": "buy"}
             for i in range(6)
         ]
-        mock_get.return_value = mock_resp
 
         result = dr.update_risk()
 
@@ -235,18 +226,15 @@ class TestPhase8DynamicRisk:
 
 class TestPhase9StrategyHealth:
 
-    @patch("scripts.strategy_health.requests.get")
-    def test_happy_path_green(self, mock_get, env_vars, state_dir, monkeypatch,
+    @patch("scripts.strategy_health.db.select")
+    def test_happy_path_green(self, mock_select, env_vars, state_dir, monkeypatch,
                               supabase_decisions_with_outcomes):
         """Healthy strategy returns GREEN status."""
         import scripts.strategy_health as sh
 
         monkeypatch.setattr(sh, "STATE_FILE", state_dir / "strategy_health.json")
 
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = supabase_decisions_with_outcomes
-        mock_get.return_value = mock_resp
+        mock_select.return_value = supabase_decisions_with_outcomes
 
         result = sh.check_health(quiet=True)
 
@@ -255,17 +243,14 @@ class TestPhase9StrategyHealth:
         assert result["total_trades_7d"] == 4
         assert (state_dir / "strategy_health.json").exists()
 
-    @patch("scripts.strategy_health.requests.get")
-    def test_no_data_returns_unknown(self, mock_get, env_vars, state_dir, monkeypatch):
+    @patch("scripts.strategy_health.db.select")
+    def test_no_data_returns_unknown(self, mock_select, env_vars, state_dir, monkeypatch):
         """No decisions -> UNKNOWN status."""
         import scripts.strategy_health as sh
 
         monkeypatch.setattr(sh, "STATE_FILE", state_dir / "strategy_health.json")
 
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = []
-        mock_get.return_value = mock_resp
+        mock_select.return_value = []
 
         result = sh.check_health(quiet=True)
 
@@ -273,13 +258,13 @@ class TestPhase9StrategyHealth:
         assert result["status"] == "UNKNOWN"
         assert result["total_trades_7d"] == 0
 
-    @patch("scripts.strategy_health.requests.get")
-    def test_phase9_failure_does_not_crash(self, mock_get, env_vars, state_dir, monkeypatch):
-        """Phase 9 Supabase failure -> exception is caught gracefully."""
+    @patch("scripts.strategy_health.db.select")
+    def test_phase9_failure_does_not_crash(self, mock_select, env_vars, state_dir, monkeypatch):
+        """Phase 9 DB failure -> exception is caught gracefully."""
         import scripts.strategy_health as sh
 
         monkeypatch.setattr(sh, "STATE_FILE", state_dir / "strategy_health.json")
-        mock_get.side_effect = Exception("connection timeout")
+        mock_select.side_effect = Exception("connection timeout")
 
         # Should not raise -- just return UNKNOWN-like result
         result = sh.check_health(quiet=True)
@@ -377,9 +362,9 @@ class TestPhase11ModelRetrainer:
         assert result["queued"] == 0
         assert "비활성 모델 없음" in result["details"][0]
 
-    @patch("scripts.model_retrainer.requests.get")
-    @patch("scripts.model_retrainer.requests.post")
-    def test_disabled_model_queued(self, mock_post, mock_get, env_vars, state_dir, monkeypatch):
+    @patch("scripts.model_retrainer.db.insert")
+    @patch("scripts.model_retrainer.db.select")
+    def test_disabled_model_queued(self, mock_select, mock_insert, env_vars, state_dir, monkeypatch):
         """Disabled model with sufficient data gets queued."""
         import scripts.model_retrainer as mr
 
@@ -393,18 +378,11 @@ class TestPhase11ModelRetrainer:
         monkeypatch.setattr(mr, "STATE_FILE", fb_state_path)
         monkeypatch.setattr(mr, "QUEUE_FILE", state_dir / "model_retrain_queue.json")
 
-        # Supabase decisions count: enough samples
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.headers = {"Content-Range": "0-0/60"}
-        mock_resp.json.return_value = []
-        mock_get.return_value = mock_resp
+        # DB decisions count: enough samples (>= MIN_NEW_SAMPLES=50)
+        mock_select.return_value = [{"id": f"d{i}"} for i in range(60)]
 
-        # DB queue log
-        post_resp = MagicMock()
-        post_resp.status_code = 201
-        post_resp.json.return_value = [{"id": "cycle-123"}]
-        mock_post.return_value = post_resp
+        # DB queue log insert
+        mock_insert.return_value = [{"id": "cycle-123"}]
 
         result = mr.check_and_queue()
 
@@ -439,8 +417,8 @@ class TestPhase11ModelRetrainer:
 
 class TestPhase12RegimeLearner:
 
-    @patch("scripts.regime_learner.requests.get")
-    def test_happy_path_learns_weights(self, mock_get, env_vars, state_dir, monkeypatch,
+    @patch("scripts.regime_learner.db.select")
+    def test_happy_path_learns_weights(self, mock_select, env_vars, state_dir, monkeypatch,
                                        supabase_decisions_with_outcomes):
         """Sufficient data -> weights learned and saved."""
         import scripts.regime_learner as rl
@@ -449,10 +427,7 @@ class TestPhase12RegimeLearner:
 
         # Return enough data for at least one regime
         rows = supabase_decisions_with_outcomes * 3  # 12 rows
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = rows
-        mock_get.return_value = mock_resp
+        mock_select.return_value = rows
 
         result = rl.learn_weights()
 
@@ -461,17 +436,14 @@ class TestPhase12RegimeLearner:
         assert "sample_counts" in result
         assert (state_dir / "regime_weights_learned.json").exists()
 
-    @patch("scripts.regime_learner.requests.get")
-    def test_no_data_returns_none(self, mock_get, env_vars, state_dir, monkeypatch):
-        """No Supabase data -> learn_weights returns None."""
+    @patch("scripts.regime_learner.db.select")
+    def test_no_data_returns_none(self, mock_select, env_vars, state_dir, monkeypatch):
+        """No DB data -> learn_weights returns None."""
         import scripts.regime_learner as rl
 
         monkeypatch.setattr(rl, "WEIGHTS_FILE", state_dir / "regime_weights_learned.json")
 
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = []
-        mock_get.return_value = mock_resp
+        mock_select.return_value = []
 
         result = rl.learn_weights()
         assert result is None
@@ -483,8 +455,8 @@ class TestPhase12RegimeLearner:
 
 class TestCascadingEffects:
 
-    @patch("scripts.dynamic_risk.requests.get")
-    def test_dynamic_risk_reduces_trade_amount(self, mock_get, env_vars, state_dir, monkeypatch):
+    @patch("scripts.dynamic_risk.db.select")
+    def test_dynamic_risk_reduces_trade_amount(self, mock_select, env_vars, state_dir, monkeypatch):
         """Phase 8 CRITICAL risk -> adjusted_amount is 30% of base.
         Downstream execute_trade should use this reduced amount."""
         import scripts.dynamic_risk as dr
@@ -493,13 +465,10 @@ class TestCascadingEffects:
         monkeypatch.setattr(dr, "DEFAULT_MAX_AMOUNT", 100000)
 
         # 5 consecutive losses -> CRITICAL
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = [
+        mock_select.return_value = [
             {"outcome_4h_pct": -2.0, "created_at": (datetime.now(KST) - timedelta(hours=i)).isoformat(), "decision": "buy"}
             for i in range(5)
         ]
-        mock_get.return_value = mock_resp
 
         risk = dr.update_risk()
         assert risk["risk_level"] == "CRITICAL"
@@ -509,8 +478,8 @@ class TestCascadingEffects:
         assert adjusted is not None
         assert adjusted == int(100000 * 0.3)
 
-    @patch("scripts.regime_learner.requests.get")
-    def test_regime_learner_output_read_by_detector(self, mock_get, env_vars, state_dir, monkeypatch):
+    @patch("scripts.regime_learner.db.select")
+    def test_regime_learner_output_read_by_detector(self, mock_select, env_vars, state_dir, monkeypatch):
         """Phase 12 saves weights -> regime_detector reads them."""
         import scripts.regime_learner as rl
 
@@ -532,10 +501,7 @@ class TestCascadingEffects:
             }
             for i in range(6)
         ]
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = rows
-        mock_get.return_value = mock_resp
+        mock_select.return_value = rows
 
         learn_result = rl.learn_weights()
         assert learn_result is not None
@@ -562,13 +528,9 @@ class TestCascadingEffects:
         monkeypatch.setattr(mr, "STATE_FILE", fb_path)
         monkeypatch.setattr(mr, "QUEUE_FILE", state_dir / "model_retrain_queue.json")
 
-        # Mock Supabase to indicate not enough new samples -> skip
-        with patch("scripts.model_retrainer.requests.get") as mock_get:
-            mock_resp = MagicMock()
-            mock_resp.status_code = 200
-            mock_resp.headers = {"Content-Range": "0-0/10"}
-            mock_resp.json.return_value = []
-            mock_get.return_value = mock_resp
+        # Mock DB to indicate not enough new samples -> skip
+        with patch("scripts.model_retrainer.db.select") as mock_select:
+            mock_select.return_value = [{"id": f"d{i}"} for i in range(10)]
 
             result = mr.check_and_queue()
 
@@ -656,13 +618,13 @@ class TestStateFileEdgeCases:
 
 class TestFullPipelineFlow:
 
-    @patch("scripts.regime_learner.requests.get")
-    @patch("scripts.model_retrainer.requests.get")
-    @patch("scripts.model_retrainer.requests.post")
-    @patch("scripts.strategy_health.requests.get")
-    @patch("scripts.dynamic_risk.requests.get")
+    @patch("scripts.regime_learner.db.select")
+    @patch("scripts.model_retrainer.db.insert")
+    @patch("scripts.model_retrainer.db.select")
+    @patch("scripts.strategy_health.db.select")
+    @patch("scripts.dynamic_risk.db.select")
     def test_full_pipeline_happy_path(
-        self, mock_dr_get, mock_sh_get, mock_mr_post, mock_mr_get,
+        self, mock_dr_get, mock_sh_get, mock_mr_get, mock_mr_post,
         mock_rl_get, env_vars, state_dir, monkeypatch,
         supabase_decisions_with_outcomes,
     ):
@@ -693,19 +655,14 @@ class TestFullPipelineFlow:
         monkeypatch.setattr(mr, "QUEUE_FILE", state_dir / "model_retrain_queue.json")
         monkeypatch.setattr(rl, "WEIGHTS_FILE", state_dir / "regime_weights_learned.json")
 
-        # Mock Supabase responses
-        decisions_resp = MagicMock()
-        decisions_resp.status_code = 200
-        decisions_resp.json.return_value = supabase_decisions_with_outcomes
-        mock_dr_get.return_value = decisions_resp
-        mock_sh_get.return_value = decisions_resp
-        mock_rl_get.return_value = decisions_resp
+        # Mock DB responses (db.select returns row lists directly)
+        mock_dr_get.return_value = supabase_decisions_with_outcomes
+        mock_sh_get.return_value = supabase_decisions_with_outcomes
+        mock_rl_get.return_value = supabase_decisions_with_outcomes
 
-        mock_mr_resp = MagicMock()
-        mock_mr_resp.status_code = 200
-        mock_mr_resp.headers = {"Content-Range": "0-0/0"}
-        mock_mr_resp.json.return_value = []
-        mock_mr_get.return_value = mock_mr_resp
+        # model_retrainer: 0 new samples (disabled_rl_models empty -> queued 0)
+        mock_mr_get.return_value = []
+        mock_mr_post.return_value = [{"id": "cycle-x"}]
 
         # Phase 8
         risk = dr.update_risk()

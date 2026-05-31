@@ -600,7 +600,6 @@ class TestPipelineStructure:
             "get_rl_advisory",
             "notify_error",
             "log",
-            "supabase_headers",
         ]
         for name in must_have:
             assert hasattr(run_agents_module, name), (

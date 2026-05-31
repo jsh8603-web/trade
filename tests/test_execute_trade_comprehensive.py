@@ -547,23 +547,26 @@ class TestCheckOpenOrders:
 # ══════════════════════════════════════════════════════════════
 
 class TestRecordTradeToDb:
-    @patch("scripts.execute_trade.requests.post")
-    def test_skips_when_no_supabase_url(self, mock_post, monkeypatch):
-        monkeypatch.delenv("SUPABASE_URL", raising=False)
-        monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    """DB INSERT 는 core.db 어댑터(`execute_trade.db.insert`)로 이관됨.
+    Supabase REST(requests.post) 대체 — row 검증은 db.insert(table, row)의
+    positional row 인자에서 추출한다."""
 
-        _record_trade_to_db({"side": "bid", "success": True})
-        mock_post.assert_not_called()
+    @staticmethod
+    def _inserted_row(mock_insert):
+        args, kwargs = mock_insert.call_args
+        if "row" in kwargs:
+            return kwargs["row"]
+        return args[1]
 
-    @patch("scripts.execute_trade.requests.post")
-    def test_records_successful_trade(self, mock_post, monkeypatch):
-        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
-        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "key123")
+    @patch("scripts.execute_trade.db.insert", return_value={"id": "1"})
+    def test_skips_when_skip_trade_db(self, mock_insert, monkeypatch):
+        """skip_trade_db가 True면 DB insert 미호출 (전 Supabase URL 미설정 skip 대체)."""
+        with patch("utils.machine.skip_trade_db", return_value=True):
+            _record_trade_to_db({"side": "bid", "success": True})
+        mock_insert.assert_not_called()
 
-        mock_resp = MagicMock()
-        mock_resp.ok = True
-        mock_post.return_value = mock_resp
-
+    @patch("scripts.execute_trade.db.insert", return_value={"id": "1"})
+    def test_records_successful_trade(self, mock_insert, monkeypatch):
         result = {
             "side": "bid",
             "success": True,
@@ -577,8 +580,10 @@ class TestRecordTradeToDb:
         }
         _record_trade_to_db(result, source="agent")
 
-        mock_post.assert_called_once()
-        row = mock_post.call_args[1]["json"]
+        mock_insert.assert_called_once()
+        # db.insert("decisions", row) — table 인자 확인
+        assert mock_insert.call_args[0][0] == "decisions"
+        row = self._inserted_row(mock_insert)
         assert row["decision"] == "매수"
         assert row["source"] == "agent"
         assert row["execution_attempted"] is True
@@ -589,15 +594,8 @@ class TestRecordTradeToDb:
         assert exec_result["status"] == "success"
 
     @patch("utils.machine.skip_trade_db", return_value=False)
-    @patch("scripts.execute_trade.requests.post")
-    def test_records_failed_trade(self, mock_post, mock_skip, monkeypatch):
-        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
-        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "key123")
-
-        mock_resp = MagicMock()
-        mock_resp.ok = True
-        mock_post.return_value = mock_resp
-
+    @patch("scripts.execute_trade.db.insert", return_value={"id": "1"})
+    def test_records_failed_trade(self, mock_insert, mock_skip, monkeypatch):
         result = {
             "side": "ask",
             "success": False,
@@ -608,46 +606,29 @@ class TestRecordTradeToDb:
         }
         _record_trade_to_db(result, source="manual")
 
-        row = mock_post.call_args[1]["json"]
+        row = self._inserted_row(mock_insert)
         assert row["decision"] == "매도"
         assert row["execution_attempted"] is False
 
     @patch("utils.machine.skip_trade_db", return_value=False)
-    @patch("scripts.execute_trade.requests.post")
-    def test_retries_without_dry_run_column(self, mock_post, mock_skip, monkeypatch):
-        """If DB rejects dry_run column, retries without it."""
-        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
-        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "key123")
-
-        # First call fails with dry_run error, second succeeds
-        fail_resp = MagicMock()
-        fail_resp.ok = False
-        fail_resp.status_code = 400
-        fail_resp.text = "dry_run column does not exist"
-
-        ok_resp = MagicMock()
-        ok_resp.ok = True
-
-        mock_post.side_effect = [fail_resp, ok_resp]
-
+    @patch("scripts.execute_trade.db.insert", return_value={"id": "1"})
+    def test_insert_includes_dry_run(self, mock_insert, mock_skip, monkeypatch):
+        """dry_run 등 테이블에 없는 컬럼은 어댑터가 자동 제거하므로
+        함수는 dry_run 포함 row를 그대로 넘긴다 (이전 retry-without-column 로직 대체)."""
         _record_trade_to_db(
             {"side": "bid", "success": True, "market": "KRW-BTC",
              "amount": "50000", "dry_run": True},
             source="manual",
         )
 
-        assert mock_post.call_count == 2
-        # Second call should not have dry_run
-        second_row = mock_post.call_args_list[1][1]["json"]
-        assert "dry_run" not in second_row
+        mock_insert.assert_called_once()
+        row = self._inserted_row(mock_insert)
+        assert row["dry_run"] is True
 
-    @patch("scripts.execute_trade.requests.post")
-    def test_db_failure_does_not_raise(self, mock_post, monkeypatch):
+    @patch("utils.machine.skip_trade_db", return_value=False)
+    @patch("scripts.execute_trade.db.insert", side_effect=Exception("DB down"))
+    def test_db_failure_does_not_raise(self, mock_insert, mock_skip, monkeypatch):
         """DB write failure should not propagate (try/except)."""
-        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
-        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "key123")
-        mock_post.side_effect = Exception("Connection refused")
-
         # Should not raise
         _record_trade_to_db(
             {"side": "bid", "success": True, "market": "KRW-BTC", "amount": "50000"},

@@ -348,96 +348,86 @@ class TestSaveDecision:
 # ---------------------------------------------------------------------------
 class TestUpdatePastPerformance:
     @patch("utils.machine.skip_trade_db", return_value=False)
-    @patch("save_decision.requests.patch")
+    @patch("save_decision.db.update")
+    @patch("save_decision.db.select")
     @patch("save_decision.requests.get")
-    def test_buy_decision_profit_loss(self, mock_get, mock_patch, _skip):
+    def test_buy_decision_profit_loss(self, mock_get, mock_select, mock_update, _skip):
         """매수 결정: (현재-결정)/결정 * 100 = profit_loss"""
-        # First call: supabase GET decisions
-        supabase_resp = MagicMock()
-        supabase_resp.ok = True
-        supabase_resp.json.return_value = [
+        # db.select 미평가 결정 조회 (list[dict] 반환)
+        mock_select.return_value = [
             {"id": "aaa", "decision": "매수", "current_price": 50000000, "profit_loss": None},
         ]
-        # Second call: upbit ticker
+        # requests.get: upbit ticker (비-DB, 유지)
         ticker_resp = MagicMock()
         ticker_resp.json.return_value = [{"trade_price": 51000000}]
-
-        mock_get.side_effect = [supabase_resp, ticker_resp]
-        mock_patch.return_value = MagicMock(ok=True)
+        mock_get.return_value = ticker_resp
 
         sd.update_past_performance()
 
-        mock_patch.assert_called_once()
-        call_kwargs = mock_patch.call_args
+        mock_update.assert_called_once()
+        # db.update(table, filters, patch) — patch dict = call_args[0][2]
         # profit_loss for 매수 = (51000000 - 50000000) / 50000000 * 100 = 2.0
-        assert call_kwargs[1]["json"]["profit_loss"] == 2.0
+        assert mock_update.call_args[0][2]["profit_loss"] == 2.0
 
     @patch("utils.machine.skip_trade_db", return_value=False)
-    @patch("save_decision.requests.patch")
+    @patch("save_decision.db.update")
+    @patch("save_decision.db.select")
     @patch("save_decision.requests.get")
-    def test_sell_decision_profit_loss(self, mock_get, mock_patch, _skip):
+    def test_sell_decision_profit_loss(self, mock_get, mock_select, mock_update, _skip):
         """매도 결정: -(현재-결정)/결정 * 100"""
-        supabase_resp = MagicMock()
-        supabase_resp.ok = True
-        supabase_resp.json.return_value = [
+        mock_select.return_value = [
             {"id": "bbb", "decision": "매도", "current_price": 50000000, "profit_loss": None},
         ]
         ticker_resp = MagicMock()
         ticker_resp.json.return_value = [{"trade_price": 51000000}]
-        mock_get.side_effect = [supabase_resp, ticker_resp]
-        mock_patch.return_value = MagicMock(ok=True)
+        mock_get.return_value = ticker_resp
 
         sd.update_past_performance()
 
-        call_kwargs = mock_patch.call_args
         # 매도: -price_change_pct = -(51M-50M)/50M*100 = -2.0
-        assert call_kwargs[1]["json"]["profit_loss"] == -2.0
+        assert mock_update.call_args[0][2]["profit_loss"] == -2.0
 
     @patch("utils.machine.skip_trade_db", return_value=False)
-    @patch("save_decision.requests.patch")
+    @patch("save_decision.db.update")
+    @patch("save_decision.db.select")
     @patch("save_decision.requests.get")
-    def test_hold_decision_profit_loss(self, mock_get, mock_patch, _skip):
+    def test_hold_decision_profit_loss(self, mock_get, mock_select, mock_update, _skip):
         """관망 결정: -price_change_pct (기회비용)"""
-        supabase_resp = MagicMock()
-        supabase_resp.ok = True
-        supabase_resp.json.return_value = [
+        mock_select.return_value = [
             {"id": "ccc", "decision": "관망", "current_price": 50000000, "profit_loss": None},
         ]
         ticker_resp = MagicMock()
         ticker_resp.json.return_value = [{"trade_price": 52000000}]
-        mock_get.side_effect = [supabase_resp, ticker_resp]
-        mock_patch.return_value = MagicMock(ok=True)
+        mock_get.return_value = ticker_resp
 
         sd.update_past_performance()
 
-        call_kwargs = mock_patch.call_args
         # 관망: -price_change_pct = -(52M-50M)/50M*100 = -4.0
-        assert call_kwargs[1]["json"]["profit_loss"] == -4.0
+        assert mock_update.call_args[0][2]["profit_loss"] == -4.0
 
     @patch("utils.machine.skip_trade_db", return_value=False)
-    @patch("save_decision.requests.patch")
+    @patch("save_decision.db.update")
+    @patch("save_decision.db.select")
     @patch("save_decision.requests.get")
-    def test_batch_grouping_by_profit_loss(self, mock_get, mock_patch, _skip):
-        """같은 profit_loss 값을 가진 결정들이 한 PATCH로 묶인다."""
-        supabase_resp = MagicMock()
-        supabase_resp.ok = True
+    def test_batch_grouping_by_profit_loss(self, mock_get, mock_select, mock_update, _skip):
+        """같은 profit_loss 값을 가진 결정들이 한 db.update로 묶인다."""
         # Two buy decisions with same price → same profit_loss
-        supabase_resp.json.return_value = [
+        mock_select.return_value = [
             {"id": "d1", "decision": "매수", "current_price": 50000000, "profit_loss": None},
             {"id": "d2", "decision": "매수", "current_price": 50000000, "profit_loss": None},
         ]
         ticker_resp = MagicMock()
         ticker_resp.json.return_value = [{"trade_price": 51000000}]
-        mock_get.side_effect = [supabase_resp, ticker_resp]
-        mock_patch.return_value = MagicMock(ok=True)
+        mock_get.return_value = ticker_resp
 
         sd.update_past_performance()
 
-        # Both grouped into one PATCH call
-        assert mock_patch.call_count == 1
-        url = mock_patch.call_args[0][0]
-        assert "d1" in url
-        assert "d2" in url
+        # Both grouped into one db.update call
+        assert mock_update.call_count == 1
+        # db.update(table, filters, patch) — filters dict = call_args[0][1]
+        id_filter = mock_update.call_args[0][1]["id"]
+        assert "d1" in id_filter
+        assert "d2" in id_filter
 
     @patch("save_decision.requests.patch")
     @patch("save_decision.requests.get")
@@ -519,26 +509,23 @@ class TestUpdatePastPerformance:
 # ---------------------------------------------------------------------------
 class TestMarkFeedbackApplied:
     @patch("utils.machine.skip_trade_db", return_value=False)
-    @patch("save_decision.requests.patch")
-    @patch("save_decision.requests.get")
-    def test_normal_feedback_applied(self, mock_get, mock_patch, _skip):
-        """미반영 피드백을 가져와 applied=true로 PATCH한다."""
-        resp = MagicMock()
-        resp.ok = True
-        resp.json.return_value = [{"id": "f1"}, {"id": "f2"}]
-        mock_get.return_value = resp
-        mock_patch.return_value = MagicMock(ok=True)
+    @patch("save_decision.db.update")
+    @patch("save_decision.db.select")
+    def test_normal_feedback_applied(self, mock_select, mock_update, _skip):
+        """미반영 피드백을 가져와 applied=true로 갱신한다."""
+        mock_select.return_value = [{"id": "f1"}, {"id": "f2"}]
 
         sd.mark_feedback_applied()
 
-        mock_patch.assert_called_once()
-        call_args = mock_patch.call_args
-        assert call_args[1]["json"]["applied"] is True
-        assert "applied_at" in call_args[1]["json"]
-        # URL should contain both ids
-        url = call_args[0][0]
-        assert "f1" in url
-        assert "f2" in url
+        mock_update.assert_called_once()
+        # db.update(table, filters, patch)
+        patch_dict = mock_update.call_args[0][2]
+        assert patch_dict["applied"] is True
+        assert "applied_at" in patch_dict
+        # filters should contain both ids
+        id_filter = mock_update.call_args[0][1]["id"]
+        assert "f1" in id_filter
+        assert "f2" in id_filter
 
     @patch("save_decision.requests.patch")
     @patch("save_decision.requests.get")

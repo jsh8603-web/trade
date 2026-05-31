@@ -60,78 +60,65 @@ class TestGetCurrentPrice:
 # null price_at_switch 블로킹 수정 테스트
 # ═══════════════════════════════════════════════════
 
+def _patch_body(call_args):
+    """db.update(table, filters, patch) 의 patch dict(3번째 위치 인자) 반환."""
+    return call_args.args[2]
+
+
 class TestNullPriceBlocking:
     """price_at_switch가 null인 레코드 처리."""
 
-    @patch("scripts.evaluate_switches.requests.patch")
-    @patch("scripts.evaluate_switches.requests.get")
-    @patch.dict(os.environ, {
-        "SUPABASE_URL": "https://test.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-    })
-    def test_null_price_marked_as_neutral(self, mock_get, mock_patch):
+    @patch("scripts.evaluate_switches.db.update")
+    @patch("scripts.evaluate_switches.db.select")
+    def test_null_price_marked_as_neutral(self, mock_select, mock_update):
         """price_at_switch가 None이면 neutral 마킹 후 스킵."""
         now = datetime.now(KST)
         five_hours_ago = (now - timedelta(hours=5)).isoformat()
 
-        # GET: Supabase 조회 결과 (price_at_switch가 None)
-        mock_get.side_effect = [
-            MagicMock(
-                status_code=200,
-                json=lambda: [
-                    {
-                        "id": "aaaa-bbbb-cccc-dddd",
-                        "price_at_switch": None,
-                        "created_at": five_hours_ago,
-                        "price_after_4h": None,
-                    }
-                ],
-            ),
+        # db.select: 조회 결과 (price_at_switch가 None)
+        mock_select.return_value = [
+            {
+                "id": "aaaa-bbbb-cccc-dddd",
+                "price_at_switch": None,
+                "created_at": five_hours_ago,
+                "price_after_4h": None,
+            }
         ]
-        # PATCH: neutral 마킹
-        mock_patch.return_value = MagicMock(status_code=204)
+        mock_update.return_value = 1
 
         # get_current_price도 mock (null 레코드만 있으므로 실제론 호출됨)
         with patch("scripts.evaluate_switches.get_current_price", return_value=85_000_000):
             evaluate_pending_switches()
 
-        # PATCH가 호출되었는지 확인
-        assert mock_patch.called
-        patch_call = mock_patch.call_args
-        json_body = patch_call.kwargs.get("json") or patch_call[1].get("json")
+        # db.update가 호출되었는지 확인
+        assert mock_update.called
+        json_body = _patch_body(mock_update.call_args)
         assert json_body["outcome"] == "neutral"
         assert "누락" in json_body["outcome_reason"]
         assert json_body["evaluated_at"] is not None
 
-    @patch("scripts.evaluate_switches.requests.patch")
-    @patch("scripts.evaluate_switches.requests.get")
-    @patch.dict(os.environ, {
-        "SUPABASE_URL": "https://test.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-    })
-    def test_null_price_skips_pnl_calculation(self, mock_get, mock_patch):
+    @patch("scripts.evaluate_switches.db.update")
+    @patch("scripts.evaluate_switches.db.select")
+    def test_null_price_skips_pnl_calculation(self, mock_select, mock_update):
         """null price에서 pnl 계산 없이 바로 마킹."""
         now = datetime.now(KST)
         six_hours_ago = (now - timedelta(hours=6)).isoformat()
 
-        mock_get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: [
-                {
-                    "id": "null-price-id",
-                    "price_at_switch": None,
-                    "created_at": six_hours_ago,
-                    "price_after_4h": None,
-                }
-            ],
-        )
-        mock_patch.return_value = MagicMock(status_code=204)
+        mock_select.return_value = [
+            {
+                "id": "null-price-id",
+                "price_at_switch": None,
+                "created_at": six_hours_ago,
+                "price_after_4h": None,
+            }
+        ]
+        mock_update.return_value = 1
 
         with patch("scripts.evaluate_switches.get_current_price", return_value=85_000_000):
             evaluate_pending_switches()
 
-        # PATCH body에 profit 필드가 없어야 함
-        json_body = mock_patch.call_args.kwargs.get("json") or mock_patch.call_args[1].get("json")
+        # update patch body에 profit 필드가 없어야 함
+        json_body = _patch_body(mock_update.call_args)
         assert "profit_after_4h" not in json_body
         assert "profit_after_24h" not in json_body
 
@@ -143,134 +130,106 @@ class TestNullPriceBlocking:
 class TestNormalEvaluation:
     """price_at_switch가 있는 정상 레코드 평가."""
 
-    @patch("scripts.evaluate_switches.requests.patch")
-    @patch("scripts.evaluate_switches.requests.get")
-    @patch.dict(os.environ, {
-        "SUPABASE_URL": "https://test.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-    })
-    def test_4h_evaluation(self, mock_get, mock_patch):
+    @patch("scripts.evaluate_switches.db.update")
+    @patch("scripts.evaluate_switches.db.select")
+    def test_4h_evaluation(self, mock_select, mock_update):
         """4시간 경과 + 24시간 미경과 -> price_after_4h만 업데이트."""
         now = datetime.now(KST)
         five_hours_ago = (now - timedelta(hours=5)).isoformat()
 
-        mock_get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: [
-                {
-                    "id": "switch-4h",
-                    "price_at_switch": 80_000_000,
-                    "created_at": five_hours_ago,
-                    "price_after_4h": None,
-                }
-            ],
-        )
-        mock_patch.return_value = MagicMock(status_code=204)
+        mock_select.return_value = [
+            {
+                "id": "switch-4h",
+                "price_at_switch": 80_000_000,
+                "created_at": five_hours_ago,
+                "price_after_4h": None,
+            }
+        ]
+        mock_update.return_value = 1
 
         with patch("scripts.evaluate_switches.get_current_price", return_value=82_000_000):
             evaluate_pending_switches()
 
-        json_body = mock_patch.call_args.kwargs.get("json") or mock_patch.call_args[1].get("json")
+        json_body = _patch_body(mock_update.call_args)
         assert json_body["price_after_4h"] == 82_000_000
         # profit = (82M - 80M) / 80M * 100 = 2.5%
         assert json_body["profit_after_4h"] == pytest.approx(2.5)
         # 24h 평가는 아직 안됨
         assert "outcome" not in json_body
 
-    @patch("scripts.evaluate_switches.requests.patch")
-    @patch("scripts.evaluate_switches.requests.get")
-    @patch.dict(os.environ, {
-        "SUPABASE_URL": "https://test.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-    })
-    def test_24h_evaluation_good(self, mock_get, mock_patch):
+    @patch("scripts.evaluate_switches.db.update")
+    @patch("scripts.evaluate_switches.db.select")
+    def test_24h_evaluation_good(self, mock_select, mock_update):
         """24시간 경과 + 수익 1%+ -> outcome=good."""
         now = datetime.now(KST)
         twenty_five_hours_ago = (now - timedelta(hours=25)).isoformat()
 
-        mock_get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: [
-                {
-                    "id": "switch-24h-good",
-                    "price_at_switch": 80_000_000,
-                    "created_at": twenty_five_hours_ago,
-                    "price_after_4h": None,  # 4h도 미평가
-                }
-            ],
-        )
-        mock_patch.return_value = MagicMock(status_code=204)
+        mock_select.return_value = [
+            {
+                "id": "switch-24h-good",
+                "price_at_switch": 80_000_000,
+                "created_at": twenty_five_hours_ago,
+                "price_after_4h": None,  # 4h도 미평가
+            }
+        ]
+        mock_update.return_value = 1
 
         # 82M -> +2.5% (> 1%)
         with patch("scripts.evaluate_switches.get_current_price", return_value=82_000_000):
             evaluate_pending_switches()
 
-        json_body = mock_patch.call_args.kwargs.get("json") or mock_patch.call_args[1].get("json")
+        json_body = _patch_body(mock_update.call_args)
         assert json_body["outcome"] == "good"
         assert json_body["profit_after_24h"] == pytest.approx(2.5)
         assert "evaluated_at" in json_body
 
-    @patch("scripts.evaluate_switches.requests.patch")
-    @patch("scripts.evaluate_switches.requests.get")
-    @patch.dict(os.environ, {
-        "SUPABASE_URL": "https://test.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-    })
-    def test_24h_evaluation_bad(self, mock_get, mock_patch):
+    @patch("scripts.evaluate_switches.db.update")
+    @patch("scripts.evaluate_switches.db.select")
+    def test_24h_evaluation_bad(self, mock_select, mock_update):
         """24시간 경과 + 손실 -1% 이하 -> outcome=bad."""
         now = datetime.now(KST)
         twenty_five_hours_ago = (now - timedelta(hours=25)).isoformat()
 
-        mock_get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: [
-                {
-                    "id": "switch-24h-bad",
-                    "price_at_switch": 80_000_000,
-                    "created_at": twenty_five_hours_ago,
-                    "price_after_4h": None,
-                }
-            ],
-        )
-        mock_patch.return_value = MagicMock(status_code=204)
+        mock_select.return_value = [
+            {
+                "id": "switch-24h-bad",
+                "price_at_switch": 80_000_000,
+                "created_at": twenty_five_hours_ago,
+                "price_after_4h": None,
+            }
+        ]
+        mock_update.return_value = 1
 
         # 78M -> -2.5% (< -1%)
         with patch("scripts.evaluate_switches.get_current_price", return_value=78_000_000):
             evaluate_pending_switches()
 
-        json_body = mock_patch.call_args.kwargs.get("json") or mock_patch.call_args[1].get("json")
+        json_body = _patch_body(mock_update.call_args)
         assert json_body["outcome"] == "bad"
         assert json_body["profit_after_24h"] == pytest.approx(-2.5)
 
-    @patch("scripts.evaluate_switches.requests.patch")
-    @patch("scripts.evaluate_switches.requests.get")
-    @patch.dict(os.environ, {
-        "SUPABASE_URL": "https://test.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-    })
-    def test_24h_evaluation_neutral(self, mock_get, mock_patch):
+    @patch("scripts.evaluate_switches.db.update")
+    @patch("scripts.evaluate_switches.db.select")
+    def test_24h_evaluation_neutral(self, mock_select, mock_update):
         """24시간 경과 + 변동 -1%~+1% -> outcome=neutral."""
         now = datetime.now(KST)
         twenty_five_hours_ago = (now - timedelta(hours=25)).isoformat()
 
-        mock_get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: [
-                {
-                    "id": "switch-24h-neutral",
-                    "price_at_switch": 80_000_000,
-                    "created_at": twenty_five_hours_ago,
-                    "price_after_4h": 80_100_000,
-                }
-            ],
-        )
-        mock_patch.return_value = MagicMock(status_code=204)
+        mock_select.return_value = [
+            {
+                "id": "switch-24h-neutral",
+                "price_at_switch": 80_000_000,
+                "created_at": twenty_five_hours_ago,
+                "price_after_4h": 80_100_000,
+            }
+        ]
+        mock_update.return_value = 1
 
         # 80.5M -> +0.625% (neutral range)
         with patch("scripts.evaluate_switches.get_current_price", return_value=80_500_000):
             evaluate_pending_switches()
 
-        json_body = mock_patch.call_args.kwargs.get("json") or mock_patch.call_args[1].get("json")
+        json_body = _patch_body(mock_update.call_args)
         assert json_body["outcome"] == "neutral"
 
 
@@ -281,88 +240,64 @@ class TestNormalEvaluation:
 class TestEdgeCases:
     """경계 조건과 에러 처리."""
 
-    @patch("scripts.evaluate_switches.requests.get")
-    @patch.dict(os.environ, {
-        "SUPABASE_URL": "https://test.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-    })
-    def test_no_pending_switches(self, mock_get):
+    @patch("scripts.evaluate_switches.db.update")
+    @patch("scripts.evaluate_switches.db.select")
+    def test_no_pending_switches(self, mock_select, mock_update):
         """평가할 전환이 없으면 조용히 종료."""
-        mock_get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: [],
-        )
+        mock_select.return_value = []
+        # 예외 없이 종료, update 미호출
+        evaluate_pending_switches()
+        mock_update.assert_not_called()
+
+    @patch("scripts.evaluate_switches.db.update")
+    @patch("scripts.evaluate_switches.db.select")
+    def test_select_exception_returns_early(self, mock_select, mock_update):
+        """db.select 조회 실패 시 조기 반환."""
+        mock_select.side_effect = Exception("DB error")
         # 예외 없이 종료
         evaluate_pending_switches()
+        mock_update.assert_not_called()
 
-    @patch.dict(os.environ, {"SUPABASE_URL": "", "SUPABASE_SERVICE_ROLE_KEY": ""})
-    def test_missing_env_vars(self):
-        """SUPABASE 환경변수 미설정 시 조기 반환."""
-        # 예외 없이 종료
-        evaluate_pending_switches()
-
-    @patch("scripts.evaluate_switches.requests.get")
-    @patch.dict(os.environ, {
-        "SUPABASE_URL": "https://test.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-    })
-    def test_api_error_status(self, mock_get):
-        """Supabase 조회 실패 시 조기 반환."""
-        mock_get.return_value = MagicMock(status_code=500)
-        # 예외 없이 종료
-        evaluate_pending_switches()
-
-    @patch("scripts.evaluate_switches.requests.get")
-    @patch.dict(os.environ, {
-        "SUPABASE_URL": "https://test.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-    })
-    def test_price_fetch_failure_returns_early(self, mock_get):
+    @patch("scripts.evaluate_switches.db.update")
+    @patch("scripts.evaluate_switches.db.select")
+    def test_price_fetch_failure_returns_early(self, mock_select, mock_update):
         """현재가 조회 실패 시 조기 반환."""
         now = datetime.now(KST)
         five_hours_ago = (now - timedelta(hours=5)).isoformat()
 
-        mock_get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: [
-                {
-                    "id": "switch-no-price",
-                    "price_at_switch": 80_000_000,
-                    "created_at": five_hours_ago,
-                    "price_after_4h": None,
-                }
-            ],
-        )
+        mock_select.return_value = [
+            {
+                "id": "switch-no-price",
+                "price_at_switch": 80_000_000,
+                "created_at": five_hours_ago,
+                "price_after_4h": None,
+            }
+        ]
 
         with patch("scripts.evaluate_switches.get_current_price", return_value=0):
             # current_price == 0 -> 조기 반환
             evaluate_pending_switches()
 
-    @patch("scripts.evaluate_switches.requests.patch")
-    @patch("scripts.evaluate_switches.requests.get")
-    @patch.dict(os.environ, {
-        "SUPABASE_URL": "https://test.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-    })
-    def test_invalid_created_at_skipped(self, mock_get, mock_patch):
+        mock_update.assert_not_called()
+
+    @patch("scripts.evaluate_switches.db.update")
+    @patch("scripts.evaluate_switches.db.select")
+    def test_invalid_created_at_skipped(self, mock_select, mock_update):
         """created_at 파싱 실패 시 해당 레코드 스킵."""
-        mock_get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: [
-                {
-                    "id": "bad-date",
-                    "price_at_switch": 80_000_000,
-                    "created_at": "invalid-date-string",
-                    "price_after_4h": None,
-                }
-            ],
-        )
+        mock_select.return_value = [
+            {
+                "id": "bad-date",
+                "price_at_switch": 80_000_000,
+                "created_at": "invalid-date-string",
+                "price_after_4h": None,
+            }
+        ]
 
         with patch("scripts.evaluate_switches.get_current_price", return_value=82_000_000):
             evaluate_pending_switches()
 
-        # PATCH 호출되지 않아야 함 (파싱 실패로 스킵)
-        mock_patch.assert_not_called()
+        # update 호출되지 않아야 함 (파싱 실패로 스킵)
+        mock_update.assert_not_called()
 
 
 # ═══════════════════════════════════════════════════
@@ -372,41 +307,34 @@ class TestEdgeCases:
 class TestMixedRecords:
     """null과 정상 레코드가 섞인 경우."""
 
-    @patch("scripts.evaluate_switches.requests.patch")
-    @patch("scripts.evaluate_switches.requests.get")
-    @patch.dict(os.environ, {
-        "SUPABASE_URL": "https://test.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "test-key",
-    })
-    def test_mixed_null_and_valid(self, mock_get, mock_patch):
+    @patch("scripts.evaluate_switches.db.update")
+    @patch("scripts.evaluate_switches.db.select")
+    def test_mixed_null_and_valid(self, mock_select, mock_update):
         """null price와 정상 price가 섞인 배치 처리."""
         now = datetime.now(KST)
         five_hours_ago = (now - timedelta(hours=5)).isoformat()
 
-        mock_get.return_value = MagicMock(
-            status_code=200,
-            json=lambda: [
-                {
-                    "id": "null-record",
-                    "price_at_switch": None,
-                    "created_at": five_hours_ago,
-                    "price_after_4h": None,
-                },
-                {
-                    "id": "valid-record",
-                    "price_at_switch": 80_000_000,
-                    "created_at": five_hours_ago,
-                    "price_after_4h": None,
-                },
-            ],
-        )
-        mock_patch.return_value = MagicMock(status_code=204)
+        mock_select.return_value = [
+            {
+                "id": "null-record",
+                "price_at_switch": None,
+                "created_at": five_hours_ago,
+                "price_after_4h": None,
+            },
+            {
+                "id": "valid-record",
+                "price_at_switch": 80_000_000,
+                "created_at": five_hours_ago,
+                "price_after_4h": None,
+            },
+        ]
+        mock_update.return_value = 1
 
         with patch("scripts.evaluate_switches.get_current_price", return_value=82_000_000):
             evaluate_pending_switches()
 
-        # 2번 PATCH (null 마킹 1회 + 4h 평가 1회)
-        assert mock_patch.call_count == 2
+        # 2번 update (null 마킹 1회 + 4h 평가 1회)
+        assert mock_update.call_count == 2
 
 
 if __name__ == "__main__":

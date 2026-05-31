@@ -40,32 +40,25 @@ def _import_retrospective():
     return importlib.import_module("scripts.retrospective")
 
 
-def _make_fake_response(json_payload, ok=True):
-    """Build a fake requests.Response-like MagicMock."""
-    resp = MagicMock()
-    resp.ok = ok
-    resp.json = MagicMock(return_value=json_payload)
-    resp.status_code = 200 if ok else 500
-    return resp
-
-
-def _build_get_side_effect(accuracy=None, missed=None, bad=None):
+def _build_db_select_side_effect(accuracy=None, missed=None, bad=None):
     """
-    Construct a side_effect function for requests.Session.get that routes
-    by URL fragment to the three views queried in report().
+    Construct a side_effect for core.db.db.select that routes by the
+    requested view (table name) to the three views queried in report().
+
+    db.select(table, *, filters=None, order=None, limit=None, select=...)
     """
     accuracy = accuracy if accuracy is not None else []
     missed = missed if missed is not None else []
     bad = bad if bad is not None else []
 
-    def _side_effect(url, *args, **kwargs):
-        if "v_decision_accuracy" in url:
-            return _make_fake_response(accuracy)
-        if "v_missed_opportunities" in url:
-            return _make_fake_response(missed)
-        if "v_bad_trades" in url:
-            return _make_fake_response(bad)
-        return _make_fake_response([])
+    def _side_effect(table, *args, **kwargs):
+        if table == "v_decision_accuracy":
+            return accuracy
+        if table == "v_missed_opportunities":
+            return missed
+        if table == "v_bad_trades":
+            return bad
+        return []
 
     return _side_effect
 
@@ -102,13 +95,10 @@ class TestReportNullSafety:
             }
         ]
 
-        session_mock = MagicMock()
-        session_mock.get.side_effect = _build_get_side_effect(
-            missed=missed, bad=bad
-        )
-
-        with patch.object(mod, "_get_session", return_value=session_mock), \
-             patch.object(mod, "supabase_headers", return_value={}):
+        with patch.object(
+            mod.db, "select",
+            side_effect=_build_db_select_side_effect(missed=missed, bad=bad),
+        ):
             mod.report()
 
         captured = capsys.readouterr().out
@@ -132,11 +122,10 @@ class TestReportNullSafety:
             }
         ]
 
-        session_mock = MagicMock()
-        session_mock.get.side_effect = _build_get_side_effect(bad=bad)
-
-        with patch.object(mod, "_get_session", return_value=session_mock), \
-             patch.object(mod, "supabase_headers", return_value={}):
+        with patch.object(
+            mod.db, "select",
+            side_effect=_build_db_select_side_effect(bad=bad),
+        ):
             mod.report()  # TypeError가 나면 여기서 터짐
 
         captured = capsys.readouterr().out
@@ -181,13 +170,12 @@ class TestReportNullSafety:
             }
         ]
 
-        session_mock = MagicMock()
-        session_mock.get.side_effect = _build_get_side_effect(
-            accuracy=accuracy, missed=missed, bad=bad
-        )
-
-        with patch.object(mod, "_get_session", return_value=session_mock), \
-             patch.object(mod, "supabase_headers", return_value={}):
+        with patch.object(
+            mod.db, "select",
+            side_effect=_build_db_select_side_effect(
+                accuracy=accuracy, missed=missed, bad=bad
+            ),
+        ):
             # 이 호출이 TypeError 없이 완주해야 한다
             mod.report()
 

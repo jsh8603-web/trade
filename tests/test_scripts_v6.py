@@ -532,18 +532,21 @@ class TestEvaluateSwitchesNullPrice:
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test_key")
 
-    @patch("evaluate_switches.requests")
+    @staticmethod
+    def _patch_body(call_args):
+        """db.update(table, filters, patch) 의 patch dict(3번째 위치 인자) 반환."""
+        return call_args.args[2]
+
+    @patch("evaluate_switches.db.update")
+    @patch("evaluate_switches.db.select")
     @patch("evaluate_switches.get_current_price", return_value=100_000_000)
-    def test_null_price_at_switch_marked_neutral(self, mock_price, mock_requests):
+    def test_null_price_at_switch_marked_neutral(self, mock_price, mock_select, mock_update):
         """Switch with null price_at_switch is marked as neutral/unevaluable."""
         from evaluate_switches import evaluate_pending_switches
 
         cutoff = (datetime.now(KST) - timedelta(hours=5)).isoformat()
 
-        # Mock GET response: one switch with null price
-        mock_get_resp = MagicMock()
-        mock_get_resp.status_code = 200
-        mock_get_resp.json.return_value = [
+        mock_select.return_value = [
             {
                 "id": "abc-123-null-price",
                 "price_at_switch": None,
@@ -551,35 +554,27 @@ class TestEvaluateSwitchesNullPrice:
                 "price_after_4h": None,
             }
         ]
-
-        # Mock PATCH response
-        mock_patch_resp = MagicMock()
-        mock_patch_resp.status_code = 204
-
-        mock_requests.get.return_value = mock_get_resp
-        mock_requests.patch.return_value = mock_patch_resp
+        mock_update.return_value = 1
 
         evaluate_pending_switches()
 
-        # Verify PATCH was called to mark it as neutral
-        mock_requests.patch.assert_called_once()
-        call_kwargs = mock_requests.patch.call_args
-        patch_json = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
+        # Verify db.update was called to mark it as neutral
+        mock_update.assert_called_once()
+        patch_json = self._patch_body(mock_update.call_args)
         assert patch_json["outcome"] == "neutral"
         assert "누락" in patch_json["outcome_reason"]
         assert "evaluated_at" in patch_json
 
-    @patch("evaluate_switches.requests")
+    @patch("evaluate_switches.db.update")
+    @patch("evaluate_switches.db.select")
     @patch("evaluate_switches.get_current_price", return_value=105_000_000)
-    def test_valid_price_evaluated_good(self, mock_price, mock_requests):
+    def test_valid_price_evaluated_good(self, mock_price, mock_select, mock_update):
         """Switch with valid price and +5% after 24h is marked good."""
         from evaluate_switches import evaluate_pending_switches
 
         created = (datetime.now(KST) - timedelta(hours=25)).isoformat()
 
-        mock_get_resp = MagicMock()
-        mock_get_resp.status_code = 200
-        mock_get_resp.json.return_value = [
+        mock_select.return_value = [
             {
                 "id": "def-456-good",
                 "price_at_switch": 100_000_000,
@@ -587,32 +582,25 @@ class TestEvaluateSwitchesNullPrice:
                 "price_after_4h": None,
             }
         ]
-
-        mock_patch_resp = MagicMock()
-        mock_patch_resp.status_code = 204
-
-        mock_requests.get.return_value = mock_get_resp
-        mock_requests.patch.return_value = mock_patch_resp
+        mock_update.return_value = 1
 
         evaluate_pending_switches()
 
-        mock_requests.patch.assert_called_once()
-        call_kwargs = mock_requests.patch.call_args
-        patch_json = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
+        mock_update.assert_called_once()
+        patch_json = self._patch_body(mock_update.call_args)
         assert patch_json["outcome"] == "good"
         assert patch_json["profit_after_24h"] == 5.0
 
-    @patch("evaluate_switches.requests")
+    @patch("evaluate_switches.db.update")
+    @patch("evaluate_switches.db.select")
     @patch("evaluate_switches.get_current_price", return_value=97_000_000)
-    def test_valid_price_evaluated_bad(self, mock_price, mock_requests):
+    def test_valid_price_evaluated_bad(self, mock_price, mock_select, mock_update):
         """Switch with -3% after 24h is marked bad."""
         from evaluate_switches import evaluate_pending_switches
 
         created = (datetime.now(KST) - timedelta(hours=25)).isoformat()
 
-        mock_get_resp = MagicMock()
-        mock_get_resp.status_code = 200
-        mock_get_resp.json.return_value = [
+        mock_select.return_value = [
             {
                 "id": "ghi-789-bad",
                 "price_at_switch": 100_000_000,
@@ -620,31 +608,24 @@ class TestEvaluateSwitchesNullPrice:
                 "price_after_4h": None,
             }
         ]
-
-        mock_patch_resp = MagicMock()
-        mock_patch_resp.status_code = 204
-
-        mock_requests.get.return_value = mock_get_resp
-        mock_requests.patch.return_value = mock_patch_resp
+        mock_update.return_value = 1
 
         evaluate_pending_switches()
 
-        call_kwargs = mock_requests.patch.call_args
-        patch_json = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
+        patch_json = self._patch_body(mock_update.call_args)
         assert patch_json["outcome"] == "bad"
         assert patch_json["profit_after_24h"] == -3.0
 
-    @patch("evaluate_switches.requests")
+    @patch("evaluate_switches.db.update")
+    @patch("evaluate_switches.db.select")
     @patch("evaluate_switches.get_current_price", return_value=100_500_000)
-    def test_4h_only_evaluation(self, mock_price, mock_requests):
+    def test_4h_only_evaluation(self, mock_price, mock_select, mock_update):
         """Switch 5h old gets 4h evaluation but not 24h."""
         from evaluate_switches import evaluate_pending_switches
 
         created = (datetime.now(KST) - timedelta(hours=5)).isoformat()
 
-        mock_get_resp = MagicMock()
-        mock_get_resp.status_code = 200
-        mock_get_resp.json.return_value = [
+        mock_select.return_value = [
             {
                 "id": "jkl-012-4h",
                 "price_at_switch": 100_000_000,
@@ -652,78 +633,64 @@ class TestEvaluateSwitchesNullPrice:
                 "price_after_4h": None,
             }
         ]
-
-        mock_patch_resp = MagicMock()
-        mock_patch_resp.status_code = 204
-
-        mock_requests.get.return_value = mock_get_resp
-        mock_requests.patch.return_value = mock_patch_resp
+        mock_update.return_value = 1
 
         evaluate_pending_switches()
 
-        call_kwargs = mock_requests.patch.call_args
-        patch_json = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
+        patch_json = self._patch_body(mock_update.call_args)
         assert "price_after_4h" in patch_json
         assert patch_json["price_after_4h"] == 100_500_000
         # Should NOT have 24h evaluation yet
         assert "outcome" not in patch_json
 
-    @patch("evaluate_switches.requests")
+    @patch("evaluate_switches.db.update")
+    @patch("evaluate_switches.db.select")
     @patch("evaluate_switches.get_current_price", return_value=0)
-    def test_zero_current_price_aborts(self, mock_price, mock_requests):
+    def test_zero_current_price_aborts(self, mock_price, mock_select, mock_update):
         """Evaluation aborts when current price is 0."""
         from evaluate_switches import evaluate_pending_switches
 
-        mock_get_resp = MagicMock()
-        mock_get_resp.status_code = 200
-        mock_get_resp.json.return_value = [
+        mock_select.return_value = [
             {"id": "mno-345", "price_at_switch": 100_000_000,
              "created_at": (datetime.now(KST) - timedelta(hours=5)).isoformat(),
              "price_after_4h": None}
         ]
 
-        mock_requests.get.return_value = mock_get_resp
-
         evaluate_pending_switches()
 
-        # PATCH should NOT be called because current price is 0
-        mock_requests.patch.assert_not_called()
+        # update should NOT be called because current price is 0
+        mock_update.assert_not_called()
 
-    @patch("evaluate_switches.requests")
-    def test_no_supabase_env_returns_early(self, mock_requests, monkeypatch):
-        """Missing SUPABASE env vars causes early return."""
-        monkeypatch.setenv("SUPABASE_URL", "")
+    @patch("evaluate_switches.db.update")
+    @patch("evaluate_switches.db.select")
+    def test_select_exception_returns_early(self, mock_select, mock_update):
+        """db.select 조회 실패 시 조기 반환."""
         from evaluate_switches import evaluate_pending_switches
+        mock_select.side_effect = Exception("DB error")
         evaluate_pending_switches()
-        mock_requests.get.assert_not_called()
+        mock_update.assert_not_called()
 
-    @patch("evaluate_switches.requests")
+    @patch("evaluate_switches.db.update")
+    @patch("evaluate_switches.db.select")
     @patch("evaluate_switches.get_current_price", return_value=100_000_000)
-    def test_mixed_null_and_valid_prices(self, mock_price, mock_requests):
+    def test_mixed_null_and_valid_prices(self, mock_price, mock_select, mock_update):
         """Batch with both null and valid prices processes correctly."""
         from evaluate_switches import evaluate_pending_switches
 
         created_old = (datetime.now(KST) - timedelta(hours=25)).isoformat()
 
-        mock_get_resp = MagicMock()
-        mock_get_resp.status_code = 200
-        mock_get_resp.json.return_value = [
+        mock_select.return_value = [
             {"id": "null-1", "price_at_switch": None,
              "created_at": created_old, "price_after_4h": None},
             {"id": "valid-1", "price_at_switch": 100_000_000,
              "created_at": created_old, "price_after_4h": None},
         ]
-
-        mock_patch_resp = MagicMock()
-        mock_patch_resp.status_code = 204
-
-        mock_requests.get.return_value = mock_get_resp
-        mock_requests.patch.return_value = mock_patch_resp
+        mock_update.return_value = 1
 
         evaluate_pending_switches()
 
-        # Should have 2 PATCH calls (one for null, one for valid)
-        assert mock_requests.patch.call_count == 2
+        # Should have 2 update calls (one for null, one for valid)
+        assert mock_update.call_count == 2
 
 
 # ===========================================================================

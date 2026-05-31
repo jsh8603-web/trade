@@ -1,11 +1,12 @@
 """
 Unit tests for _record_trade_to_db's v1.32.1 current_price/trade_amount logic.
 
-Target: scripts/execute_trade.py lines 545-605
+Target: scripts/execute_trade.py _record_trade_to_db
   - current_price: response.price 우선, 없으면 Upbit /ticker fallback
   - trade_amount: bid→amount, ask→funds/executed_funds / volume*price / amount*price
 
-All network calls (requests.get/post) and utils.machine.* are mocked.
+DB INSERT 는 core.db 어댑터(`execute_trade.db.insert`)로 이관됨 — Supabase REST(requests.post) 대체.
+Upbit /ticker fallback 은 여전히 requests.get 사용 → 그대로 mock.
 """
 
 import json
@@ -20,19 +21,10 @@ with patch("dotenv.load_dotenv"):
 # ── Fixtures ────────────────────────────────────────────────
 
 @pytest.fixture
-def supabase_env(monkeypatch):
-    """Set Supabase credentials so _record_trade_to_db actually runs."""
-    monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
-    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-
-
-@pytest.fixture
-def ok_post():
-    """POST mock that returns a successful response."""
-    resp = MagicMock()
-    resp.ok = True
-    resp.status_code = 201
-    return resp
+def ok_insert():
+    """db.insert mock that returns an inserted row (avoids NoneType subscripting)."""
+    mi = MagicMock(return_value={"id": "1"})
+    return mi
 
 
 @pytest.fixture
@@ -43,12 +35,20 @@ def _patches():
         yield skip, mname
 
 
+def _inserted_row(mock_insert):
+    """db.insert(table, row) 의 row(positional[1]) 추출."""
+    args, kwargs = mock_insert.call_args
+    if "row" in kwargs:
+        return kwargs["row"]
+    return args[1]
+
+
 # ── Tests ───────────────────────────────────────────────────
 
 class TestCurrentPrice:
-    def test_current_price_from_response(self, supabase_env, ok_post, _patches):
+    def test_current_price_from_response(self, ok_insert, _patches):
         """response.price가 있으면 ticker API 호출 없이 그걸 사용."""
-        with patch("scripts.execute_trade.requests.post", return_value=ok_post) as mp, \
+        with patch("scripts.execute_trade.db.insert", ok_insert) as mp, \
              patch("scripts.execute_trade.requests.get") as mg:
             result = {
                 "side": "bid",
@@ -61,16 +61,16 @@ class TestCurrentPrice:
             _record_trade_to_db(result, source="agent")
 
         mg.assert_not_called()  # ticker fallback 호출 안 됨
-        row = mp.call_args[1]["json"]
+        row = _inserted_row(mp)
         assert row["current_price"] == 100000000
 
-    def test_current_price_fallback_to_ticker(self, supabase_env, ok_post, _patches):
+    def test_current_price_fallback_to_ticker(self, ok_insert, _patches):
         """response.price 없으면 Upbit /ticker로 fallback."""
         ticker_resp = MagicMock()
         ticker_resp.ok = True
         ticker_resp.json.return_value = [{"trade_price": 95000000.0}]
 
-        with patch("scripts.execute_trade.requests.post", return_value=ok_post) as mp, \
+        with patch("scripts.execute_trade.db.insert", ok_insert) as mp, \
              patch("scripts.execute_trade.requests.get", return_value=ticker_resp) as mg:
             result = {
                 "side": "bid",
@@ -87,12 +87,12 @@ class TestCurrentPrice:
         args, kwargs = mg.call_args
         assert "/ticker" in args[0]
         assert kwargs["params"]["markets"] == "KRW-BTC"
-        row = mp.call_args[1]["json"]
+        row = _inserted_row(mp)
         assert row["current_price"] == 95000000
 
-    def test_current_price_ticker_failure_safe(self, supabase_env, ok_post, _patches):
+    def test_current_price_ticker_failure_safe(self, ok_insert, _patches):
         """ticker 호출이 예외여도 함수는 죽지 않고 current_price 없이 기록."""
-        with patch("scripts.execute_trade.requests.post", return_value=ok_post) as mp, \
+        with patch("scripts.execute_trade.db.insert", ok_insert) as mp, \
              patch("scripts.execute_trade.requests.get",
                    side_effect=Exception("network down")):
             result = {
@@ -107,15 +107,15 @@ class TestCurrentPrice:
             _record_trade_to_db(result, source="agent")
 
         mp.assert_called_once()
-        row = mp.call_args[1]["json"]
+        row = _inserted_row(mp)
         # current_price는 None이므로 row에 키가 없어야 함
         assert "current_price" not in row
 
 
 class TestTradeAmount:
-    def test_trade_amount_for_bid(self, supabase_env, ok_post, _patches):
+    def test_trade_amount_for_bid(self, ok_insert, _patches):
         """side=bid이면 result.amount가 그대로 trade_amount (KRW)."""
-        with patch("scripts.execute_trade.requests.post", return_value=ok_post) as mp, \
+        with patch("scripts.execute_trade.db.insert", ok_insert) as mp, \
              patch("scripts.execute_trade.requests.get"):
             result = {
                 "side": "bid",
@@ -127,12 +127,12 @@ class TestTradeAmount:
             }
             _record_trade_to_db(result, source="agent")
 
-        row = mp.call_args[1]["json"]
+        row = _inserted_row(mp)
         assert row["trade_amount"] == 75000.0
 
-    def test_trade_amount_for_ask_with_funds(self, supabase_env, ok_post, _patches):
+    def test_trade_amount_for_ask_with_funds(self, ok_insert, _patches):
         """side=ask이고 response.funds가 있으면 그걸 사용."""
-        with patch("scripts.execute_trade.requests.post", return_value=ok_post) as mp, \
+        with patch("scripts.execute_trade.db.insert", ok_insert) as mp, \
              patch("scripts.execute_trade.requests.get"):
             result = {
                 "side": "ask",
@@ -149,13 +149,13 @@ class TestTradeAmount:
             }
             _record_trade_to_db(result, source="agent")
 
-        row = mp.call_args[1]["json"]
+        row = _inserted_row(mp)
         assert row["trade_amount"] == 99500.0
 
     def test_trade_amount_for_ask_with_volume_price(
-            self, supabase_env, ok_post, _patches):
+            self, ok_insert, _patches):
         """funds 없을 땐 volume * price 로 계산."""
-        with patch("scripts.execute_trade.requests.post", return_value=ok_post) as mp, \
+        with patch("scripts.execute_trade.db.insert", ok_insert) as mp, \
              patch("scripts.execute_trade.requests.get"):
             result = {
                 "side": "ask",
@@ -172,19 +172,19 @@ class TestTradeAmount:
             }
             _record_trade_to_db(result, source="agent")
 
-        row = mp.call_args[1]["json"]
+        row = _inserted_row(mp)
         assert row["trade_amount"] == pytest.approx(0.002 * 50000000)
 
 
 class TestDryRunRecording:
     def test_dry_run_still_records_current_price(
-            self, supabase_env, ok_post, _patches):
+            self, ok_insert, _patches):
         """dry_run=True여도 ticker fallback으로 current_price가 채워져야 함."""
         ticker_resp = MagicMock()
         ticker_resp.ok = True
         ticker_resp.json.return_value = [{"trade_price": 88000000.0}]
 
-        with patch("scripts.execute_trade.requests.post", return_value=ok_post) as mp, \
+        with patch("scripts.execute_trade.db.insert", ok_insert) as mp, \
              patch("scripts.execute_trade.requests.get",
                    return_value=ticker_resp) as mg:
             result = {
@@ -198,7 +198,7 @@ class TestDryRunRecording:
             _record_trade_to_db(result, source="manual")
 
         mg.assert_called_once()
-        row = mp.call_args[1]["json"]
+        row = _inserted_row(mp)
         assert row["dry_run"] is True
         assert row["current_price"] == 88000000
         # bid라 amount 그대로 KRW

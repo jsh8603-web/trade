@@ -800,15 +800,8 @@ class TestRecordTradeToDb:
 
     @patch("utils.machine.skip_trade_db", return_value=False)
     @patch("utils.machine.get_machine_name", return_value="test-machine")
-    @patch("scripts.execute_trade.requests.post")
-    def test_records_successful_trade(self, mock_post, _mock_name, _mock_skip, monkeypatch):
-        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
-        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-
-        mock_resp = MagicMock()
-        mock_resp.ok = True
-        mock_post.return_value = mock_resp
-
+    @patch("scripts.execute_trade.db.insert")
+    def test_records_successful_trade(self, mock_insert, _mock_name, _mock_skip, monkeypatch):
         result = {
             "success": True,
             "dry_run": False,
@@ -821,9 +814,11 @@ class TestRecordTradeToDb:
             "_latency_ms": 1000,
         }
         _record_trade_to_db(result, source="agent")
-        mock_post.assert_called_once()
+        mock_insert.assert_called_once()
 
-        posted_data = mock_post.call_args[1]["json"]
+        # db.insert("decisions", decision_row) — positional args
+        table, posted_data = mock_insert.call_args[0]
+        assert table == "decisions"
         assert posted_data["decision"] == "매수"
         assert posted_data["source"] == "agent"
         assert posted_data["machine_name"] == "test-machine"
@@ -835,15 +830,8 @@ class TestRecordTradeToDb:
 
     @patch("utils.machine.skip_trade_db", return_value=False)
     @patch("utils.machine.get_machine_name", return_value="test-machine")
-    @patch("scripts.execute_trade.requests.post")
-    def test_records_failed_trade(self, mock_post, _mock_name, _mock_skip, monkeypatch):
-        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
-        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-
-        mock_resp = MagicMock()
-        mock_resp.ok = True
-        mock_post.return_value = mock_resp
-
+    @patch("scripts.execute_trade.db.insert")
+    def test_records_failed_trade(self, mock_insert, _mock_name, _mock_skip, monkeypatch):
         result = {
             "success": False,
             "dry_run": False,
@@ -853,9 +841,11 @@ class TestRecordTradeToDb:
             "error": "insufficient funds",
         }
         _record_trade_to_db(result, source="manual")
-        mock_post.assert_called_once()
+        mock_insert.assert_called_once()
 
-        posted_data = mock_post.call_args[1]["json"]
+        # db.insert("decisions", decision_row) — positional args
+        table, posted_data = mock_insert.call_args[0]
+        assert table == "decisions"
         assert posted_data["decision"] == "매도"
         assert posted_data["source"] == "manual"
         assert posted_data["machine_name"] == "test-machine"
