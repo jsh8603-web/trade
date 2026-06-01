@@ -1,0 +1,887 @@
+{
+  "ret_range": [
+    "2000-01-31",
+    "2026-05-31"
+  ],
+  "pub_lag_days": {
+    "NEWORDER": 56,
+    "DGORDER": 56,
+    "CPIAUCSL": 12
+  },
+  "adf_regime_drivers": {
+    "CPI_yoy": {
+      "adf_p": 0.0029,
+      "n": 939
+    },
+    "T5YIE": {
+      "adf_p": 0.0013,
+      "n": 281
+    },
+    "T10Y2Y": {
+      "adf_p": 0.008,
+      "n": 437
+    }
+  },
+  "regimes_tried": [
+    "CPI_inflation",
+    "BE_breakeven",
+    "GROWTH_curve"
+  ],
+  "pairs": [
+    "DGORDER_yoy->XLE",
+    "NEWORDER_yoy->XLE",
+    "T10Y2Y->XLI",
+    "T10Y2Y->SOXX"
+  ],
+  "horizons": [
+    3,
+    6
+  ],
+  "full_sample_baseline": {
+    "DGORDER_yoy|XLE|k3": {
+      "ic": 0.23,
+      "p": 0.0048,
+      "n": 314,
+      "ci95": [
+        0.08,
+        0.376
+      ]
+    },
+    "DGORDER_yoy|XLE|k6": {
+      "ic": 0.311,
+      "p": 0.0016,
+      "n": 311,
+      "ci95": [
+        0.125,
+        0.478
+      ]
+    },
+    "NEWORDER_yoy|XLE|k3": {
+      "ic": 0.137,
+      "p": 0.0999,
+      "n": 314,
+      "ci95": [
+        -0.024,
+        0.298
+      ]
+    },
+    "NEWORDER_yoy|XLE|k6": {
+      "ic": 0.215,
+      "p": 0.0545,
+      "n": 311,
+      "ci95": [
+        -0.002,
+        0.403
+      ]
+    },
+    "T10Y2Y|XLI|k3": {
+      "ic": 0.015,
+      "p": 0.8546,
+      "n": 314,
+      "ci95": [
+        -0.138,
+        0.176
+      ]
+    },
+    "T10Y2Y|XLI|k6": {
+      "ic": 0.017,
+      "p": 0.8654,
+      "n": 311,
+      "ci95": [
+        -0.179,
+        0.21
+      ]
+    },
+    "T10Y2Y|SOXX|k3": {
+      "ic": 0.001,
+      "p": 0.988,
+      "n": 314,
+      "ci95": [
+        -0.152,
+        0.165
+      ]
+    },
+    "T10Y2Y|SOXX|k6": {
+      "ic": -0.04,
+      "p": 0.7121,
+      "n": 311,
+      "ci95": [
+        -0.247,
+        0.169
+      ]
+    }
+  },
+  "regime_conditional": {
+    "DGORDER_yoy|XLE|k3|CPI_inflation|highInfl": {
+      "mode": "hard",
+      "ic": 0.318,
+      "t_nw": 2.89,
+      "p": 0.0038,
+      "n": 99,
+      "ci95": [
+        0.091,
+        0.507
+      ],
+      "ci_cross_zero": false,
+      "insufficient": false
+    },
+    "DGORDER_yoy|XLE|k3|CPI_inflation|lowInfl": {
+      "mode": "hard",
+      "ic": 0.191,
+      "t_nw": 1.79,
+      "p": 0.0732,
+      "n": 215,
+      "ci95": [
+        0.002,
+        0.359
+      ],
+      "ci_cross_zero": false,
+      "insufficient": false
+    },
+    "DGORDER_yoy|XLE|k3|CPI_inflation|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": 0.256,
+      "p": 0.0,
+      "n_eff": 290.9
+    },
+    "DGORDER_yoy|XLE|k3|CPI_inflation|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.21,
+      "p": 0.0003,
+      "n_eff": 296.5
+    },
+    "DGORDER_yoy|XLE|k3|BE_breakeven|highBE": {
+      "mode": "hard",
+      "ic": 0.212,
+      "t_nw": 2.23,
+      "p": 0.0254,
+      "n": 106,
+      "ci95": [
+        -0.005,
+        0.404
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "DGORDER_yoy|XLE|k3|BE_breakeven|lowBE": {
+      "mode": "hard",
+      "ic": 0.158,
+      "t_nw": 1.25,
+      "p": 0.2127,
+      "n": 149,
+      "ci95": [
+        -0.085,
+        0.363
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "DGORDER_yoy|XLE|k3|BE_breakeven|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": 0.206,
+      "p": 0.002,
+      "n_eff": 222.5
+    },
+    "DGORDER_yoy|XLE|k3|BE_breakeven|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.181,
+      "p": 0.006,
+      "n_eff": 227.4
+    },
+    "DGORDER_yoy|XLE|k3|GROWTH_curve|normalCurve": {
+      "mode": "hard",
+      "ic": 0.244,
+      "t_nw": 2.66,
+      "p": 0.0078,
+      "n": 265,
+      "ci95": [
+        0.079,
+        0.392
+      ],
+      "ci_cross_zero": false,
+      "insufficient": false
+    },
+    "DGORDER_yoy|XLE|k3|GROWTH_curve|invertedCurve": {
+      "mode": "hard",
+      "ic": 0.075,
+      "t_nw": 0.52,
+      "p": 0.6049,
+      "n": 49,
+      "ci95": [
+        -0.227,
+        0.392
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "DGORDER_yoy|XLE|k3|GROWTH_curve|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": 0.222,
+      "p": 0.0001,
+      "n_eff": 293.6
+    },
+    "DGORDER_yoy|XLE|k3|GROWTH_curve|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.256,
+      "p": 0.0001,
+      "n_eff": 214.0
+    },
+    "DGORDER_yoy|XLE|k6|CPI_inflation|highInfl": {
+      "mode": "hard",
+      "ic": 0.423,
+      "t_nw": 3.83,
+      "p": 0.0001,
+      "n": 97,
+      "ci95": [
+        0.161,
+        0.617
+      ],
+      "ci_cross_zero": false,
+      "insufficient": false
+    },
+    "DGORDER_yoy|XLE|k6|CPI_inflation|lowInfl": {
+      "mode": "hard",
+      "ic": 0.28,
+      "t_nw": 2.15,
+      "p": 0.0319,
+      "n": 214,
+      "ci95": [
+        0.032,
+        0.498
+      ],
+      "ci_cross_zero": false,
+      "insufficient": false
+    },
+    "DGORDER_yoy|XLE|k6|CPI_inflation|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": 0.348,
+      "p": 0.0,
+      "n_eff": 287.9
+    },
+    "DGORDER_yoy|XLE|k6|CPI_inflation|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.282,
+      "p": 0.0,
+      "n_eff": 293.5
+    },
+    "DGORDER_yoy|XLE|k6|BE_breakeven|highBE": {
+      "mode": "hard",
+      "ic": 0.298,
+      "t_nw": 2.44,
+      "p": 0.0148,
+      "n": 103,
+      "ci95": [
+        0.02,
+        0.523
+      ],
+      "ci_cross_zero": false,
+      "insufficient": false
+    },
+    "DGORDER_yoy|XLE|k6|BE_breakeven|lowBE": {
+      "mode": "hard",
+      "ic": 0.182,
+      "t_nw": 1.22,
+      "p": 0.2236,
+      "n": 149,
+      "ci95": [
+        -0.107,
+        0.449
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "DGORDER_yoy|XLE|k6|BE_breakeven|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": 0.293,
+      "p": 0.0,
+      "n_eff": 219.6
+    },
+    "DGORDER_yoy|XLE|k6|BE_breakeven|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.227,
+      "p": 0.0006,
+      "n_eff": 224.9
+    },
+    "DGORDER_yoy|XLE|k6|GROWTH_curve|normalCurve": {
+      "mode": "hard",
+      "ic": 0.311,
+      "t_nw": 2.86,
+      "p": 0.0042,
+      "n": 262,
+      "ci95": [
+        0.095,
+        0.497
+      ],
+      "ci_cross_zero": false,
+      "insufficient": false
+    },
+    "DGORDER_yoy|XLE|k6|GROWTH_curve|invertedCurve": {
+      "mode": "hard",
+      "ic": 0.27,
+      "t_nw": 2.11,
+      "p": 0.0347,
+      "n": 49,
+      "ci95": [
+        -0.085,
+        0.6
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "DGORDER_yoy|XLE|k6|GROWTH_curve|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": 0.304,
+      "p": 0.0,
+      "n_eff": 290.6
+    },
+    "DGORDER_yoy|XLE|k6|GROWTH_curve|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.338,
+      "p": 0.0,
+      "n_eff": 211.2
+    },
+    "NEWORDER_yoy|XLE|k3|CPI_inflation|highInfl": {
+      "mode": "hard",
+      "ic": 0.197,
+      "t_nw": 1.92,
+      "p": 0.055,
+      "n": 99,
+      "ci95": [
+        -0.041,
+        0.409
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "NEWORDER_yoy|XLE|k3|CPI_inflation|lowInfl": {
+      "mode": "hard",
+      "ic": 0.104,
+      "t_nw": 1.02,
+      "p": 0.3096,
+      "n": 215,
+      "ci95": [
+        -0.097,
+        0.29
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "NEWORDER_yoy|XLE|k3|CPI_inflation|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": 0.157,
+      "p": 0.0074,
+      "n_eff": 290.9
+    },
+    "NEWORDER_yoy|XLE|k3|CPI_inflation|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.121,
+      "p": 0.0365,
+      "n_eff": 296.5
+    },
+    "NEWORDER_yoy|XLE|k3|BE_breakeven|highBE": {
+      "mode": "hard",
+      "ic": 0.091,
+      "t_nw": 0.66,
+      "p": 0.5077,
+      "n": 106,
+      "ci95": [
+        -0.177,
+        0.332
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "NEWORDER_yoy|XLE|k3|BE_breakeven|lowBE": {
+      "mode": "hard",
+      "ic": 0.001,
+      "t_nw": 0.01,
+      "p": 0.996,
+      "n": 149,
+      "ci95": [
+        -0.233,
+        0.223
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "NEWORDER_yoy|XLE|k3|BE_breakeven|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": 0.105,
+      "p": 0.1175,
+      "n_eff": 222.5
+    },
+    "NEWORDER_yoy|XLE|k3|BE_breakeven|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.062,
+      "p": 0.3493,
+      "n_eff": 227.4
+    },
+    "NEWORDER_yoy|XLE|k3|GROWTH_curve|normalCurve": {
+      "mode": "hard",
+      "ic": 0.134,
+      "t_nw": 1.44,
+      "p": 0.1501,
+      "n": 265,
+      "ci95": [
+        -0.043,
+        0.296
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "NEWORDER_yoy|XLE|k3|GROWTH_curve|invertedCurve": {
+      "mode": "hard",
+      "ic": 0.106,
+      "t_nw": 0.79,
+      "p": 0.4311,
+      "n": 49,
+      "ci95": [
+        -0.255,
+        0.419
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "NEWORDER_yoy|XLE|k3|GROWTH_curve|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": 0.142,
+      "p": 0.015,
+      "n_eff": 293.6
+    },
+    "NEWORDER_yoy|XLE|k3|GROWTH_curve|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.127,
+      "p": 0.0642,
+      "n_eff": 214.0
+    },
+    "NEWORDER_yoy|XLE|k6|CPI_inflation|highInfl": {
+      "mode": "hard",
+      "ic": 0.242,
+      "t_nw": 1.65,
+      "p": 0.0984,
+      "n": 97,
+      "ci95": [
+        -0.073,
+        0.519
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "NEWORDER_yoy|XLE|k6|CPI_inflation|lowInfl": {
+      "mode": "hard",
+      "ic": 0.218,
+      "t_nw": 1.61,
+      "p": 0.1079,
+      "n": 214,
+      "ci95": [
+        -0.043,
+        0.45
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "NEWORDER_yoy|XLE|k6|CPI_inflation|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": 0.24,
+      "p": 0.0,
+      "n_eff": 287.9
+    },
+    "NEWORDER_yoy|XLE|k6|CPI_inflation|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.196,
+      "p": 0.0007,
+      "n_eff": 293.5
+    },
+    "NEWORDER_yoy|XLE|k6|BE_breakeven|highBE": {
+      "mode": "hard",
+      "ic": 0.172,
+      "t_nw": 1.06,
+      "p": 0.2905,
+      "n": 103,
+      "ci95": [
+        -0.185,
+        0.478
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "NEWORDER_yoy|XLE|k6|BE_breakeven|lowBE": {
+      "mode": "hard",
+      "ic": 0.043,
+      "t_nw": 0.27,
+      "p": 0.7885,
+      "n": 149,
+      "ci95": [
+        -0.26,
+        0.335
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "NEWORDER_yoy|XLE|k6|BE_breakeven|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": 0.194,
+      "p": 0.0039,
+      "n_eff": 219.6
+    },
+    "NEWORDER_yoy|XLE|k6|BE_breakeven|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.104,
+      "p": 0.1185,
+      "n_eff": 224.9
+    },
+    "NEWORDER_yoy|XLE|k6|GROWTH_curve|normalCurve": {
+      "mode": "hard",
+      "ic": 0.205,
+      "t_nw": 1.65,
+      "p": 0.0985,
+      "n": 262,
+      "ci95": [
+        -0.033,
+        0.415
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "NEWORDER_yoy|XLE|k6|GROWTH_curve|invertedCurve": {
+      "mode": "hard",
+      "ic": 0.28,
+      "t_nw": 1.53,
+      "p": 0.1256,
+      "n": 49,
+      "ci95": [
+        -0.18,
+        0.551
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "NEWORDER_yoy|XLE|k6|GROWTH_curve|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": 0.217,
+      "p": 0.0002,
+      "n_eff": 290.6
+    },
+    "NEWORDER_yoy|XLE|k6|GROWTH_curve|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.216,
+      "p": 0.0016,
+      "n_eff": 211.2
+    },
+    "T10Y2Y|XLI|k3|CPI_inflation|highInfl": {
+      "mode": "hard",
+      "ic": -0.319,
+      "t_nw": -2.12,
+      "p": 0.0337,
+      "n": 99,
+      "ci95": [
+        -0.557,
+        -0.027
+      ],
+      "ci_cross_zero": false,
+      "insufficient": false
+    },
+    "T10Y2Y|XLI|k3|CPI_inflation|lowInfl": {
+      "mode": "hard",
+      "ic": 0.083,
+      "t_nw": 0.91,
+      "p": 0.3622,
+      "n": 215,
+      "ci95": [
+        -0.097,
+        0.253
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|XLI|k3|CPI_inflation|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": -0.023,
+      "p": 0.6916,
+      "n_eff": 290.9
+    },
+    "T10Y2Y|XLI|k3|CPI_inflation|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.037,
+      "p": 0.527,
+      "n_eff": 296.5
+    },
+    "T10Y2Y|XLI|k3|BE_breakeven|highBE": {
+      "mode": "hard",
+      "ic": -0.171,
+      "t_nw": -1.61,
+      "p": 0.1081,
+      "n": 106,
+      "ci95": [
+        -0.411,
+        0.073
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|XLI|k3|BE_breakeven|lowBE": {
+      "mode": "hard",
+      "ic": 0.067,
+      "t_nw": 0.61,
+      "p": 0.5429,
+      "n": 149,
+      "ci95": [
+        -0.154,
+        0.288
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|XLI|k3|BE_breakeven|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": -0.014,
+      "p": 0.8379,
+      "n_eff": 222.5
+    },
+    "T10Y2Y|XLI|k3|BE_breakeven|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.006,
+      "p": 0.9337,
+      "n_eff": 227.4
+    },
+    "T10Y2Y|XLI|k6|CPI_inflation|highInfl": {
+      "mode": "hard",
+      "ic": -0.439,
+      "t_nw": -2.77,
+      "p": 0.0056,
+      "n": 97,
+      "ci95": [
+        -0.649,
+        -0.125
+      ],
+      "ci_cross_zero": false,
+      "insufficient": false
+    },
+    "T10Y2Y|XLI|k6|CPI_inflation|lowInfl": {
+      "mode": "hard",
+      "ic": 0.097,
+      "t_nw": 0.82,
+      "p": 0.41,
+      "n": 214,
+      "ci95": [
+        -0.147,
+        0.32
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|XLI|k6|CPI_inflation|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": -0.036,
+      "p": 0.5416,
+      "n_eff": 287.9
+    },
+    "T10Y2Y|XLI|k6|CPI_inflation|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.049,
+      "p": 0.4031,
+      "n_eff": 293.5
+    },
+    "T10Y2Y|XLI|k6|BE_breakeven|highBE": {
+      "mode": "hard",
+      "ic": -0.258,
+      "t_nw": -1.98,
+      "p": 0.0472,
+      "n": 103,
+      "ci95": [
+        -0.5,
+        0.039
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|XLI|k6|BE_breakeven|lowBE": {
+      "mode": "hard",
+      "ic": 0.055,
+      "t_nw": 0.43,
+      "p": 0.6704,
+      "n": 149,
+      "ci95": [
+        -0.247,
+        0.32
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|XLI|k6|BE_breakeven|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": -0.078,
+      "p": 0.2481,
+      "n_eff": 219.6
+    },
+    "T10Y2Y|XLI|k6|BE_breakeven|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.013,
+      "p": 0.8456,
+      "n_eff": 224.9
+    },
+    "T10Y2Y|SOXX|k3|CPI_inflation|highInfl": {
+      "mode": "hard",
+      "ic": -0.24,
+      "t_nw": -1.67,
+      "p": 0.0945,
+      "n": 99,
+      "ci95": [
+        -0.481,
+        0.051
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|SOXX|k3|CPI_inflation|lowInfl": {
+      "mode": "hard",
+      "ic": 0.004,
+      "t_nw": 0.04,
+      "p": 0.9717,
+      "n": 215,
+      "ci95": [
+        -0.179,
+        0.177
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|SOXX|k3|CPI_inflation|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": -0.023,
+      "p": 0.6981,
+      "n_eff": 290.9
+    },
+    "T10Y2Y|SOXX|k3|CPI_inflation|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": 0.014,
+      "p": 0.8147,
+      "n_eff": 296.5
+    },
+    "T10Y2Y|SOXX|k3|BE_breakeven|highBE": {
+      "mode": "hard",
+      "ic": -0.045,
+      "t_nw": -0.36,
+      "p": 0.7225,
+      "n": 106,
+      "ci95": [
+        -0.299,
+        0.225
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|SOXX|k3|BE_breakeven|lowBE": {
+      "mode": "hard",
+      "ic": -0.07,
+      "t_nw": -0.57,
+      "p": 0.5707,
+      "n": 149,
+      "ci95": [
+        -0.294,
+        0.151
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|SOXX|k3|BE_breakeven|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": -0.026,
+      "p": 0.7045,
+      "n_eff": 222.5
+    },
+    "T10Y2Y|SOXX|k3|BE_breakeven|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": -0.027,
+      "p": 0.6831,
+      "n_eff": 227.4
+    },
+    "T10Y2Y|SOXX|k6|CPI_inflation|highInfl": {
+      "mode": "hard",
+      "ic": -0.35,
+      "t_nw": -2.05,
+      "p": 0.0406,
+      "n": 97,
+      "ci95": [
+        -0.62,
+        0.003
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|SOXX|k6|CPI_inflation|lowInfl": {
+      "mode": "hard",
+      "ic": -0.049,
+      "t_nw": -0.38,
+      "p": 0.707,
+      "n": 214,
+      "ci95": [
+        -0.295,
+        0.209
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|SOXX|k6|CPI_inflation|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": -0.067,
+      "p": 0.2594,
+      "n_eff": 287.9
+    },
+    "T10Y2Y|SOXX|k6|CPI_inflation|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": -0.028,
+      "p": 0.6309,
+      "n_eff": 293.5
+    },
+    "T10Y2Y|SOXX|k6|BE_breakeven|highBE": {
+      "mode": "hard",
+      "ic": -0.09,
+      "t_nw": -0.57,
+      "p": 0.5711,
+      "n": 103,
+      "ci95": [
+        -0.415,
+        0.293
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|SOXX|k6|BE_breakeven|lowBE": {
+      "mode": "hard",
+      "ic": -0.106,
+      "t_nw": -0.69,
+      "p": 0.4892,
+      "n": 149,
+      "ci95": [
+        -0.386,
+        0.192
+      ],
+      "ci_cross_zero": true,
+      "insufficient": false
+    },
+    "T10Y2Y|SOXX|k6|BE_breakeven|BELIEF_highTilt": {
+      "mode": "belief",
+      "wic": -0.069,
+      "p": 0.3099,
+      "n_eff": 219.6
+    },
+    "T10Y2Y|SOXX|k6|BE_breakeven|BELIEF_lowTilt": {
+      "mode": "belief",
+      "wic": -0.036,
+      "p": 0.5876,
+      "n_eff": 224.9
+    }
+  },
+  "multiple_comparison": {
+    "m": 40,
+    "bonferroni_alpha": 0.00125,
+    "bonf_survivors": [
+      "DGORDER_yoy|XLE|k6|CPI_inflation|highInfl"
+    ],
+    "bh_crit_p": 0.0001272078319981486,
+    "bh_survivors": [
+      "DGORDER_yoy|XLE|k6|CPI_inflation|highInfl"
+    ]
+  }
+}
