@@ -30,7 +30,7 @@ from typing import Iterable, Optional, Union
 
 LEDGER_SCHEMA_VERSION = "el_v1"
 
-# 12 event types (★REVISION_OBSERVED 추가)
+# 16 event types (★REVISION_OBSERVED + IC9 reject 재진입 lifecycle 4종)
 EVENT_TYPES = (
     "ASSUMPTION_CREATED",
     "PREDICTION_MADE",
@@ -44,6 +44,12 @@ EVENT_TYPES = (
     "RETIRED",
     "DATA_CONTRACT_VIOLATION",
     "CALIBRATION_CHANGED",
+    # ★IC9(§14.6) reject 가설 재진입 lifecycle. opt-in on 경로에서만 emit(off=미발생=byte-identical,
+    #   기존 reader 가 신규 type skip 하는 forward-compat fold). 신규 ledger 금지 = 본 단일 원장 확장.
+    "REJECT_RECORDED",         # 기각 기록(§14.6 필드: reject_class·E_against·power·trigger 등)
+    "REVIVAL_TRIGGERED",       # 재진입 트리거 발화(regime_draw/data_event/n_regime_gated)
+    "SHADOW_REENTERED",        # 관찰 상태 재진입(E_for 누적 시작, risk 불변 paper)
+    "REVIVED",                 # live 복귀(adopt gate 통과, 무인 자동 — §14.1 human surface 신설 X)
 )
 
 TsLike = Union[str, datetime]
@@ -187,6 +193,8 @@ class LedgerState:
     fdr_log: list = field(default_factory=list)          # FDR_DECISION (tt순 적재, dt replay 대상)
     incidents: list = field(default_factory=list)        # DATA_CONTRACT_VIOLATION payload
     retired: set = field(default_factory=set)
+    rejects: dict = field(default_factory=dict)          # ★IC9: hypothesis_id → reject 재진입 상태
+    #   (materialized projection, §14.6). status: rejected→shadow→revived. opt-in off=빈 dict(무영향).
 
     # --- as-of 해석 (REVISION 반영 PIT) -------------------------------
     def resolve_fact(self, series_key: str, vt: TsLike, as_of: TsLike) -> Optional[Fact]:
@@ -202,6 +210,13 @@ class LedgerState:
     def fdr_replay(self) -> list:
         """FDR_DECISION 을 dt 순으로 정렬 반환. 결정 필드는 write-time 동결(재계산 X)."""
         return sorted(self.fdr_log, key=lambda e: (e["dt"], e["seq"]))
+
+    # --- reject 재진입 상태 as-of (REVIVAL lifecycle, §14.6) -----------
+    def reject_status(self, hypothesis_id: str) -> Optional[str]:
+        """hypothesis_id 의 reject 상태(rejected/shadow/revived) 또는 None(reject 이력 없음).
+        as-of = reduce_events(tt_cut) 가 이미 cut 시점 fold → 본 메서드는 그 projection 단순 조회."""
+        r = self.rejects.get(hypothesis_id)
+        return r.get("status") if r else None
 
 
 # ---------------------------------------------------------------------------
@@ -240,6 +255,32 @@ def _pure_apply(state: LedgerState, ev: LedgerEvent) -> LedgerState:
             state.assumptions[ev.assumption_id]["status"] = et.lower()
         if et == "RETIRED":
             state.retired.add(ev.assumption_id)
+    elif et == "REJECT_RECORDED":
+        # ★IC9(§14.6): 기각 기록 → reject pool 진입(status=rejected). reject_class·E_against·power 보존.
+        hid = p.get("hypothesis_id", ev.assumption_id)
+        state.rejects[hid] = {"status": "rejected", "tt": ev.tt.isoformat(), **p}
+    elif et == "REVIVAL_TRIGGERED":
+        # ★IC9: 재진입 트리거 발화 — trigger 타입·E_for 갱신(status=rejected 유지, shadow 전 단계).
+        hid = p.get("hypothesis_id", ev.assumption_id)
+        r = state.rejects.get(hid)
+        if r is not None:
+            r["revival_trigger"] = p.get("revival_trigger")
+            if "e_for_state" in p:
+                r["e_for_state"] = p["e_for_state"]
+    elif et == "SHADOW_REENTERED":
+        # ★IC9: 관찰 상태 재진입(E_for 누적 시작, risk 불변 paper). status=shadow.
+        hid = p.get("hypothesis_id", ev.assumption_id)
+        r = state.rejects.get(hid)
+        if r is not None:
+            r["status"] = "shadow"
+            if "e_for_state" in p:
+                r["e_for_state"] = p["e_for_state"]
+    elif et == "REVIVED":
+        # ★IC9: live 복귀(adopt gate 통과, 무인 자동 — §14.1). status=revived.
+        hid = p.get("hypothesis_id", ev.assumption_id)
+        r = state.rejects.get(hid)
+        if r is not None:
+            r["status"] = "revived"
     elif et in ("HOLD_REMEASURED", "CANDIDATE_PROPOSED", "RATIFIED", "CALIBRATION_CHANGED"):
         pass  # 골격: 라이프사이클 마커(상태 변화는 P3+ 에서 plug-in)
     # watermark 갱신
@@ -512,4 +553,29 @@ if __name__ == "__main__":
     print(f"9) ★property-based({TRIALS} trial × 5 불변식): 순서무관·tt-cut 결정성·watermark 단조·"
           f"FDR dt-순·append-only 보존 전부 OK")
 
-    print("event_ledger (12event·3ts·CQRS·Walking Skeleton + property-based) self-test PASS")
+    # 10) ★IC9(§14.6) reject 재진입 lifecycle: REJECT_RECORDED→REVIVAL_TRIGGERED→SHADOW_REENTERED→REVIVED
+    rj_evs = [
+        mk(0, "REJECT_RECORDED", "2024-01-01", "2024-01-01", "2024-01-01", aid="H1",
+           hypothesis_id="rj_abc", reject_class="regime_conditional", reason_code="credit_n4",
+           e_against_at_reject=2.1, power_at_decision=0.3),
+        mk(1, "REVIVAL_TRIGGERED", "2024-06-01", "2024-06-01", "2024-06-01", aid="H1",
+           hypothesis_id="rj_abc", revival_trigger="regime_draw", e_for_state=5.0),
+        mk(2, "SHADOW_REENTERED", "2024-06-02", "2024-06-02", "2024-06-02", aid="H1",
+           hypothesis_id="rj_abc", e_for_state=12.0),
+        mk(3, "REVIVED", "2024-07-01", "2024-07-01", "2024-07-01", aid="H1", hypothesis_id="rj_abc"),
+    ]
+    assert reduce_events(rj_evs, tt_cut="2024-03-01").reject_status("rj_abc") == "rejected"
+    assert reduce_events(rj_evs, tt_cut="2024-06-15").reject_status("rj_abc") == "shadow"
+    assert reduce_events(rj_evs, tt_cut="2024-08-01").reject_status("rj_abc") == "revived"
+    s_trig = reduce_events(rj_evs, tt_cut="2024-06-01")        # 트리거 발화(shadow 전) → trigger 기록·status 유지
+    assert s_trig.rejects["rj_abc"]["status"] == "rejected"
+    assert s_trig.rejects["rj_abc"]["revival_trigger"] == "regime_draw"
+    for _ in range(10):                                        # random-order 복원(tt순 결정적)
+        sh = rj_evs[:]; random.shuffle(sh)
+        assert reduce_events(sh, tt_cut="2024-06-15").reject_status("rj_abc") == "shadow"
+    no_reject = reduce_events(events).rejects                  # ★off byte-identical: reject event 無 → rejects={}
+    assert no_reject == {}, f"기존 event 만인데 rejects 비어있지 않음: {no_reject}"
+    print("10) ★IC9 reject 재진입 as-of: 03-01=rejected / 06-01(trig)=rejected+regime_draw / "
+          "06-15=shadow / 08-01=revived + random-order 복원 + off(reject event 無)=rejects 빈 OK")
+
+    print("event_ledger (16event·3ts·CQRS·Walking Skeleton + property-based + IC9 reject lifecycle) self-test PASS")

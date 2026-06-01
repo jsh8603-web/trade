@@ -78,6 +78,28 @@ def valid_mask(regime_ids: np.ndarray) -> np.ndarray:
     return np.asarray(regime_ids) >= 0
 
 
+def build_sleeve_regime_ids(
+    classifier,
+    returns_history,
+    labels: Sequence[str],
+    *,
+    bloc=None,
+) -> np.ndarray:
+    """슬리브 returns_history 각 행 날짜 → classify(as_of) → regime int id 배열 (④ 배선 a).
+
+    R15 동적 가중(종목 판정)이 *지표* 패널에 regime substrate 를 붙였듯, 자산 배분(슬리브)도
+    각 과거 시점이 어느 거시 국면이었는지 알아야 regime-conditional 공분산(Σ_eff)을 학습한다.
+    returns_history.index(슬리브 수익률 시점) 를 PIT 학습 시점으로 보고 국면을 재구성한다.
+
+    반환 = regime_to_weights(sleeve_regime_ids=) substrate. ⛔ 라이브 allocate 가 매 사이클 과거
+    전체를 classify 하는 것은 무겁다(설계원칙 5: 학습=배치/적용=조회) → 배치 산출분을 조회 주입.
+    classify 실패/미지 시점 → -1(RegimeGlasso 제외, graceful).
+    """
+    dates = list(getattr(returns_history, "index", returns_history))
+    hist = build_regime_history(classifier, dates, bloc=bloc)
+    return regime_id_series(hist, dates, labels)
+
+
 if __name__ == "__main__":
     from datetime import date
 

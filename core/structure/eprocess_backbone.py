@@ -350,6 +350,82 @@ def classify_decay_vs_regime(node_decayed: bool, sibling_decay_count: int,
     return DecayVerdict(True, 0.0, 0.0, cls, rec)
 
 
+# ---------------------------------------------------------------------------
+# §14.2 matched convex-leak — immortality 방어(E_against) ↔ phoenix 방어(E_for) 공용 primitive
+# ---------------------------------------------------------------------------
+
+def half_life_to_gamma(half_life: float) -> float:
+    """convex-leak half-life(증거 반감기, 관측 수) → γ = 2^(−1/half_life), γ∈(0,1).
+    half_life→∞ ⇒ γ→1(누수 없음=고전 e-process) / 작을수록 빠른 1로의 누수."""
+    if half_life <= 0:
+        return 0.0
+    return float(2.0 ** (-1.0 / float(half_life)))
+
+
+def gamma_to_half_life(gamma: float) -> float:
+    """γ → half-life = −ln2/lnγ. γ≥1 ⇒ inf(누수 없음) / γ≤0 ⇒ 0."""
+    g = float(gamma)
+    if g >= 1.0:
+        return float("inf")
+    if g <= 0.0:
+        return 0.0
+    return float(-math.log(2.0) / math.log(g))
+
+
+def convex_leak_value(increments, gamma: float, *, e0: float = 1.0) -> tuple[float, float]:
+    """§14.2 convex-leak e-process: Ẽ_t = γ·Ẽ_{t-1}·m_t + (1−γ). (max_E, final_E) 반환.
+
+    m_t = single-step likelihood ratio(증분 ℓ_t = E_t/E_{t-1}). γ = 누수율(1=고전 누적 / <1=1로 leak).
+    ★immortality·phoenix 방어: 증거(m_t)가 멈추면(m_t≈1) Ẽ→1 로 수렴 — 고전 e-process 는 max 에 박제
+      (죽지 않는 가설 / 부활 못하는 가설). leak 이 양쪽을 1로 끌어당김(Ville: (1−γ) 상수 + γ·Ẽ·m 비음수,
+      E[m_t]≤1 under H0 supermartingale 보존).
+    ★순서 의존(affine recursion) → increments 를 dt 순(+ dt내 seq)으로 넣어 event_ledger replay 재현."""
+    g = float(gamma)
+    e = float(e0)
+    max_e = e
+    for m in increments:
+        e = g * e * float(m) + (1.0 - g)
+        if e > max_e:
+            max_e = e
+    return (max_e, e)
+
+
+class ConvexLeakEProcess:
+    """순차 convex-leak e-process(§14.2). update(m_t) 마다 Ẽ_t = γ·Ẽ_{t-1}·m_t + (1−γ) 누적.
+
+    matched primitive: E_against(반증 증분 = baseline 하락 LR) / E_for(재진입 증분 = baseline 회복 LR)
+    동일 leak 사용 → 죽지 않는 가설(E_against 영구)·부활 못하는 가설(E_for 영구) 동시 방어.
+    reject ⟺ sup_t Ẽ ≥ 1/α. 증거 소멸 시 Ẽ→1(reachable exit, black-hole 차단)."""
+    def __init__(self, alpha: float = 0.05, gamma: float = 0.98, e0: float = 1.0):
+        self.alpha = alpha
+        self.gamma = float(gamma)
+        self.threshold = 1.0 / alpha
+        self.e = float(e0)
+        self.max_e = float(e0)
+        self.n = 0
+
+    def update(self, m: float) -> float:
+        """증분 m_t(single-step LR) 1틱. Ẽ 갱신 후 현재 Ẽ 반환."""
+        self.e = self.gamma * self.e * float(m) + (1.0 - self.gamma)
+        self.max_e = max(self.max_e, self.e)
+        self.n += 1
+        return self.e
+
+    @property
+    def reject(self) -> bool:
+        return self.max_e >= self.threshold
+
+    @property
+    def half_life(self) -> float:
+        return gamma_to_half_life(self.gamma)
+
+
+def shift_lr(z: float, tau2: float = 1.0) -> float:
+    """단일 관측 mean-shift likelihood ratio m = f_θ/f_0 (θ=√tau2 근사). z = 표준화 관측.
+    z>0(가설 방향 증거) → m>1(E↑) / z<0 → m<1(E↓). convex_leak/ConvexLeak 증분 입력."""
+    return math.exp(tau2 * float(z) - 0.5 * tau2 * tau2)
+
+
 if __name__ == "__main__":
     rng = np.random.default_rng(23)
 
@@ -430,5 +506,25 @@ if __name__ == "__main__":
           f"sibling+exch={dv_regime.classification}/{dv_regime.recommend}")
     assert dv_decay.recommend == "node_de_risk" and dv_regime.recommend == "parent_freeze"
 
+    # F) ★§14.2 convex-leak: 증거 지속→누적 reject / 증거 소멸→1 로 누수(immortality·phoenix 방어)
+    g98 = half_life_to_gamma(34.3)   # half-life≈34.3 → γ≈0.98
+    assert abs(gamma_to_half_life(g98) - 34.3) < 0.5, gamma_to_half_life(g98)
+    # 지속 증거(z=0.8) → leak 있어도 누적 돌파
+    inc_persist = [shift_lr(0.8) for _ in range(80)]
+    max_p, fin_p = convex_leak_value(inc_persist, gamma=0.98)
+    assert max_p >= 20.0, f"지속 증거 leak e-process 미돌파: {max_p}"
+    # ★증거 소멸: 30틱 강증거 후 m=1(z=0) 지속 → Ẽ 가 max 에서 1 로 누수(고전은 박제)
+    leak_ep = ConvexLeakEProcess(alpha=0.05, gamma=0.9)
+    for _ in range(30):
+        leak_ep.update(shift_lr(1.2))
+    peak = leak_ep.e
+    for _ in range(200):
+        leak_ep.update(1.0)          # 증거 없음(m=1) → γ·e + (1−γ) → 1 수렴
+    assert leak_ep.e < peak and abs(leak_ep.e - 1.0) < 0.05, (peak, leak_ep.e)
+    assert leak_ep.max_e >= peak     # max 는 보존(anytime-valid) but 현재값은 1로 누수
+    print(f"F) ★convex-leak OK: 지속증거 max_E={max_p:.0f}(돌파) / 증거소멸 peak={peak:.1f}→현재{leak_ep.e:.3f}"
+          f"(1로 누수=immortality 방어) / half-life↔γ round-trip({gamma_to_half_life(g98):.1f})")
+
     print("eprocess_backbone self-test PASS "
-          "(e-process backbone + e-LOND · graph e-allocation · spec sentinel · decay-vs-regime)")
+          "(e-process backbone + e-LOND · graph e-allocation · spec sentinel · decay-vs-regime "
+          "+ §14.2 convex-leak matched primitive)")

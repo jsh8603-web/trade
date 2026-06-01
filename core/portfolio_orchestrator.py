@@ -115,6 +115,8 @@ class PortfolioOrchestrator:
         macro_view=None,
         returns_history=None,
         method: str = "weight_tilt",
+        sleeve_regime_ids=None,
+        as_of=None,
     ) -> Dict[str, Any]:
         """regime→macro→weights 체인 실행 → BL 슬리브 % 산출.
 
@@ -143,6 +145,23 @@ class PortfolioOrchestrator:
                 self._macro_status = "unavailable"
                 logger.warning("H29: macro unavailable → abstain 신규매수 차단")
 
+        # ★R15 belief b(t) 선산출 (opt-in INV_R15_WEIGHTS, 기본 off = byte-identical 무회귀).
+        # ④ 배선: belief 를 regime_to_weights *호출 전* 산출 → 전달(현 동작=기록만→실사용 재배치).
+        # belief + sleeve_regime_ids + returns_history 셋 다 있으면 regime_to_weights 내부에서
+        # regime-conditional Σ_eff(belief-mix)를 BL 공분산으로 주입(동적 조건부 공분산). substrate
+        # (sleeve_regime_ids) 부재 시 belief 만 전달돼도 기존 경로(graceful). 거시상황(macro_view)이
+        # belief 를 통해 배분 공분산에 실제로 반영되는 connectivity 가 본 ④의 핵심.
+        import os
+        r15_belief = None
+        r15_on = (os.environ.get("INV_R15_WEIGHTS", "false").lower() == "true"
+                  and macro_view is not None)
+        if r15_on:
+            try:
+                from core.brain.regime_belief_adapter import belief_from_macro_view
+                r15_belief = belief_from_macro_view(macro_view)
+            except Exception as exc:
+                logger.warning("R15 belief 산출 예외 → 정적 배분 유지: %s", exc)
+
         # regime_to_weights wire
         try:
             from core.brain.regime_to_weights import regime_to_weights
@@ -153,6 +172,9 @@ class PortfolioOrchestrator:
                     macro_view,
                     returns_history=returns_history,
                     method=method,
+                    belief=r15_belief,
+                    sleeve_regime_ids=sleeve_regime_ids,
+                    as_of=as_of,
                 )
         except Exception as exc:
             logger.warning("regime_to_weights 실패 → HRP fallback: %s", exc)
@@ -171,22 +193,17 @@ class PortfolioOrchestrator:
         # N-P6-FULL-INTEGRATION / N-P4-GATE (go-live, GatedOrderRouter 경유 강제).
         result["macro_abstain"] = macro_abstain
 
-        # ★R15 동적 가중학습 belief 공급 (opt-in INV_R15_WEIGHTS, 기본 off = byte-identical 무회귀).
-        # 거시상황(macro_view) → belief b(t) 산출해 result 에 기록(감사·하류 입력 연결점).
-        # ⚠️ 동적 조건부 공분산 overlay(regime-conditional glasso → effective_precision → BL cov)는
-        #    시점별 regime 히스토리 substrate(실 FRED vintage) 필요 → go-live 데이터 게이트.
-        #    현재는 belief 공급·기록까지(라이브가 R15 모듈을 실제 호출 = connectivity 갭 해소).
-        #    이유 주석(판단근거 보존): R15 본질=평가지표 가중(scoring)이라 슬리브 배분 직접교체 아님.
-        #    belief 는 regime_to_weights confidence/동적공분산 입력으로 substrate 충족 시 connect.
-        import os
-        if os.environ.get("INV_R15_WEIGHTS", "false").lower() == "true" and macro_view is not None:
-            try:
-                from core.brain.regime_belief_adapter import belief_from_macro_view
-                result["r15_belief"] = belief_from_macro_view(macro_view)
-                result.setdefault("caution", []).append(
-                    "r15_belief_supplied(동적공분산=regime히스토리 substrate go-live 게이트)")
-            except Exception as exc:
-                logger.warning("R15 belief 공급 예외 → 정적 배분 유지: %s", exc)
+        # ★R15 belief 기록 (감사) — 산출은 regime_to_weights 호출 전(위)에서 완료, 여기선 결과 기록.
+        # sleeve_regime_ids substrate 까지 있으면 regime_to_weights 가 belief 동적 Σ_eff 를 BL 공분산
+        # 으로 이미 주입(method=black_litterman_returns, caution=belief_conditional_cov). 없으면 belief
+        # 는 기록만 되고 배분은 정적 경로(substrate=실 FRED vintage 과거 국면 → go-live/배치 산출 게이트).
+        if r15_belief is not None:
+            result["r15_belief"] = r15_belief
+            tag = ("belief_conditional_cov" if any(
+                "belief_conditional_cov" in str(c) for c in result.get("caution", []))
+                else "r15_belief_supplied(동적공분산=sleeve_regime_ids substrate 게이트)")
+            if not any("r15" in str(c) or "belief" in str(c) for c in result.get("caution", [])):
+                result.setdefault("caution", []).append(tag)
 
         return result
 

@@ -125,6 +125,67 @@ def calculate_correlation_multiplier(avg_correlation: float) -> float:
     return 1.10
 
 
+# ── M5: cross-sleeve factor-implied 상관 → gate avg_correlation (opt-in, down-only) ──
+# 자문 3R 수렴(CONSULT-DECISIONS-M4-factor-integration-20260530): shadow(로깅)→gate opt-in
+# (down-only clamp)→BL. cross-sleeve cov Σ=B·Λ·Bᵀ(system_priors.factor_implied_cross_cov)를
+# sleeve-pair 상관으로 환산 → 신규 진입 sleeve와 기존 보유의 가중평균 상관 → check(avg_correlation=).
+# ⛔off=byte-identical: 이 helper 는 순수 함수이며 누구도 호출하지 않으면 무동작(orchestrator 미배선).
+# ⛔BL prior cov 누수 금지: gate 사이징 전용 — 산출 상관을 belief/Π view 로 되먹이지 않는다(이중계상 차단).
+# ⛔down-only: cross-sleeve 유도 multiplier 는 사이즈를 키우지 않는다(저상관이어도 ≤1.0, reflexivity 방지).
+
+_CROSS_SLEEVE_DEADBAND = float(os.environ.get("RISK_CROSS_SLEEVE_DEADBAND", "0.05"))
+
+
+def _cov_to_corr(cov: Any) -> Any:
+    """공분산 행렬 → 상관행렬(대각 std 정규화). PD 가정(factor_implied_cross_cov 산출)."""
+    import numpy as np
+    C = np.asarray(cov, dtype=float)
+    d = np.sqrt(np.clip(np.diag(C), 1e-18, None))
+    R = C / np.outer(d, d)
+    np.clip(R, -1.0, 1.0, out=R)
+    np.fill_diagonal(R, 1.0)
+    return R
+
+
+def cross_sleeve_avg_correlation(
+    cross_cov: Any,
+    sleeves: list,
+    new_sleeve: str,
+    holding_weights: dict,
+) -> float:
+    """cross-sleeve cov → 신규 진입 sleeve 와 기존 보유 sleeve 들의 |가중평균 상관|.
+
+    cross_cov: (S,S) Σ=B·Λ·Bᵀ. sleeves: cov 행/열 라벨. new_sleeve: 진입 sleeve.
+    holding_weights: {sleeve: 보유비중(>0)}. 반환 = Σ w·|ρ| / Σ w (deadband 미만 → 0.0).
+    신규 sleeve cov 부재 / 보유 없음 → 0.0(상관 영향 없음 = corr_mult 중립).
+    """
+    if new_sleeve not in sleeves or not holding_weights:
+        return 0.0
+    R = _cov_to_corr(cross_cov)
+    idx = {s: i for i, s in enumerate(sleeves)}
+    i = idx[new_sleeve]
+    num = den = 0.0
+    for s, w in holding_weights.items():
+        if s == new_sleeve or s not in idx or w <= 0:
+            continue
+        num += w * abs(float(R[i, idx[s]]))
+        den += w
+    if den <= 0:
+        return 0.0
+    avg = num / den
+    return avg if avg >= _CROSS_SLEEVE_DEADBAND else 0.0
+
+
+def down_only_corr_multiplier(avg_correlation: float) -> float:
+    """cross-sleeve 유도 상관 multiplier — ★down-only clamp(확대 금지, ≤1.0).
+
+    기존 calculate_correlation_multiplier 는 저상관 시 1.05~1.10 으로 사이즈를 키우지만,
+    cross-sleeve 경로는 사이즈를 키우지 않는다(자문: down-only, risk-on false positive·
+    reflexivity 방지). 고상관일 때만 0.70/0.85 축소가 살아남는다.
+    """
+    return min(calculate_correlation_multiplier(avg_correlation), 1.0)
+
+
 # ── RiskGate ──────────────────────────────────────────────────────────
 
 class RiskGate:

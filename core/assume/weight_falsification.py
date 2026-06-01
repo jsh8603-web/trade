@@ -27,7 +27,7 @@ import numpy as np
 
 from core.assume.card_contract import AssumptionCardLike
 from core.structure.assumption_validation_engine import ValidationVerdict
-from core.structure.eprocess_backbone import e_cusum
+from core.structure.eprocess_backbone import e_cusum, shift_lr, ConvexLeakEProcess
 
 # SECONDARY drift 기본 임계 (자문 §1.5 ‖ΔΩ‖·logdet)
 DEFAULT_TAU_FRO: float = 0.50       # 상대 Frobenius drift (Ω 50% 변형)
@@ -84,6 +84,33 @@ def score_ic_breakdown_eprocess(
         return (False, 1.0, 0)
     max_r = e_cusum(s, float(baseline_ic), sd, tau2=tau2, alpha=alpha)
     return (bool(max_r >= 1.0 / alpha), float(max_r), int(s.size))
+
+
+def score_ic_recovery_eprocess(
+    ic_series: Sequence[float],
+    *,
+    baseline_ic: float,
+    sd: float,
+    alpha: float = 0.05,
+    gamma: float = 0.98,
+    tau2: float = 1.0,
+) -> tuple[bool, float, int]:
+    """★§14.2 E_for(재진입 증거 e-process) — score_ic_breakdown_eprocess 의 **대칭**.
+
+    reject 된 가중카드의 합성 score Rank-IC 가 baseline 위로 **회복**(개선)하는지 convex-leak
+    e-process 로 누적. z_t = (ic_t − baseline)/sd: IC↑(회복)이면 z↑ → m_t=shift_lr(z)>1 → Ẽ_for↑.
+    ★convex-leak(Ẽ_t=γ·Ẽ_{t-1}·m_t+(1−γ)): 회복 증거 소멸 시 1 로 누수 = phoenix(drift 부활) 방어.
+    E_against(baseline 아래 하락=score_ic_breakdown)와 matched(동일 leak primitive, 부호만 반전).
+    재진입 ⟺ sup Ẽ_for ≥ 1/α. (revive, max_E_for, n). ★ic_series 는 dt 순 주입(leak 순서 의존)."""
+    sd = float(sd) if sd and sd > 1e-9 else 1.0
+    s = list(ic_series)
+    if not s:
+        return (False, 1.0, 0)
+    ep = ConvexLeakEProcess(alpha=alpha, gamma=gamma)
+    for ic in s:
+        z = (float(ic) - float(baseline_ic)) / sd          # 회복 방향(baseline 위 = 양의 shift)
+        ep.update(shift_lr(z, tau2=tau2))
+    return (bool(ep.reject), float(ep.max_e), int(len(s)))
 
 
 def omega_drift(omega_old: np.ndarray, omega_new: np.ndarray) -> tuple[float, float]:
@@ -213,6 +240,16 @@ if __name__ == "__main__":
     rej_b, e_b, n_b = score_ic_breakdown_eprocess(ic_break, baseline_ic=0.05, sd=0.02)
     assert rej_b is True, (rej_b, e_b)
     print(f"3) ★score IC 붕괴 → PRIMARY kill: reject={rej_b} e={e_b:.1f} (Ville: 거짓kill≤5%)")
+
+    # 3b) ★§14.2 E_for(재진입 증거 대칭): reject 가설 IC 가 baseline 위로 회복 → revive /
+    #     baseline 아래 정체 → convex-leak 누수 → revive X(phoenix 방어). E_against 와 부호 반전 대칭.
+    ic_recover = list(-0.02 + rng.normal(0, 0.01, 10)) + list(0.10 + rng.normal(0, 0.01, 40))
+    rev_r, ef_r, n_r = score_ic_recovery_eprocess(ic_recover, baseline_ic=0.02, sd=0.02)
+    assert rev_r is True, (rev_r, ef_r)
+    ic_flat = list(-0.02 + rng.normal(0, 0.01, 50))      # 회복 없음(baseline 아래 정체)
+    rev_f, ef_f, _ = score_ic_recovery_eprocess(ic_flat, baseline_ic=0.02, sd=0.02)
+    assert rev_f is False, (rev_f, ef_f)
+    print(f"3b) ★E_for 재진입: 회복→revive={rev_r}(E_for={ef_r:.1f}) / 정체→revive={rev_f}(phoenix 방어, leak 누수)")
 
     # 4) Ω drift — 작음(no refit) / 큼(refit)
     O = np.array([[2.0, -0.5, 0.0], [-0.5, 2.0, 0.0], [0.0, 0.0, 1.0]])

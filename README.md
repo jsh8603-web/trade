@@ -1,519 +1,464 @@
-# 🪙 Claude Coin Trading System
+# 통합 투자 시스템 (Inv) — 암호화폐 + 주식 자율매매
 
-<p align="center">
-  <img src="assets/logo.png" alt="Claude Coin Trading Bot Logo" width="280" />
-</p>
+> 기존 단일자산(BTC) 코인 봇을 **asset-agnostic 코어**로 일반화하고 주식 트랙을 얹은 멀티에셋 자율매매 시스템.
+> 매매 로직을 코드로 하드코딩하지 않고, **결정론 baseline + LLM down-only 감쇠 + 우회 불가 리스크 게이트**로 안전을 코드 구조에 박았다.
 
-<p align="center">
-  <strong>코드 한 줄 안 짜고, 자연어로 전략을 쓰면 AI가 알아서 코인을 사고판다고? 네, 진짜입니다.<br/>
-  업비트에서 비트코인 자동매매부터 바이낸스에서 김치프리미엄 차익거래까지 —<br/>
-  잠자는 동안 스스로 생각하고 매매하며 진화하는 살아 숨쉬는 시스템입니다. 🚗💨</strong>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/version-1.29.0-blueviolet?style=for-the-badge" alt="version"/>
-  <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="python"/>
-  <img src="https://img.shields.io/badge/Gemini_AI-2.5_Pro-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="gemini"/>
-  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="supabase"/>
-  <img src="https://img.shields.io/badge/Claude_Code-Sonnet_4-D97706?style=for-the-badge" alt="claude"/>
-</p>
+이 문서는 `architecture.md`(목표 아키텍처·Phase 로드맵)와 `ARCHITECTURE-brain.md`(두뇌 의사결정·학습 루프)를 베이스로, 구현된 전체 코드의 핵심 모듈·속성·**설계 결정 이유**를 기능 영역별로 정리한 통합 레퍼런스다.
 
 ---
 
-## 📖 이 앱의 개발 철학과 진화 과정 (Philosophy & Evolution)
+## 📌 개요
 
-### 🎓 원작자 dantelabs 와의 만남, 그리고 첫 앱 이후의 변화
-이 프로젝트의 최초 모티브는 원작자 **dantelabs**님의 유튜브 채널에서 영감을 받아 시작되었습니다. ([Dante Labs YouTube](https://youtube.com/@dante-labs))
-원작의 코드를 활용해 첫 앱을 만들고 난 후, 코인 자동매매의 본질과 한계에 대해 깊이 고민하기 시작했고, 결과적으로 이 앱을 완전히 다른 차원의 복합 지능 시스템으로 발전시켰습니다.
+crypto·주식·상품·채권을 **단일 코드 경로**로 다루는 실거래 시스템이다. 핵심 설계 철학 두 가지:
 
-### 🐍 파이썬과 규칙 기반(Rule-Based) 매매법의 필요성
-자동매매 앱의 특징상, 실시간 데이터 수집과 가공, 다양한 AI 모델 및 오픈소스의 유연한 통합이 필수적입니다. 이를 위해 연동성과 확장성이 가장 뛰어난 **파이썬(Python)**을 핵심 언어로 채택했습니다.
-초기에는 최첨단 인공지능이 모든 것을 완벽하게 판단해주길 기대했습니다. 하지만 예측 불가능한 꼬리 위험(Tail Risk)이 상존하는 코인 시장의 특성상, 최소한의 잃지 않는 장치인 **규칙 기반(Rule-Based) 매매법**이 반드시 필요합니다.
+1. **결정론이 baseline, LLM은 enrich/감쇠만.** 평상시 무료 결정론 점수가 깔리고, LLM(Qwen 로컬/Claude deep)은 고-스테이크스 트리거 때만 호출되며, **사이징을 키우지 못하고 깎기만** 한다(`final ≤ l1_size` 천장 불변식). LLM 환각이 베팅을 키우는 경로가 코드에 존재하지 않는다.
+2. **불확실하면 자동 de-risk.** confidence가 낮거나 데이터가 없으면 belief 분포가 평탄해지고, 그 평탄함이 자산배분·사이징 단계에서 분산·중립화로 흘러간다(수학이 위험을 줄이고 사람 개입 0).
 
-### 🧠 강화학습(RL)의 도입: 가상 데이터 학습 vs 실 데이터 학습
-앱의 지능을 한 단계 더 끌어올리기 위해 인공신경망 기반의 강화학습(RL)을 적극 도입했습니다. 하지만 개발 과정에서 매우 뼈저린 사실을 깨달았습니다.
-- **가상 데이터(Backtesting) 학습**: 과거 데이터를 돌려보면 늘 우상향하는 완벽에 가까운 환상적인 수익률을 보여줍니다.
-- **실 데이터(Live) 학습**: 하지만 시장의 슬리피지(Slippage), 수수료, 매수/매도 잔량에 숨겨진 변동성, 실시간 시장 심리 등 **실제 시장 환경(실 데이터)**을 적용해 강화학습을 진행하자 사정이 완전히 달라졌습니다.
-
-### 🧪 수많은 실패와 실험 결과
-이 봇을 어떻게든 수익 나는 완벽한 기계로 만들고자 정말 수많은 실험과 실패를 겪었습니다:
-1. **Swing Hunter 시도**: 실 데이터 환경에서는 승률 높은 유의미한 모델을 찾는 것에 실패했습니다.
-2. **알트코인 20개 순환매매 무용론**: 빈번한 매매에 따른 수수료와 슬리피지를 역산해보니, 수익성이 아예 없어 전면 폐기했습니다.
-3. **비트코인과 이더리움 연관 매매법**: 뚜렷한 연관 법칙성을 찾기 어려웠고 수익성도 나오지 않아 적용하지 않았습니다.
-
-**🏆 결론은 "비트코인(BTC)" 하나뿐입니다**
-수많은 전략의 폐기와 실험 끝에 얻은 최종 결론은 명확합니다. 코인 자동매매는 결국 유동성이 가장 풍부하고, 온체인 데이터 및 거시 경제의 흐름을 가장 잘 반영하며, 장기적 우상향의 신뢰도가 제일 높은 **비트코인(BTC)** 하나를 대상으로 하는 것이 압도적으로 유리하다는 것입니다.
-
-### 🧠 제미나이(Gemini) 모델을 통한 DB 임베딩과 RAG 검색 시스템의 도입
-단순한 룰(Rule)이나 맹목적인 기계학습을 넘어, **봇 스스로 판단 맥락을 인지하고 추론하는 메타인지 능력**을 부여하기 위해 최신 AI 기술인 **RAG(검색 증강 생성)와 벡터 임베딩**을 전격 도입했습니다.
-- **모든 과거 기록의 벡터화**: 앱에서 실시간으로 축적되는 수많은 데이터베이스를 전부 제미나이(Gemini) 모델을 통해 다차원의 **벡터(Vector) 데이터로 변환(Embedding)**하여 수파베이스 DB에 매번 저장합니다.
-- **RAG를 통한 자기 기억 인출**: 봇이 완전히 새로운 시장 상황에 직면했을 때, 단순 지표 평균치로만 판단하지 않고 즉시 자신의 기억(DB) 공간을 검색(RAG)합니다. 코사인 유사도(Cosine Similarity)를 계산해 가장 전반적 뉘앙스가 흡사했던 과거의 패턴들을 순식간에 불러옵니다.
-
-### 🤖 앱의 최종 목표: '단순한 고승률'이 아닌, 스스로 생존하는 '살아 움직이는' 시스템
-따라서 이 앱의 궁극적인 목적은, 과최적화된 백테스트로 만들어진 "무조건 이기는 마법의 공식"을 찾는 것이 아닙니다. 대신, 아래의 철학을 가지고 시장에서 묵묵히 제 할 일을 하며 진화하는 **살아있는(Alive) 앱**을 구축했습니다:
-
-1. **정보의 유기적 감지와 반응**: 외부 뉴스 호재/악재, 고래들의 대량 매집 정보, 거시적 매크로 데이터 지표 등을 실시간으로 감지하고 파도타듯 매매에 즉각 반영하는 앱.
-2. **시장 순응형 생존 방식**: 상승장인지 하락장인지 사용자가 일일이 전략을 뜯어고치거나 신경 쓰지 않아도, 스스로 파악하고 자동으로 최적의 전략을 교체하며 대응하는 앱.
-3. **자가 학습(Self-Learning)과 메타인지 진화**: 자신만의 행동을 꾸준히 데이터베이스에 쌓고, 그 실패와 성공의 모든 기록을 제미나이(Gemini)로 임베딩한 후 RAG 검색을 통해 과거의 자신과 현재를 끊임없이 비교하여 결론을 내리는 지능 개선형 앱.
-4. **자가 치유 (Self-Healing & Debugging)**: 24시간 365일 돌아가야 하는 시스템 특성상, 중간에 알 수 없는 버그가 생기거나 서버가 다운되려 할 때 파이썬 코드가 백그라운드에서 스스로 원인을 디버깅하고 스크립트를 재시작(Restart)하여 생명력을 유지하는 끈질긴 앱.
+> **현재 라이브 = 레거시 코인 봇**(`agents/` + `scripts/run_agents.sh`). 신규 `core/` 아키텍처는 `INV_CORE_GATE` 옵트인 백스톱으로 연결되며, 기본 off에서는 레거시 경로가 byte-identical하게 유지된다. 실거래 전환(`DRY_RUN=false`)과 90일 무중단은 **사람 게이트**(자율 범위 밖)다.
 
 ---
 
-## 📑 목차
+## 🏛️ 목표 아키텍처
 
-- [1. ⚙️ 아주 자세한 셋팅 완벽 가이드 (초보자 필독!)](#1-️-아주-자세한-셋팅-완벽-가이드-초보자-필독)
-- [2. 🤖 비트코인 자동매매 봇 (업비트 메인 시스템)](#2--비트코인-자동매매-봇-업비트-메인-시스템)
-- [3. 🌶️ 김치랑 봇 (Kimchirang 델타 뉴트럴 차익거래)](#3-️-김치랑-봇-kimchirang-델타-뉴트럴-차익거래)
-- [4. 🧬 스캘프 ML 시스템 (scalp_ml — 단타 머신러닝)](#4--스캘프-ml-시스템-scalp_ml--단타-머신러닝)
-- [5. 🧠 RL 하이브리드 두뇌 (rl_hybrid — PPO + RAG + Gemini)](#5--rl-하이브리드-두뇌-rl_hybrid--ppo--rag--gemini)
-- [6. 📰 뉴스랑 (NewsRang — 11소스 실시간 외부 데이터 수집기)](#6--뉴스랑-newsrang--11소스-실시간-외부-데이터-수집기)
-- [7. 📱 텔레그램 알림 및 시스템 스케줄링](#7--텔레그램-알림-및-시스템-스케줄링)
-- [8. 🗄️ Supabase 데이터베이스 구조 (50개 마이그레이션)](#8-️-supabase-데이터베이스-구조-50개-마이그레이션)
-- [9. 🏗️ 전체 프로젝트 패키지 구조](#9-️-전체-프로젝트-패키지-구조)
-- [10. 🚫 면책 조항](#10--면책-조항-및-최후-당부)
+```
+                  [Portfolio Orchestrator]   ← 자산배분 (코인/주식/현금 비중)
+                  레짐 + 상관도 기반, 트랙 간 자본 한도 배분
+                          │
+        ┌─────────────────┴─────────────────┐
+   [Coin Track: 기존 흡수]            [Stock Track: 신규]
+   AssetTrack 구현체                  AssetTrack 구현체
+   - 모멘텀/심리/레짐 트리거(기존)      - 가치기반 2단 트리거(신규)
+   - BTC 단일                          - KR/US 개별주 + ETF
+        │                                      │
+        └─────────────────┬─────────────────┘
+              [Shared Risk Gate]   ← 우회 불가, hard rule
+              포트폴리오 손실한도 / 상관도 캡 / 회전율 / kill switch
+                          │
+        ┌─────────────────┴─────────────────┐
+   [Coin Exec: 기존]                 [Stock Exec: 신규]
+   업비트 / 바이낸스                  한국투자증권(KIS)
+```
+
+흐름은 한 방향으로 고정된다 — **자산-불가지 트랙(AssetTrack)이 후보 결정 생성 → (고-스테이크스 시) consensus Judge → 우회 불가 공통 리스크 게이트 → 멀티에셋 사이징 → 주문**. 최상위에 슬리브(US주/KR주/원자재/금/채권/현금/코인) 배분을 책임지는 포트폴리오 오케스트레이터가 있다.
 
 ---
 
-## 1. ⚙️ 아주 자세한 셋팅 완벽 가이드 (초보자 필독!)
+## 🧭 설계 철학 / 핵심 불변식
 
-> 처음 설정하시는 분들을 위해 단계별로 아주 상세하게 설명합니다. 순서대로만 진행하시면 누구나 시작할 수 있습니다.
+**6대 보존 원칙** (전 트랙 유지·확장 — `architecture.md` §0):
+점수 투명성(score breakdown) · 자연어 전략(`strategy.md`) · JSON 결정 스키마 · 감사 테이블 · DRY_RUN 게이팅 · 수동 EMERGENCY_STOP 우회 불가.
 
-### 1-1. 필수 프로그램 설치 (Git + Python)
+**두뇌·결정 6대 불변식** (`ARCHITECTURE-brain.md` §4):
 
-봇을 구동하려면 윈도우/맥에 관계없이 컴퓨터에 **Git**과 **Python**(3.10 이상 권장, 3.12 최고 권장)이 반드시 설치되어 있어야 합니다.
-
-#### 🪟 Windows 사용자
-1. **Git 설치**: [https://git-scm.com/downloads](https://git-scm.com/downloads) 에 접속하여 `.exe` 파일을 다운로드하고 설치 과정을 묻는 창에서 아무것도 건드리지 말고 무조건 `Next`만 눌러 끝까지 설치합니다.
-2. **Python 설치**: [https://www.python.org/downloads/](https://www.python.org/downloads/) 에 접속하여 3.1x 버전을 다운로드합니다.
-   - ⚠️ **초특급 주의사항**: 다운받은 파이썬 설치 파일 실행 시, 맨 첫 화면 하단에 있는 **`Add python.exe to PATH`** 체크박스를 ⭐️**반드시, 무조건**⭐️ 체크하고 `Install Now`를 눌러야 합니다. 이것을 체크하지 않으면 터미널에서 파이썬 명령어를 전혀 알아듣지 못합니다.
-
-#### 🍎 Mac 사용자
-1. 사용중인 Mac에서 **터미널(Terminal)** 앱을 엽니다. (Command ⌘ + Space 바를 누르고 화면 중앙에 '터미널' 검색)
-2. 아래 명령어를 복사 후 터미널에 붙여넣고 엔터를 치면 파이썬이 설치됩니다.
-   ```bash
-   brew install python@3.12
-   ```
-   *(만약 `brew: command not found` 오류가 뜬다면 Homebrew가 없는 것이니, 먼저 [https://brew.sh](https://brew.sh) 에 접속해 설치 명령어를 복사해 터미널에 붙여넣어 Homebrew부터 설치합니다)*
-
-### 1-2. 소스코드 다운로드 (프로젝트 복제)
-
-다운로드받을 폴더로 터미널/명령 프롬프트를 열고 들어간 뒤, 아래 명령어를 실행하여 깃허브에서 전체 코드를 내 컴퓨터로 내려받습니다.
-
-```bash
-# 1. 깃허브에서 내 컴퓨터로 통째로 복사해옵니다.
-git clone https://github.com/jaeho-jang-dr/claude-coin-trading-main.git
-
-# 2. 방금 다운로드가 완료된 코딩 폴더 안으로 쏙 들어갑니다.
-cd claude-coin-trading-main
-```
-
-### 1-3. 가상환경 만들기 및 라이브러리 설치
-
-파이썬 프로젝트는 다른 프로그램 패키지들과 꼬이지 않게 '나만의 독립된 방(가상환경)'을 만들어주는 것이 가장 기초이자 필수입니다.
-
-#### 🪟 Windows (명령 프롬프트 혹은 PowerShell 기준)
-```powershell
-# 1. 이 폴더에 '.venv'라는 이름의 독립된 방(가상환경)을 만듭니다.
-python -m venv .venv
-
-# 2. 그 방 안으로 들어갑니다. (왼쪽에 (.venv) 글자가 생기면 성공!)
-.venv\Scripts\activate
-
-# 3. 봇을 굴리는데 필요한 파이썬 패키지들을 한 번에 자동 설치합니다.
-pip install -r requirements.txt
-
-# 4. 차트 캡처 등을 위해 웹 자동화 도구(플레이라이트)를 추가 설치합니다.
-playwright install chromium
-```
-
-#### 🍎 Mac / Linux (터미널)
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-playwright install chromium
-```
-
-### 1-4. 외부와 소통하기 위한 핵심 API 키 발급받기
-
-프로그램이 스스로 남의 서비스(업비트, 텔레그램, 구글 AI 등)를 빌려다 쓰려면 '비밀번호표(API 키)'가 필요합니다. 아래 각 서비스에 가입하시고 키를 발급받은 뒤, **절대 타인에게 공유하지 마시고 본인 메모장에 복사해서 모아둡니다.**
-
-| # | 서비스 | 용도 | 발급 위치 | 비고 |
-|---|--------|------|-----------|------|
-| 1 | **업비트(Upbit)** | BTC 현물 매매 | 마이페이지 → OpenAPI 관리 | `자산조회`, `주문조회`, `주문하기` 체크. **`출금하기` 절대 체크 금지** |
-| 2 | **바이낸스(Binance)** | 김치랑 차익거래(선물) | [binance.com](https://www.binance.com) API Management | Futures 거래 활성화 후 키 발급. `Enable Futures` 체크 필수 |
-| 3 | **수파베이스(Supabase)** | 매매이력 DB 저장 | [supabase.com](https://supabase.com) → 프로젝트 Settings | `Project URL` + `service_role secret` 키 복사 (anon 아님!) |
-| 4 | **텔레그램(Telegram)** | 모바일 실시간 알림 | `@BotFather` → `/newbot` | 토큰 받은 후 내 봇에게 `/start` 먼저 전송 필수 |
-| 5 | **타빌리(Tavily)** | 전 세계 뉴스 실시간 검색 | [tavily.com](https://tavily.com) | 무료 키 발급 |
-| 6 | **제미나이(Gemini)** | AI 분석 두뇌 + 임베딩 | [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) | Create API Key 클릭 |
-
-> **바이낸스 API 키 발급 순서 주의사항**: 반드시 ① Futures 거래 활성화 → ② 퀴즈 통과 → ③ 최소 입금 → ④ API 키 생성 순서로 진행해야 Futures 권한이 정상 부여됩니다. 순서를 바꾸면 API KEY에 권한이 없습니다.
-
-### 1-5. `.env` 파일 설정 (실제 봇에 키값 주입)
-
-이제 메모장에 소중히 모아둔 API 키를 파일 안에 세팅해야 합니다.
-
-1. 다운로드 받은 `claude-coin-trading-main` 폴더 안에 보시면 `.env.example` 이라는 껍데기 파일이 있습니다.
-2. 이 녀석의 파일명을 뒤쪽의 `.example`을 지워버리고 그냥 `.env` 로 바꿉니다.
-3. 우클릭 후 메모장(혹은 텍스트 편집기)으로 `.env` 파일을 열고, 아래 내용처럼 여러분이 발급받은 실제 키들로 정확히 바꿔치기 해줍니다. 띄어쓰기 없이 붙여넣습니다.
-
-```ini
-# 🏦 거래소 API (업비트 — 비트코인 자동매매용)
-UPBIT_ACCESS_KEY=여러분의_업비트_액세스키를_붙여넣으세요
-UPBIT_SECRET_KEY=여러분의_업비트_시크릿키를_붙여넣으세요
-
-# 🔄 거래소 API (바이낸스 — 김치랑 차익거래용)
-BINANCE_API_KEY=여러분의_바이낸스_API키
-BINANCE_API_SECRET=여러분의_바이낸스_시크릿키
-
-# 🗄️ 데이터베이스 저장소 (수파베이스)
-SUPABASE_URL=https://여러분의프로젝트고유값.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=ey...로_시작하는_아주긴_서비스롤키
-
-# 📱 텔레그램 휴대폰 알림
-TELEGRAM_BOT_TOKEN=12345678:여러분의봇토큰
-TELEGRAM_USER_ID=123456789  # 숫자
-
-# 📰 뉴스 검색 및 🤖 두뇌 역할 AI 모델
-TAVILY_API_KEY=tvly-여러분의타빌리키
-GEMINI_API_KEY=AIza...제미나이키
-
-# 🔥 투자 설정 (극도로 주의하세요!) 🔥
-DRY_RUN=true              # 🚨 true면 연습모드(가짜돈), 실제 내 진짜 돈으로 사고팔려면 false 로 변경!!
-MAX_TRADE_AMOUNT=100000   # 1번 쏠 때 매수할 금액 (예: 10만원 = 100000)
-MAX_DAILY_TRADES=3        # 하루에 딱 이 숫자만큼만 매매진입 허용 (보통 3~5번 권장)
-MAX_POSITION_RATIO=0.5    # 현재 내 업비트 원화 잔고의 몇 프로까지만 투자를 허용할지 (0.5 = 50%까지)
-EMERGENCY_STOP=false      # 만약 미친듯이 큰 폭락이 온다면 이걸 즉시 true로 바꾸세요.
-```
-
-> **🔥 강력 주의!** 모든 셋팅을 마친 뒤 최초 1~2주는 자나깨나 무조건 `DRY_RUN=true` 상태에서 시스템이 매매 알림을 잘 쏘는지, 오류는 없는지 구경만 하셔야 합니다.
-
-### 1-6. Supabase 데이터베이스(DB) 틀 만들기
-
-로깅, 디버깅, 자가발전을 위해 수파베이스라는 빈 노트에 선을 그어주는(테이블 생성) 작업입니다.
-
-1. Supabase 대시보드 로그인 → 프로젝트 선택 → 왼쪽 메뉴의 `SQL Editor` 클릭
-2. 다운받은 프로젝트 내의 `supabase/migrations/` 폴더 안을 엽니다.
-3. 안에는 `001_...sql` 부터 쭉 숫자가 붙은 **50개의 sql 파일**이 있습니다. 이걸 1번부터 순서대로 하나씩 메모장으로 연 다음, 내용 전체를 복사하여 SQL Editor에 붙여넣고 **Run(실행)** 버튼을 누릅니다.
-4. 에러가 나는 번호가 있으면 이미 만들어진 것이니 패스해도 좋습니다.
+1. **down-only**: LLM/agent는 L1 결정론 사이징을 감쇠만, 증폭 절대 불가(`final ≤ l1_size`).
+2. **falsification 필수**: 모든 가정 카드는 정량 반증 조건 보유. 없으면 등록 거부.
+3. **PIT replay**: 카드·비중·belief는 hash-pinned frozen. 과거 결정 정확 재현, lookahead 차단.
+4. **floor 분리**: 진입 임계(`clamp_floor`)는 학습과 분리된 비학습 primitive.
+5. **학습/적용 분리**: 학습은 배치(offline), 라이브는 조회만(down-only). 반사성 차단.
+6. **opt-in off 기본**: 라이브 결정 경로 변경은 환경변수 flag off 기본 = byte-identical 무회귀. `DRY_RUN`/`execute_trade`는 절대 미변경(go-live 사람 게이트).
 
 ---
 
-## 2. 🤖 비트코인 자동매매 봇 (업비트 메인 시스템)
+## 🧠 두뇌(Brain) 레이어
 
-**최우선 목표**: 사람이 상승장인지 하락장인지 일일이 차트를 보고 스트레스받거나 전략을 바꿀 필요 없이, 봇이 스스로 거시 지표를 감지해 최적화된 매매법으로 생존하기.
+두뇌 레이어(`core/brain/`)는 "지금이 어떤 거시 국면이고, 그 판단을 얼마나 믿을지"를 결정하는 메타 추론 계층이다. crypto·주식·상품·채권을 단일 asset-agnostic 경로로 다루며 세 가지 일을 한다 — (1) **LLM 호출 라우팅**(평상시 로컬 Qwen, 위기 트리거 시 Claude deep), (2) **거시 레짐 판단**(FRED 지표로 Investment Clock 4분면을 매 사이클 결정론으로 산출), (3) **학습 메모리**(지표가 정의대로 안 움직이는 decoupling을 감지·기록해 다음 판단의 신뢰도를 보수화).
 
-### 2-1. 핵심 설계 철학 — 자연어 전략 기반 시스템
+핵심 철학은 둘이다. 첫째, **결정론 baseline이 항상 깔리고 LLM은 enrich만 한다** — 매 사이클 `RegimeClassifier`가 무료·결정론으로 `MacroView`를 채우고, LLM은 macro-trigger가 있을 때만 stance를 덧붙인다(freshness ≠ liveness). 둘째, **불확실하면 자동 de-risk** — confidence가 낮거나 데이터가 없으면 belief 분포가 평탄해지고, 그 평탄함이 자산배분 단계에서 분산·중립화로 흘러간다.
 
-이 시스템의 가장 독창적인 특징은 **매매 로직을 코드로 하드코딩하지 않는다**는 것입니다.
-`strategy.md` 파일에 자연어로 전략을 정의하고, Claude AI가 데이터를 해석하여 자율적으로 판단합니다. Python 스크립트는 데이터 수집과 API 호출만 담당합니다.
+#### macro_schema
+거시 출력의 공통 계약(SSOT). `MacroView`(per-bloc `RegimeEstimate` dict + stance + status + age + 근거)를 정의한다.
+- **불변식**: `RegimeLabel`은 정확히 Investment Clock 4분면(REFLATION/RECOVERY/OVERHEAT/STAGFLATION). `regime_now`(classifier)와 `regime_forecast`(forecaster)를 명시 분리 — 둘이 다르면 `is_disagreement()`가 레짐 전환 임박 신호.
+- **신선도 3단계**: `FRESH/STALE/UNAVAILABLE`. 소스 outage 시 `degrade_to_stale()`로 last-good 재사용(청산·리밸런싱은 계속), 없으면 `unavailable()`(빈 view → 하류 중립 Prior degrade).
 
-```bash
-# 메인 봇 시스템 구동 명령어
-🪟 Windows 환경: python rl_hybrid\launchers\start_all.py
-🍎 Mac 환경:     python3 rl_hybrid/launchers/start_all.py
-```
+#### macro_indicators
+`macro.md` 리서치의 정량 법칙·임계를 **순수함수**로 코드화. PIT-safe(발표일 정렬, 미래 미참조).
+- `michez_rule(u, v)` — Michaillat-Saez `m(t)=min(û,v̂)`, 이중 임계로 expansion/probable/certain 3단. 이민 공급충격으로 실업률만 치솟아도 구인 하락폭이 작으면 오경보 차단(Sahm 직접 대체).
+- `gdp_gdi_divergence` — GDP<0<GDI면 기술적 침체 오경보로 단정 보류. `yield_curve_signal` — 역전/스티프닝 구분(역전=침체 직행 아님). `investment_clock_quadrant(growth, infl)` — 4분면 라벨 + `tanh(√|g·i|)` 신뢰도(경계 근처면 낮게 → reasoning 에스컬레이션).
 
-명령어를 치면 백그라운드에서 실시간 데이터 감지, 텔레그램 연동, DB 적재, 그리고 에러나 거래소 API 멈춤 현상 발생 시 **스스로 디버그하여 시스템을 재시작하는 자가 치유(Self-healing)** 프로세스가 동시에 돌아갑니다.
+#### fred_adapter
+FRED/ALFRED vintage 데이터의 경계(실제 호출은 `fredapi`, 본 모듈은 큐레이션·PIT 계약·인터페이스).
+- **PIT 불변식**: `get_series(id, as_of)`는 as_of까지 *발표된* 값만(causal mask). `first_release`(핫패스) / `vintage`(백테스트). `USREC`(NBER)는 학습 라벨 전용(실시간 추론 금지).
+- graceful degrade: `NullFredAdapter`(키/네트워크 없음 → None) → 분류기가 stale/unavailable로 강등.
 
-### 2-2. 에이전트 모드 실행 (권장)
+#### regime_classifier
+결정론 거시 레짐 분류기 — brain의 매 사이클 무료 baseline.
+- 파이프라인: 피처 적재 → Investment Clock 4분면 baseline → **JM/SJM 2상태(calm/stress) overlay** → Michez/Sahm/금리커브/GDP-GDI override → 선행지표 forecaster(classifier와 분리).
+- **핵심 신호**: `_jump_model_overlay`가 JM **filter(online) vs smoother(insample)** 발산으로 confidence를 깎는다 — "실시간 판정 ≠ 사후정답" 신호로, 학습 루프가 harvest한다.
+- `_apply_correlation_attenuation`이 `IndicatorEventCorrelation` 주입받아 보조지표 trigger 시 confidence 동적 하향. JM 미설치 → 규칙 단독 degrade.
 
-```bash
-# 에이전트 자율 실행  
-bash scripts/run_agents.sh
+#### indicator_event_correlation
+"정상 상관 / 그 패턴이 깨진 이상 케이스 / 보조지표 임계 넘으면 상관 동적 약화"를 구현한 오판 피드백 루프. `MACRO_CORRELATION_BACKGROUND.md`와 1:1 연결.
+- `EVENT_BASELINE`(이벤트별 지표 기대 방향) + `ANOMALY_CASES`(6+1 decoupling: 금리커브 역전 무력화·Sahm 오작동·M2-인플레 디커플링·500bp 연착륙·CPI-Truflation 괴리·GDP-GDI 단절). 각 케이스에 `SupplementarySignal`(임계·방향) + `attenuation`(0~1 곱).
+- `conditional_attenuation` — 보조지표 trigger 시 attenuation 발동(바닥 0.1). López de Prado **메타라벨링**을 거시 레짐에 어댑트.
+- **학습 자산**: `CorrectionRecord`(PIT-safe: `as_of_ts`=causal mask, hindsight 라벨은 학습 신호로만) + `ingest_correction`(빈도/lag 통계만, hard 재학습 금지) + `recall_similar`(as_of 이전 보정만).
 
-# LLM 프롬프트 모드 (레거시)
-bash scripts/run_analysis.sh 2>/dev/null | claude -p --dangerously-skip-permissions
+#### correction_loop
+`indicator_event_correlation`의 dead였던 학습 쓰기 경로를 live 루프로 배선.
+- `harvest_from_jm` — classifier가 버리던 JM filter/smoother 발산을 harvest trigger로 재사용, realtime vs hindsight regime 비교해 misjudgment만 `ingest`.
+- `attach_to_classifier(clf)` — read(`score_confidence`)와 write(`harvest→ingest`)가 동일 model 인스턴스 공유 → 즉시 반영. harvest 시 `HOLD_REMEASURED` 이벤트 dict 반환(ledger I/O는 호출자).
 
-# Claude 대화형 세션 (전략 수정, 피드백, 긴급 정지 등)
-cd <프로젝트 경로> && claude --dangerously-skip-permissions
-```
+#### regime_belief_adapter
+`MacroView`(거시 판정)를 R15 가중 학습의 **belief 분포 b(t)**로 변환.
+- `belief_from_macro_view(view)` — `regime_now`에 `confidence_now` 질량, 나머지 균등 + floor, 합=1. **confidence 高 → 집중, 低 → 평탄**(= between-dispersion 자동 inflate → transition de-risk).
+- `belief_vector` — 고정 순서 tuple 박제(replay 불변). `calibrated_belief` — frozen TemperatureCalibrator 주입. unavailable → uniform(최대 불확실 = 자동 de-risk).
 
-### 2-3. 3계급 에이전트 자율 전환 시스템
+#### regime_history
+`RegimeClassifier.classify(as_of=과거)`를 패널 각 행 날짜에 PIT 반복 호출해 "각 시점이 어느 국면이었나" 재구성(`RegimeGlasso.fit` 입력).
+- `build_regime_history(clf, dates)` → `{as_of: label}`. ALFRED vintage라 lookahead 차단. `regime_id_series`/`valid_mask` — label→int, 미지 regime(None)은 -1로 완전관측 행만 학습.
 
-항상 똑같이 매매하는 바보가 아닙니다. 시장의 전체 온도(FGI 공포탐욕지수, 추세 이탈률 등)에 따라 시스템 최상단의 **감독관(Orchestrator)** 봇이 상황 파악 후 다음 3명의 행동대장 중 한 명을 교체 투입시킵니다:
+#### regime_to_weights
+레짐 → 슬리브 % 배분(Black-Litterman 메인, IC-prior 폴백). **⚠️ R15 가중(종목 판정 비중)과 다른 레이어(자산 배분) — 혼동 금지.**
+- `weight_tilt`(견고, Prior + α·(View−Prior)) / `bl_returns`(PyPortfolioOpt BL 정통). confidence 낮을수록 Prior 근접, Ledoit-Wolf로 고변동 슬리브 tilt 억제, long-only 클립+재정규화, 합=1 보장.
 
-| 에이전트 | 발동 조건 | 전략 특성 |
-|---------|-----------|----------|
-| 🛡️ **보수적(Conservative)** | `danger_score ≥ 70` | 대규모 하락장/폭락장에서 자산을 현금화하여 보호, 진입 타점 극한으로 좁혀 바닥 긁음 |
-| ⚖️ **보통(Moderate)** | 횡보 (danger < 25, opp < 25) | 박스권/추세 횡보장에서 안정적인 수익 보상을 챙김 |
-| 🔥 **공격적(Aggressive)** | `opp_score ≥ 60 & danger < 30` | 대상승장에서 과감히 올라타 잦은 회전율로 익절폭 넓힘 |
+#### macro_reasoning / llm_provider / embedder / memory_layer / rag_pit
+- **macro_reasoning**: macro-trigger 시에만 baseline enrich(평상시 비용 0). thesis + 최강 반대 thesis + stance(JSON) 요청, LLM 실패/확신 부족 시 baseline 유지(C2 abstain).
+- **llm_provider**: `OllamaQwenProvider`(quick) / `ClaudeProvider`(deep, **Max OAuth만 — api 키 금지**) / `GeminiProvider`(fallback). `LLMRouter.route`로 평상시 quick, 트리거 시 deep. **C2 서킷브레이커**(일일 캡·지연 예산·degrade), **B3 결정성**(`model_id`·`prompt_hash`·`temperature` 실주입). 매수 degrade = abstain(관망).
+- **embedder**: da 8787 서비스 재사용(BGE-m3 1024-dim). 신규 ollama BGE 금지(임베딩 공간 보존).
+- **memory_layer**: FinMem식 계층 메모리. 점수 = recency(반감기 감쇠) + relevance + importance. `update_with_outcome`로 결과 반영, 500개 초과 시 하위 20% evict.
+- **rag_pit**: RAG recall에 PIT causal-mask(`created_at < as_of` + 열린 포지션 제외). `RAGPipeline` 본체 미변경, 래핑만.
 
-**감독 에이전트(Orchestrator)의 판단 지표:**
-
-```
-위험도(danger_score, 0~100):
-  • 연속 손절 (10점/회, 최대 30점)
-  • 24h -3% 이상 급락 (최대 25점)
-  • BTC 과다 보유 30% 초과 시 가산
-  • 김치 프리미엄 과열 3%+ (최대 15점)
-
-기회(opportunity_score, 0~100):
-  • 극단적 공포 FGI ≤ 25 (최대 25점)
-  • RSI 과매도 < 35 (최대 20점)
-  • 반등 중 24h +1%+ (최대 15점)
-  • Data Fusion 강세 strong_buy (20점)
-```
-
-### 2-4. 자동 긴급정지 시스템 (Lifeline)
-
-- **발동 조건**: 4h -10% 급락, cascade+danger 동시 극단, 외부 약세 5개+ 겹침, **연속손절 5회+**
-- **발동 시**: 전량 매도 + 매수 차단 + 텔레그램 알림 (`data/auto_emergency.json` 플래그 생성)
-- **해제 조건**: 12시간 경과 + 급락 종료 + 공포 완화 시 자동 해제
-- ⚠️ 사용자가 수동 발동한 `.env EMERGENCY_STOP=true`는 감독 에이전트가 해제할 수 없습니다
-
-### 2-5. 안전장치 파라미터 일람표
-
-| 파라미터 | 기본값 | 설명 |
-|---------|--------|------|
-| `DRY_RUN` | `true` | true: 분석만, false: 실제 매매 |
-| `MAX_TRADE_AMOUNT` | `100000` | 1회 매매 금액 상한 (KRW) |
-| `MAX_DAILY_TRADES` | `6` | 일일 매매 횟수 상한 |
-| `MAX_POSITION_RATIO` | `0.5` | 총 자산 대비 최대 투자 비율 |
-| `MIN_TRADE_INTERVAL_HOURS` | `4` | 최소 매매 간격 (시간) |
-| `EMERGENCY_STOP` | `false` | true: 모든 매매 즉시 중지 (수동) |
+#### 두뇌 레이어 설계 결정 이유
+- **왜 LLM down-only·결정론 baseline**: `ARCHITECTURE-brain.md` §1·§4 — "순서가 뒤집히면 LLM 환각이 베팅을 키우므로 순서를 코드 구조로 박았다". `regime_classifier` 무료 baseline + `macro_reasoning` 트리거 enrich + `llm_provider` degrade=abstain이 구현.
+- **왜 belief를 soft 분포로**: `CONSULT-DECISIONS-weight-20260529.md` §1.6 — "hard argmax는 transition에서 비중 점프·common-cause 오염", "regime 모호 시 risk 자동 inflate = transition 자동 de-risk". 모호할수록 사람 개입 없이 수학이 위험을 줄이게 한 의도.
+- **왜 오판 학습이 caution 메모리(hard 재학습 아님)**: `MACRO_CORRELATION_BACKGROUND.md` §4 — "구분되는 거시 레짐 에피소드는 드뭄(2018~2026 수 건) → 보정 수십개로 hard 재학습 = 심한 과적합(PBO). 이 루프는 '훈련된 예측기'가 아니라 '지표가 이상하면 덜 확신하라'는 caution 메모리".
+- **왜 HMM 대신 Investment Clock + JM/SJM**: HMM/DCC는 regime 외생·소표본 최악. NBER 라벨 후행 문제로 4분면 직접 JM 학습은 라벨 매핑 모호 → 규칙 우선 + JM 2상태 stress 메타신호 보강.
 
 ---
 
-## 3. 🌶️ 김치랑 봇 (Kimchirang 델타 뉴트럴 차익거래)
+## 🗄️ 데이터·PIT·실거래 안전 레이어
 
-이 모듈은 업비트(비트코인 현물 매수)와 바이낸스(비트코인 선물 공매도)를 동시에 잡아, 비트가 1억을 가든 100만원이 되든 원금 가격 하락과 상승에는 전혀 상관받지 않는 **무위험 매매(델타 뉴트럴)**를 추구하는 엔진입니다.
+`core/data/`는 시스템의 **데이터 substrate**다. 단 하나의 책임을 진다 — **"그때 우리가 실제로 알 수 있었던 것"만 보게 한다**. 백테스트가 미래 정보를 한 톨이라도 먹으면(미래 개정값·미래 휴장·미래 유니버스·재사용 ticker) 에러 없이 통과하고 라이브 하회로만 드러나는 silent alpha 누수가 된다. 이 레이어는 그 누수 경로를 **bitemporal 시간축**으로 전수 차단한다.
 
-```bash
-# 연습모드 (DRY_RUN)
-python -m kimchirang.main
+세 기둥 — ① **append-only event ledger**(`event_ledger`, 진실원) ② **PIT 데이터 substrate**(`pit_panel`/`pit_query`/`vintage`/`identity`/`calendar`/`fx`/`universe_membership`/`corp_action`/`instrument_source`/`lineage`/`data_contract`) ③ **가중학습 데이터 계층 R15**(`weight_panel`/`weight_card_store`/`cv_split`/`cold_start_ood`). 관통 검증하는 **적대적 replay 게이트**(`adversarial_replay`)와 실거래 승급 **사람 게이트**(`promotion_gate_live`)가 경계를 친다. 전 모듈이 동일 PIT 2중 게이트 규약 + append-only 불변식을 공유하고 각자 `__main__` self-test로 증명한다(전수 19 PASS / 0 FAIL).
 
-# 실제 매매 모드
-🍎 Mac/Linux: KR_DRY_RUN=false python -m kimchirang.main
-🪟 Windows (PS): $env:KR_DRY_RUN="false"; python -m kimchirang.main
+#### event_ledger — 가정 라이프사이클 진실원 (L1)
+- **12 event type**: `ASSUMPTION_CREATED`/`PREDICTION_MADE`/`OUTCOME_OBSERVED`/`REVISION_OBSERVED`(★12번째)/`FDR_DECISION`/`DATA_CONTRACT_VIOLATION` 등. `REVISION_OBSERVED`는 사후 정정을 **새 bitemporal fact**(동일 vt·새 tt·`supersedes`)로 — OUTCOME mutate 안 함.
+- **3 typed timestamp 강제**: `tt`(transaction, append 불변·seq total order) / `dt`(decision) / `vt`(valid). reduce는 tt순, FDR replay는 dt순, Brier는 vt 재계산.
+- **CQRS**: log=진실원 / snapshot=tt-cut reduce projection + watermark(seq). reducer 결정론 → byte-identical. frozen 이벤트, seq monotonic, crc32 변조 탐지, jsonl append+fsync, snapshot `.tmp→os.replace`.
+
+```python
+def make_event(event_type, *, tt, dt, vt, seq, ...) -> LedgerEvent  # ULID+crc 자동
+def reduce_events(events, tt_cut=None) -> LedgerState
+class LedgerState:
+    def resolve_fact(series_key, vt, as_of) -> Optional[Fact]   # REVISION 반영 as-of
+    def fdr_replay() -> list                                    # dt순 immutable
 ```
 
-**작동 원리:**
-- 한국 거래소의 코인 가격이 비정상적으로 비쌀 때 **(김치 프리미엄 3% 이상)** 진입
-- 가격 차이가 국제 시세와 맞춰질 때 **(0.5% 이하)** 양쪽 포지션을 날려버려 가운데 낀 마진갭만 취득
-- 세부 진입/청산 수치는 `kimchirang/config.py` 파일 내에서 직접 커스텀 조율 가능
+#### data_contract — Pandera 계약 게이트 + ingestion checksum
+가정 validator **앞단**. 핵심 원칙: **계약 위반 = 측정 incident이지 "가정이 틀림"이 아니다**. 위반 시 검증 중단 + `DATA_CONTRACT_VIOLATION` emit + HOLD_SUSPENDED. PENDING(미실현)과 incident(무결성 사고)는 절대 안 섞음.
+- PIT 단조성 `sys_time ≥ knowable_from ≥ effective_from`, per-series cadence-aware staleness.
+- **ingestion checksum**: 벤더가 REVISION 통지 없이 과거를 덮어쓰면(`silent_rewrite`) 스키마·범위 다 통과 → (series,vt) fingerprint 보관·재대조. 정상 정정은 `REVISION_OBSERVED` 동반으로 구분.
+- **WeightCard 스키마 게이트**(R15): scope 키·weight finite/cap·PIT 단조·embargo·hash 무결성.
+
+#### pit_query / pit_panel — AS OF 조회 + bitemporal 패널
+T2/T3은 **이 인터페이스로만** 조회(raw parquet 직접 필터 = PIT 우회 = 금지). DB가 PIT 강제.
+- **PIT 2중 게이트**: `knowable_from ≤ as_of`(filing-lag) ∧ `sys_time ≤ as_of`(silent revision 방어). (firm,date)별 최신 sys_time = "그때 알던 값".
+- **계약0 seam**(`as_of_resolver`): canonical as_of를 1곳에서 wire(track마다 갈리면 reconcile 발산). `synth_knowable_from` = max(입력)+compute_delay(입력보다 이른 가시=lookahead).
+- **pit_panel**: 기존 provider(DART/EDGAR·KRX·UniverseManager)를 조립(바닥부터 X). rollback=append만(옛 row mutate 금지). `build_record`의 sys_time 기본=knowable_from(build 시각 쓰면 백테스트가 전부 막힘).
+
+#### vintage / identity / calendar / fx / universe_membership / corp_action — PIT 소스
+- **vintage**: 거시 사후 revision을 open-sequence append. `realtime(as_of)` vs `final()`(backtest에 쓰면 lookahead). `revision_drift`로 누수 정량. 자문 R1 #1 "가장 silent한 결함" 직격.
+- **identity**: ticker는 안정 키 아님(recycling·합병·변경). 내부 **PSID**(재사용 금지)를 단일 join 키, `resolve_psid(id, type, as_of)` PIT. 합병은 splice 안 하고 CA 그래프 링크만.
+- **calendar**: 거래소 세션을 단일 UTC 환원(tz+DST). 긴급 휴장은 knowable_from 있어 미래 휴장 foreknowledge 차단. crypto=24x7.
+- **fx**: rate_date·knowable_from 2시점 PIT 환산(직접/역/USD 삼각) + 주말 fill-forward.
+- **universe_membership**: 현재 구성으로 과거 조회 = 생존편향 → 시점마다 구성 append, `members_as_of`로 상폐 포함 재현.
+- **corp_action**: 액면분할 back-adjust + 배당 bitemporal ledger. ★vendor Adj Close = lookahead → raw close + ledger로 **forward-only Total Return**. 연말 재분류(cash→return_of_capital)는 같은 ex_date+늦은 sys_time append.
+
+#### instrument_source / lineage — crypto PIT provider + provenance replay
+- **instrument_source**: CoinMetrics Community MVRV PIT provider + 최소 closed-loop(PREDICTION→OUTCOME→FDR). on-chain도 vintage 있어 realized-cap 재계산=REVISION. 결정일마다 as_of에 알 수 있던 최신 MVRV(미래 vt 차단)만 emit.
+- **lineage**: 파생값 출처(`ProvenanceRef`) append-only + `replay(output_id, as_of)`로 그 시점 도출 체인 재구성(IA-3). **write-time 동결**: knowable_from·config_hash는 도출 시점 materialize, replay에서 재계산 금지. 순환 탐지. 가중카드 provenance도 동일 재사용.
+
+#### weight_panel / weight_card_store / cv_split / cold_start_ood — 가중학습 데이터 (R15)
+regime-conditional Graphical Lasso 학습기에 PIT-correct 입력 공급. 추정(glasso·shrinkage)은 범위 밖, 데이터 공급·무결성·누수 차단만.
+- **weight_panel**: as_of 시점 지표 매트릭스(`VintageStore.realtime`, 개정 누수 차단). ★**반사성 게이트** — 과거 포지션/체결/PnL 컬럼 배제(자기 거래 결과 학습=self-confirming attractor). word-boundary 매칭으로 `book_value`·`trade_volume` over-reach 방지.
+- **weight_card_store**: WeightCard bitemporal 영속 + `V(T)` selector. ★**이중 시간축**: `knowledge_time`(학습 PIT 경계) vs `decision_time`(시스템 반영). `V(T)` = 둘 다 ≤ T & embargo 충족 최신. ★**hash-pin frozen** — re-fit(신규 버전) 와도 과거 T replay byte-identical. embargo emit-time + select-time 이중 방어.
+- **cv_split**: purged + embargo CV. 라벨 horizon 겹침 누수 → purge(overlap 제거) + embargo(test 직후 자기상관 차단). PurgedKFold + CPCV(다중 OOS path). ⛔ mlfinlab 금지(독점 라이선스) → 순수 numpy 자체구현.
+- **cold_start_ood**: 신규 지표/국면 OOD 2축 — calibrated max-belief < θ ∨ Mahalanobis > χ²(p,1−α). ★live override 아님 — 감지 boolean만, belief 기계가 de-risk(사람 결정 0).
+
+#### adversarial_replay — 적대적 PIT replay 1급 CI 게이트
+reducer 결정론보다 강한 **시간적 결정론**을 증명. OUTCOME/REVISION에 taint-tag(sentinel)를 달고 전 seam 관통.
+- **2축**: ① taint isolation(미래 REVISION이 as-of-A 산출에 0건) ② 물리부재 byte-identical(`reduce(전체, cut=A) == reduce(미래 제거, cut=A)` — cut이 실제로 미래를 안 봄 증명).
+- 시나리오: 지연개정·동일 vt 다중개정·결정창 중간도착·이미소비 fact 개정 + closed-loop seam 격리.
+
+#### promotion_gate_live — shadow→live 사람게이트 + ramp
+모의(shadow)→실거래(live) 승급은 **사람 승인 필수, 자동 금지**.
+1. **사람 게이트**: `approver` 서명 + incident/coverage 통과. kill_switch 해제는 사람만(`reset_emergency(by_human=True)`).
+2. **로직 분기 금지·sink만 분기**: shadow/live 같은 로직, `execution_mode`만 다름(분기하면 검증 무의미).
+3. **shadow→live ramp**: 사전등록 geometric ladder(rung FIX·"전진 여부"만 data-dependent=size-as-peeking 차단) + 전용 e-process(Ville anytime-valid). net edge 부호반전=capacity ceiling, realized impact>band=OOB breaker(즉시 halt).
+4. **crypto-only 비의존**: equity halt 시 self-flatten 무의미 → `freeze_and_alert`.
+
+#### 데이터·PIT 레이어 설계 결정 이유
+- **왜 12 event type + 3 typed timestamp**: `CONSULT-DECISIONS-whole-20260529.md` — bitemporal append-only가 PIT 형식만이 아니라 실제 미래 차단을 보장하려면 transaction-time(저장 순서)과 valid-time(데이터 날짜)을 분리해야 한다.
+- **왜 REVISION_OBSERVED가 OUTCOME mutate 안 함**: append-only 위반 + tt-order 손실 = revised lookahead alpha 누수. 정정을 새 fact(동일 vt·새 tt)로 표현해야 "각 vt에서 tt ≤ as_of 최신"이 정확 재현.
+- **왜 반사성 게이트·purged CV·mlfinlab 회피**: `CONSULT-DECISIONS-weight-20260529.md` §1.8·§3 — 자기 거래 결과를 학습에 넣으면 self-confirming attractor, 라벨 horizon 겹침은 학습-평가 누수, mlfinlab은 독점 라이선스 페이월(skfolio 개념 자체구현).
+- **왜 adversarial replay가 1급 게이트**: `CONSULT-DECISIONS-whole-20260529.md` — "as-of-A 산출에 tainted 0건 + revision 물리부재 oracle과 byte-identical". 코드 정합성이 유일하게 남은 직교 리스크라는 자문 수렴.
 
 ---
 
-## 4. 🧬 스캘프 ML 시스템 (scalp_ml — 단타 머신러닝)
+## 📐 가정 라이프사이클·통계 검증 레이어
 
-순수 AI(LLM/RL)가 아닌 **LightGBM + DQN + 강화학습** 기반의 초단타(스캘핑) 전용 머신러닝 엔진입니다.
+이 레이어(`core/structure` + `core/assume` + `core/regime` + `core/pit` + `core/rules`)는 매매 의사결정의 밑바탕 **가정(criteria)**을 코드 상수가 아니라 **반증 가능한 카드**로 다루고, 그 카드가 "지금도 유효한가"를 anytime-valid하게 검증한다. 문제의식 둘 — 가정은 여럿이고 연속 모니터링되므로 본질적으로 **시간·가정 다중검정**이고(배치 BH·단발 t-검정으론 "regime 보일 때까지 본다"는 false-discovery 엔진 못 막음), 금융 regime은 자기상관이 강해 p값 online FDR이 가정하는 독립성이 깨진다. 그래서 **e-value/e-process 백본**으로 마이그레이션했다 — Ville 부등식 `P(sup_t E_t ≥ 1/α) ≤ α`가 임의 정지·임의 의존에 모두 robust하기 때문이다.
 
-| 파일 | 역할 |
-|------|------|
-| `scalp_ml/collect_real_data.py` | 실 거래 데이터 수집 (호가, 체결, 캔들) |
-| `scalp_ml/feature_engineer.py` | 100+ 기술적 피처 생성 |
-| `scalp_ml/train_lgbm.py` | LightGBM 분류 모델 훈련 |
-| `scalp_ml/train_exit_dqn.py` | DQN 기반 청산 타이밍 모델 훈련 |
-| `scalp_ml/win_rate_hunter.py` | 승률 최적 파라미터 탐색 |
-| `scalp_ml/distributed_training.py` | 분산 병렬 훈련 시스템 |
-| `scalp_ml/auto_train_loop.py` | 주기적 자동 재훈련 루프 |
-| `scalp_ml/enrich_real_data.py` | 실거래 데이터 피처 강화 (v3 오더북 포함) |
+레이어는 관측·산출만 하고 **결정은 하지 않는다**(관측≠제어). 거시 regime은 graphical lasso로 조건부 상관을 학습하되 regime 자체는 **외생 정의**해 소표본·라벨불안정을 회피한다. 5+종 자산 아키타입이 "싸다/위험하다"를 각자 다르게 정의하고, PIT 안전성은 단일 `as_of` resolver가 강제한다.
 
-> **실험 결과**: 실 데이터 환경(슬리피지, 수수료 포함)에서 압도적 승률을 가진 공식을 찾는 것은 여전히 매우 어렵습니다. 현재도 지속적인 개선 중입니다.
+#### e-process / online FDR / cascade 백본
+- **MixtureSPRTEProcess**: 정규 mean-shift mixture martingale(Robbins-Siegmund 폐형). E₀=1, reorder-invariant, `(dt,vt)` 키 로그로 as-of 재현. `update(x) -> EDecision`, `replay_value(...)`.
+- **ELOND / LordPlusPlus**: 동일 e-substrate 두 번째 readout. `ELOND`(Wang-Ramdas)는 e평균≤1+Markov만으로 임의의존에서 FDR≤α(p값 LOND 독립가정 불요). `LordPlusPlus`는 p값 fallback + alpha-wealth로 "죽은 가정 부활 남용" 차단.
+- **HierarchicalFDRCascade**: 거시 부모가 **독립 substrate**에서 통과해야 자식 family 예산 해금(Benjamini-Bogomolov post-selection 차단). false-positive 1개가 3도메인 동시 false discovery되는 것 방지. **de-risking bypass** — 노출 축소 보호액션만 부모게이트 우회(per-stream α/2), 신규진입은 절대 금지.
+- **EProcessSpender**: p값을 VS calibrator로 e값화 후 누적 운용, 기각 시 리셋(alpha-spending). per-domain decay(crypto 0.90~macro 0.99).
+- **falsification POWER 게이트**: 형식상 falsification_metric 있어도 검정력 없으면 보호 0 → `falsification_protectable`이 power<floor면 차단("형식만 있고 power=0 = 노이즈 추격" 방지).
+- **SpecSentinel**: e-process는 고른 null 상대로만 valid → PIT uniformity + exchangeability 두 model-free martingale로 wrong-H0 방어, 돌파 시 abstain.
+- **ReverseEProcess + e_cusum**: economic decay vs regime 판별. 다수 sibling 동기화+exchangeability 점화면 regime(부모 freeze), node 특이·monotone이면 decay(node de-risk). `GraphEAllocation`이 DAG e-wealth 배분.
+
+#### RegimeGlasso + effective_precision (조건부 상관 학습, R15 통계 본체)
+- 파이프라인: **nonparanormal rank-transform**(fat-tail robust) → **EBIC graphical lasso**(γ=0.5 고정 grid argmin, CV 회피 → 결정론) → **EB shrinkage**(λ floor가 self-confirming attractor 차단) → 원공간 재스케일.
+- `effective_precision(models, belief)` = §1.6 **cov-space belief-mix**: `Σ_eff = Σ_r b_r·Σ_r + Σ_r b_r(μ_r−μ̄)(μ_r−μ̄)ᵀ`를 **1회만 역행렬**. 둘째 between-dispersion 항이 regime 모호 시 risk 자동 inflate(transition de-risk). **이중 mix(Σ도 Ω도) 금지**(double-count).
+
+#### assumption_stats / structure_model / archetype
+- **assumption_stats**: `kind` dispatch — `validate_parametric`(CUSUM+PSI) vs `validate_structural`(prequential kink+BOCPD). **holds는 레짐별**(`by_regime`, 거래엔 `holds_now`). **hysteresis AND-gate**: ChangeRequest 승격 = online-FDR 유의 ∧ Cohen's d≥0.5 ∧ dwell ∧ K-윈도우 ∧ 동일 regime ∧ falsifiable 전부. base-layer는 사람 비준.
+- **structure_model**: "싸다" = raw 분위가 아니라 **구조모델 잔차** `cheapness_z`. 잔차≈0이면 밸류트랩(drivers가 낮은 멀티플을 설명). 계층 부분풀링(RLM + James-Stein), purged/expanding OOS, delisted 포함.
+- **archetype**: pydantic discriminated union 11종(cyclical=peak-EPS trap, compounder=비싼 쪽 trap, commodity_carry/seasonal/inventory, monetary_store/network_utility 등). `valid_from` 시변 교체.
+
+#### 라이프사이클 (core/assume) + regime/pit
+- `registry`(append-only 버전 + PIT 조회 + lifecycle emit), `validator`(**측정깨짐≠정의틀림**: data_contract 위반 시 SKIP), `update_controller`(**비대칭 게이트**: RETRACT=disjunctive fast / ADOPT=conjunctive 5조건 AND slow / base-layer=human), `dag`(ATMS 의존전파), `judge`(L1∥DCF + L2/L3 attenuating-only `final = L1·a2·a3 ∈ [0, L1]`). 가중학습은 `weight_card`/`weight_cycle`/`weight_falsification`이 Ω·IC → derive → synthesize_l1 → DUAL falsification.
+- `pit_regime`: 수익률곡선·PMI로 K=3 결정론 분류 + `regime_model_version` 태깅. `regime_discovery`: open-ended 신규 regime을 BOCPD+Hotelling T²로 발견하되 **발견 자동·승격 사람**(`HumanApprovalGate`) + **sequestered stream** e-process 사전 threshold 통과 필수(사후 튜닝 차단). `as_of`는 canonical resolver(미래·None 거부).
+
+#### 종목 스터디 시스템 (core/study) — R15 가중치를 종목별로 학습·감사·주입
+자산군별(거시·미국주식·한국주식·국가지수ETF·리츠·원자재·금·채권·암호화폐) 스터디가 지표 가중치·상관 prior·정성 렌즈를 **이론 학습 + 실데이터 시계열 검증**으로 산출하고, 공유 코드를 안 고치는 **데이터 주도 플러그인**(`study_session.yaml` 7블록)으로 4단계 파이프(학습→규칙화→주입→해제)에 주입한다. 각 방은 "자문 그대로 코드화"가 아니라 담당 종목 전문 애널리스트가 되어 가설을 실데이터로 confirm/reject 한다.
+- **study_loader / study_register**: yaml 7블록 로드·스키마 검증 → `panel_manifest`(G2)·`lens_store`(G3)·`flag_router`(G4)·`system_priors`(G5)를 묶어 weight_card 등록 + judge 호출 facade(G6). opt-in(`INV_R15_WEIGHTS`/`INV_STUDY_LENS`) off = byte-identical 무회귀. 본체(`weight_card`/`judge`/`RegimeGlasso`)는 wrap만, 미변경.
+- **raw 완비 게이트 + 독립 감사**: `round-*`(자문 다회)·`theory-notes`(이론)·`validation-*`(실데이터 검증) 형식 게이트 + **opus 감사관이 `AUDIT-GUIDE` 12축으로 내용 감사**(main 통과편향 배제). ★**provenance + recomputation** — yaml 숫자를 신뢰 안 하고 raw 의 분석 스크립트를 직접 재실행·대조 + 합성데이터 지문 검사(결측·갭·역사적 이벤트 부재)로 "이론을 숫자로 둔갑"을 차단. hard-fail 코어(실데이터·추적성·PIT·생존편향) / **effective-N 은 차단이 아니라 tier 라벨**(저신뢰 가설=structural prior, validated alpha 위장 차단 — 암호화폐 N=4 halving 이 거시 60년 데이터인 척 못 함).
+- **flag→동적 3경로** (seed→라이브 진화): 산출 yaml 은 고정값이 아닌 **prior(seed)**. 라이브 (확신/거부) flag 누적 → `Beta(α,β)` 신뢰도 → ① **weight**(`tilt_weights` 곱셈변조 + L1 보존 cap) ② **lens**(`confidence_note`→qwen 판단 보수화) ③ **corr_prior**(저신뢰 edge 를 독립 쪽 약화). `weight_falsification` e-CUSUM 붕괴=폐기, flag 누적=연속 조정. 블록5 `affects_indicator`/`affects_edge` 가 어느 weight·edge 에 연결되는지 명시(미명시 시 node 신뢰도 결합 근사).
+- **factor-implied cross-sleeve 공분산**(`system_priors`): 방별 partial-corr 를 이어붙일 때 공통인자(USD·실질금리·글로벌 유동성)의 **중복 계상·PSD 붕괴 차단**(Σ=BΛBᵀ+diag(idio), PD 보장). regime obs floor shrink(n<floor→global shrink-fallback)로 소표본 regime 과적합 회피.
+- **거시-종목 factor 통합 (M4)**(`factor_betas_seed`/`factor_cov_estimate`/`factor_shadow`): 각 방의 M3 거시연관 실데이터 검증(dollar=전 sleeve cross-validated 1차 driver, rate 는 리츠·금만 직접)을 위 cross-sleeve betas 로 변환한다. ★**점추정 박제 금지** — 셀을 `(β̂,SE,t,n,tier)` 분포로 저장하고 **James-Stein 수축**(`w=τ²/(τ²+SE²)`, a priori 경제 자산군 pool)으로 신뢰도에 비례해 pool 쪽으로 당긴다. opus 독립 검증관 3-tier 매핑 — `validated`=w 그대로 / `structural`=w≤0.25 캡(pool 강수축) / `reject`=pool 계산 제외하되 노출 `b=β_pool·w=0`(β=0 금지=게이트 사각지대 회피) / 미검증 sleeve=pooled-prior+live hold. idio conservation `d=max(σ²−bᵀΛb, κσ²)`. **Λ**=factor 혁신(rate/credit=Δbp·dollar/oil=Δlog, ADF+KPSS)→EWMA(HL 60~90d)+stress corr floor(상향 클램프)+Higham PSD 재투영. **shadow validation**(bias statistic[0.9,1.1] + 지배 eigenvector cosine>0.9)은 **순수함수 로깅 전용**이라 production 상태를 안 건드림(off-path byte-identical). risk gate wiring 은 후속(M5, BL prior cov 누수 차단). two-layer 분업 = dollar 방향은 belief(1차모멘트)·동조위험은 risk gate cov(2차모멘트), 모멘트당 1회. 자문 3R SSOT=`CONSULT-DECISIONS-M4-factor-integration-20260530.md`.
+
+#### 가정·통계 레이어 설계 결정 이유
+- **왜 e-value/e-process**: `CONSULT-DECISIONS-whole-20260529.md` §R4 — 연속 모니터링 = optional-stopping false-discovery 엔진 + 금융 regime 자기상관으로 p값 독립가정 깨짐. e값은 임의의존 robust로 둘 다 해결. 단일 substrate라 e-process(regime 변경)와 e-LOND(발견율) readout이 정합.
+- **왜 HMM 기각·regime 외생화**: `CONSULT-DECISIONS-weight-20260529.md` §1.1 — "HMM/DCC 기각 — regime 외생 정의됨(소표본·라벨불안정 최악)". endogenous partition은 소표본 라벨 불안정 + 반사성. 남은 schema 불확실성은 accepted bounded residual로 문서화(saturation).
+- **왜 graphical lasso**: L1 sparse precision이 소표본에서 spurious 상관을 0으로 눌러 다중공선 차단. λ는 EBIC 고정 grid(CV fold는 소표본에서 λ 분산 폭주 → 결정론 경로).
+- **왜 cascade vs 격리 FDR 둘 다**: 횡단면=cascade(부모 독립 substrate 통과해야 자식 해금, post-selection 차단), 자산클래스별=격리 스트림(crypto가 macro α 예산 독식·exchangeability 붕괴 방지). 직교 보완.
+- **왜 채택/기각 비대칭**: 같은 AND-gate면 반증된 가정이 dwell 채울 때까지 live 노출. RETRACT=fast(즉시 retire), ADOPT=slow(노이즈 추격 차단).
 
 ---
 
-## 5. 🧠 RL 하이브리드 두뇌 (rl_hybrid — PPO + RAG + Gemini)
+## ⚙️ 실행 결정 레이어
 
-강화학습(PPO) + RAG 벡터 검색 + Gemini 2.5 Pro 3중 합의 구조의 최상위 판단 시스템입니다.
+`core/` 루트는 자산 종류와 무관하게 동작하는 실행 결정 레이어다. 핵심 불변식은 `architecture.md` §6 "위험주문은 반드시 막힌다 + 우회 불가"를 코드로 강제한 것 — LLM·트랙은 **후보 제안까지만**, 매매 실행 권한은 risk_gate 통과분에 한정. risk_gate 규칙은 LLM이 호출하는 함수가 아니라 그 위의 inviolable wrapper이며, kill switch는 관측·룰 엔진과 물리 분리된 out-of-band 차단기다.
 
-```bash
-# 전체 시스템 실행 (메인 런처)
-python rl_hybrid/launchers/start_all.py
+#### asset_track / coin_track / coin_track_macro / stock_track
+- **asset_track**: Directional 계열 공통 계약. `MarketState`는 수집 raw 4종 무손실 보존, 파생은 읽기전용 프로퍼티. `collect_market_state(as_of)`(None=라이브, datetime=PIT 재구성) / `generate_candidate(state)` / `recommended_next_check(state)`.
+- **coin_track**: 기존 `Orchestrator`+`ExternalDataAgent`를 import+위임으로 감싸 계약에 맞춤(본체 미변경). `coin_track_macro`는 macro 레이어 추가 wire — `allocate()` 결과 주입, **H29 macro abstain** 시 buy→hold 보수 처리.
+- **stock_track**: `value_stock → run_value_trigger(2단) → Decision`. R15 weight_card 주입 시 거시국면·archetype 조건부 `S_L1` 산출, value_trigger confidence는 **down-only attenuator**로만 곱해져 천장 불변식 강제(`assert_ceiling_invariant`).
 
-# 개별 워커 실행
-python rl_hybrid/launchers/start_rl_worker.py       # RL 추론 워커
-python rl_hybrid/launchers/start_llm_worker.py      # LLM 판단 워커
-python rl_hybrid/launchers/start_trading_worker.py  # 매매 실행 워커
-python rl_hybrid/launchers/run_1h_training.py       # 1시간 주기 재훈련
-python rl_hybrid/launchers/run_monthly_training.py  # 월별 배치 훈련
+#### consensus / coin_consensus_lens — 고-스테이크스 2단 Judge
+레짐 flip·배분 변경·누적 포지션 임계 초과 시에만 LLM Judge 호출(비용 게이팅). `is_high_stakes()`가 False면 즉시 stub(비용 0). Layer1(LLM 구조화) → Layer2(**risk_gate 항상-on 백스톱**, 거부 시 approve여도 hold 강제). `coin_consensus_lens`는 코인 전용 렌즈(on-chain/funding) + **DCF 미사용**.
+
+#### risk_gate — 공통 리스크 게이트 (우회 불가 백스톱)
+전 트랙 거래의 최종 안전 게이트. consensus/LLM과 무관 **항상-on**, 결정론(LLM import 0).
+- **fail-closed**: 알 수 없는 action·비정상 NAV·NaN/inf → 즉시 REJECTED.
+- **hard rule**: per-position soft −5%/hard −10%, 일일 손실 −5% NAV halt, 단일 10%·섹터 30% max weight, turnover 20%, min_holding.
+- **상관캡**: corr>0.7 신규 차단, ≥0.8→0.7x, 0.6~0.8→0.85x 축소.
+- **GatedOrderRouter(우회불가)**: `submit(order, via_gate=...)`에서 **`via_gate=False`(우회 시도)는 즉시 REJECTED + near_miss_veto + bypass 카운트**. `via_gate=True`만 `RiskGate.check()`. LLM/실행 프로세스는 이 wrapper로만 주문 접근.
+- **KillSwitch(H27)**: MDD −15% → HALTED + alert. **자동 전량청산 금지** — `request_liquidation()`(CONFIRM_PENDING) → `confirm()` 후에만 청산(플래시크래시 footgun 방지). EMERGENCY_STOP과 독립.
+- **Precedence 격자**: kill switch > 안전 스톱 > 포트폴리오 캡 > 세금/보유 > 리밸런스 순 단일 verdict 해소.
+
+#### risk_sizing / coin_sizing — 멀티에셋 사이징
+- **risk_sizing**: Ledoit-Wolf 공분산 → 변동성 타깃 역변동성. ill-conditioned(cond>1e6) 또는 raw 평균 corr>0.80 시 Riskfolio **HRP tail-codependence fallback**(w_max 0.10). 단일자산=1.0.
+- **coin_sizing**: 단일 BTC는 `risk_sizing`에 위임(Kelly/LW 재작성 금지). 멀티코인만 tail HRP. **H25 crisis**: 상관 과열(코인 0.75) 시 BTC cap 0.40. `risk_gate.check()` 경유 필수.
+
+#### portfolio_orchestrator / fallback_policy / budget_ledger / strategy
+- **portfolio_orchestrator**: `regime→macro→weights` 체인 후 BL 슬리브 배분, 실패 시 HRP→IC 중립 prior. 슬리브 합=1.0 검증. **Drift Monitor**가 `SLEEVE_BANDS` 이탈 감시(near_miss_veto+리밸런스). **H26 FX**: 야간 stale 시 직전 마감율 고정. **H29**: macro unavailable → 신규매수 차단.
+- **fallback_policy**: H27 `H27BoundedFallback`(confirm 타임아웃 시 시간분산 축소만, 전량청산 금지) / H26 FX guard / H29 macro abstain(청산·리밸런싱은 정상=liveness 디커플링).
+- **budget_ledger**: LLM 예산 회계(soft limit 초과호출 기각, e^|Drop| 지수증폭 금지). 3버킷(NORMAL/RETRY_RESERVE/DEGRADE) thread-safe + `N3RetryPolicy`(max_retries=3 백오프 + RPM 10/min).
+- **strategy**: `StrategyFamily`(DIRECTIONAL/MARKET_NEUTRAL/HFT) 3계열 + `Strategy` ABC. scalp_ml·kimchirang 미변경 독립 유지(import 0).
+
+#### coin_memory / coin_shadow / observability / book
+- **coin_memory**: `MemoryLayer` 상속, decay 반감기 단축(코인 4h). 코인 이벤트(halving·hack·depeg) importance 강화.
+- **coin_shadow**: **shadow-live(H19)** — DRY_RUN 경로에서 실주문 0건 `OrderState` FSM만. identifier=uuid4(H9 멱등성). **SACRED: `execute_trade.py` diff=0**.
+- **observability**: `kill_switch`(rule↔실행기 물리 방화벽, **불변식: rule은 한도의 producer지 override 아님**, emergency 해제 사람만), `rule_attributor`(반사실 PnL Shapley-lite, veto가 막은 상승=음수 기여), `rule_observer`(5지표 + **divergence shadow↔live = 안전 1차 방어선**, **관측 read-only — alert/mute 신호만, 집행은 외부**).
+- **book**: `d4_book`(거시 국면·산업 특성 append-only PIT, `to_context(sector, as_of)`로 그 시점 지식만 L2 judge 주입), `d4_wire`(PIT substrate→book knowable_from 전파).
+
+#### 실행 결정 레이어 설계 결정 이유
+- **왜 리스크 게이트 우회불가**: `architecture.md` §6(:258·:493) — "LLM이 절대 우회 못한다", risk_gate는 "그 위의 inviolable wrapper". `GatedOrderRouter.submit`이 `via_gate=False`를 즉시 REJECTED + bypass 카운트해 LLM 직접 execute 경로 물리 차단. 결함 주입 판정 "⑤ LLM이 게이트 우회 시도 → 실패".
+- **왜 asset-agnostic**: `architecture.md`:4 — "재작성하지 말고 asset-agnostic 코어로 일반화". `AssetTrack` ABC가 공통 계약만 정의, 트랙은 기존 본체를 위임으로 감싸 6대 보존 원칙 유지.
+- **왜 consensus·사이징 분리**: consensus는 고-스테이크스 LLM 비용 게이팅, 사이징은 LLM 의존 0 결정론. 합치면 사이징에 LLM 비결정성이 새고 routine마다 비용 발생.
+- **왜 out-of-band kill switch**: 관측(rule_observer read-only)·귀속(attributor)·차단(kill_switch 물리 방화벽) 분리. rule 오작동해도 스스로 한도 못 풀고, emergency 해제는 사람만.
+
+---
+
+## 🤖 레거시 실행 시스템 & 데이터 파이프라인
+
+현재 **라이브로 도는** 암호화폐 자동매매 실행 계층(`agents/` + `scripts/`)이다. 감독·전략 에이전트가 데이터를 점수화해 매수/매도/관망을 자율 판단하고, 수집기들이 시세·심리·뉴스·온체인·매크로를 모은다. 핵심 철학 — **매매 로직을 LLM 프롬프트로 떠넘기지 않고 Python 에이전트가 직접 결정**(빠르고 저렴, 근거가 코드로 추적). 신규 `core/`와는 **옵트인 백스톱** 관계(`INV_CORE_GATE=true`일 때만 매매 직전 RiskGate 한 번 더 거름, 기본 off=레거시 byte-identical).
+
+#### Orchestrator (감독 에이전트)
+시장을 점수화해 보수/보통/공격 에이전트를 **사용자 승인 없이 자율 전환**.
+- **두 점수**: `_calculate_danger_score`(0~100 — 연속손절·BTC 과다·급락·김치P 과열·롱 과밀·매크로 약세·뉴스 부정), `_calculate_opportunity_score`(0~100 — 극공포 FGI≤25·RSI 과매도·반등·Data Fusion strong_buy·음수 펀딩비·김치 디스카운트).
+- **전환 규칙**: danger≥70→보수 직행, opportunity≥60 & danger<30→공격 직행. FOMO 방지(24h −5%↓ 급락 시 공격 차단, FGI≤20+−8% 이내 예외).
+- **쿨다운**: 기본 2h, 당일 3회+ 4h, danger≥70/−7%↓ 긴급 면제. **워밍업 소프트 전환**: 30분 선형 블렌딩. **DB 학습**: 같은 전환 성공률 40% 미만+3건+ → −10점.
+- **자동 긴급정지**: 발동 시 강제 전량 매도+매수 차단. 수동 EMERGENCY_STOP은 감독이 해제 불가.
+
+#### BaseStrategyAgent + 전략 3종
+- **점수제 매수**(`calculate_buy_score`): FGI(30)+RSI(25)+SMA(25)+뉴스(20)+MACD/외부 보너스. 하락추세 감점. **하이브리드 매도/손절**(`evaluate_sell`): 분할매도 → v6 매도 점수제 → 레짐 트레일링 → 강제 손절 → 하이브리드 DCA 안전망(캐스케이딩 위험·바닥 충족·외부 약세 보고 손절/물타기 분기). **레짐 5단계**(bull~crisis 포지션 비율 차등). **Kelly 사이징**(confidence 배수×Half-Kelly, `MAX_TRADE_AMOUNT` 절대 상한).
+
+| | 🛡️ Conservative | ⚖️ Moderate | 🔥 Aggressive |
+|---|---|---|---|
+| 매수 임계 | 60점 | 50점 | 40점 |
+| FGI / RSI | 35 / 35 | 45 / 40 | 60 / 50 |
+| 손절 / 강제 | -5% / -10% | -5% / -10% | -3% / -7% |
+| 1회 / 일 한도 | 10% / 3회 | 15% / 5회 | 20% / 7회 |
+
+AI 거부권: 매수 점수 충족이어도 `ai_composite_signal.score`<0이면 보류(극공포 예외).
+
+#### ExternalDataAgent (뉴스랑/NewsRang)
+11소스 **병렬 수집(에러 격리)** + Data Fusion 종합. 기본 8(FGI·뉴스·온체인 고래·바이낸스 심리·ETH/BTC z·매크로·CoinGecko 이상·Data Fusion) + 확장 3(RSS 16피드·X 7계정·소셜 감성). `collect_all()` ThreadPoolExecutor, 하나 실패해도 나머지 정상.
+
+#### 데이터 수집 + 실행 + 운영
+- 수집(`collect_*.py`/`get_portfolio.py`): Upbit 시세+지표, FGI, Tavily 뉴스, AI 복합 시그널, 포트폴리오.
+- **`execute_trade.py`**: Upbit 시장가. 안전장치 **우회 불가 순서**: EMERGENCY_STOP → auto_emergency → DRY_RUN → MAX_DAILY_TRADES → MIN_TRADE_INTERVAL → MAX_POSITION_RATIO → 보유량 검증 → MAX_TRADE_AMOUNT. PID 파일락 이중 주문 방지.
+- `short_term_trader.py`(단타 3전략), `notify_telegram.py`(MarkdownV2), `version_manager.py`(changelog+VERSION 범프).
+- 파이프라인: `run_agents.sh`(권장, 6 Phase) / `run_analysis.sh`(레거시 LLM) / `cron_run.sh`(4h 간격, Python PRIMARY + claude -p FALLBACK).
+
+#### 레거시 실행 레이어 설계 결정 이유
+- **왜 점수제+하이브리드 손절**: 단일 규칙은 노이즈 취약 → 여러 약한 신호 가중 합산으로 거짓 트리거 감소 + score breakdown 감사 가능. 손절도 일시 급락 손절 후 반등 손실과 추세 하락 물타기 손실을 동시에 줄이는 하이브리드.
+- **왜 감독 자율 전환**: 고정 전략 하나로는 폭락·횡보·불장 중 한쪽에서 손해 → 위험도/기회 정량화로 자동 전환. 부작용 가드(쿨다운·워밍업·DB 페널티·FOMO 차단) 동반.
+- **왜 DRY_RUN/EMERGENCY_STOP**: 실자산 거래라 버그=금전 손실. DRY_RUN 기본값 + EMERGENCY_STOP을 DRY_RUN보다 먼저 검사 + 감독도 수동 STOP 해제 불가 = 최종 통제권 사람. `MAX_TRADE_AMOUNT`는 모든 경로 통과 후에도 적용되는 절대 상한.
+
+---
+
+## 📈 주식 트랙 & 통합 백테스트
+
+주식 트랙(`stock/`)은 "가격이 빠진 종목 중 진짜 싸진 것만 사고 value trap은 거른다"는 bottom-up 트랙이다. 모멘텀 코인 트랙과 달리 **내재가치 대비 저평가**를 신호로 삼는다. 핵심은 `value_trigger.py`의 **가치 2단 트리거** — 1차 저비용 필터(가격 하락+가치 갭)로 후보를 모으고, 2차 heavy agent(Claude/Damodaran)가 "기회 vs thesis 붕괴"를 가린다. 통과분만 risk_gate로, 체결은 `kis_client.py`(모의투자 우선). 통합 백테스트(`backtest/`)는 코인·주식을 동일 `AssetTrack` 계약으로 구동하며 거래대금 비례 슬리피지·세금을 반영하고 PIT/생존편향/PBO로 백테스트 환상을 차단한다.
+
+#### stock/ — 가치 트랙
+- **contracts**: SSOT 타입. `Fundamentals`는 **announcement-date PIT 3-튜플**(`fiscal_period`·`filing_timestamp`·`source`). `is_pit_clean()`은 DART/EDGAR XBRL+as_reported만 True, RESTATED(pykrx/FDR 재작성) 거부. `ValueVerdict`(OPPORTUNITY/VALUE_TRAP/PRICE_ONLY/REJECT/ABSTAIN), `RunMode`(BACKTEST/FORWARD=H22 경계).
+- **valuation**: bear/base/bull 밴드 확률가중(DCF 0.45+EV/EBITDA 0.30+RIM 0.25) → `valuation_gap`. ai-hedge-fund 수식 어댑트하되 입력을 PIT Fundamentals로 재설계.
+- **value_trigger**: 1차(가격 −10% ∧ 갭 ≥0.25) → 2차 trap 판정. **단순 buy-the-dip 금지**(가격↓+내재가치↓ = 매수 아님). H22: BACKTEST는 heavy-agent ABSTAIN stub, FORWARD만 실판정. MetaLabeler 함정확률로 사이징 억제.
+- **admission**: coarse(상품 Tier) + fine(KRX 상태) + 지역 3단. 선물·옵션·마진 영구 금지, 레버리지/인버스 ETF allowlist 없으면 거절, 관리/경고/위험/정지/상폐우려 거절. `requested_by_llm=True` 즉시 차단(LLM 유니버스 확장 불가).
+- **kis_client**: pykis 래핑(모의 우선). `_check_safety`(DRY_RUN·EMERGENCY_STOP 선검사), `_clamp_to_balance`(과매도 차단), `KisRateLimiter`. modify `original_number` 체인(H15), `check_price_limit`(±30% H17), `convert_usd_to_krw`(H18).
+- **factor_attribution**: 종료 거래를 market-β+섹터+idio 회귀로 분해해 `FailureReason`(MACRO_REGIME_WRONG/SECTOR_THEME_WRONG/VALUE_TRAP/EXECUTION_SLIPPAGE). 저신뢰는 `UNATTRIBUTED`. triple-barrier 메타라벨로 함정확률 주입.
+- **stock/data/**: `PITFundamentalsAdapter`(filing_timestamp≤as_of+non-RESTATED, `pit_clean_ratio`), DART/EDGAR provider(정정공시도 원본 접수일), `krx_universe`(FDR/pykrx 실연결 jsonl 일별 PIT), `macro_vintage`(ALFRED), `sector_multiples`(Damodaran/French), `rate_tier`(토큰버킷).
+
+#### backtest/ — no-lookahead 통합 엔진
+- **engine**: `AssetTrack` 계약 경유 코인·주식 동일 코드. 슬리피지(H1) `impact_factor × (trade_value/market_volume)` 거래대금 비례(고정상수 아님), `compare_slippage`로 drag 정량. 비용(Upbit 0.05%/KIS, KR 거래세 0.20%, US 환전·양도세). nautilus `OrderState` FSM + `FillModel` 부분체결. `coin_engine`은 24/7·얇은 알트 임팩트 2배 변형.
+- **walk_forward**: skfolio `CombinatorialPurgedCV` IS/OOS 분리 + purge+embargo(부재 시 gap fallback). `filter_pit_fundamentals`(is_pit_clean+visible_at), **생존편향(H5)**: `UniverseManager`가 백테스트엔 상폐 **포함**, 라이브만 제외.
+- **pbo**: 다중검정 과적합(H23) 정량. `calculate_pbo_cscv`(Bailey & López de Prado CSCV logit-rank 정통식), `calculate_deflated_sharpe_ratio`(trial-count 보정 DSR>0.95), `build_go_nogo_card`(GO/MARGINAL/NO_GO JSON). `capacity`(주문 ≤ 일거래대금 1%, 자기충격 Sharpe 부풀림 차단).
+
+#### 주식·백테스트 레이어 설계 결정 이유
+- **왜 가치 2단 트리거(기회 vs 함정)**: `architecture.md`:262 "가격 빠진 종목 중 진짜 싸진 것만". 단일 게이트는 buy-the-dip → 실적쇼크·구조적 악재로 내재가치 동반 하락한 종목 매수. 1차 저비용 필터 + 2차 heavy agent 내재가치 재산출로 trap 판별. 일시 패닉셀(매수) vs 실적쇼크(매수 안 함) 혼동행렬 검증.
+- **왜 filing-lag PIT + 생존편향 차단**: H5(:381) — "현재 재작성값"은 그 시점에 알 수 없던 정보로 과거 평가 = lookahead. announcement-date 정렬 PIT만, RESTATED 거부. 생존편향 짝 — 상폐 종목 빠지면 "0으로 간 진짜 value-trap" 통째로 빠져 인위적 호성능.
+- **왜 PBO**: H23(:463) — walk-forward·생존편향까지 가도 "몇 개 전략 시도?" 보정 없으면 수십~수백 trials 중 하나가 우연 통과. DSR·PBO(Bailey/López de Prado)로 trial-count deflate.
+- **왜 forward-only(back-adjust 금지)**: 미래 정보로 과거 시점 값을 덮어쓰면 lookahead → 시점별 가시성(`visible_at`) 보존, "그때 알 수 있던 것"만 forward. heavy-agent는 LLM 학습데이터 미래 오염(H22)으로 BACKTEST=ABSTAIN stub. *(back-adjust 금지 명시 SPEC 문구는 grep 미발견 — H16/H22 lookahead 원칙 + `visible_at`/`filter_pit_fundamentals` 구현에서 도출.)*
+
+---
+
+## 🔢 Phase 진화 (구현 단계 — `architecture.md` §2)
+
+각 Phase는 독립 PR + 테스트 + DRY_RUN 검증 후 진행. **가장 치명적 갭(멱등성·reconciliation·스키마강제·결정성·서킷브레이커)은 미래 주식 트랙이 아니라 지금 라이브 코인 경로에 있어 Phase -1로 선반영**.
+
+| Phase | 내용 | 운영 합격 판정(§2.9) |
+|---|---|---|
+| **-1** | 라이브 코인 안전 하드닝(E2 멱등성·R2 reconciliation·B1 스키마·B3 결정성·C2 서킷브레이커) | 결함 주입 통과 |
+| **0** | 코어 추상화(`AssetTrack` ABC, 기존 동작 100% 보존) | 래핑 전후 의미적 동치(회귀 0) |
+| **1** | 두뇌 마이그레이션(Gemini→Qwen 로컬+Claude, 임베딩→BGE-m3) | 평상시 Claude 호출 0, 트리거 시만 |
+| **2** | 공통 리스크 게이트(우회 불가) | 5종 결함 주입 전부 차단 |
+| **3** | 주식 트랙 + 가치 2단 트리거 | 기회 vs value-trap 구분(혼동행렬) |
+| **4** | 데이터 레이어 + KIS 실행 | KIS 모의 왕복·분당 한도·reconciliation |
+| **5** | 통합 백테스트(2018+) | 슬리피지 정량·패리티 ≥95%·PBO/DSR |
+| **6** | Portfolio Orchestrator(최상위) | 분산효과 + 90일 무중단 |
+
+---
+
+## 🛡️ 안전장치 요약
+
+| 파라미터 / 장치 | 기본값 / 동작 |
+|---|---|
+| `DRY_RUN` | `true`(분석만). 실거래 = `false` flip(사람 게이트) |
+| `EMERGENCY_STOP` | `true`면 즉시 중지. 감독도 해제 불가, **DRY_RUN보다 먼저 검사** |
+| `MAX_TRADE_AMOUNT` | 1회 상한(모든 경로 통과 후 절대 클램프) |
+| `MAX_DAILY_TRADES` / `MIN_TRADE_INTERVAL_HOURS` | 일 횟수·최소 간격 |
+| `MAX_POSITION_RATIO` | 총자산 대비 최대 투자 비율 |
+| auto_emergency | 감독 권한 자동 긴급정지(4h −10%·연속손절 5회+ 등), 해제는 12h+급락종료+공포완화 |
+| Risk Gate | `GatedOrderRouter` 우회 불가(`via_gate=False`→REJECTED), 결정론 항상-on |
+| Kill Switch | MDD −15%→HALTED, 자동 전량청산 금지(사람 confirm), out-of-band 물리 분리 |
+
+**🚦 실전 자금 전환 게이트**: Phase 0~6 운영 판정 전부 통과 + KIS 모의·코인 DRY_RUN 합산 90일 무중단(급락/급등 1회 사고 없이) + 라이브 신호가 백테스트 분포 안 + kill switch/EMERGENCY_STOP/reconciliation 실발동 기록 + 통과 후에도 극소액부터. (자율 범위 밖, 사람 게이트.)
+
+---
+
+## 📂 디렉토리 맵
+
 ```
-
-### 아키텍처 구성
-
-```
-rl_hybrid/
-├── launchers/          ← 각 워커 프로세스 런처
-├── nodes/              ← 각 판단 노드 (LLM Node, RL Node, Trading Node)
-├── rl/                 ← PPO 강화학습 모델 코어
-├── rag/                ← Gemini 임베딩 + 벡터 검색 RAG 엔진
-└── supabase/           ← RL 특화 DB 접근 레이어
-```
-
-### RAG 벡터 검색 시스템
-
-1. 매매 결정 시 시장 상황 전체를 **Gemini 임베딩**으로 벡터화 → Supabase `decision_embeddings` 테이블에 저장
-2. 새로운 시장 상황 발생 시 **코사인 유사도**로 가장 유사한 과거 패턴 자동 검색
-3. 유사 과거 패턴의 결과(수익/손실)를 현재 판단에 주입 → **자기 기억 기반 메타인지 의사결정**
-
----
-
-## 6. 📰 뉴스랑 (NewsRang — 11소스 실시간 외부 데이터 수집기)
-
-`agents/external_data.py`의 **뉴스랑(NewsRang)** 에이전트가 11가지 소스에서 병렬로 외부 데이터를 수집하여 종합 시그널을 생성합니다.
-
-| 소스 | API / 방법 | 데이터 내용 |
-|------|-----------|------------|
-| RSS 피드 (16개) | feedparser | 크립토+매크로 뉴스 실시간 수집 |
-| X(트위터) | twikit GraphQL | 7계정 모니터링 + 3키워드 검색 + 고래 감지 |
-| CryptoCompare | min-api.cryptocompare.com | 뉴스 감성 + 소셜 통계 |
-| CoinGecko | api.coingecko.com | 커뮤니티 감성 투표 |
-| Tavily Search | api.tavily.com | 실시간 뉴스 검색 + 감성 분석 |
-| Binance Futures | fapi.binance.com | 롱숏비율, 펀딩비, OI (무료) |
-| mempool.space | mempool.space/api | 블록체인 고래 추적 + 거래소 입출금 패턴 |
-| Yahoo Finance | query1.finance.yahoo.com | S&P500, DXY, 금, 유가, 10Y 국채 |
-| Alternative.me | api.alternative.me/fng/ | 공포/탐욕 지수 (FGI) |
-| Upbit | api.upbit.com/v1 | 시세, 호가, 캔들, ETH/BTC 비율 |
-| Playwright | headless Chromium | 차트 스크린샷 캡처 |
-
-**Data Fusion 종합 점수**: 위 11개 소스의 신호를 가중 합산하여 `strong_buy / buy / neutral / sell / strong_sell` 5단계 종합 의견으로 추출합니다.
-
----
-
-## 7. 📱 텔레그램 알림 및 시스템 스케줄링
-
-매수 시작, 매수 체결, 수익 혹은 손절 청산 그리고 각종 에러나 긴급 중지 프로세스까지, 코드가 움직이는 모든 과정이 모바일 **텔레그램으로 매우 상세한 리포트와 함께 실시간 전송**됩니다.
-
-| 알림 유형 | 내용 |
-|----------|------|
-| 매매 실행 시 | 결정(매수/매도/관망), 금액, 근거 요약, 포트폴리오 변동 |
-| 에이전트 전환 시 | 전환 사유, 이전/현재 전략, 시장 점수 |
-| 에러 발생 시 | 에러 Phase, 에러 메시지, 영향 범위 |
-| 자동 긴급정지 시 | 발동 사유, 매도 결과, 복구 예정 시간 |
-| 일일 요약 | 당일 거래 횟수, 수익률, 포트폴리오 현황 |
-
-### 시스템 스케줄링
-
-앱이 꺼지지 않고 주기적으로 돌아가게끔 하기 위해 켜놓는 스케줄링이 필요합니다.
-
-- **Windows 시스템**: 내 컴퓨터 좌하단 검색창에서 **작업 스케줄러**를 열고, 4시간 주기로 `python.exe` 가 이 프로젝트의 `scripts/run_agents.py` 를 실행하도록 등록해둡니다.
-- **Mac / Linux 시스템**: 리눅스 내장 기능인 cron 을 활용합니다.
-  ```bash
-  bash scripts/setup_cron.sh install
-  ```
-
----
-
-## 8. 🗄️ Supabase 데이터베이스 구조 (50개 마이그레이션)
-
-v1.29.0 기준, 총 **50개의 마이그레이션 파일**로 구축된 정교한 데이터 인프라입니다.
-
-| 마이그레이션 범위 | 핵심 테이블 | 역할 |
-|----------------|------------|------|
-| `001~009` | `decisions`, `portfolio_snapshots`, `market_data`, `agent_switches` | 매매 결정, 포트폴리오, 시장 데이터, 에이전트 전환 이력 |
-| `010~013` | `decision_aftermath`, `signal_attempt_log`, `near_miss_veto`, `execution_failures` | 매매 사후 분석, 시그널 시도 로그, 아슬아슬 거절, 실행 실패 |
-| `014~016` | `decision_embeddings`, `decision_linkage`, `rag_analysis_vectors` | RAG 벡터 검색용 임베딩 테이블 |
-| `017~019` | `rl_training_log`, `training_results`, `rl_comprehensive_tracking` | 강화학습 훈련 이력 및 결과 |
-| `020~022` | `kimchirang_trades`, `kimchirang_extended` | 김치랑 차익거래 전용 로그 |
-| `023` | `app_changelog` | 앱 버전 변경 이력 |
-| `024~028` | `scalp_ml` 시리즈, `compute_workers`, `telegram_messages` | 스캘프 ML, 분산 학습 워커, 텔레그램 메시지 로그 |
-| `029~038` | contacts, RLS 보안, machine_name, training_impact, feedback_hub, regime | 보안, 다중 머신 지원, 피드백 허브 |
-| `039~045` | `altrang`, `newsrang_signals`, `decision_embeddings(Gemini 통합)` | 알트랑 봇, 뉴스랑 신호 테이블, Gemini 임베딩 통합 |
-
----
-
-## 9. 🏗️ 전체 프로젝트 패키지 구조
-
-살아 움직이는 유기체처럼 여러 장기 기관들이 존재합니다.
-
-```
-claude-coin-trading-main/           ← v1.29.0
-├── README.md                       ← (이 파일) 종합 사용자 안내서
-├── CLAUDE.md                       ← Claude AI 전용 시스템 프롬프트 (교육 커리큘럼 포함)
-├── VERSION                         ← 현재 버전 (시맨틱 버전 관리)
-├── strategy.md                     ← 자연어로 작성된 매매 전략 (LLM이 해석)
-├── .env                            ← API 키 및 안전장치 파라미터 (git 제외)
-├── .env.example                    ← API 키 템플릿
-├── requirements.txt                ← 파이썬 의존성 패키지 목록
-├── setup.sh                        ← 자동 초기 설정 스크립트
-│
-├── agents/                         ← 에이전트 자율 매매 시스템
-│   ├── base_agent.py               ← 추상 기본 클래스 (점수제 매수, 하이브리드 손절)
-│   ├── conservative.py             ← 🛡️ 보수적 에이전트 (자산 보전)
-│   ├── moderate.py                 ← ⚖️ 보통 에이전트 (균형 매매)
-│   ├── aggressive.py               ← 🔥 공격적 에이전트 (고수익)
-│   ├── external_data.py            ← 뉴스랑(NewsRang) — 11소스 병렬 수집
-│   └── orchestrator.py             ← 감독 에이전트 (자율 전환 + DB 학습)
-│
-├── kimchirang/                     ← 바이낸스 연계 김프 차익거래 봇
-│   └── config.py                   ← 진입/청산 기준 커스텀 파라미터
-│
-├── rl_hybrid/                      ← PPO 강화학습 + RAG + Gemini 하이브리드 두뇌
-│   ├── launchers/                  ← 각 워커 프로세스 런처 (start_all.py 등)
-│   ├── nodes/                      ← LLM/RL/Trading 판단 노드
-│   ├── rl/                         ← PPO 모델 코어
-│   ├── rag/                        ← Gemini 임베딩 + 벡터 검색 RAG 엔진
-│   └── config.py                   ← RL 하이브리드 시스템 설정
-│
-├── scalp_ml/                       ← LightGBM + DQN 단타 머신러닝 엔진
-│   ├── collect_real_data.py        ← 실 거래 데이터 수집
-│   ├── feature_engineer.py         ← 100+ 기술적 피처 생성
-│   ├── train_lgbm.py               ← LightGBM 모델 훈련
-│   ├── train_exit_dqn.py           ← DQN 청산 타이밍 모델 훈련
-│   ├── win_rate_hunter.py          ← 승률 최적 파라미터 탐색
-│   ├── distributed_training.py     ← 분산 병렬 훈련
-│   └── auto_train_loop.py          ← 자동 주기적 재훈련
-│
-├── scripts/                        ← 보조 스크립트 모음
-│   ├── collect_market_data.py      ← Upbit 시장 데이터 + 기술지표
-│   ├── collect_fear_greed.py       ← 공포탐욕지수 수집
-│   ├── collect_news.py             ← Tavily 뉴스 수집
-│   ├── collect_rss_news.py         ← RSS 뉴스 16피드 수집
-│   ├── collect_x_signals.py        ← X(트위터) 시그널 수집
-│   ├── collect_social_sentiment.py ← 소셜 감성 (CryptoCompare+CoinGecko)
-│   ├── collect_ai_signal.py        ← AI 복합 시그널 (6가지 실시간 분석)
-│   ├── capture_chart.py            ← Playwright 차트 캡처
-│   ├── execute_trade.py            ← 매매 실행 (안전장치 내장)
-│   ├── get_portfolio.py            ← 포트폴리오 조회
-│   ├── short_term_trader.py        ← AI 단타 트레이딩 (뉴스/급등급락/고래 3전략)
-│   ├── notify_telegram.py          ← 텔레그램 알림 전송
-│   ├── version_manager.py          ← 버전 및 변경이력 관리
-│   ├── run_agents.sh               ← 에이전트 모드 파이프라인
-│   └── setup_cron.sh               ← cron 등록/해제 도우미
-│
-├── utils/                          ← 공통 유틸리티
-│   ├── machine.py                  ← 머신 ID 및 멀티머신 지원
-│   └── newsrang_reader.py          ← 뉴스랑 데이터 읽기 유틸
-│
-├── tools/                          ← 분석 도구
-│   ├── dujjoncu_analysis.html      ← 뚱뚱한 분석 대시보드 (HTML)
-│   └── bubblemaps_viewer.html      ← 버블맵 뷰어
-│
-├── web/                            ← 웹 인터페이스
-│   ├── index.html                  ← 메인 대시보드
-│   ├── remote.html                 ← 원격 제어 페이지
-│   └── kimchirang-guide.md         ← 김치랑 상세 가이드
-│
-├── prompts/schemas/                ← 매매 결정 JSON 스키마
-├── data/                           ← 런타임 데이터 (차트, 스냅샷, 에이전트 상태)
-├── logs/                           ← 실행 로그 및 Claude 응답 원본
-└── supabase/migrations/            ← DB 테이블 초기 셋팅용 SQL 파일 (50개)
+core/                  ← asset-agnostic 신규 아키텍처
+  asset_track.py·coin_track*.py·stock_track.py   실행 트랙
+  risk_gate.py·risk_sizing.py·coin_sizing.py     리스크/사이징
+  consensus.py·portfolio_orchestrator.py         합의/배분
+  budget_ledger.py·fallback_policy.py·strategy.py
+  brain/            두뇌(레짐·LLM 라우팅·학습 메모리·RAG)
+  data/             데이터·PIT·event ledger·가중학습(R15)
+  structure/        가정 통계·e-process·FDR·glasso·archetype
+  assume/           가정 라이프사이클·judge·가중카드
+  regime/·pit/·rules/  외생 regime·PIT resolver·룰
+  observability/    kill_switch·rule_observer·rule_attributor
+  book/             d4_book·d4_wire(거시·산업 학습 Book)
+agents/              레거시 실행(감독·전략 3종·뉴스랑) — 현재 라이브
+scripts/             데이터 수집·실행·파이프라인(run_agents.sh)
+stock/               주식 가치 트랙(valuation·value_trigger·KIS·data/)
+backtest/            통합 백테스트(engine·walk_forward·pbo·capacity)
+supabase/            DB 마이그레이션(decisions·embeddings·감사 테이블)
 ```
 
 ---
 
-## 10. 🚫 면책 조항 및 최후 당부
+## 🚨 무인(Unattended) 자동운영 안전 아키텍처
 
-이 프로그램은 상업성이 없는 완전 오픈소스로, **개인 연구, 학습용 자동화 파이썬 스크립트**일 뿐입니다. 수익을 백프로 보장하거나 투자를 권유하는 도구가 절대 아닙니다.
+**목표**: 운영자 개입 0의 완전 무인 자동운영을 안전하게 실행. 핵심은 fail-safe 자동 de-risk와 사람 confirm 경로 제거(de-risk는 이미 의사결정, resume만 남김).
 
-시스템에 숨겨진 로직 버그, 서버 인스턴스 다운, API 연동 단절, 그리고 전 지구적 비트코인 급락/급등으로 인해 발생하는 **모든 암호화폐 투자 및 금전적 손실의 법적·도의적 책임은 프로그램 사용과 설치를 결심한 사용자 본인에게 있습니다.**
+### 신규 불변식
+- **보호행동(de-risk) 경로는 LLM 완전 독립**: 심한 손실/급락 시 자동으로 position을 단계적으로 축소하되, 이 경로는 LLM 출력·가용성과 무관. LLM은 줄이거나 veto만, 보호행동 trigger를 요구하거나 suppress 불가.
+- **자동 de-risk-to-floor**: 기존 "자동 전량청산 금지(사람 confirm 대기)" → **"자동 단계청산(IOC) + frozen bag 상한"**으로 재정의. 시장 충격 회피 + 무인운영 가능 양립.
 
-> ⚠️ **실제 내 자산을 투입하기 전 저와 3가지를 약속해주세요:**
-> 1. 환경변수를 `DRY_RUN=true` 로 한 채 최소 일주일, 이주일 모의 테스트로 이 앱을 구경만 하십시오.
-> 2. 실제 매매로 전환할 때(DRY_RUN=false), 초기 자본금은 잃어도 상관없는 1~2만원의 티끌 같은 극소액으로만 첫 단추를 채우세요.
-> 3. AI나 자동매매는 완벽하지 않습니다. 앱이 언제든 오작동하여 당신의 돈으로 물타기를 반복할 수 있다는 보수적 공포감을 견지하시고, 틈틈이 텔레그램을 주시하며, 비상시엔 모바일 업비트로 즉시 강제 매도 및 `.env` 파일의 `EMERGENCY_STOP=true` 를 적극적으로 활용하세요.
+### 안전 계층 (4단)
+
+#### 1. KillSwitch (MDD −15%)
+- `core/risk_gate.py` 상태기계: NORMAL → HALTED
+- HALTED 도달 시 ⚠️ **`derisk_executor` 자동 호출**(사람 confirm 대기 X)
+- confirm()은 *resume*(재무장)에만 잔존
+
+#### 2. DeriskExecutor (자동 단계청산)
+스테이트풀 자동 de-risk 집행기, LLM/Orchestrator 비의존:
+- **tier 2단**:
+  - **soft-halt** (−10% ~−15%): IOC 주문, board-matched 우선
+  - **hard-derisk** (< −15% 또는 MDD): 시장가 제한 + frozen-bag(상한 고정) 모드
+- **상태 자동전이**: NORMAL → SOFT_HALT → HARD_DERISK → COOLDOWN(지수 backoff: 2^n 시간) → RE_ARM_EVAL
+  - **Hysteresis**: 진입 ≠ 해제 임계(오픈→클로즈 히스테리시스로 whipsawing 차단)
+  - 일일 hard re-arm 한계 3회 초과 시 PERMANENT_FREEZE(수동 resume만 가능)
+- **거래소 truth-authoritative**: 실시간 보유 query → ledger와 대사 → 불일치 시 soft-halt 강화
+
+#### 3. Watchdog + Dead-Man's Switch
+- **Liveness monitor**: 메인 루프 heartbeat를 주기적 확인
+- **Heartbeat loss**: derisk_executor 자동 호출 + 순회 모든 위치에서 soft-halt 천정
+- **거래소 native 보험**: Upbit/KIS 고급 stop-loss(GTC 타입) 병용 — 로컬 장애 시에도 flash crash floor 보호
+
+#### 4. Reconciliation + Thin-Book Escalation Ladder
+- **3-way 대사**: intended(계획) / ledger(로컬 기록) / 거래소 truth → truth authoritative overwrite
+- **Thin-book escalation** (IOC 크기 확대):
+  - −1%: band-1 IOC 시도
+  - −3%: band-2 IOC 시도  
+  - −5%: band-3 IOC 시도
+  - 슬리피지 상한 도달 시 → FROZEN_BAG(매매 중단 상태 고정)
+- **Tolerance & tolerance break**: 네트워크 지연/transient stale 허용, 지속 delta(신뢰 유실) 시 hard-derisk 강화
+
+### 최소 사람 게이트 (자율 범위 밖)
+⛔ **절대 자동화 금지** (자문 수렴, 2026-05-29):
+1. **실거래 전환**: `DRY_RUN=false` flip (α/β 테스트 후, 사람 승인)
+2. **자본 상향**: Base Capital 배포 (수동, 내부 감사 거쳐야 함)
+3. **API 출금권한**: air-gap 설정 (물리 분리, 사람이 명시적으로 enable)
+
+무인 go-live 시:
+- `DRY_RUN=true`(분석+모의 시뮬) 최소 90일 무중단 운영 ✓
+- KillSwitch/DeriskExecutor/Watchdog 실발동 기록 ✓  
+- 레거시 경로 & core 모의 신호 일치율 ≥95% ✓
+- 백테스트 분포 내 ✓
 
 ---
 
-<p align="center">
-  <sub>이 앱은 한순간의 일확천금을 복사해 주는 마법의 버튼이 결코 아닙니다.<br/><b>파이썬과 AI의 탐구</b>, 그리고 <b>인공신경망 딥러닝의 실전 데이터 적용 한계</b>를 온몸으로 배우고,<br/>오류를 스스로 치유하며 데이터의 바다를 서핑하는 자율 생명체를 만들어가는 즐거움을 목적 삼아 공유합니다.</sub>
-</p>
-
-<p align="center">
-  <sub>Inspired by <a href="https://github.com/dandacompany"><b>dantelabs</b></a>, Heavily recreated & modified by <b>Dr. Jang Jaeho</b>.</sub>
-</p>
-
-<p align="center">
-  <sub>📦 Current Version: <b>v1.29.0</b> | 🗄️ DB Migrations: <b>50개</b> | 🤖 AI Core: <b>Gemini 2.5 Pro + PPO RL + RAG</b></sub>
-</p>
+> **문서 베이스**: `architecture.md`(목표 아키텍처·Phase·내구성 H1~H32), `ARCHITECTURE-brain.md`(두뇌 의사결정·학습 루프), `plan-unattended-ops.md`(U1~U7 무인운영 패치), `CONSULT-DECISIONS-whole/button-v2/weight-20260529.md`(3세션 통합 자문), `macro.md`·`MACRO_CORRELATION_BACKGROUND.md`(거시 정량 법칙). 각 모듈 상세는 해당 `.py` docstring과 `__main__` self-test 참조.

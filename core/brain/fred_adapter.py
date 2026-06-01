@@ -50,9 +50,18 @@ FRED_SERIES = {
     "T10Y2Y": "yield_10y_2y",           # 장단기 금리차 (macro.md 129~136).
     "NFCI": "nfci",                     # Chicago Fed 금융상황지수.
     "STLFSI4": "stl_financial_stress",  # St.Louis 금융스트레스.
-    "BAA10Y": "credit_spread_baa",      # 신용스프레드 (macro.md 25 CP경색 프록시).
+    "BAA10Y": "credit_spread_baa",      # 신용스프레드 IG (macro.md 25 CP경색 프록시).
+    "BAMLH0A0HYM2": "credit_spread_hy_oas",  # HY OAS (자문: 최고 risk-regime 지표. IG BAA10Y 보완).
     "RECPROUSM156N": "fred_recession_prob",  # Smoothed recession probability.
     "CFNAI": "cfnai",                   # Chicago Fed 국가활동지수.
+    # --- cross-sleeve factor driver (M4/M6 — sleeve 거시연관 실측 1차 driver, 독립검증 통과) ---
+    # ⛔Fisher 공선 주의: nominal_10y + real_rate_10y + breakeven_5y 를 한 회귀에 동시 투입 금지
+    # (DGS10 ≈ DFII10 + T5YIE 항등 → 완전공선). factor 모델은 real / breakeven 중 택일.
+    "DFII10": "real_rate_10y",          # 10Y TIPS 실질금리 (gold/reit/방어주 rate 채널, M3 1차 driver).
+    "DTWEXBGS": "dollar_broad",         # broad TWI 달러 (전 sleeve cross-validated 1차 driver, M3).
+    "DCOILWTICO": "oil_wti",            # WTI 유가 (commodity energy / gold inflation hedge).
+    "DGS10": "nominal_10y",             # 명목 10Y (term structure level, T10Y2Y spread 보완).
+    "DGS2": "nominal_2y",               # 명목 2Y (curve steepness level 분리).
 }
 
 # NBER 침체일자 — *학습 라벨 전용* (§5.8-A NBER lag 분리; 실시간 추론 금지).

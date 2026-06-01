@@ -28,13 +28,9 @@ note: E2E 실작동 검사 추적. 발견 즉시 패치. 자율주행 ON.
 - [x] **E5 — 종합 회귀 + SACRED 최종 확인** ✅ — 기존 e2e 스위트 **202 passed**(RL gymnasium 1건 환경미설치 제외) + 무인 74 passed + execute_trade diff=0 + 무인파일 commit(2f46607)
 
 ## 실거래 동작 보장 — 매매경로 6분할 (M단계 — 2026-05-30 사용자 "1")
-- [ ] **M1 — 주문 생성 정확성** (결정→주문 파라미터 수량/side/금액 환산)
-- [ ] **M2 — 안전장치 게이트 독립검증** (DRY_RUN/EMERGENCY_STOP/MAX_AMOUNT/일일횟수/최소간격/최소금액 각각)
-- [ ] **M3 — 잔고·체결·부분체결 처리**
-- [ ] **M4 — 무인 안전장치 실손실 발동** (KillSwitch/de-risk/FOMO차단)
-- [ ] **M5 — 멱등성·중복주문 방지**
-- [ ] **M6 — 상태 영속·재시작 복구**
-- ⛔ SACRED: execute_trade.py diff=0(읽기만), DRY_RUN 유지, 실주문 0. 실결함 발견 시만 코드 패치.
+- [x] **M1~M6 매매경로 6분할** ✅ — tests/test_trading_path_guarantee.py **18 passed** (단독 + batch 39 격리). execute_trade.py diff=0.
+  - M1 주문생성(side/amount 검증·보존) / M2 안전장치 7게이트 독립(DRY_RUN·EMERGENCY_STOP 우선순위·일일횟수·간격·포지션비율·MAX·MIN) / M3 매도 보유량초과 차단 / M4 KillSwitch auto_derisk_due 무인트리거 / M5 멱등성·중복방지 / M6 상태영속 헬퍼
+- ⛔ SACRED: execute_trade.py diff=0(읽기만), DRY_RUN 유지, 실주문 0. 모두 준수.
 
 ## 전체 파이프라인 E2E 실행 검사 (P단계 — 2026-05-30 추가 지시)
 - [x] **P2 — 학습→매매 4흐름 동적** ✅ — R15 closed_loop 8 / agent_switches penalty=-10 반영 / 뉴스랑 fusion collect_all / RL run_cycle ⚠️psycopg2 미설치 동적불가(코드 wire만)

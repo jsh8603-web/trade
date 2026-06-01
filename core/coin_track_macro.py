@@ -61,7 +61,36 @@ class CoinTrackWithMacro(CoinTrack):
 
         if self._macro_enabled and self._macro_orch is not None:
             try:
-                macro_result = self._macro_orch.allocate()
+                # IC0: opt-in on 이면 sleeve 수익률 패널 공급(corr_prior/Λ dormant 해제).
+                # off/실패 시 None → allocate fallback(무회귀). 네트워크 의존이라 try 격리.
+                returns_panel = None
+                macro_view = None
+                sleeve_regime_ids = None
+                try:
+                    from core.study.study_register import is_r15_enabled
+                    if is_r15_enabled():
+                        from core.data.sleeve_returns import fetch_sleeve_returns
+                        returns_panel = fetch_sleeve_returns(as_of=as_of)
+                        # IC0-R: regime 동적 corr 진입 substrate. macro_view(국면)+sleeve_regime_ids
+                        # 둘 다 공급돼야 _belief_conditional_cov → RegimeGlasso belief-mix 동적 Σ_eff 동작.
+                        # ★무거움(classify=FRED fetch / build=과거 전체 classify, regime_history:94 경고)
+                        #   → 배치 캐시 후속. 1차=connectivity. FRED 키 부재→classify UNAVAILABLE→graceful.
+                        if returns_panel is not None:
+                            from core.brain.regime_classifier import RegimeClassifier
+                            from core.brain.fred_adapter import RealFredAdapter
+                            from core.brain.regime_history import build_sleeve_regime_ids
+                            _clf = RegimeClassifier(usd_adapter=RealFredAdapter())
+                            macro_view = _clf.classify(as_of=as_of)
+                            sleeve_regime_ids = build_sleeve_regime_ids(
+                                _clf, returns_panel,
+                                ("Reflation", "Recovery", "Overheat", "Stagflation"))
+                except Exception:
+                    returns_panel = None
+                    macro_view = None
+                    sleeve_regime_ids = None
+                macro_result = self._macro_orch.allocate(
+                    macro_view=macro_view, returns_history=returns_panel,
+                    sleeve_regime_ids=sleeve_regime_ids, as_of=as_of)
                 # macro_abstain 정보 주입 (H29: buy 차단 신호)
                 state.raw_external_data["macro_weights"] = macro_result.get("weights", {})
                 state.raw_external_data["macro_abstain"] = macro_result.get("macro_abstain", False)

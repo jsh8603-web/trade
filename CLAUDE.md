@@ -1,4 +1,46 @@
-# Claude 암호화폐 자동매매 시스템
+# Inv — 멀티에셋 자율매매 시스템 (프로젝트 지침)
+
+> 레거시 단일자산 코인봇(아래 §암호화폐 자동매매 시스템)을 asset-agnostic 코어로 일반화하고,
+> 자산 영역별 **스터디 시스템**(`core/study`)을 얹은 멀티에셋 시스템. 전체 아키텍처 = [README.md](./README.md).
+
+## 🔬 멀티에셋 스터디 워크플로 (트리거)
+
+자산 영역별 스터디(이론 + 실데이터 검증 → lens·상관계수·지표가중치 코드화) → opus 독립 감사 →
+시스템 통합을 **복수 psmux 세션**으로 재현하는 SOP.
+
+**트리거 키워드**: `자산 스터디 wf` / `섹터 스터디 검사` / `스터디 오케스트레이션` / `study orchestration`
+→ 수신 시 [STUDY-ORCHESTRATION.md](./STUDY-ORCHESTRATION.md) 를 Read 하고 5-Phase(스폰→지시→감사→통합→연관)를 따른다.
+
+| 문서 | 관점 |
+|---|---|
+| [STUDY-ORCHESTRATION.md](./STUDY-ORCHESTRATION.md) | 오케스트레이터 — 세션 매핑·섹터 메타·통합 주의·재현 절차 |
+| [STUDY-KIT.md](./STUDY-KIT.md) | 각 방(세션) 작업 지시 — 3흐름 + 8축 감사 기준 |
+| [study-research/AUDIT-GUIDE.md](./study-research/AUDIT-GUIDE.md) | opus 독립 감사 12축 가이드 |
+| [progress-study-system.md](./progress-study-system.md) | 진행 상황·파이프라인 업그레이드 큐 |
+
+**불변식**(통합 시): reflexive loop 차단(belief→_macro 차단), L축 공통인자 1회 계상+PSD, opt-in off 무회귀, analyst-level lens 다운그레이드 금지(시스템 못 받으면 파이프라인 업그레이드).
+
+## 🗂️ 지표/관계 Ledger 기록 규칙 (재탐구 방지 — 필수)
+
+> **핵심 목적**: 다음 리서치가 **이미 했던 탐구를 반복하지 않게** 한다. 후보·채택·미채택 + 사유 + 근거를 yaml 에 산발하지 말고 ledger 단일 집결.
+
+**위치**: `study-research/_wire/indicator-ledger.md`(지표) + `study-research/_wire/cross-regime-ledger.md`(cross/regime 관계). 지표 ledger 자동생성 = `core/study/indicator_ledger.build_indicator_ledger(StudySession)`.
+
+**status 4-state** (미채택을 영구/보류로 구분 — 부활 가능성 명시):
+- **adopted** — 채택(weight_rules base_weight>0, 런타임 반영 대상)
+- **candidate** — 후보(아직 검토 안 함, 탐구 대기)
+- **rejected_provisional** — **보류**(일시 연관 파탄·regime-conditional·표본부족 n<30). ★재평가 트리거(regime-draw/data-event) 시 부활 가능 → IC9 복귀 로직 대상
+- **rejected_permanent** — **영구 폐기**(PIT-corrupt·spec-code drift·이론 자체 기각). 부활 금지(decisions §14 class C 격리)
+
+**필수 기록 항목** (지표·관계 each): status / **reason**(theory_basis·audit verdict·통계 근거) / **research_ref**(validation-*.md·direction.md 링크, 근거 추적) / (cross·regime 추가) channel(cross=공유 factor / regime=국면별) + 실측값[CI, n].
+
+**갱신 의무 시점**: ① study yaml 작성·수정 ② cross/regime 검토(공정 P1) ③ audit verdict 확정(P2) ④ reject 가설 복귀(IC9). **각 시점에 ledger 갱신 안 하면 미완**.
+
+**원칙**: 미채택이라도 "왜 뺐는지 + 언제 다시 볼지(보류 트리거)"를 반드시 기록 → 재탐구 0. provisional↔permanent 구분 근거 = decisions §14(R11 reject_class).
+
+---
+
+# Claude 암호화폐 자동매매 시스템 (레거시 코인봇 트랙)
 
 ## 프로젝트 개요
 

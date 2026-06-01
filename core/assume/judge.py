@@ -123,6 +123,27 @@ def _bge_attenuator(analogs: Sequence[dict]) -> tuple[float, Optional[str]]:
     return a3, f"L3: 부정 유사사례 다수(일치도 {agree:+.2f}) → 사이징 감쇠"
 
 
+def _qwen_accepts_lens(qwen_hook) -> bool:
+    """qwen_hook 이 lens/lens_prompt 키워드를 받는지(시그니처 검사). 못 받으면 기존 호출 유지."""
+    try:
+        import inspect
+        sig = inspect.signature(qwen_hook)
+        params = sig.parameters
+        if any(k in params for k in ("lens", "lens_prompt", "lens_context")):
+            return True
+        # **kwargs 받으면 임의 키 허용
+        return any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+    except (ValueError, TypeError):
+        return False
+
+
+def _call_qwen_with_lens(qwen_hook, firm, sector, a, lens_prompt):
+    """lens 주입 가능하면 lens=lens_prompt 로 호출, 아니면 기존 시그니처(firm/sector/as_of)로."""
+    if lens_prompt and _qwen_accepts_lens(qwen_hook):
+        return qwen_hook(firm=firm, sector=sector, as_of=a, lens=lens_prompt)
+    return qwen_hook(firm=firm, sector=sector, as_of=a)
+
+
 def judge(
     firm: str,
     sector: str,
@@ -142,6 +163,7 @@ def judge(
     weight_card: Optional[WeightAssumptionCard] = None,
     indicator_z=None,
     regime_pi: Optional[dict] = None,
+    lens_prompt: Optional[str] = None,
 ) -> JudgeVerdict:
     """L1 floor(상대·sizing) ∥ DCF veto(절대·kill) → L2/L3 attenuator(monotone-down).
 
@@ -198,7 +220,12 @@ def judge(
     expected_failed: list[str] = []
     if qwen_hook is not None:
         try:
-            l2 = qwen_hook(firm=firm, sector=sector, as_of=a) or {}
+            # ★G3 lens 주입(opt-in): lens_prompt 제공 + qwen_hook 이 lens 파라미터를 받으면 LLM
+            # 컨텍스트로 전달(STUDY-KIT §2 — 정성 렌즈 주입). 못 받으면 기존 호출(무회귀).
+            # lens 는 attenuator 의 입력 컨텍스트일 뿐 — 천장 불변식(down-only)과 무관.
+            l2 = _call_qwen_with_lens(qwen_hook, firm, sector, a, lens_prompt) or {}
+            if lens_prompt and _qwen_accepts_lens(qwen_hook):
+                reasons.append("L2 lens 주입(정성 렌즈 컨텍스트)")
         except Exception as e:                                     # 기대됐는데 장애 → fail-safe
             expected_failed.append(f"L2(Qwen) errored: {e}")
     l3: list = []

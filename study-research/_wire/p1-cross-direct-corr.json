@@ -1,0 +1,310 @@
+{
+  "meta": {
+    "price_source": "yfinance period=max auto_adjust",
+    "coverage": [
+      "1998-12-22",
+      "2026-05-29"
+    ],
+    "regime": "VIX expanding-median (min_periods=250, PIT-safe)",
+    "n_cross_pairs": 8,
+    "bonferroni_alpha": 0.00625
+  },
+  "pairs": {
+    "eq_cyclical<->eq_intl": {
+      "exp_sign": "+",
+      "note": "C1 VIX+dollar 동조",
+      "full": {
+        "r": 0.838,
+        "p": 0.0,
+        "n": 6224,
+        "ci95_fisher": [
+          0.8304,
+          0.8452
+        ],
+        "ci95_block_boot": [
+          0.8238,
+          0.8524
+        ]
+      },
+      "riskoff": {
+        "r": 0.8632,
+        "p": 0.0,
+        "n": 2232,
+        "ci95": [
+          0.8522,
+          0.8734
+        ]
+      },
+      "riskon": {
+        "r": 0.7682,
+        "p": 0.0,
+        "n": 3992,
+        "ci95": [
+          0.7551,
+          0.7806
+        ]
+      },
+      "sign_match": true,
+      "bonf_survive": true
+    },
+    "eq_cyclical<->reit": {
+      "exp_sign": "+",
+      "note": "C2 VIX 공통",
+      "full": {
+        "r": 0.6861,
+        "p": 0.0,
+        "n": 5450,
+        "ci95_fisher": [
+          0.6718,
+          0.6999
+        ],
+        "ci95_block_boot": [
+          0.6531,
+          0.7192
+        ]
+      },
+      "riskoff": {
+        "r": 0.7483,
+        "p": 0.0,
+        "n": 1945,
+        "ci95": [
+          0.728,
+          0.7672
+        ]
+      },
+      "riskon": {
+        "r": 0.4748,
+        "p": 1.2359388441014145e-196,
+        "n": 3505,
+        "ci95": [
+          0.4488,
+          0.5001
+        ]
+      },
+      "sign_match": true,
+      "bonf_survive": true
+    },
+    "eq_intl<->reit": {
+      "exp_sign": "+",
+      "note": "C3 VIX+dollar",
+      "full": {
+        "r": 0.6878,
+        "p": 0.0,
+        "n": 5450,
+        "ci95_fisher": [
+          0.6736,
+          0.7015
+        ],
+        "ci95_block_boot": [
+          0.6519,
+          0.7209
+        ]
+      },
+      "riskoff": {
+        "r": 0.7451,
+        "p": 0.0,
+        "n": 1945,
+        "ci95": [
+          0.7247,
+          0.7642
+        ]
+      },
+      "riskon": {
+        "r": 0.4862,
+        "p": 1.7815435928686084e-207,
+        "n": 3505,
+        "ci95": [
+          0.4605,
+          0.5111
+        ]
+      },
+      "sign_match": true,
+      "bonf_survive": true
+    },
+    "commodity<->xle_energy": {
+      "exp_sign": "+",
+      "note": "C4 oil 채널 본체",
+      "full": {
+        "r": 0.6495,
+        "p": 0.0,
+        "n": 5109,
+        "ci95_fisher": [
+          0.6333,
+          0.665
+        ],
+        "ci95_block_boot": [
+          0.624,
+          0.6736
+        ]
+      },
+      "riskoff": {
+        "r": 0.6662,
+        "p": 7.734252705277996e-250,
+        "n": 1945,
+        "ci95": [
+          0.6407,
+          0.6902
+        ]
+      },
+      "riskon": {
+        "r": 0.6352,
+        "p": 0.0,
+        "n": 3164,
+        "ci95": [
+          0.614,
+          0.6556
+        ]
+      },
+      "sign_match": true,
+      "bonf_survive": true
+    },
+    "gold<->commodity": {
+      "exp_sign": "+",
+      "note": "C5 dollar 채널",
+      "full": {
+        "r": 0.367,
+        "p": 1.0964442224810575e-162,
+        "n": 5109,
+        "ci95_fisher": [
+          0.343,
+          0.3905
+        ],
+        "ci95_block_boot": [
+          0.329,
+          0.4018
+        ]
+      },
+      "riskoff": {
+        "r": 0.3228,
+        "p": 2.06190461154148e-48,
+        "n": 1945,
+        "ci95": [
+          0.2824,
+          0.3621
+        ]
+      },
+      "riskon": {
+        "r": 0.4309,
+        "p": 3.307737066195319e-143,
+        "n": 3164,
+        "ci95": [
+          0.402,
+          0.4588
+        ]
+      },
+      "sign_match": true,
+      "bonf_survive": true
+    },
+    "gold<->eq_intl": {
+      "exp_sign": "?",
+      "note": "C6 dollar 양 / vol 반대 = net 모호",
+      "full": {
+        "r": 0.1885,
+        "p": 1.7180861464626197e-44,
+        "n": 5414,
+        "ci95_fisher": [
+          0.1627,
+          0.2141
+        ],
+        "ci95_block_boot": [
+          0.1292,
+          0.2419
+        ]
+      },
+      "riskoff": {
+        "r": 0.1475,
+        "p": 6.368393278979223e-11,
+        "n": 1945,
+        "ci95": [
+          0.1037,
+          0.1907
+        ]
+      },
+      "riskon": {
+        "r": 0.2816,
+        "p": 2.8832954824236735e-64,
+        "n": 3469,
+        "ci95": [
+          0.2507,
+          0.312
+        ]
+      },
+      "sign_match": true,
+      "bonf_survive": true
+    },
+    "xle_energy<->eq_cyclical": {
+      "exp_sign": "+",
+      "note": "C9 def-cyc 게이트 인접(cyc 자기군)",
+      "full": {
+        "r": 0.6392,
+        "p": 0.0,
+        "n": 6899,
+        "ci95_fisher": [
+          0.625,
+          0.6529
+        ],
+        "ci95_block_boot": [
+          0.6026,
+          0.6724
+        ]
+      },
+      "riskoff": {
+        "r": 0.7167,
+        "p": 0.0,
+        "n": 2422,
+        "ci95": [
+          0.6967,
+          0.7355
+        ]
+      },
+      "riskon": {
+        "r": 0.4615,
+        "p": 5.0779974564695814e-235,
+        "n": 4477,
+        "ci95": [
+          0.4381,
+          0.4842
+        ]
+      },
+      "sign_match": true,
+      "bonf_survive": true
+    },
+    "gold<->eq_cyclical": {
+      "exp_sign": "?",
+      "note": "C7 risk-off hedge 후보(gold vol≈0)",
+      "full": {
+        "r": 0.1187,
+        "p": 1.9312163231057234e-18,
+        "n": 5414,
+        "ci95_fisher": [
+          0.0923,
+          0.1449
+        ],
+        "ci95_block_boot": [
+          0.0751,
+          0.1616
+        ]
+      },
+      "riskoff": {
+        "r": 0.1084,
+        "p": 1.6461238107895738e-06,
+        "n": 1945,
+        "ci95": [
+          0.0643,
+          0.1521
+        ]
+      },
+      "riskon": {
+        "r": 0.1521,
+        "p": 2.1608593957791269e-19,
+        "n": 3469,
+        "ci95": [
+          0.1194,
+          0.1844
+        ]
+      },
+      "sign_match": true,
+      "bonf_survive": true
+    }
+  }
+}
