@@ -1,81 +1,110 @@
 ---
 tags: [type/handoff, domain/inv, topic/study-wire-gap, session/btn-Inv]
 date: 2026-06-01
-author: btn-Inv (재개 세션 후속)
-scope: study merit 후속 탐구 + 12축 audit + J축 β + regime-conditional + ★study→코드 wire 전수조사(거시 ref)
+author: btn-Inv (재개 세션 후속, clear 대비 상세본)
+scope: study merit 탐구 + 12축 audit + J축 β + regime-conditional PoC + ★study→코드 wire 전수조사(거시 ref) + 다음세션 자문/코드화 방향 정립
 predecessor: handoff-study-merit-audit-20260601.md
 exclude: eq_kr / eq_us = stock.md 별도세션
-push: ⛔ 금지 — 로컬 commit만 (coin.git peer 충돌 회피, 사용자 재확인 2026-06-01)
+push: ⛔ 금지 — 로컬 commit만 (사용자 재확인 2026-06-01)
 ---
 
-# Handoff — study wire gap 발견 + merit/audit/J축/regime (2026-06-01)
+# Handoff — study wire gap + 다음세션 자문/코드화 방향 (2026-06-01 상세본)
 
-> **재개 읽기**: 본 파일 → progress-study-system.md → 각 산출.
-> **★이번 세션 최대 발견 = study 산출이 런타임 매매결정에 미연결(설계상 opt-in facade 미개통). §3 필독.**
+## 0. 이 문서 사용법 (clear 후 진입점)
+- 본 파일 = 다음 세션 자율 진입점. 순서: §1 현황 → §2 wire gap(판단근거) → §3 코드화 lifecycle → §4 자문 3R 대상 5개 → §5 4관문 절차 → §6 15축 → §7 리서치 산출 → §8 실행계획.
+- 다음 세션 첫 행동 = §4 자문 3R 대상으로 `/gemini-web` + `/claude-web` 병렬 3R (방향성 설정). 자문 전 사용자 보고는 이미 완료(2026-06-01 대화 확정).
 
-## 1. 이번 세션 완료 (커밋, push 금지=로컬만)
+## 1. 현재 상황 (이번 세션 한 일, 커밋·push금지)
+이번 재개 세션 = handoff-study-merit-audit 후속. 커밋 체인(§9):
+- cyclical merit 12축 audit 충실 → yaml v5 (a2f4411). crypto/eq_intl/defensive verdict→yaml (b1ef5f4/c17c874/7dc5263). defensive yaml 선재 파싱 결함(line19 inline 콤마) 정정.
+- eq_intl L축 DTWEXBGS full-sample 재검(d17af0d): DXY n=59 caveat 해소, partial −0.258, DTWEXBGS observation_start=2006 실측 정정.
+- 지역연준 diffusion(cc02158): Empire(NOCDISA)→SOXX 음 forward = cyclical merit 첫 Bonferroni 생존(2/84). single-region(NY) caveat. audit 충실. 적시성≠예측력 REJECTED.
+- regime-conditional PoC(0700544): DGORDER→XLE inflation高 +0.42 sharpen(생존). ★결론 = regime은 신호 정제(refinement) 도구지 생성 아님.
+- J축 factor β shadow(de2d44d): sample+batch std β. ★vol(ΔVIX) 포함이 깨끗한 절대 std β 관건. gold 재현 일치(방법 신뢰). factor_shadow OOS bias-stat 1.000 PASS. SEED 미반영(§3-J).
+- credential probe(367d880): cushing·roll 무료불가(EIA/CME key), ISM/PMI 가능(지역연준 diffusion).
+- wire 리서치(__wire/, 마지막 커밋): cross 후보 + 자산별 regime 정의 + wire codepath.
 
-### 1-A. merit 후속 탐구 + 독립 12축 audit
-- **cyclical merit audit** = 충실(hard0). DGORDER→XLE structural_low. (a2f4411 yaml v5)
-- **crypto/eq_intl/defensive** audit verdict → yaml 반영 (b1ef5f4 / c17c874 / 7dc5263). defensive yaml 선재 파싱 결함(line 19 inline 콤마) 정정.
-- **eq_intl L축 DTWEXBGS full-sample 재검** (d17af0d): DXY n=59 caveat 해소, partial −0.258, DTWEXBGS observation_start=2006 실측 정정(handoff '1996~' 오류).
-- **지역연준 diffusion** (cc02158): Empire(NOCDISA)→SOXX 음 forward = ★cyclical merit 첫 Bonferroni 생존(2/84). 단 single-region(NY), Philly 비유의, cross-study pooled m=168 기준 k=6만 robust. 독립 audit 충실. 적시성(14d)≠예측력(census DGORDER→XLE 압도) REJECTED.
-- **regime-conditional PoC** (커밋됨): DGORDER→XLE inflation高 +0.42 sharpen(Bonferroni 생존). NEWORDER(full 붕괴) 부활 실패. T10Y2Y→XLI full +0.02→infl高 −0.44 부호반전(Bonferroni 미생존·belief-weighted 소멸). ★결론 = regime은 신호 refinement 도구지 creation 아님. yaml 미반영(부분 입증 신중).
+## 2. ★최대 발견 — study 산출이 런타임 매매결정에 미연결 (판단 근거 상세)
+**전수조사(거시 ref, read-only subagent) 결론: study 산출 전부 런타임 미연결. "누락"이 아니라 설계상 opt-in facade 미개통.**
 
-### 1-B. J축 factor β shadow validation (de2d44d, SEED 미반영)
-- sample(eq_us_defensive) + batch(gold/cyclical/eq_intl/reit/commodity) raw 5 factor 표준화 회귀.
-- ★vol(ΔVIX) 포함이 깨끗한 절대 std β 산출 관건. 전 equity vol −0.57~−0.69 validated. gold 재현 일치(dollar −0.317 vs SEED −0.328)=방법 신뢰.
-- §1.6 unit 분리: DEFENSIVE_PURE(rate≈0 vol흡수) vs FINANCIALS(rate +0.162 NIM). XLE oil만 특이.
-- factor_shadow OOS bias-stat 1.000 PASS, off-path 확인.
-- ★SEED_CELLS 미반영 사유 = vol pool 활성 시 **gold(real_rate_currency 그룹) grand fallback cross-group 오염**(시뮬 −0.508 확인). build_seed_betas 로직 보완 선행 필요(§4).
-
-### 1-C. credential 무료대체 probe (367d880)
-- cushing 재고/roll_yield = ❌무료 불가(EIA/CME key 필요). fwd EPS = ⚠️부분(FINNHUB 무료key coarse). ISM/PMI = ✅무료(census + 지역연준 diffusion).
-
-## 2. ★★ 이번 세션 최대 발견 — study→코드 wire 전수조사 (거시 ref, read-only)
-
-**결론: study 산출(거시 regime·상관 prior·weight·merit 지표)이 런타임 매매결정에 미연결. 설계상 opt-in facade 미개통.**
-
-| 경로 | 코드 연결 | 근거 |
+| 경로 | 상태 | 판단 근거 (파일:라인) |
 |---|---|---|
-| judge(qwen L2/BGE L3) lens·corr | **X** | judge() 런타임 호출 0(run_agents=코인봇 점수제). lens_prompt/_call_qwen_with_lens 기구현이나 미호출 |
-| relationships→corr_prior | **X** | 런타임 RegimeGlasso() 전부 corr_prior= 생략→np.eye. 주입점(prepare_corr_prior)=study_register 미연결 |
-| merit 지표(DGORDER/Empire/vix_term/fx_carry/ism_pmi) | **X 채택0** | yaml indicators·코드 grep 0. candidate-rationale.md에 "보류/측정대기/Phase A 후보"로만 |
-| indicators→feature/weight_card | **X** | self-test + 오프라인 train_weights뿐, 라이브 0 |
-| 거시 regime 지표→분류기/배분 | **부분** | fred_adapter:36~65 FRED_SERIES(HY OAS·T10Y2Y·DFII10·T5YIE·NFCI·DTWEXBGS) 등록 + RegimeClassifier→regime_to_weights 구현. **그러나** run_agents:857~881 INV_CORE_GATE on 시 classify() 결과 **로깅만**(decision 미반영). portfolio_orchestrator.allocate()=coin_track_macro.py:64만 호출, run_agents import 0 |
-| factor seed/shadow→risk_gate | **X** | M5 범위 밖. self-test + raw 스크립트만 |
+| judge(qwen L2/BGE L3) lens·상관 | **X** | judge() 런타임 호출 0(run_agents=코인봇 점수제). lens_prompt/_call_qwen_with_lens 기구현이나 미호출. judge.py:9 "L2/L3=strictly attenuating-only", :166 lens_prompt 인자, :223 G3 lens opt-in |
+| relationships→corr_prior | **X** | 런타임 RegimeGlasso() 전부 corr_prior= 생략 → np.eye. 호출처 regime_to_weights.py:197, weight_cycle.py:62. relationships→corr 변환기 코드 자체 부재(신규 글루 필요) |
+| merit 지표(DGORDER/Empire/vix_term/fx_carry/ism_pmi) | **X 채택0** | core·yaml indicators grep 0. candidate-rationale.md에 "보류/측정대기"로만 |
+| indicators→feature/weight_card | **X** | self-test + 오프라인 train_weights뿐 |
+| 거시 regime 지표→분류기 | **부분** | fred_adapter.py:36~65 FRED_SERIES 등록 + RegimeClassifier→regime_to_weights 구현. 단 run_agents:857~881 classify() 결과 로깅만(INV_CORE_GATE 게이트 뒤), 코인 decision 미반영. portfolio_orchestrator.allocate()=coin_track_macro.py:64만 호출, run_agents import 0 |
+| factor seed/shadow→risk_gate | **X** | M5 범위 밖. self-test+raw 스크립트만 |
 
-- **"언제부터 누락"** = 누락 아니라 **설계상 미개통**. register.py docstring "둘 다 off면 검증만, production 경로 미개통". prepare_judge_call(런타임 진입) 코드 호출 커밋 0건(348e7af=docs handoff뿐). run_agents 거시 chain = INV_CORE_GATE/INV_R15_WEIGHTS 게이트 하 "로깅 wire"만("결정 변경 없음(공급·로깅)" 주석).
-- **사용자 우려 확정**: (a) BGE/qwen 상관 미주입 = judge 런타임 부재 + corr_prior 생략. (b) merit 발굴 지표 누락 = 채택 0(발굴은 문서, 등록 미실행).
-- 조사 산출 = subagent ae1b71ee (read-only, 코드 미수정).
+- "언제부터" = register.py docstring "둘 다 off면 검증만, production 경로 미개통". prepare_judge_call 코드 호출 커밋 0. **의도적 opt-in facade로 머묾**.
+- ★사용자 우려 둘 다 사실: (a) BGE/qwen 상관 미주입 (b) merit 발굴 지표 채택0.
 
-## 3. ★다음 세션 작업분 (사용자 자율주행 지시 — 우선순위 순)
+## 3. ★코드화 = lifecycle 4단계 (사용자 핵심 — 고정 상수 박제 금지)
+study yaml 블록5 confidence_hooks + 블록7(①learn②card③inject④falsify)이 이미 lifecycle 설계 보유. 코드화 = 이 4단계를 런타임 wire(상수 박제 X):
 
-### P1. 전 자산 wire 전수조사 (별건, 거시 ref 패턴 확장)
-- 거시 ref 완료 → gold/cyclical/eq_intl/reit/commodity/bond_cash/crypto/defensive 각 study yaml 산출이 동일하게 미개통인지 전수. (거의 동일 패턴 예상이나 확인 의무 — E94)
-- 산출 = 자산별 wire 현황 매트릭스 + 개통 우선순위.
+- **①학습(learn)**: 데이터→β/corr/weight 추정. `core/data/weight_panel.build_indicator_matrix` + `scripts/train_weights` + `core/study/factor_betas_seed`.
+- **②기준 승격(adopt)**: 학습값이 언제 prior/기준이 되나. `core/assume/update_controller`(ADOPT=conjunctive 5조건 AND) + Bonferroni 생존 + shadow OOS bias-stat + n 충분. yaml confidence_hooks[confirm_signal].
+- **③주입(inject)**: 기준을 런타임에. 배분=corr_prior(RegimeGlasso) / 종목=judge lens_prompt + weight_card. yaml code_change_plan[inject] + confidence_hooks[feeds_weight].
+- **④약화/철회(falsify)**: 기준 무효화 조건. `core/assume/weight_falsification.score_ic_breakdown_eprocess`(e-CUSUM 단측) + update_controller RETRACT(disjunctive fast). yaml confidence_hooks[reject_signal][action_threshold].
 
-### P2. Phase I 통합 개통 설계 (★go-live 경계 — SACRED·사용자 인지 필수)
-- merit 지표 yaml indicators 등록 → build_indicator_matrix series_id 추가
-- study_register/prepare_judge_call/prepare_corr_prior 를 런타임 진입점(orchestrator/judge)에서 호출 개통
-- corr_prior 행렬에 relationships 주입 (RegimeGlasso corr_prior= 인자 wire)
-- judge lens + 상관 prior → qwen L2/BGE L3 lens_prompt (down-only 불변식 보존)
-- 게이트(INV_CORE_GATE 등) on 정책 — ⛔ DRY_RUN/execute_trade SACRED, belief→_macro 차단, opt-in off 무회귀 불변식 준수. 실거래 flip = 자율 범위 밖(autopilot scope).
-- ★자문 ⑧(Risk 변경) 권장: 개통 순서·게이트 정책 gemini+claude.
+### ★judge 단계 구조 (3R 대상 ⑤ — 설계 변경급)
+judge.py(qwen L2/BGE L3)는 lifecycle 중 **inject만 인지** — lens_prompt 받고 down-only attenuator(final ∈ [0,L1_size], 증폭 구조적 부재). adopt(update_controller)·falsify(weight_falsification)는 **judge 밖 별도 모듈 사후 hook**. 그리고 ★**상관은 두 경로 분리**: 배분 레이어 corr_prior(상관 행렬, RegimeGlasso) vs 종목 judge lens_prompt(상관 서술 텍스트). judge는 corr 행렬 직접 인자 아님. → 이 구조를 어떻게 일관 wire 할지가 설계 결정(⑤).
 
-### P3. J축 SEED 반영 + build_seed_betas 보완 (M5)
-- ★grand fallback cross-group 오염 해결: (B) factor별 정책 — dollar/rate/oil/credit=cross-asset(grand OK) vs vol=group-specific(그룹 measured 없으면 0). ★cross 처리 가능 factor/자산을 외부 자문으로 확인 후 12축 audit하고 반영(사용자 지시).
-- batch std β(de2d44d 산출)로 SEED_CELLS 갱신 + self-test #7(vol pool) 조정.
+## 4. ★자문 3R 대상 5개 (전부 "방향성 설정" — 코드화 직결 아님)
+다음 세션 첫 작업 = gemini-web + claude-web 병렬 3R. 각 항목은 방향만 정함(§5 절차로 검증 후 등록).
 
-### P4. regime-conditional / cross 정책 (main 검토→자문→12축 audit→반영)
-- regime-conditional = 신호 refinement 도구(PoC 입증). belief-weighted IC vs hard split. 검정력/다중비교/lookahead rigor.
-- T10Y2Y→XLI 부호반전(infl高 −0.44) 추가 검증 가치(현 Bonferroni 미생존).
+**① 자산별 국면(regime-conditional) 정의** — 거시 inflation 외 8자산(gold/reit/crypto/eq_cyclical/eq_intl/commodity/bond_cash/defensive)
+- 질문: (a) 국면 변수(PIT-safe) (b) 어느 관계가 국면 조건부 변하나 (c) hard split vs belief b(t) 확률가중 (d) n 쪼개짐·다중비교 대응. 근거: PoC=정제 도구(거시만 입증).
 
-### P5. credential (key 발급 시)
-- EIA(cushing)/CME(roll_yield)/FINNHUB(fwd EPS) — 사용자 key 발급 후.
+**② cross-asset 관계 + cross factor 정책**
+- 후보: VIX risk-off 공통인자(eq_cyclical↔eq_intl/reit/defensive) 1차 / dollar pool 2차 / oil pool 3차 / gold↔equity 부의 공분산 / lead-lag(저순위, forward 전멸·reflexive 주의)
+- 질문: (a) 어느 cross 코드화 가치 (b) ★cross factor 정책=grand fallback vs group-specific (J축 vol 채우면 gold −0.508 오염 — vol=group-specific인데 dollar=cross-asset?) (c) lead-lag 가치
 
-## 4. 환경/불변
+**③ 코드화 lifecycle 4단계 자산별 구체화**
+- 질문: (a) adopt 조건 조합(Bonferroni+shadow OOS+n+update_controller 5조건 중) (b) inject 방법(배분 corr_prior / 종목 lens_prompt) + down-only 보존 (c) falsify 조건(e-process? confidence decay? regime 전환?) (d) 자산별 차이(crypto halving=시간기반 vs gold factor=통계기반)
+
+**④ 12축→15축 audit 확장 (M/N/O)** — §6. 질문: 3축 추가 적절성 + 판정 기준.
+
+**⑤ judge/lifecycle 아키텍처 정합 (★설계 변경급)**
+- judge가 inject만 인지, adopt/falsify 별도 모듈, 배분 corr_prior vs 종목 lens_prompt 두 경로 분리(§3).
+- 질문: study 상관/lifecycle을 두 경로에 어떻게 일관 wire? judge가 inject만 보는 현 구조 적절한가, adopt/falsify까지 judge 사이클 통합? down-only/belief→_macro 차단 불변식 보존하며.
+
+## 5. ★4관문 절차 (자문은 방향, 등록은 검증+audit 통과 후)
+```
+자문 3R (방향성 설정)  →  실데이터 15축 검증 (merit 탐구처럼 실측)  →  독립 audit (15축, self-certify 금지)  →  audit 충실(hard0)  →  비로소 등록(lifecycle 4단계 wire)
+```
+- ★자문이 "가치 있겠다" = 가설/방향일 뿐. 실측+audit 통과가 등록 게이트. decision-quality-protocol(자문=reference, 정량검증=verification) + GOLDEN RULE.
+- 5개 대상 전부 이 4관문. 이번 세션 merit 지표 처리(실측→audit충실→yaml반영)와 동일.
+
+## 6. 12축 → 15축 확장 (M/N/O)
+기존 12축(A이론~L통합)=연구 검증 축. 코드화·cross·국면 설명성이 안 잡혀 누락. 3축 추가:
+- **M축 코드화/wire 충실성**: study 산출이 실제 런타임 코드 연결됐나(indicators 등록/corr_prior 주입/judge lens/게이트). 미연결=설계 자산 분류.
+- **N축 cross-asset 관계성**: 자산 간 cross 효과(factor 공유 공분산)가 측정·검증·코드화됐나. single-sleeve only=누락.
+- **O축 regime-conditional 설명성**: 관계가 특정 국면서 변하는지(refinement) 검증됐나. full-sample pooling only=누락. PIT-safe + belief-weighted.
+- ★AUDIT-GUIDE.md M/N/O 추가는 자문 ④ 방향 확정 후(framework 변경 신중).
+
+## 7. main 초기 리서치 산출 (study-research/_wire/)
+### cross-and-regime-research.md
+- cross: 1차 VIX risk-off 공통인자, 2차 dollar, 3차 oil. C1 eq_cyclical↔eq_intl 최우선.
+- regime 정의 8자산 PIT-safe: gold(real-rate+VIX) reit(rate cycle, daily소멸/monthly부활) crypto(FGI×halving) eq_cyclical(inflation clock=PoC입증) eq_intl(dollar강약) commodity(contango+financialization) bond(yield curve) defensive(VIX+credit n=9부족).
+- 우선순위 top5: VIX pool→cross공분산 / cyclical inflation split / crypto FGI×halving / oil pool / dollar pool.
+### wire-codepath-collection.md
+- 개통순서: wire1 StudyRegister 부트스트랩(run_agents:870) → wire2 corr_prior(★relationships→corr 변환기 신규 글루 필요) → wire3 merit 지표(yaml indicators[].id or fred_adapter:64, ★FRED 가용범위 검증) → wire4 judge(go-live 경계).
+- 불변식 보존: down-only(assert_ceiling_invariant judge.py:251), belief→_macro 차단(prepare_corr_prior macro no-op), opt-in off 무회귀(byte-identical), SACRED 비접촉(execute_trade 전 단계).
+
+### J축 SEED 미반영 사유 (다음세션 ③/②와 함께)
+batch std β 추출·shadow OOS PASS 했으나 SEED_CELLS 미반영. ★이유=vol 채우면 gold(real_rate_currency 그룹) grand fallback으로 −0.508 오염(시뮬 확인). build_seed_betas 보완(②cross factor 정책 자문 후) 선행 필요.
+
+## 8. 다음 세션 실행 계획 (우선순위 + 판단 근거)
+1. **자문 3R** (§4 5개 대상) → 방향성 설정. (autopilot ON이면 자율, 단 ⑤ 설계변경은 사용자 confirm 권장)
+2. 방향대로 **15축 실데이터 검증** (우선순위 top5: VIX cross / cyclical inflation / crypto FGI×halving / oil·dollar pool).
+3. **독립 audit 15축** (M/N/O 포함, self-certify 금지).
+4. audit 충실분만 **등록(lifecycle 4단계 wire)** — 개통순서 §7. ★go-live 경계(judge 런타임/실거래 flip)는 자율 범위 밖, 사용자 게이트.
+5. 전 자산 wire 전수조사(거시 ref 패턴 확장, 별건).
+
+## 9. 환경/불변/제약 + 커밋 체인
 - python=`C:/Users/jsh86/AppData/Local/Programs/Python/Python312/python.exe` + `PYTHONUTF8=1 PYTHONIOENCODING=utf-8` prefix 필수.
-- audit=별도 opus subagent 12축 self-certify 금지. 점추정 magnitude 박제 금지·sign/direction prior 생존.
+- audit=별도 opus subagent self-certify 금지. 점추정 magnitude 박제 금지·sign/direction prior 생존.
 - ⛔ push 금지(로컬 commit만). DRY_RUN/execute_trade SACRED. belief→_macro 차단. 공통인자 1회 계상. opt-in off 무회귀.
-- eq_kr/eq_us=stock.md 별도세션. local-db L3~L6=별도 트랙(sqlite.md).
+- eq_kr/eq_us=stock.md 별도. local-db L3~L6=별도 트랙(sqlite.md).
+- 커밋 체인(이번 세션): a2f4411 b1ef5f4 c17c874 7dc5263 d17af0d de2d44d 367d880 cc02158 0700544 0e6dd45 + _wire 리서치.
