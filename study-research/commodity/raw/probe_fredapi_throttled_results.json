@@ -1,0 +1,137 @@
+{
+  "cushing": {
+    "WCESTUS1": {
+      "sid": "WCESTUS1",
+      "ok": false,
+      "error": "ValueError: Bad Request.  The series does not exist."
+    },
+    "WCRSTUS1": {
+      "sid": "WCRSTUS1",
+      "ok": false,
+      "error": "ValueError: Bad Request.  The series does not exist."
+    },
+    "WCSSTUS1": {
+      "sid": "WCSSTUS1",
+      "ok": false,
+      "error": "ValueError: Bad Request.  The series does not exist."
+    },
+    "WCESTP21": {
+      "sid": "WCESTP21",
+      "ok": false,
+      "error": "ValueError: Bad Request.  The series does not exist."
+    },
+    "W_EPC0_SAX_YCUOK_MBBL": {
+      "sid": "W_EPC0_SAX_YCUOK_MBBL",
+      "ok": false,
+      "error": "ValueError: Bad Request.  Invalid value for variable series_id.  Series IDs should be 25 or "
+    },
+    "WTTSTUS1": {
+      "sid": "WTTSTUS1",
+      "ok": false,
+      "error": "ValueError: Bad Request.  The series does not exist."
+    },
+    "WCESTP31": {
+      "sid": "WCESTP31",
+      "ok": false,
+      "error": "ValueError: Bad Request.  The series does not exist."
+    }
+  },
+  "mfg": {
+    "AMTMNO": {
+      "sid": "AMTMNO",
+      "ok": true,
+      "n": 410,
+      "first_date": "1992-02-01",
+      "last_date": "2026-03-01",
+      "last_value": 630448.0
+    },
+    "NEWORDER": {
+      "sid": "NEWORDER",
+      "ok": true,
+      "n": 411,
+      "first_date": "1992-02-01",
+      "last_date": "2026-04-01",
+      "last_value": 82426.0
+    },
+    "DGORDER": {
+      "sid": "DGORDER",
+      "ok": true,
+      "n": 411,
+      "first_date": "1992-02-01",
+      "last_date": "2026-04-01",
+      "last_value": 345956.0
+    },
+    "ACOGNO": {
+      "sid": "ACOGNO",
+      "ok": true,
+      "n": 410,
+      "first_date": "1992-02-01",
+      "last_date": "2026-03-01",
+      "last_value": 258816.0
+    }
+  },
+  "pmi": {
+    "GACDISA066MSFRBNY": {
+      "sid": "GACDISA066MSFRBNY",
+      "ok": true,
+      "n": 299,
+      "first_date": "2001-07-01",
+      "last_date": "2026-05-01",
+      "last_value": 19.6,
+      "desc": "Empire State Mfg General Activity (diffusion)"
+    },
+    "NOCDISA066MSFRBNY": {
+      "sid": "NOCDISA066MSFRBNY",
+      "ok": true,
+      "n": 299,
+      "first_date": "2001-07-01",
+      "last_date": "2026-05-01",
+      "last_value": 22.7,
+      "desc": "Empire State New Orders"
+    },
+    "GACDFSA066MSFRBPHI": {
+      "sid": "GACDFSA066MSFRBPHI",
+      "ok": true,
+      "n": 697,
+      "first_date": "1968-05-01",
+      "last_date": "2026-05-01",
+      "last_value": -0.4,
+      "desc": "Philly Fed Mfg General Activity"
+    },
+    "NOCDFSA066MSFRBPHI": {
+      "sid": "NOCDFSA066MSFRBPHI",
+      "ok": true,
+      "n": 697,
+      "first_date": "1968-05-01",
+      "last_date": "2026-05-01",
+      "last_value": -1.7,
+      "desc": "Philly Fed New Orders"
+    },
+    "BACTSAMFRBDAL": {
+      "sid": "BACTSAMFRBDAL",
+      "ok": true,
+      "n": 264,
+      "first_date": "2004-06-01",
+      "last_date": "2026-05-01",
+      "last_value": 0.4,
+      "desc": "Dallas Fed Mfg General Business Activity"
+    },
+    "GAFDISA066MSFRBNY": {
+      "sid": "GAFDISA066MSFRBNY",
+      "ok": true,
+      "n": 299,
+      "first_date": "2001-07-01",
+      "last_date": "2026-05-01",
+      "last_value": 33.5,
+      "desc": "Empire State alt"
+    }
+  },
+  "brent": {
+    "sid": "DCOILBRENTEU",
+    "ok": true,
+    "n": 9898,
+    "first_date": "1987-05-20",
+    "last_date": "2026-05-26",
+    "last_value": 102.75
+  }
+}
