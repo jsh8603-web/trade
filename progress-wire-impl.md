@@ -165,7 +165,24 @@ gate: 각 IC = ① 지표 실데이터 시뮬 에러 0 ② opt-in off byte-ident
 - [x] ★codify(자문 글자 아닌 우리 코드 맥락): `_factor_pool` **grand(cross-group) fallback 폐기** → group-specific 만. **reject**(가설상 무관 확정)→β:=0 lock(group pool 노출도 차단). **missing/hold**(미측정)→group-specific 평균(없으면 0 — 미측정의 동일 경제군 추정=M4 게이트 가시성 의도 보존). group n==1→자기(원값 보존, magnitude FREEZE).
 - [x] ★효과(gold 오염 root cause 제거): gold dollar b=**-0.328 순수**(이전 equity grand -0.408 상속 → 차단). eq_intl rate=**0.0**(reject lock, 이전 equity_risk pool 거짓 상속). eq_us_defensive dollar=-0.42(hold→equity group 평균, 가시성 유지). self-test 7/7(reject assert 의미 반전: pool노출→β:=0). corr_prior us_stock×commodity 0.5444→**0.4372**·×gold 0.5296→**0.5260**(오염 betas→순수). 회귀 414 passed.
 - [ ] ⛔(가)관문 분리: vol(VIX β)·credit 실측 β SEED 박제 = 새 relationship 등록(15축 audit+small-n) → 자율 범위 밖. vol/credit=HOLD placeholder(노출 0, 게이트 차원 중립). gold decoupling 부활은 vol β 등록 후(발견B).
-### IC4 — graduation 루프 ⬜ update_controller 5-AND owner, e-process=test, 사이클 경계 flip
+### IC4 — graduation 루프 ✅ 완료 (2026-06-02, Track 1 자율) — candidate→adopted, IC9 대칭
+> ★설계 판정: IC9 reject 복귀와 **대칭**(candidate→adopted vs rejected→revived), 더 단순(trigger/burden/
+>   alpha-pricing 없이 순수 5-AND + 자가승격 가드 + 사이클경계). owner=외부 평가자(update_controller
+>   5-AND), StudyRegister **자가 승격 0**(confirmation bias). 자율 범위 판정=IC9 동일 기준(상태전이 함수
+>   본체+event projection=자율 / 런타임 사이클경계 소비 wire=호출처 0 자동격리=go-live).
+- [x] 신규 `core/assume/graduation.py`: `CandidateCard`(5-AND 입력=호출자 e-process 산출 주입) +
+  `GraduationDecision` + `evaluate_graduation`(5-AND `assumption_stats.hysteresis_and_gate` 재사용=새 surface 0,
+  §14.1 정합 + 자가승격 가드 proposer==self_owner 차단) + `graduation_sweep`(사이클 경계 idempotent:
+  cycle_id==last → no-op[]) + `make_ratify_events`(graduate=True → RATIFIED event, on 경로만).
+- [x] event_ledger projection 활성(no-op 골격 → status set): CANDIDATE_PROPOSED→"candidate" /
+  RATIFIED→"ratified"(adopted). `LedgerState.assumption_status(aid)` as-of 조회 추가(reject_status 대칭).
+  ★RATIFIED emit 0건(grep)이라 활성화 회귀 0 + off byte-identical(미emit→active 유지).
+- [x] self-test 1~7 PASS(5-AND 통과/effect약 미충족/자가승격 차단/사이클경계 idempotent/falsifiable·base-layer
+  게이트/candidate→ratified as-of/off byte-identical) + pytest `tests/assume/test_graduation.py` 11 +
+  회귀 89 passed(assume/structure/sleeve_belief_cov, event_ledger projection 변경 무영향).
+- [ ] ⛔런타임 owner 소비 wire = go-live 경계: 사이클 경계에서 graduation_sweep 호출 → adopted study 를
+  실 weight_rules 반영 = 실거래 인접(자율 범위 밖). graduation 본체(판정+event)까지 자율, 소비는 go-live.
+- **IC4 상태**: 코드(나)파이프라인 ✅ 완성(graduation.py 신규 + event_ledger lifecycle projection). 호출처 0=자동격리.
 ### IC5 — byte-identical ✅ RNG 격리 확인 + golden test CI 게이트
 - [x] RNG 격리(E97 코드검증): wire 핫패스(regime_to_weights→_ic_corr_prior→build_seed_betas→factor_implied_cross_cov→RegimeGlasso.fit→effective_precision→BL) **RNG 0건**. `conditional_correlation.py:60` "공용 통계 유틸 — RNG 미사용" 명시 / `block_bootstrap_se:487` seed=0 고정(§1.8 falsification 검정 전용, 핫패스 외) / self-test rng 는 `__main__` 영역. → on 경로 결정적.
 - [x] FP order: dict 삽입순서 보장(Py3.7+) + cols=SLEEVES 고정 + SLEEVE_AGG/betas 순회 결정적 → 연산 순서 안정.

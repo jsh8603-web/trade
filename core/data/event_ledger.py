@@ -218,6 +218,13 @@ class LedgerState:
         r = self.rejects.get(hypothesis_id)
         return r.get("status") if r else None
 
+    # --- assumption graduation 상태 as-of (IC4 lifecycle) ----------------
+    def assumption_status(self, assumption_id: str) -> Optional[str]:
+        """assumption 의 lifecycle 상태(active/candidate/ratified/transitioned/retired) 또는 None.
+        IC4 graduation: CANDIDATE_PROPOSED→candidate, RATIFIED→ratified(adopted). tt_cut as-of 조회."""
+        a = self.assumptions.get(assumption_id)
+        return a.get("status") if a else None
+
 
 # ---------------------------------------------------------------------------
 # Pure reducer
@@ -281,7 +288,21 @@ def _pure_apply(state: LedgerState, ev: LedgerEvent) -> LedgerState:
         r = state.rejects.get(hid)
         if r is not None:
             r["status"] = "revived"
-    elif et in ("HOLD_REMEASURED", "CANDIDATE_PROPOSED", "RATIFIED", "CALIBRATION_CHANGED"):
+    elif et == "CANDIDATE_PROPOSED":
+        # ★IC4 graduation lifecycle: candidate 진입(검증 누적 대기). opt-in on 경로만 emit
+        #   (off=미발생=byte-identical). 기존 active 가설도 candidate 로 명시 표식(졸업 후보군).
+        if ev.assumption_id in state.assumptions:
+            state.assumptions[ev.assumption_id]["status"] = "candidate"
+        else:
+            state.assumptions[ev.assumption_id] = {"status": "candidate", "version": p.get("version", 1)}
+    elif et == "RATIFIED":
+        # ★IC4: 5-AND graduation gate 통과 → adopted(ratified). graduation_sweep 발행(무인 자동,
+        #   StudyRegister 자가승격 0 — owner=외부 평가자). reject 의 REVIVED 와 대칭(candidate→adopted).
+        if ev.assumption_id in state.assumptions:
+            state.assumptions[ev.assumption_id]["status"] = "ratified"
+        else:
+            state.assumptions[ev.assumption_id] = {"status": "ratified", "version": p.get("version", 1)}
+    elif et in ("HOLD_REMEASURED", "CALIBRATION_CHANGED"):
         pass  # 골격: 라이프사이클 마커(상태 변화는 P3+ 에서 plug-in)
     # watermark 갱신
     if ev.seq > state.watermark_seq:
