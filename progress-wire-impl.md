@@ -12,6 +12,8 @@ gate: 각 IC = ① 지표 실데이터 시뮬 에러 0 ② opt-in off byte-ident
 
 # progress — study→wire 구현 (IC1~IC8, R9 수렴 코드화)
 
+> 인계: [handoff-ic8-fx-wire-20260602.md](./handoff-ic8-fx-wire-20260602.md) — IC8(A→B 전환)·IC4 graduation·독립 audit 완료. ★다음 세션 핵심=fx 정밀화(Λfx 실측 + 표준 정합, 현 0.09=추정 미확보). 안전판=fx_hedge=full(IC10 복원).
+
 > 원칙: 신규 글루만 작성, 기존 메커니즘(eb_shrink·RegimeGlasso·James-Stein·5-AND·e-process·two-layer·facade·회귀테스트) 재사용. opt-in off=byte-identical. execute_trade SACRED 비접촉. go-live 경계(judge 소비·실거래) = 사용자 게이트, 범위 밖.
 > SSOT: CONSULT-DECISIONS-wire-20260601.md §11(IC 결선) + §12(audit 15축). 코드맵 §8.
 
