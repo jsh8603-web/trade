@@ -96,7 +96,7 @@ judge.py(qwen L2/BGE L3)는 lifecycle 중 **inject만 인지** — lens_prompt �
 batch std β 추출·shadow OOS PASS 했으나 SEED_CELLS 미반영. ★이유=vol 채우면 gold(real_rate_currency 그룹) grand fallback으로 −0.508 오염(시뮬 확인). build_seed_betas 보완(②cross factor 정책 자문 후) 선행 필요.
 
 ### ★jsonl 대조 누락 보완 — 실측 발견 3건 (다음세션 직접 활용)
-1. **credential 유료 3종 후속 트리거**: cushing(EIA)·roll_yield(CME 다중만기)·fwd EPS revision(FINNHUB/IBES) = 무료 불가, ★키 발급 후 실데이터 forward 탐구로 진입(15축). 무료 ISM/PMI 대체(지역연준 diffusion)는 cc02158 진행 완료, 유료 3종만 키 대기 보류.
+1. **credential 3종 = probe 가용성 확인만 (하기로 결정 X, 사용자 빌드 confirm 대기)**: ★"유료 3종" 표현 정정 — (a) **cushing 재고 = EIA API 무료 키(등록만, 비용 0)** 발급하면 무료 가용 (b) roll_yield = CME 선물 다중만기 = 유료 구독 (c) fwd EPS = FINNHUB 무료티어 coarse(0원)/정밀 revision breadth=IBES·FactSet 유료. ★비용 액수 미확인(EIA=0, CME·IBES 유료이나 가격 미조사). 무료 ISM/PMI 대체(지역연준 diffusion)는 cc02158 진행 완료. cushing은 키만 받으면 무료 진입 가능, roll/정밀fwdEPS는 유료라 사용자 confirm 후.
 2. **J축 FINANCIALS sub-sleeve 분리** (sample stage 핵심 발견): FINANCIALS{XLF} rate **+0.162(t+6.94, NIM genuine)** vs DEFENSIVE_PURE{XLP/XLU/XLV} rate-NEG = rate dichotomy. eq-weight 시 β cancel → §1.6 분석 unit 분리(anchor ERROR-202605302245). ★SEED 매핑 = eq_us_defensive를 DEFENSIVE_PURE로, financials 별도 sub-sleeve 신설(POOL_GROUP 둘 다 equity_risk). VIF 1.01~1.14 직교, ADF stationary. DEFENSIVE_PURE rate≈0(vol 흡수)·vol −0.657·dollar −0.109.
 3. **regime PoC T10Y2Y→XLI 부호반전** (regime=정제도구 2번째 증거): full 무신호(+0.02)가 inflation高 국면서 **−0.44 부호반전**(부호 반대 sub-regime이 full-sample서 cancel). 단 Bonferroni 미생존·belief-weighted 소멸 = tail fragility. ★§4-① 자산별 국면 자문의 추가검증 후보(현 잠정 directional, 박제 금지).
 

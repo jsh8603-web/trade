@@ -178,7 +178,7 @@ main 이 G6 study_register + 수집기 추가로** 한다. 라이선스·반사�
 > 승인 기준: ①이론수집 ②검증방향 ③가설(반증조건) 충실 + round-* 다회 수렴 + 자문 비판적 심사(맹목추종 회피).
 
 ## Working Notes
-> [ckpt-202606012000:btn-Inv] 핸드오프 상세본(c51b623) 완성 + jsonl 누락 점검 진행. 결정=자문 3R 5대상(국면/cross/lifecycle/15축/judge아키텍처)=방향성설정 + 4관문(자문→15축 실측→독립audit→등록). 다음=jsonl 대조로 핸드오프 누락 보완 후 clear. long-mode ON, push 금지. 진입=handoff-study-wire-gap-20260601.md
+> [ckpt-202606012100:btn-Inv] 핸드오프 상세본+누락보완(889b179)+credential 정정 완료. ★cushing=EIA 무료키(유료 아님), roll/정밀fwdEPS만 유료, 3종 다 "하기로 결정X" probe 확인만. jsonl 대조 누락3건 보완. 결정=자문 3R 5대상(국면/cross/lifecycle/15축/judge아키텍처)=방향성설정 + 4관문(자문→15축 실측→독립audit→등록). 다음=jsonl 대조로 핸드오프 누락 보완 후 clear. long-mode ON, push 금지. 진입=handoff-study-wire-gap-20260601.md
 > 인계: [handoff-study-wire-gap-20260601.md](./handoff-study-wire-gap-20260601.md) (★study→코드 wire 미연결 발견 + merit/audit/J축/regime/credential — 다음 세션 자율 진입점)
 > [ckpt-202606011700:btn-Inv] ★wire gap 발견 + merit 후속 5건. study 산출 전부 런타임 미연결(설계상 opt-in facade, judge/corr_prior/merit지표 채택0). cyclical merit audit 충실+yaml v5 / crypto·eq_intl·defensive verdict→yaml / eq_intl L축 DTWEXBGS caveat 해소 / 지역연준 Empire→SOXX Bonferroni 첫 생존(audit 충실) / regime-conditional PoC(신호 정제 도구) / J축 sample+batch std β(shadow OOS PASS, SEED 미반영=grand fallback cross-group 오염) / credential probe(cushing·roll 불가, ISM/PMI 가능). ★다음=전자산 wire 전수조사+Phase I 통합개통(go-live경계)+J축 SEED build_seed_betas 보완(B factor별 정책+cross 자문). push 금지. 진입=handoff-study-wire-gap-20260601.md
 > 인계: [handoff-study-merit-audit-20260601.md](./handoff-study-merit-audit-20260601.md) (이번 세션 완주 인계 — 커밋14·audit6·merit탐구·J축 검증·잔여)
