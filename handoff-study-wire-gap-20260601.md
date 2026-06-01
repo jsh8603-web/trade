@@ -95,6 +95,11 @@ judge.py(qwen L2/BGE L3)는 lifecycle 중 **inject만 인지** — lens_prompt �
 ### J축 SEED 미반영 사유 (다음세션 ③/②와 함께)
 batch std β 추출·shadow OOS PASS 했으나 SEED_CELLS 미반영. ★이유=vol 채우면 gold(real_rate_currency 그룹) grand fallback으로 −0.508 오염(시뮬 확인). build_seed_betas 보완(②cross factor 정책 자문 후) 선행 필요.
 
+### ★jsonl 대조 누락 보완 — 실측 발견 3건 (다음세션 직접 활용)
+1. **credential 유료 3종 후속 트리거**: cushing(EIA)·roll_yield(CME 다중만기)·fwd EPS revision(FINNHUB/IBES) = 무료 불가, ★키 발급 후 실데이터 forward 탐구로 진입(15축). 무료 ISM/PMI 대체(지역연준 diffusion)는 cc02158 진행 완료, 유료 3종만 키 대기 보류.
+2. **J축 FINANCIALS sub-sleeve 분리** (sample stage 핵심 발견): FINANCIALS{XLF} rate **+0.162(t+6.94, NIM genuine)** vs DEFENSIVE_PURE{XLP/XLU/XLV} rate-NEG = rate dichotomy. eq-weight 시 β cancel → §1.6 분석 unit 분리(anchor ERROR-202605302245). ★SEED 매핑 = eq_us_defensive를 DEFENSIVE_PURE로, financials 별도 sub-sleeve 신설(POOL_GROUP 둘 다 equity_risk). VIF 1.01~1.14 직교, ADF stationary. DEFENSIVE_PURE rate≈0(vol 흡수)·vol −0.657·dollar −0.109.
+3. **regime PoC T10Y2Y→XLI 부호반전** (regime=정제도구 2번째 증거): full 무신호(+0.02)가 inflation高 국면서 **−0.44 부호반전**(부호 반대 sub-regime이 full-sample서 cancel). 단 Bonferroni 미생존·belief-weighted 소멸 = tail fragility. ★§4-① 자산별 국면 자문의 추가검증 후보(현 잠정 directional, 박제 금지).
+
 ## 8. 다음 세션 실행 계획 (우선순위 + 판단 근거)
 1. **자문 3R** (§4 5개 대상) → 방향성 설정. (autopilot ON이면 자율, 단 ⑤ 설계변경은 사용자 confirm 권장)
 2. 방향대로 **15축 실데이터 검증** (우선순위 top5: VIX cross / cyclical inflation / crypto FGI×halving / oil·dollar pool).
