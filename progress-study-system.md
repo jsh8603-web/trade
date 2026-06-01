@@ -178,6 +178,8 @@ main 이 G6 study_register + 수집기 추가로** 한다. 라이선스·반사�
 > 승인 기준: ①이론수집 ②검증방향 ③가설(반증조건) 충실 + round-* 다회 수렴 + 자문 비판적 심사(맹목추종 회피).
 
 ## Working Notes
+> 인계: [handoff-study-wire-gap-20260601.md](./handoff-study-wire-gap-20260601.md) (★study→코드 wire 미연결 발견 + merit/audit/J축/regime/credential — 다음 세션 자율 진입점)
+> [ckpt-202606011700:btn-Inv] ★wire gap 발견 + merit 후속 5건. study 산출 전부 런타임 미연결(설계상 opt-in facade, judge/corr_prior/merit지표 채택0). cyclical merit audit 충실+yaml v5 / crypto·eq_intl·defensive verdict→yaml / eq_intl L축 DTWEXBGS caveat 해소 / 지역연준 Empire→SOXX Bonferroni 첫 생존(audit 충실) / regime-conditional PoC(신호 정제 도구) / J축 sample+batch std β(shadow OOS PASS, SEED 미반영=grand fallback cross-group 오염) / credential probe(cushing·roll 불가, ISM/PMI 가능). ★다음=전자산 wire 전수조사+Phase I 통합개통(go-live경계)+J축 SEED build_seed_betas 보완(B factor별 정책+cross 자문). push 금지. 진입=handoff-study-wire-gap-20260601.md
 > 인계: [handoff-study-merit-audit-20260601.md](./handoff-study-merit-audit-20260601.md) (이번 세션 완주 인계 — 커밋14·audit6·merit탐구·J축 검증·잔여)
 > [ckpt-202606010900:bc9afbe0(신 main, 단일세션, ctx 86%)] J축 통합 기계검증 PASS + 세션 핸드오프 작성
 > (1) 마지막 결정: J축 = `factor_betas_seed.build_seed_betas → system_priors.factor_implied_cross_cov` 기계 검증 완료(end-to-end PD min eig 0.986, study 13/13 무회귀). L축 1회 계상=FACTORS 구조적 보장. overlap 박제(fx↔dollar R²8.7% 75%독립·VIX↔credit R²2.2% 독립). ★정밀 β seed 셀 population(eq_us_defensive rate/credit/vol)은 의도적 미수행 — sleeve-내부 coincident 라 깨끗한 절대 std β 미산출, "점추정 magnitude 박제 금지" 원칙상 추측 loading 금지 → shadow validation 단계 raw 재실행 std β 추출 TODO.
