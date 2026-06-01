@@ -17,6 +17,7 @@ basis_raw:
   - raw/verify_delta.py + verify-delta-metrics.json  # G2 stationary bootstrap + G4 LOEO + K Bonferroni/FDR + 산업 자체 vol
   # ★v5 신규 — merit 선행변수 무료 탐구 (ISM 유료 대체) + 독립 12축 audit
   - raw/validation-merit-cyclical-leading.{md,py,json} + merit-pit-probe.json + fetch_merit_leading.py  # DGORDER→XLE live-PIT forward, NAIVE vs LIVE 착시 정량, Bonferroni 0/96
+  - raw/validation-merit-regional-fed-diffusion.{md,py,json} + regional-fed-pit-probe.json + fetch_regional_fed.py  # 지역연준 diffusion(Empire/Philly) → Empire→SOXX 음 forward Bonferroni 2/84(첫 생존), 적시성≠예측력
 note: |
   ★v5 = merit 선행변수 무료 탐구(ISM 유료 대체) 통합 + 독립 12축 audit 충실(hard0, opus subagent 2026-06-01).
     핵심: DGORDER_yoy→XLE forward = live PIT 생존 최상위 후보(단 Bonferroni 0/96 → 단정 금지, sign(+) prior 만, magnitude freeze, tier=structural_low).
@@ -591,6 +592,14 @@ merit_leading_vars:
       sign: +1
       verdict: "TENTATIVE DIRECTIONAL (동월 한정)"
       evidence: "동월만 live 생존(naive +0.178 t3.2 → live +0.124 t2.3), forward 약. 발표시차가 forward 신호 잠식."
+    Empire_neworders_to_SOXX:
+      # ★v5+ 지역연준 diffusion 탐구 (raw/validation-merit-regional-fed-diffusion.*) + 독립 audit 2026-06-01
+      sign: -1
+      verdict: "PARTIAL CONFIRMED (★cyclical merit 첫 Bonferroni 생존, 단 single-region NY)"
+      evidence: "Empire(NOCDISA) 신규주문 level → SOXX 음 forward: live k=3 IC-0.25(p=0.0003)/k=6 -0.30(p=0.0001), n~295. within-study m=84 Bonferroni 2/84 생존(첫 사례). 발표시차 14d(census 56d 대비 적시, ALFRED 실측). OOS h1-0.25/h2-0.10 부호일치."
+      caveat: "★single-region(NY): Philly(NOCDFSA) 동부호이나 비유의(|t|<1.5). cross-study pooled(census family dedup m=168) 기준은 k=6 1셀만 robust. Composite/z12 = Empire 비독립(corr 0.64)으로 제외. magnitude 박제 금지, late-cycle reverse 인과 미확정."
+      routing: "ism_pmi_proxy 의 SOXX-한정 음부호 child (census new-orders family 와 ★합산 가중 금지=이중계상). structural_low, validated_alpha:false."
+      audit: "독립 12축 audit 충실(hard0, 2026-06-01). B/C/D/I raw 재실행 재현. K/L PARTIAL(cross-study pooled + Empire/Composite 비독립 hedge 보강 반영)."
 
   rejected:
     # ★F축 반증 — live PIT 정렬 또는 전 horizon 비유의로 REJECT
@@ -601,6 +610,7 @@ merit_leading_vars:
     yield_curve_to_4sector: "REJECTED — T10Y2Y/T10Y3M → 4섹터 전부 |IC|<0.11, 전 horizon 비유의 (curve 는 침체 12-18M 선행이나 섹터 월수익 rank엔 약함)"
     permit_to_4sector: "REJECTED — PERMIT_yoy → 4섹터 전부 비유의 (주택 선행 채널 무전달)"
     copper_gold_forward: "co-move only — COPPER_GOLD_yoy→XLE 동월 +0.151(t2.64) 유의이나 forward(k≥1) 미생존. 시장가격 동조이지 선행 아님."
+    regional_fed_timeliness_for_XLE: "REJECTED — 지역연준 적시성(14~17d) 우위가 XLE 예측력 우위로 이어지지 않음(Empire/Philly→XLE 전부 |t|<1.6 비유의). census DGORDER→XLE(+0.31 t3.16)가 적시성 열위에도 압도. ★적시성≠예측력. 단 Empire→SOXX 음 forward 는 census 에 없던 별개 신호(보완재)."
 
   l_axis_dedup:
     statement: "DGORDER_yoy 와 기존 ism_pmi_proxy(AMTMNO/CFNAI 계열) = 동일 new-orders family. 중복 계상 회피."
@@ -656,6 +666,7 @@ status:
     - "★v5 merit 선행변수 무료 탐구 (raw/validation-merit-cyclical-leading.*): NAIVE vs LIVE PIT, m=96 Bonferroni/BH-FDR 0/96, ADF 8/8 I(0)"
     - "★v5 독립 opus subagent 12축 audit 충실(hard0, 2026-06-01): B/C/D/I 4 코어 raw 재실행 재현, over-claim 없음 (D축 NEWORDER live 붕괴 자가 실증 모범)"
     - "★v5 merit_leading_vars 블록 박제 (블록9): DGORDER→XLE sign+ structural_low + ACOGNO→cyclical-core sign- + NEWORDER/curve/PERMIT REJECTED + L축 dedup(ism_pmi_proxy XLE 정밀화 통합)"
+    - "★v5+ 지역연준 diffusion 탐구 + 독립 audit 충실(2026-06-01): Empire→SOXX 음 forward Bonferroni 2/84(cyclical merit 첫 생존, single-region caveat) / 적시성≠예측력(census DGORDER→XLE 압도) REJECTED / Empire=ism_pmi_proxy SOXX 음부호 child"
   todo:
     - "★main 측 live regime 분류기 OOS 검증 (Rank-IC ≥ 0.03 + t-stat ≥ 2.0 HAC) — δ_regime live 적용 선행 조건"
     - "★main 측 EDGAR 분기 펀더 + Damodaran implied ERP 적재 (블록6 우선순위 1) — H1·H6 backbone 재검증 + δ_arch 14종 deferred 활성"
