@@ -191,12 +191,14 @@ def test_ic_corr_prior_golden_deterministic(monkeypatch):
     # golden: SLEEVE_AGG(us_stock←cyc0.5+def0.5, commodity, gold) W roll-up, Λ=eye.
     # ★IC10(a) batch multivariate measured β 전면 교체(2026-06-01) 후 값 — 이전 0.4372/0.5260 은
     # M3 등급값(dollar −0.55 등) 기반. measured(dollar −0.171 등 약화 + vol factor 추가)로 갱신.
-    # ★IC8 fx denomination factor 추가(2026-06-02): USD-표시 자산 공통 환노출(fx_β +0.30, gold 부분 +0.10)
-    #   채널 반영 → us_stock×commodity 0.2026→0.2642(USD 자산 동조 소폭↑), us_stock×gold 0.0832→0.1298
-    #   (gold 부분 환노출 약한 동조). ★gold risk-off decoupling 여전히 낮게 보존(0.13, fx_hedge=full 시
-    #   IC10 정확 복원 0.0832). fx_β=measured β 대역 정규화(절대 환베타 1.0→corr_prior magnitude FREEZE 등가).
+    # ★IC8 fx denomination factor(2026-06-02, 외부자문 2모델+코드검증 수렴 B): USD-표시 자산 공통 환노출
+    #   (fx_β=절대 denomination 1.0, GLD 포함 full) + _static_factor_lambda eye fallback Λfx=0.09 축소
+    #   → us_stock×commodity 0.2026→0.2642(USD 곱 1.0²·0.09 = A안 0.30²·1.0 등가, magnitude FREEZE 라
+    #   곱만 의미), us_stock×gold 0.0832→0.1994(gold full 환노출=KRW 환산 현실, GLD=USD자산).
+    #   ★fx_hedge="full" → us_stock×gold 0.0832 정확 복원(IC10). IC10 risk-off decoupling 은 dollar/vol
+    #   열에 보존, fx 는 별 KRW 환산 레이어(KRW 투자자 동조 추가는 환노출 현실 — 코드검증 0.0637→0.1177).
     assert abs(cp1[i["us_stock"], i["commodity"]] - 0.2642) < 1e-3
-    assert abs(cp1[i["us_stock"], i["gold"]] - 0.1298) < 1e-3
+    assert abs(cp1[i["us_stock"], i["gold"]] - 0.1994) < 1e-3
     # 미매핑 sleeve(kr_stock/bond/cash/coin) = eye 독립 (자기 대각 외 0)
     for s in ("kr_stock", "bond", "cash", "coin"):
         off = np.delete(cp1[i[s]], i[s])

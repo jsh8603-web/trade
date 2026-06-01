@@ -198,12 +198,22 @@ def _static_factor_lambda(nf, factors, as_of=None):
             Lam = None
         _STATIC_LAMBDA_CACHE[key] = Lam
     Lam = _STATIC_LAMBDA_CACHE[key]
-    if Lam is None:
-        return np.eye(nf)
-    Lam = np.asarray(Lam, float)
-    if Lam.shape != (nf, nf):
-        return np.eye(nf)
-    return Lam
+    if Lam is not None:
+        Lam = np.asarray(Lam, float)
+        if Lam.shape == (nf, nf):
+            return Lam
+    # ★IC8 B(자문 2모델+코드검증+독립 audit 수렴): eye fallback(FRED 미가용/shape 불일치) 등분산
+    #   가정에서 fx(환율) 대각만 축소. denomination β=1.0(절대 환노출, GLD 등 USD자산 full) 유지 +
+    #   Λfx=0.09 ≈ (USDKRW dlog std / 자산 dlog std)² ≈ 0.3²(환율 일변동 ~0.5% vs 주식 ~1.5% calibration).
+    #   ★독립 audit 발견(ab639df, 2026-06-02): 이 값에서 fx 가 USD sleeve 쌍 공분산의 ~70%(eye-fallback
+    #   gold×cyclical 70.5%)를 차지하는 **지배 공통인자** — "dollar/vol 열에 얹히는 별 레이어"가 아니라
+    #   모든 USD 자산에 +0.09 균일 floor 를 까는 구조. KRW 투자자 USD 묶음 공통 환노출의 현실 반영이나,
+    #   지배도가 Λfx 단일 상수에 민감 → fx_hedge="full" 로 IC10 상태 정확 복원 가능(토글). 실 FRED Λ 경로면
+    #   환율 실공분산 자동(fallback 만 근사·calibration). corr_prior=magnitude FREEZE 라 fx_β²·Λfx 곱만 의미.
+    L = np.eye(nf)
+    if "fx" in factors:
+        L[list(factors).index("fx"), list(factors).index("fx")] = 0.09
+    return L
 
 
 def _ic_corr_prior(cols, as_of=None, *, fx_hedge="none"):

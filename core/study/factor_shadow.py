@@ -114,7 +114,7 @@ if __name__ == "__main__":
     from core.study.factor_betas_seed import build_seed_betas
     from core.study.system_priors import factor_implied_cross_cov
 
-    Lam = np.diag([0.04, 0.05, 0.03, 0.05])
+    Lam = np.diag([0.04, 0.05, 0.03, 0.05, 0.06, 0.02])   # rate/dollar/oil/credit/vol/fx(IC8 6 factor 정합)
     sb = build_seed_betas(factor_cov=Lam)
     res = factor_implied_cross_cov(sb.betas, Lam, factors=list(sb.factors), idio_var=sb.idio_var)
     Sm = res.cov

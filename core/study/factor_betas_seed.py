@@ -33,12 +33,12 @@ import numpy as np
 # ★append-only(IC8): fx(USDKRW denomination) 추가. fx_β=measured 아니라 ★구조 denomination prior
 #   (KRW 투자자가 USD-표시 자산 보유 시 환산 노출). dollar(broad TWI 가격채널)와 별 layer = 이중계상 0.
 #   measured 가 아니므로 James-Stein 수축 우회(TIER_DENOMINATION) — build_seed_betas 가 β 원값 보존.
-#   ★fx_β 스케일(코드 유효성 판정, IC8): corr_prior 는 magnitude FREEZE(Λ=eye 등분산·sign-only).
-#   denomination 정의 베타=1.0(USD 자산 환율 100% 노출)을 그대로 쓰면 measured β(±0.1~0.6) 대비
-#   과대 → fx 가 corr_prior 지배 + gold decoupling(IC10) 훼손. decisions "full-USD≈+1"의 정수는
-#   ★부호·상대구조(USD full > gold 부분 > hedged 0)이지 절대 1.0 아님 → measured β 대역으로 정규화
-#   (USD full=+0.30 ≈ dollar β 크기, gold 부분=+0.10). 절대 환베타=1.0 은 향후 실 covariance gate
-#   (magnitude 살릴 때) 별도 layer. fx_hedge="full"=전 fx_β:=0(IC10 정확 복원 토글, byte-identical).
+#   ★fx_β 스케일(외부자문 2모델+코드검증 수렴 B, IC8): fx_β=**절대 denomination 1.0**(USD자산 환율
+#   100% 노출, 추정 β 아닌 결정론 값 — GLD 포함 full). corr_prior=magnitude FREEZE 라 fx 기여=fx_β²·Λfx
+#   곱만 의미 → 절대 1.0 유지하되 _static_factor_lambda 가 fx 대각만 축소(eye fallback 0.09, 실 FRED Λ면
+#   환율 실변동성 자동)해 fx 가 corr 지배하는 것 방지. ★코드검증: USD 곱 1.0²·0.09 = 이전 A안 0.30²·1.0
+#   등가(golden 불변). gold full 은 KRW 환산 현실(us×gold 동조 0.0637→0.1177, IC10 USD기준 decoupling 은
+#   dollar/vol 열 보존=별 레이어). fx_hedge="full"=전 fx_β:=0(IC10 정확 복원 토글, off byte-identical).
 FACTORS = ("rate", "dollar", "oil", "credit", "vol", "fx")
 
 # verdict tier — opus 독립 검증관(raw 재실행 provenance) 판정.
@@ -105,7 +105,7 @@ SEED_CELLS = (
     FactorCell("gold", "oil",    +0.1209, se=0.0274, t=+4.415,  n=5052, tier=TIER_VALIDATED, note="batch mv, inflation hedge"),
     FactorCell("gold", "credit", -0.0144, se=0.0184, t=-0.780,  n=5052, tier=TIER_REJECT,    note="batch mv 비유의 p=0.44"),
     FactorCell("gold", "vol",    -0.0106, se=0.0239, t=-0.442,  n=5052, tier=TIER_REJECT,    note="batch mv 비유의 p=0.66 + 독립 audit p_NW=0.077 → β:=0 lock(decoupling/equity-vol 오염 방어)"),
-    FactorCell("gold", "fx",     +0.10, tier=TIER_DENOMINATION, note="IC8 denomination 부분(통화성격 자연헤지·IC10 us_stock×gold decoupling 보호). measured β 대역 정규화: USD full +0.30 의 부분(통화성격). dollar β(-0.32)=가격채널 별 layer"),
+    FactorCell("gold", "fx",     +1.0,  tier=TIER_DENOMINATION, note="IC8 denomination full(+1.0, GLD=USD자산 KRW 환노출 — 외부자문 2모델+코드검증 수렴). IC10 risk-off decoupling은 dollar/vol 열 보존, fx는 별 KRW 환산 레이어(동조 추가=환노출 현실). dollar β(-0.32)=가격채널 별 layer"),
 
     # --- eq_us_cyclical (XLB/XLI/SOXX, batch mv) ---
     FactorCell("eq_us_cyclical", "rate",   +0.1052, se=0.0162, t=+6.488,  n=5052, tier=TIER_VALIDATED,  note="batch mv, rate 통제후 양(growth, 이전 −0.07 등급 정정)"),
@@ -113,7 +113,7 @@ SEED_CELLS = (
     FactorCell("eq_us_cyclical", "oil",    +0.0363, se=0.0225, t=+1.613,  n=5052, tier=TIER_STRUCTURAL, note="batch mv 약 p=0.11"),
     FactorCell("eq_us_cyclical", "credit", -0.0037, se=0.0140, t=-0.268,  n=5052, tier=TIER_REJECT,     note="batch mv 비유의"),
     FactorCell("eq_us_cyclical", "vol",    -0.6871, se=0.0247, t=-27.859, n=5052, tier=TIER_VALIDATED,  note="batch mv, risk-off 최강"),
-    FactorCell("eq_us_cyclical", "fx",     +0.30, tier=TIER_DENOMINATION, note="IC8 denomination full(USD-표시 자산, KRW 투자자 USDKRW 환노출); measured β 대역 정규화(절대 환베타 1.0→corr_prior 등가 +0.30)"),
+    FactorCell("eq_us_cyclical", "fx",     +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(USD-표시 자산, KRW 투자자 USDKRW 환노출); 절대 denomination 1.0=KRW 환노출 full, _static_factor_lambda Λfx 축소가 corr 지배 방지(B 수렴)"),
 
     # --- eq_intl (EFA/EEM, batch mv) ---
     FactorCell("eq_intl", "rate",   +0.0942, se=0.0152, t=+6.206,  n=5052, tier=TIER_VALIDATED,  note="batch mv, rate 통제후 양(이전 reject 정정)"),
@@ -121,7 +121,7 @@ SEED_CELLS = (
     FactorCell("eq_intl", "oil",    +0.0434, se=0.0176, t=+2.463,  n=5052, tier=TIER_STRUCTURAL, note="batch mv 약 p=0.014"),
     FactorCell("eq_intl", "credit", -0.0420, se=0.0165, t=-2.542,  n=5052, tier=TIER_STRUCTURAL, note="batch mv p=0.011"),
     FactorCell("eq_intl", "vol",    -0.6414, se=0.0299, t=-21.441, n=5052, tier=TIER_VALIDATED,  note="batch mv"),
-    FactorCell("eq_intl", "fx",     +0.30, tier=TIER_DENOMINATION, note="IC8 denomination full(EFA/EEM USD-표시 ETF, KRW 환산); measured β 대역 정규화(절대 환베타 1.0→corr_prior 등가 +0.30)"),
+    FactorCell("eq_intl", "fx",     +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(EFA/EEM USD-표시 ETF, KRW 환산); 절대 denomination 1.0=KRW 환노출 full, _static_factor_lambda Λfx 축소가 corr 지배 방지(B 수렴)"),
 
     # --- reit (VNQ, batch mv) — ★rate multivariate 비유의(univariate −0.45는 vol/dollar 공선 흡수) ---
     FactorCell("reit", "rate",   -0.0035, se=0.0213, t=-0.166,  n=5052, tier=TIER_REJECT,    note="batch mv 비유의(univariate +0.13 → vol(VIX) 단독 흡수, omitted-var 구조 corr(rate,vol)=−0.24·dollar 무관). yaml rate-duration=univariate 단일사이클 자산특성(별 unit, Phase W4 caveat)"),
@@ -129,7 +129,7 @@ SEED_CELLS = (
     FactorCell("reit", "oil",    -0.0044, se=0.0242, t=-0.183,  n=5052, tier=TIER_REJECT,    note="batch mv 비유의"),
     FactorCell("reit", "credit", -0.0247, se=0.0206, t=-1.199,  n=5052, tier=TIER_REJECT,    note="batch mv 비유의"),
     FactorCell("reit", "vol",    -0.5647, se=0.0352, t=-16.025, n=5052, tier=TIER_VALIDATED, note="batch mv, risk-off 주채널"),
-    FactorCell("reit", "fx",     +0.30, tier=TIER_DENOMINATION, note="IC8 denomination full(US REIT VNQ USD-표시); measured β 대역 정규화(절대 환베타 1.0→corr_prior 등가 +0.30)"),
+    FactorCell("reit", "fx",     +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(US REIT VNQ USD-표시); 절대 denomination 1.0=KRW 환노출 full, _static_factor_lambda Λfx 축소가 corr 지배 방지(B 수렴)"),
 
     # --- commodity (DBC, batch mv, n=5028) ---
     FactorCell("commodity", "rate",   +0.0665, se=0.0190, t=+3.490, n=5028, tier=TIER_VALIDATED,  note="batch mv p=0.0005"),
@@ -137,7 +137,7 @@ SEED_CELLS = (
     FactorCell("commodity", "oil",    +0.6128, se=0.0988, t=+6.201, n=5028, tier=TIER_VALIDATED,  note="batch mv, oil 본체"),
     FactorCell("commodity", "credit", -0.0335, se=0.0168, t=-1.991, n=5028, tier=TIER_STRUCTURAL, note="batch mv p=0.046"),
     FactorCell("commodity", "vol",    -0.1408, se=0.0160, t=-8.823, n=5028, tier=TIER_VALIDATED,  note="batch mv"),
-    FactorCell("commodity", "fx",     +0.30, tier=TIER_DENOMINATION, note="IC8 denomination full(DBC USD-표시); measured β 대역 정규화(절대 환베타 1.0→corr_prior 등가 +0.30)"),
+    FactorCell("commodity", "fx",     +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(DBC USD-표시); 절대 denomination 1.0=KRW 환노출 full, _static_factor_lambda Λfx 축소가 corr 지배 방지(B 수렴)"),
 
     # --- eq_us_defensive (batch 미포함) — HOLD: equity_risk pool 노출(vol≈−0.63 = 독립 audit corr −0.66 정합) ---
     FactorCell("eq_us_defensive", "rate",   None, tier=TIER_HOLD, note="batch 미측정 → equity_risk pool"),
@@ -145,7 +145,7 @@ SEED_CELLS = (
     FactorCell("eq_us_defensive", "oil",    None, tier=TIER_HOLD, note="batch 미측정"),
     FactorCell("eq_us_defensive", "credit", None, tier=TIER_HOLD, note="batch 미측정"),
     FactorCell("eq_us_defensive", "vol",    None, tier=TIER_HOLD, note="batch 미측정 → equity_risk vol pool(≈−0.63, 독립 audit corr −0.66 정합)"),
-    FactorCell("eq_us_defensive", "fx",     +0.30, tier=TIER_DENOMINATION, note="IC8 denomination full(USD-표시 방어주); 구조값=측정대상 아님 → HOLD 무관 직접 부여(measured β 대역 +0.30)"),
+    FactorCell("eq_us_defensive", "fx",     +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(USD-표시 방어주); 구조값=측정대상 아님 → HOLD 무관 직접 부여(measured β 대역 +0.30)"),
 )
 
 
@@ -337,16 +337,17 @@ if __name__ == "__main__":
     #    fx_hedge="full" → 전 sleeve fx_β:=0(완전 환헤지). measured 셀과 다른 layer(회귀추정 대상 아님).
     assert "fx" in sb.factors and len(sb.factors) == 6, f"fx append 실패: {sb.factors}"
     xi = fi["fx"]
-    assert abs(sb.betas["eq_us_cyclical"][xi] - 0.30) < 1e-9, f"USD자산 fx_β=+0.30 원값 보존 실패: {sb.betas['eq_us_cyclical'][xi]}"
-    assert abs(sb.betas["gold"][xi] - 0.10) < 1e-9, f"gold fx_β 부분(+0.10) 실패: {sb.betas['gold'][xi]}"
+    assert abs(sb.betas["eq_us_cyclical"][xi] - 1.0) < 1e-9, f"USD자산 fx_β=+1.0 절대 denomination 실패: {sb.betas['eq_us_cyclical'][xi]}"
+    assert abs(sb.betas["gold"][xi] - 1.0) < 1e-9, f"gold fx_β=+1.0(GLD=USD자산 full denomination) 실패: {sb.betas['gold'][xi]}"
     assert sb.weights[("eq_us_cyclical", "fx")] == 1.0, "denomination w=1(수축 우회) 이어야"
     sb_hedge = build_seed_betas(fx_hedge="full")
     assert all(sb_hedge.betas[s][xi] == 0.0 for s in sb_hedge.sleeves), "fx_hedge=full 시 전 fx_β=0 이어야"
-    print(f"8) fx denomination OK: USD자산 fx_β=+0.30(measured β 대역 정규화, 원값 보존) / gold=+0.10(부분, 통화성격) / "
-          f"hedge=full→전 sleeve 0(환헤지)")
+    print(f"8) fx denomination OK: 전 USD자산 fx_β=+1.0(절대 denomination, GLD 포함 KRW 환노출 full) / "
+          f"hedge=full→전 sleeve 0(환헤지). Λfx 축소(_static_factor_lambda eye fallback 0.09)가 corr 지배 방지")
 
-    # 9) ★gold decoupling 보호 측정(IC10 성과 방어): fx 추가가 gold×eq_us_cyclical corr 을 과훼손 안 하는가.
-    #    fx_hedge none vs full 비교 — gold fx_β=0.3(부분)이라 기여 제한적이어야(Δcorr<0.25 게이트).
+    # 9) ★gold decoupling 측정(fx 영향): fx_hedge none vs full 비교. gold full(+1.0, GLD=USD자산)이나
+    #    Λfx 작아(self-test 0.02 / 런타임 eye fallback 0.09) fx_β²·Λfx 곱 작음 → Δcorr<0.25 게이트.
+    #    IC10 risk-off decoupling 은 dollar/vol 열에 보존, fx 는 별 KRW 환산 레이어(동조 추가는 환노출 현실).
     Lam6 = np.diag([0.04, 0.05, 0.03, 0.05, 0.06, 0.02])
     sb_n = build_seed_betas(factor_cov=Lam6, fx_hedge="none")
     sb_f = build_seed_betas(factor_cov=Lam6, fx_hedge="full")
