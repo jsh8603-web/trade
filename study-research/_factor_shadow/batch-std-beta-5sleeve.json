@@ -1,0 +1,619 @@
+{
+  "_frontmatter": {
+    "title": "J축 factor β shadow validation — batch 5 sleeve (gold 재현 + 4 sleeve)",
+    "tags": [
+      "study/factor-beta",
+      "shadow-validation",
+      "J축",
+      "batch-stage"
+    ],
+    "date": "2026-06-01",
+    "stage": "batch (점추정 박제 아님, shadow 검증 대상)",
+    "scope": "core/study 미수정 · SEED Edit 제안만"
+  },
+  "meta": {
+    "factors": [
+      "rate",
+      "dollar",
+      "oil",
+      "credit",
+      "vol"
+    ],
+    "factor_source": "eq_us_defensive/raw/fred (DGS10/DTWEXBGS/DCOILWTICO/BAA10Y/AAA10Y/VIXCLS)",
+    "price_source": "yfinance period=max auto_adjust=True (free)",
+    "factor_coverage": [
+      "2006-01-03",
+      "2026-05-22"
+    ],
+    "adf_factor": {
+      "rate": 0.0,
+      "dollar": 0.0,
+      "oil": 0.0,
+      "credit": 0.0,
+      "vol": 0.0
+    },
+    "n_units": 6,
+    "n_comparisons": 30,
+    "bonferroni_alpha": 0.001667,
+    "method": "z-score std beta, HAC(NW maxlag=5), univariate+multivariate(5f), VIF, ADF pre-test"
+  },
+  "sleeves": {
+    "gold": {
+      "GOLD": {
+        "coverage_start": "2006-01-03",
+        "coverage_end": "2026-05-22",
+        "n": 5052,
+        "adf_ret": 0.0,
+        "univariate": {
+          "rate": {
+            "beta": -0.1886,
+            "se": 0.0196,
+            "t": -9.611,
+            "p": 0.0,
+            "n": 5052
+          },
+          "dollar": {
+            "beta": -0.346,
+            "se": 0.0199,
+            "t": -17.374,
+            "p": 0.0,
+            "n": 5052
+          },
+          "oil": {
+            "beta": 0.1535,
+            "se": 0.0312,
+            "t": 4.919,
+            "p": 0.0,
+            "n": 5052
+          },
+          "credit": {
+            "beta": -0.0128,
+            "se": 0.0217,
+            "t": -0.591,
+            "p": 0.55445,
+            "n": 5052
+          },
+          "vol": {
+            "beta": -0.0533,
+            "se": 0.0252,
+            "t": -2.119,
+            "p": 0.0341,
+            "n": 5052
+          }
+        },
+        "multivariate": {
+          "rate": {
+            "beta": -0.2155,
+            "se": 0.0179,
+            "t": -12.028,
+            "p": 0.0
+          },
+          "dollar": {
+            "beta": -0.3166,
+            "se": 0.019,
+            "t": -16.675,
+            "p": 0.0
+          },
+          "oil": {
+            "beta": 0.1209,
+            "se": 0.0274,
+            "t": 4.415,
+            "p": 1e-05
+          },
+          "credit": {
+            "beta": -0.0144,
+            "se": 0.0184,
+            "t": -0.78,
+            "p": 0.43566
+          },
+          "vol": {
+            "beta": -0.0106,
+            "se": 0.0239,
+            "t": -0.442,
+            "p": 0.65825
+          },
+          "_n": 5052,
+          "_r2": 0.1695
+        },
+        "vif": {
+          "rate": 1.096,
+          "dollar": 1.1,
+          "oil": 1.111,
+          "credit": 1.007,
+          "vol": 1.136
+        },
+        "tier_suggest": {
+          "rate": "validated",
+          "dollar": "validated",
+          "oil": "validated",
+          "credit": "reject",
+          "vol": "reject"
+        },
+        "tickers": [
+          "GLD"
+        ]
+      }
+    },
+    "eq_us_cyclical": {
+      "CYCLICAL_PRO": {
+        "coverage_start": "2006-01-03",
+        "coverage_end": "2026-05-22",
+        "n": 5052,
+        "adf_ret": 0.0,
+        "univariate": {
+          "rate": {
+            "beta": 0.2789,
+            "se": 0.0263,
+            "t": 10.605,
+            "p": 0.0,
+            "n": 5052
+          },
+          "dollar": {
+            "beta": -0.3316,
+            "se": 0.0205,
+            "t": -16.213,
+            "p": 0.0,
+            "n": 5052
+          },
+          "oil": {
+            "beta": 0.2334,
+            "se": 0.043,
+            "t": 5.426,
+            "p": 0.0,
+            "n": 5052
+          },
+          "credit": {
+            "beta": -0.0326,
+            "se": 0.0343,
+            "t": -0.95,
+            "p": 0.34205,
+            "n": 5052
+          },
+          "vol": {
+            "beta": -0.7578,
+            "se": 0.0244,
+            "t": -31.062,
+            "p": 0.0,
+            "n": 5052
+          }
+        },
+        "multivariate": {
+          "rate": {
+            "beta": 0.1052,
+            "se": 0.0162,
+            "t": 6.488,
+            "p": 0.0
+          },
+          "dollar": {
+            "beta": -0.171,
+            "se": 0.0172,
+            "t": -9.959,
+            "p": 0.0
+          },
+          "oil": {
+            "beta": 0.0363,
+            "se": 0.0225,
+            "t": 1.613,
+            "p": 0.10673
+          },
+          "credit": {
+            "beta": -0.0037,
+            "se": 0.014,
+            "t": -0.268,
+            "p": 0.78908
+          },
+          "vol": {
+            "beta": -0.6871,
+            "se": 0.0247,
+            "t": -27.859,
+            "p": 0.0
+          },
+          "_n": 5052,
+          "_r2": 0.6153
+        },
+        "vif": {
+          "rate": 1.096,
+          "dollar": 1.1,
+          "oil": 1.111,
+          "credit": 1.007,
+          "vol": 1.136
+        },
+        "tier_suggest": {
+          "rate": "validated",
+          "dollar": "validated",
+          "oil": "structural",
+          "credit": "reject",
+          "vol": "validated"
+        },
+        "tickers": [
+          "XLB",
+          "XLI",
+          "SOXX"
+        ]
+      },
+      "XLE_ENERGY": {
+        "coverage_start": "2006-01-03",
+        "coverage_end": "2026-05-22",
+        "n": 5052,
+        "adf_ret": 0.0,
+        "univariate": {
+          "rate": {
+            "beta": 0.3019,
+            "se": 0.0248,
+            "t": 12.194,
+            "p": 0.0,
+            "n": 5052
+          },
+          "dollar": {
+            "beta": -0.3037,
+            "se": 0.0213,
+            "t": -14.235,
+            "p": 0.0,
+            "n": 5052
+          },
+          "oil": {
+            "beta": 0.4864,
+            "se": 0.0837,
+            "t": 5.814,
+            "p": 0.0,
+            "n": 5052
+          },
+          "credit": {
+            "beta": -0.0506,
+            "se": 0.0347,
+            "t": -1.46,
+            "p": 0.14418,
+            "n": 5052
+          },
+          "vol": {
+            "beta": -0.5995,
+            "se": 0.027,
+            "t": -22.202,
+            "p": 0.0,
+            "n": 5052
+          }
+        },
+        "multivariate": {
+          "rate": {
+            "beta": 0.1213,
+            "se": 0.0183,
+            "t": 6.632,
+            "p": 0.0
+          },
+          "dollar": {
+            "beta": -0.1204,
+            "se": 0.024,
+            "t": -5.013,
+            "p": 0.0
+          },
+          "oil": {
+            "beta": 0.342,
+            "se": 0.0677,
+            "t": 5.054,
+            "p": 0.0
+          },
+          "credit": {
+            "beta": -0.0371,
+            "se": 0.0211,
+            "t": -1.756,
+            "p": 0.07908
+          },
+          "vol": {
+            "beta": -0.4733,
+            "se": 0.0234,
+            "t": -20.237,
+            "p": 0.0
+          },
+          "_n": 5052,
+          "_r2": 0.5252
+        },
+        "vif": {
+          "rate": 1.096,
+          "dollar": 1.1,
+          "oil": 1.111,
+          "credit": 1.007,
+          "vol": 1.136
+        },
+        "tier_suggest": {
+          "rate": "validated",
+          "dollar": "validated",
+          "oil": "validated",
+          "credit": "structural",
+          "vol": "validated"
+        },
+        "tickers": [
+          "XLE"
+        ]
+      }
+    },
+    "eq_intl": {
+      "EQ_INTL": {
+        "coverage_start": "2006-01-03",
+        "coverage_end": "2026-05-22",
+        "n": 5052,
+        "adf_ret": 0.0,
+        "univariate": {
+          "rate": {
+            "beta": 0.2607,
+            "se": 0.0292,
+            "t": 8.929,
+            "p": 0.0,
+            "n": 5052
+          },
+          "dollar": {
+            "beta": -0.4488,
+            "se": 0.0208,
+            "t": -21.565,
+            "p": 0.0,
+            "n": 5052
+          },
+          "oil": {
+            "beta": 0.2559,
+            "se": 0.0466,
+            "t": 5.486,
+            "p": 0.0,
+            "n": 5052
+          },
+          "credit": {
+            "beta": -0.0742,
+            "se": 0.0387,
+            "t": -1.914,
+            "p": 0.05557,
+            "n": 5052
+          },
+          "vol": {
+            "beta": -0.7393,
+            "se": 0.0314,
+            "t": -23.534,
+            "p": 0.0,
+            "n": 5052
+          }
+        },
+        "multivariate": {
+          "rate": {
+            "beta": 0.0942,
+            "se": 0.0152,
+            "t": 6.206,
+            "p": 0.0
+          },
+          "dollar": {
+            "beta": -0.2951,
+            "se": 0.0178,
+            "t": -16.558,
+            "p": 0.0
+          },
+          "oil": {
+            "beta": 0.0434,
+            "se": 0.0176,
+            "t": 2.463,
+            "p": 0.01376
+          },
+          "credit": {
+            "beta": -0.042,
+            "se": 0.0165,
+            "t": -2.542,
+            "p": 0.01103
+          },
+          "vol": {
+            "beta": -0.6414,
+            "se": 0.0299,
+            "t": -21.441,
+            "p": 0.0
+          },
+          "_n": 5052,
+          "_r2": 0.6454
+        },
+        "vif": {
+          "rate": 1.096,
+          "dollar": 1.1,
+          "oil": 1.111,
+          "credit": 1.007,
+          "vol": 1.136
+        },
+        "tier_suggest": {
+          "rate": "validated",
+          "dollar": "validated",
+          "oil": "structural",
+          "credit": "structural",
+          "vol": "validated"
+        },
+        "tickers": [
+          "EFA",
+          "EEM"
+        ]
+      }
+    },
+    "reit": {
+      "REIT": {
+        "coverage_start": "2006-01-03",
+        "coverage_end": "2026-05-22",
+        "n": 5052,
+        "adf_ret": 0.0,
+        "univariate": {
+          "rate": {
+            "beta": 0.1339,
+            "se": 0.0312,
+            "t": 4.291,
+            "p": 2e-05,
+            "n": 5052
+          },
+          "dollar": {
+            "beta": -0.2146,
+            "se": 0.0284,
+            "t": -7.55,
+            "p": 0.0,
+            "n": 5052
+          },
+          "oil": {
+            "beta": 0.1287,
+            "se": 0.0374,
+            "t": 3.445,
+            "p": 0.00057,
+            "n": 5052
+          },
+          "credit": {
+            "beta": -0.0424,
+            "se": 0.0317,
+            "t": -1.337,
+            "p": 0.18116,
+            "n": 5052
+          },
+          "vol": {
+            "beta": -0.5834,
+            "se": 0.0346,
+            "t": -16.839,
+            "p": 0.0,
+            "n": 5052
+          }
+        },
+        "multivariate": {
+          "rate": {
+            "beta": -0.0035,
+            "se": 0.0213,
+            "t": -0.166,
+            "p": 0.86779
+          },
+          "dollar": {
+            "beta": -0.0896,
+            "se": 0.0258,
+            "t": -3.477,
+            "p": 0.00051
+          },
+          "oil": {
+            "beta": -0.0044,
+            "se": 0.0242,
+            "t": -0.183,
+            "p": 0.85506
+          },
+          "credit": {
+            "beta": -0.0247,
+            "se": 0.0206,
+            "t": -1.199,
+            "p": 0.23048
+          },
+          "vol": {
+            "beta": -0.5647,
+            "se": 0.0352,
+            "t": -16.025,
+            "p": 0.0
+          },
+          "_n": 5052,
+          "_r2": 0.3487
+        },
+        "vif": {
+          "rate": 1.096,
+          "dollar": 1.1,
+          "oil": 1.111,
+          "credit": 1.007,
+          "vol": 1.136
+        },
+        "tier_suggest": {
+          "rate": "reject",
+          "dollar": "validated",
+          "oil": "reject",
+          "credit": "reject",
+          "vol": "validated"
+        },
+        "tickers": [
+          "VNQ"
+        ]
+      }
+    },
+    "commodity": {
+      "COMMODITY": {
+        "coverage_start": "2006-02-07",
+        "coverage_end": "2026-05-22",
+        "n": 5028,
+        "adf_ret": 0.0,
+        "univariate": {
+          "rate": {
+            "beta": 0.2177,
+            "se": 0.0219,
+            "t": 9.949,
+            "p": 0.0,
+            "n": 5028
+          },
+          "dollar": {
+            "beta": -0.3756,
+            "se": 0.0197,
+            "t": -19.049,
+            "p": 0.0,
+            "n": 5028
+          },
+          "oil": {
+            "beta": 0.6989,
+            "se": 0.1038,
+            "t": 6.735,
+            "p": 0.0,
+            "n": 5028
+          },
+          "credit": {
+            "beta": -0.0318,
+            "se": 0.0269,
+            "t": -1.18,
+            "p": 0.2381,
+            "n": 5028
+          },
+          "vol": {
+            "beta": -0.3275,
+            "se": 0.0218,
+            "t": -15.033,
+            "p": 0.0,
+            "n": 5028
+          }
+        },
+        "multivariate": {
+          "rate": {
+            "beta": 0.0665,
+            "se": 0.019,
+            "t": 3.49,
+            "p": 0.00048
+          },
+          "dollar": {
+            "beta": -0.2054,
+            "se": 0.0228,
+            "t": -9.027,
+            "p": 0.0
+          },
+          "oil": {
+            "beta": 0.6128,
+            "se": 0.0988,
+            "t": 6.201,
+            "p": 0.0
+          },
+          "credit": {
+            "beta": -0.0335,
+            "se": 0.0168,
+            "t": -1.991,
+            "p": 0.04644
+          },
+          "vol": {
+            "beta": -0.1408,
+            "se": 0.016,
+            "t": -8.823,
+            "p": 0.0
+          },
+          "_n": 5028,
+          "_r2": 0.5671
+        },
+        "vif": {
+          "rate": 1.096,
+          "dollar": 1.1,
+          "oil": 1.112,
+          "credit": 1.007,
+          "vol": 1.137
+        },
+        "tier_suggest": {
+          "rate": "validated",
+          "dollar": "validated",
+          "oil": "validated",
+          "credit": "structural",
+          "vol": "validated"
+        },
+        "tickers": [
+          "DBC"
+        ]
+      }
+    }
+  }
+}
