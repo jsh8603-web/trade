@@ -206,6 +206,7 @@ dwell-calibration(C/⑧)·equivalence margin·regime-conditional 판정 모두 d
   - **hedge 토글**: G6 `fx_hedge:full`→fx_β:=0 / `none`→fx_β live. empirical은 토글 무관(항상 FX-stripped). gold=KRW 투자자에 부분 USD hedge라 hedge 여부가 gold diversification role 좌우(memory gold decoupling 직결).
 - **3분류**: FX factor 전체=**신규**(현재 부재 확정). glasso local-return 전제=**신규 제약**. 단 returns_history 공급 자체가 선결(배분 경로 미wired).
 - **hedge**: 슬리브 fx_β를 짧은 USDKRW×슬리브 overlap서 자유추정 차단(USDKRW regime shift 지배). denomination 구조로 prior 고정(full-USD≈1, gold=USD비율, hedged=0), 데이터는 n 충분할 때만 prior에서 이동.
+- **★구현 확정(2026-06-02, R1~R6 이후 후속)**: fx_β=절대 denomination **1.0**(gold 포함 full — 1차 자문 A→B, gold "USD비율"보다 full 채택). **Λ에 들어갈 USDKRW vol = Λfx 0.15**(2차 자문 2모델 B 만장일치 + falsification F1/F2/F4 실측 확정). SEED β가 표준화 회귀계수라 표준화 정합값=(σ_fx/σ_asset)²; full-sample 0.33은 무조건부 realized KRW gold×equity corr(+0.17~0.20) over-load → 직교할인(R²=0.268→0.242)+F4 target 재현으로 0.15. 실 FRED Λ 경로는 first-release vintage 부재로 dormant → eye fallback 의 Λfx 상수가 fx 기여 결정. 상세=progress-wire-impl.md IC8.
 
 ### §11 종합 — 신규로 실제 짤 것 (나머지는 기존 재사용)
 corr_prior 주입 글루(IC1 W2)·lam_eff dual-uncertainty(IC1)·Λ 라우팅 글루(IC2)·seed 테이블+tri-state+group fallback(IC3)·graduation 루프(IC4)·RNG격리+FP order+golden test(IC5)·as_of 파라미터(IC7)·FX 6th factor+local-return glasso(IC8). ★나머지(eb_shrink·RegimeGlasso·James-Stein·5-AND·e-process·two-layer·facade·회귀테스트)=전부 **이미있음, 재사용**.

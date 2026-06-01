@@ -192,13 +192,13 @@ def test_ic_corr_prior_golden_deterministic(monkeypatch):
     # ★IC10(a) batch multivariate measured β 전면 교체(2026-06-01) 후 값 — 이전 0.4372/0.5260 은
     # M3 등급값(dollar −0.55 등) 기반. measured(dollar −0.171 등 약화 + vol factor 추가)로 갱신.
     # ★IC8 fx denomination factor(2026-06-02, 외부자문 2모델+코드검증 수렴 B): USD-표시 자산 공통 환노출
-    #   (fx_β=절대 denomination 1.0, GLD 포함 full) + _static_factor_lambda eye fallback Λfx=0.09 축소
-    #   → us_stock×commodity 0.2026→0.2642(USD 곱 1.0²·0.09 = A안 0.30²·1.0 등가, magnitude FREEZE 라
-    #   곱만 의미), us_stock×gold 0.0832→0.1994(gold full 환노출=KRW 환산 현실, GLD=USD자산).
-    #   ★fx_hedge="full" → us_stock×gold 0.0832 정확 복원(IC10). IC10 risk-off decoupling 은 dollar/vol
-    #   열에 보존, fx 는 별 KRW 환산 레이어(KRW 투자자 동조 추가는 환노출 현실 — 코드검증 0.0637→0.1177).
-    assert abs(cp1[i["us_stock"], i["commodity"]] - 0.2642) < 1e-3
-    assert abs(cp1[i["us_stock"], i["gold"]] - 0.1994) < 1e-3
+    #   (fx_β=절대 denomination 1.0, GLD 포함 full) + _static_factor_lambda eye fallback Λfx 축소.
+    #   ★Λfx 0.09→0.15 정밀화(2026-06-02, 자문 band 0.15~0.20 하단 + falsification 실측 F1/F2/F4):
+    #   naive (σ_fx/σ_asset)²=0.33 은 realized KRW corr(+0.17~0.20) over-load → 직교 할인(R²=0.268)+F4
+    #   target 재현으로 0.15 확정. → us_stock×commodity 0.2642→0.2951, us_stock×gold 0.1994→0.249.
+    #   ★fx_hedge="full" → us_stock×gold 0.0832 / us_stock×commodity 0.2026 정확 복원(IC10 불변).
+    assert abs(cp1[i["us_stock"], i["commodity"]] - 0.2951) < 1e-3
+    assert abs(cp1[i["us_stock"], i["gold"]] - 0.249) < 1e-3
     # 미매핑 sleeve(kr_stock/bond/cash/coin) = eye 독립 (자기 대각 외 0)
     for s in ("kr_stock", "bond", "cash", "coin"):
         off = np.delete(cp1[i[s]], i[s])

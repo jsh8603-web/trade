@@ -202,17 +202,26 @@ def _static_factor_lambda(nf, factors, as_of=None):
         Lam = np.asarray(Lam, float)
         if Lam.shape == (nf, nf):
             return Lam
-    # ★IC8 B(자문 2모델+코드검증+독립 audit 수렴): eye fallback(FRED 미가용/shape 불일치) 등분산
-    #   가정에서 fx(환율) 대각만 축소. denomination β=1.0(절대 환노출, GLD 등 USD자산 full) 유지 +
-    #   Λfx=0.09 ≈ (USDKRW dlog std / 자산 dlog std)² ≈ 0.3²(환율 일변동 ~0.5% vs 주식 ~1.5% calibration).
-    #   ★독립 audit 발견(ab639df, 2026-06-02): 이 값에서 fx 가 USD sleeve 쌍 공분산의 ~70%(eye-fallback
-    #   gold×cyclical 70.5%)를 차지하는 **지배 공통인자** — "dollar/vol 열에 얹히는 별 레이어"가 아니라
-    #   모든 USD 자산에 +0.09 균일 floor 를 까는 구조. KRW 투자자 USD 묶음 공통 환노출의 현실 반영이나,
-    #   지배도가 Λfx 단일 상수에 민감 → fx_hedge="full" 로 IC10 상태 정확 복원 가능(토글). 실 FRED Λ 경로면
-    #   환율 실공분산 자동(fallback 만 근사·calibration). corr_prior=magnitude FREEZE 라 fx_β²·Λfx 곱만 의미.
+    # ★IC8 B(자문 2모델+코드검증+독립 audit + falsification 실측 수렴): eye fallback(FRED 미가용/shape
+    #   불일치) 등분산 가정에서 fx(환율) 대각만 축소. denomination β=1.0(절대 환노출, GLD 등 USD자산 full)
+    #   유지. SEED β 는 표준화 회귀계수(z-score)라 표준화 공간 정합값 = β̃_fx² = (σ_fx/σ_asset)². fx_β=1.0
+    #   비표준화를 유지하며 그 값을 Λfx 로 흡수.
+    #   ★Λfx=0.15 — 자문 2모델(gemini/claude-web) 만장일치 권고 band 0.15~0.20 하단 + 자체 falsification
+    #     실측(2026-06-02, F1/F2/F4)으로 데이터 확정. 이전 0.09(="0.3² 어림") 는 근거 없는 추정이었음.
+    #   실측 근거 (DEXKOUS/VIXCLS/DTWEXBGS FRED + yfinance, 2006~2026, n≈5037):
+    #     - full-sample σ_fx/σ_asset = 0.575 → naive Λfx=0.33 (over-load: realized 초과 → 기각).
+    #     - F1 직교성: corr(USDKRW,dollar TWI)=+0.516 강(fx⊥dollar 가정 거짓=이중계상 위험),
+    #       R²(USDKRW~VIX+TWI)=0.268 → 직교 할인 Λfx=0.33·(1−R²)=0.242 (상한).
+    #     - F4 무조건부 target(prior 목적=realized corr 재현): KRW-표시 realized gold×equity
+    #       corr=+0.17~0.20. implied: Λfx=0.33→+0.288(과대) / 0.15→+0.20(일치) / 0.09→+0.166(약간 미달).
+    #     - F2 regime: calm σ비 0.653(Λfx=0.426)로 오히려 높음(자문 de-bias 가설은 기각, 보수값 채택).
+    #   ★0.15 에서 fx 지배 ~80%(0.33의 90% 대비 완화) → rate/vol/dollar 차별화 신호 + gold decoupling 일부
+    #     보존(rank-1 퇴화 회피). 실 FRED Λ 경로는 rate/vol/fx first-release vintage 부재로 fetch 실패 →
+    #     항상 본 eye fallback 사용(Λfx 상수가 fx 기여 정하는 유일 손잡이). fx_hedge="full" 로 IC10 정확
+    #     복원 가능(토글). corr_prior=magnitude FREEZE 라 fx_β²·Λfx 곱만 의미.
     L = np.eye(nf)
     if "fx" in factors:
-        L[list(factors).index("fx"), list(factors).index("fx")] = 0.09
+        L[list(factors).index("fx"), list(factors).index("fx")] = 0.15
     return L
 
 

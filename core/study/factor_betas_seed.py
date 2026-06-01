@@ -35,10 +35,11 @@ import numpy as np
 #   measured 가 아니므로 James-Stein 수축 우회(TIER_DENOMINATION) — build_seed_betas 가 β 원값 보존.
 #   ★fx_β 스케일(외부자문 2모델+코드검증 수렴 B, IC8): fx_β=**절대 denomination 1.0**(USD자산 환율
 #   100% 노출, 추정 β 아닌 결정론 값 — GLD 포함 full). corr_prior=magnitude FREEZE 라 fx 기여=fx_β²·Λfx
-#   곱만 의미 → 절대 1.0 유지하되 _static_factor_lambda 가 fx 대각만 축소(eye fallback 0.09, 실 FRED Λ면
-#   환율 실변동성 자동)해 fx 가 corr 지배하는 것 방지. ★코드검증: USD 곱 1.0²·0.09 = 이전 A안 0.30²·1.0
-#   등가(golden 불변). gold full 은 KRW 환산 현실(us×gold 동조 0.0637→0.1177, IC10 USD기준 decoupling 은
-#   dollar/vol 열 보존=별 레이어). fx_hedge="full"=전 fx_β:=0(IC10 정확 복원 토글, off byte-identical).
+#   곱만 의미 → 절대 1.0 유지하되 _static_factor_lambda 가 fx 대각만 축소(eye fallback Λfx=0.15, 실 FRED
+#   Λ면 환율 실변동성 자동)해 fx 가 corr 지배하는 것 방지. ★Λfx=0.15 근거(2026-06-02 자문+falsification
+#   실측): naive (σ_fx/σ_asset)²=0.33 은 무조건부 realized KRW gold×equity corr(+0.17~0.20) 초과=over-load
+#   → 직교 할인(R²=0.268→0.242 상한) + F4 target 재현(0.15→implied +0.20) 으로 0.15 확정(자문 band 하단).
+#   gold full 은 KRW 환산 현실. fx_hedge="full"=전 fx_β:=0(IC10 정확 복원 토글, off byte-identical).
 FACTORS = ("rate", "dollar", "oil", "credit", "vol", "fx")
 
 # verdict tier — opus 독립 검증관(raw 재실행 provenance) 판정.
@@ -343,10 +344,10 @@ if __name__ == "__main__":
     sb_hedge = build_seed_betas(fx_hedge="full")
     assert all(sb_hedge.betas[s][xi] == 0.0 for s in sb_hedge.sleeves), "fx_hedge=full 시 전 fx_β=0 이어야"
     print(f"8) fx denomination OK: 전 USD자산 fx_β=+1.0(절대 denomination, GLD 포함 KRW 환노출 full) / "
-          f"hedge=full→전 sleeve 0(환헤지). Λfx 축소(_static_factor_lambda eye fallback 0.09)가 corr 지배 방지")
+          f"hedge=full→전 sleeve 0(환헤지). Λfx 축소(_static_factor_lambda eye fallback 0.15)가 corr 지배 방지")
 
     # 9) ★gold decoupling 측정(fx 영향): fx_hedge none vs full 비교. gold full(+1.0, GLD=USD자산)이나
-    #    Λfx 작아(self-test 0.02 / 런타임 eye fallback 0.09) fx_β²·Λfx 곱 작음 → Δcorr<0.25 게이트.
+    #    Λfx 작아(self-test 0.02 / 런타임 eye fallback 0.15) fx_β²·Λfx 곱 작음 → Δcorr<0.25 게이트.
     #    IC10 risk-off decoupling 은 dollar/vol 열에 보존, fx 는 별 KRW 환산 레이어(동조 추가는 환노출 현실).
     Lam6 = np.diag([0.04, 0.05, 0.03, 0.05, 0.06, 0.02])
     sb_n = build_seed_betas(factor_cov=Lam6, fx_hedge="none")
