@@ -1,0 +1,1504 @@
+{
+  "_meta": {
+    "title": "M4-A slope(T10Y2Y) regime-layer 증분 재판정",
+    "date": "2026-06-02",
+    "method": "월(ME)·분기(QE) slope level+Δ → forward 3/6/12M 자산수익 회귀, inflation_z+vol_z regime FWL 증분, NW-HAC, LOO leave-one-year, Bonferroni; + USREC probit lead 6/12m",
+    "note": "Y5 일별 joint drop(commod +0.015). 자문=business-cycle freq 로 이사 주장. horizon/조건 바꿔 증분 진짜 있나 판정. USREC=NBER 사후확정 학습라벨."
+  },
+  "monthly": {
+    "rule": "ME",
+    "results": {
+      "us_stock": {
+        "slope_level_fwd3": {
+          "coverage": [
+            "2003-12-31",
+            "2026-03-31"
+          ],
+          "n": 268,
+          "univariate": {
+            "beta": -0.0485,
+            "t": -0.635,
+            "p": 0.52538
+          },
+          "joint_with_regime": {
+            "beta": -0.0501,
+            "t": -0.625,
+            "p": 0.53176,
+            "infl_t": 0.51,
+            "vol_t": 0.05
+          },
+          "fwl_incremental": {
+            "beta": -0.0501,
+            "t": -0.639,
+            "p": 0.52304,
+            "orth_var_share": 0.9995
+          },
+          "loo": {
+            "loo_n_folds": 24,
+            "beta_min": -0.1194,
+            "beta_max": 0.0517,
+            "t_min": -1.253,
+            "t_max": 0.599,
+            "sign_stable": false,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd3": {
+          "coverage": [
+            "2003-12-31",
+            "2026-03-31"
+          ],
+          "n": 268,
+          "univariate": {
+            "beta": 0.0774,
+            "t": 1.009,
+            "p": 0.31312
+          },
+          "joint_with_regime": {
+            "beta": 0.0909,
+            "t": 1.25,
+            "p": 0.2112,
+            "infl_t": 0.56,
+            "vol_t": -0.03
+          },
+          "fwl_incremental": {
+            "beta": 0.0893,
+            "t": 1.261,
+            "p": 0.20721,
+            "orth_var_share": 0.9662
+          },
+          "loo": {
+            "loo_n_folds": 24,
+            "beta_min": 0.0438,
+            "beta_max": 0.1156,
+            "t_min": 0.703,
+            "t_max": 1.625,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_level_fwd6": {
+          "coverage": [
+            "2003-12-31",
+            "2025-12-31"
+          ],
+          "n": 265,
+          "univariate": {
+            "beta": -0.0706,
+            "t": -0.809,
+            "p": 0.41875
+          },
+          "joint_with_regime": {
+            "beta": -0.0703,
+            "t": -0.854,
+            "p": 0.39302,
+            "infl_t": -0.28,
+            "vol_t": -0.65
+          },
+          "fwl_incremental": {
+            "beta": -0.0703,
+            "t": -0.793,
+            "p": 0.42776,
+            "orth_var_share": 0.9992
+          },
+          "loo": {
+            "loo_n_folds": 23,
+            "beta_min": -0.1371,
+            "beta_max": 0.023,
+            "t_min": -1.512,
+            "t_max": 0.218,
+            "sign_stable": false,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd6": {
+          "coverage": [
+            "2003-12-31",
+            "2025-12-31"
+          ],
+          "n": 265,
+          "univariate": {
+            "beta": 0.0498,
+            "t": 0.649,
+            "p": 0.51645
+          },
+          "joint_with_regime": {
+            "beta": 0.0656,
+            "t": 1.034,
+            "p": 0.30123,
+            "infl_t": -0.26,
+            "vol_t": -0.68
+          },
+          "fwl_incremental": {
+            "beta": 0.0644,
+            "t": 1.032,
+            "p": 0.30229,
+            "orth_var_share": 0.9647
+          },
+          "loo": {
+            "loo_n_folds": 23,
+            "beta_min": 0.0328,
+            "beta_max": 0.112,
+            "t_min": 0.598,
+            "t_max": 1.504,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_level_fwd12": {
+          "coverage": [
+            "2003-12-31",
+            "2025-06-30"
+          ],
+          "n": 259,
+          "univariate": {
+            "beta": -0.0883,
+            "t": -0.847,
+            "p": 0.39702
+          },
+          "joint_with_regime": {
+            "beta": -0.0841,
+            "t": -0.923,
+            "p": 0.35623,
+            "infl_t": -1.81,
+            "vol_t": -1.1
+          },
+          "fwl_incremental": {
+            "beta": -0.0841,
+            "t": -0.809,
+            "p": 0.41847,
+            "orth_var_share": 0.9989
+          },
+          "loo": {
+            "loo_n_folds": 23,
+            "beta_min": -0.1543,
+            "beta_max": -0.0229,
+            "t_min": -1.714,
+            "t_max": -0.218,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd12": {
+          "coverage": [
+            "2003-12-31",
+            "2025-06-30"
+          ],
+          "n": 259,
+          "univariate": {
+            "beta": -0.039,
+            "t": -0.312,
+            "p": 0.75486
+          },
+          "joint_with_regime": {
+            "beta": -0.0216,
+            "t": -0.248,
+            "p": 0.80417,
+            "infl_t": -1.81,
+            "vol_t": -1.12
+          },
+          "fwl_incremental": {
+            "beta": -0.0212,
+            "t": -0.23,
+            "p": 0.81774,
+            "orth_var_share": 0.9634
+          },
+          "loo": {
+            "loo_n_folds": 23,
+            "beta_min": -0.0522,
+            "beta_max": 0.0482,
+            "t_min": -0.588,
+            "t_max": 0.577,
+            "sign_stable": false,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        }
+      },
+      "bond_ief": {
+        "slope_level_fwd3": {
+          "coverage": [
+            "2003-12-31",
+            "2026-03-31"
+          ],
+          "n": 268,
+          "univariate": {
+            "beta": 0.1343,
+            "t": 1.593,
+            "p": 0.1112
+          },
+          "joint_with_regime": {
+            "beta": 0.1384,
+            "t": 1.669,
+            "p": 0.09516,
+            "infl_t": -1.66,
+            "vol_t": 0.67
+          },
+          "fwl_incremental": {
+            "beta": 0.1384,
+            "t": 1.644,
+            "p": 0.10024,
+            "orth_var_share": 0.9995
+          },
+          "loo": {
+            "loo_n_folds": 24,
+            "beta_min": 0.0689,
+            "beta_max": 0.1724,
+            "t_min": 0.921,
+            "t_max": 2.033,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd3": {
+          "coverage": [
+            "2003-12-31",
+            "2026-03-31"
+          ],
+          "n": 268,
+          "univariate": {
+            "beta": 0.168,
+            "t": 1.97,
+            "p": 0.04888
+          },
+          "joint_with_regime": {
+            "beta": 0.1413,
+            "t": 1.867,
+            "p": 0.06191,
+            "infl_t": -1.47,
+            "vol_t": 0.41
+          },
+          "fwl_incremental": {
+            "beta": 0.1389,
+            "t": 1.746,
+            "p": 0.08088,
+            "orth_var_share": 0.9662
+          },
+          "loo": {
+            "loo_n_folds": 24,
+            "beta_min": 0.0735,
+            "beta_max": 0.1782,
+            "t_min": 1.236,
+            "t_max": 2.477,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_level_fwd6": {
+          "coverage": [
+            "2003-12-31",
+            "2025-12-31"
+          ],
+          "n": 265,
+          "univariate": {
+            "beta": 0.1529,
+            "t": 1.369,
+            "p": 0.17101
+          },
+          "joint_with_regime": {
+            "beta": 0.1575,
+            "t": 1.409,
+            "p": 0.1589,
+            "infl_t": -1.08,
+            "vol_t": 0.42
+          },
+          "fwl_incremental": {
+            "beta": 0.1575,
+            "t": 1.412,
+            "p": 0.15783,
+            "orth_var_share": 0.9992
+          },
+          "loo": {
+            "loo_n_folds": 23,
+            "beta_min": 0.0613,
+            "beta_max": 0.2092,
+            "t_min": 0.604,
+            "t_max": 1.869,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd6": {
+          "coverage": [
+            "2003-12-31",
+            "2025-12-31"
+          ],
+          "n": 265,
+          "univariate": {
+            "beta": 0.163,
+            "t": 2.398,
+            "p": 0.01649
+          },
+          "joint_with_regime": {
+            "beta": 0.1351,
+            "t": 2.233,
+            "p": 0.02553,
+            "infl_t": -1.0,
+            "vol_t": 0.27
+          },
+          "fwl_incremental": {
+            "beta": 0.1327,
+            "t": 2.091,
+            "p": 0.03655,
+            "orth_var_share": 0.9647
+          },
+          "loo": {
+            "loo_n_folds": 23,
+            "beta_min": 0.0988,
+            "beta_max": 0.1534,
+            "t_min": 1.588,
+            "t_max": 2.588,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_level_fwd12": {
+          "coverage": [
+            "2003-12-31",
+            "2025-06-30"
+          ],
+          "n": 259,
+          "univariate": {
+            "beta": 0.1299,
+            "t": 0.942,
+            "p": 0.34641
+          },
+          "joint_with_regime": {
+            "beta": 0.1377,
+            "t": 1.005,
+            "p": 0.31482,
+            "infl_t": -1.32,
+            "vol_t": -0.23
+          },
+          "fwl_incremental": {
+            "beta": 0.1376,
+            "t": 1.001,
+            "p": 0.31682,
+            "orth_var_share": 0.9989
+          },
+          "loo": {
+            "loo_n_folds": 23,
+            "beta_min": 0.0445,
+            "beta_max": 0.1955,
+            "t_min": 0.36,
+            "t_max": 1.446,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd12": {
+          "coverage": [
+            "2003-12-31",
+            "2025-06-30"
+          ],
+          "n": 259,
+          "univariate": {
+            "beta": 0.1824,
+            "t": 2.478,
+            "p": 0.01322
+          },
+          "joint_with_regime": {
+            "beta": 0.1557,
+            "t": 2.64,
+            "p": 0.00829,
+            "infl_t": -1.27,
+            "vol_t": -0.36
+          },
+          "fwl_incremental": {
+            "beta": 0.1528,
+            "t": 2.352,
+            "p": 0.01867,
+            "orth_var_share": 0.9634
+          },
+          "loo": {
+            "loo_n_folds": 23,
+            "beta_min": 0.1161,
+            "beta_max": 0.1794,
+            "t_min": 2.109,
+            "t_max": 3.075,
+            "sign_stable": true,
+            "t_all_sig": true
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        }
+      },
+      "bond_agg": {
+        "slope_level_fwd3": {
+          "coverage": [
+            "2007-05-31",
+            "2026-03-31"
+          ],
+          "n": 227,
+          "univariate": {
+            "beta": 0.1279,
+            "t": 1.301,
+            "p": 0.1934
+          },
+          "joint_with_regime": {
+            "beta": 0.1259,
+            "t": 1.424,
+            "p": 0.15443,
+            "infl_t": -2.22,
+            "vol_t": 0.76
+          },
+          "fwl_incremental": {
+            "beta": 0.1258,
+            "t": 1.299,
+            "p": 0.19381,
+            "orth_var_share": 0.9985
+          },
+          "loo": {
+            "loo_n_folds": 20,
+            "beta_min": 0.0676,
+            "beta_max": 0.158,
+            "t_min": 0.79,
+            "t_max": 1.768,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd3": {
+          "coverage": [
+            "2007-05-31",
+            "2026-03-31"
+          ],
+          "n": 227,
+          "univariate": {
+            "beta": 0.2391,
+            "t": 2.244,
+            "p": 0.02486
+          },
+          "joint_with_regime": {
+            "beta": 0.2042,
+            "t": 2.229,
+            "p": 0.02579,
+            "infl_t": -2.28,
+            "vol_t": 0.4
+          },
+          "fwl_incremental": {
+            "beta": 0.202,
+            "t": 1.983,
+            "p": 0.04733,
+            "orth_var_share": 0.9787
+          },
+          "loo": {
+            "loo_n_folds": 20,
+            "beta_min": 0.1285,
+            "beta_max": 0.2306,
+            "t_min": 1.795,
+            "t_max": 2.536,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_level_fwd6": {
+          "coverage": [
+            "2007-05-31",
+            "2025-12-31"
+          ],
+          "n": 224,
+          "univariate": {
+            "beta": 0.1176,
+            "t": 0.96,
+            "p": 0.33686
+          },
+          "joint_with_regime": {
+            "beta": 0.1158,
+            "t": 1.025,
+            "p": 0.30531,
+            "infl_t": -1.65,
+            "vol_t": 0.24
+          },
+          "fwl_incremental": {
+            "beta": 0.1158,
+            "t": 0.955,
+            "p": 0.33947,
+            "orth_var_share": 0.9993
+          },
+          "loo": {
+            "loo_n_folds": 19,
+            "beta_min": 0.0399,
+            "beta_max": 0.1652,
+            "t_min": 0.365,
+            "t_max": 1.446,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd6": {
+          "coverage": [
+            "2007-05-31",
+            "2025-12-31"
+          ],
+          "n": 224,
+          "univariate": {
+            "beta": 0.1937,
+            "t": 2.243,
+            "p": 0.02492
+          },
+          "joint_with_regime": {
+            "beta": 0.1558,
+            "t": 2.216,
+            "p": 0.02672,
+            "infl_t": -1.68,
+            "vol_t": 0.06
+          },
+          "fwl_incremental": {
+            "beta": 0.154,
+            "t": 1.936,
+            "p": 0.0529,
+            "orth_var_share": 0.9775
+          },
+          "loo": {
+            "loo_n_folds": 19,
+            "beta_min": 0.1188,
+            "beta_max": 0.1756,
+            "t_min": 2.012,
+            "t_max": 2.411,
+            "sign_stable": true,
+            "t_all_sig": true
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_level_fwd12": {
+          "coverage": [
+            "2007-05-31",
+            "2025-06-30"
+          ],
+          "n": 218,
+          "univariate": {
+            "beta": 0.0911,
+            "t": 0.66,
+            "p": 0.50917
+          },
+          "joint_with_regime": {
+            "beta": 0.0901,
+            "t": 0.693,
+            "p": 0.48817,
+            "infl_t": -1.74,
+            "vol_t": -0.21
+          },
+          "fwl_incremental": {
+            "beta": 0.0901,
+            "t": 0.654,
+            "p": 0.51318,
+            "orth_var_share": 0.9993
+          },
+          "loo": {
+            "loo_n_folds": 19,
+            "beta_min": 0.0104,
+            "beta_max": 0.1651,
+            "t_min": 0.084,
+            "t_max": 1.354,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd12": {
+          "coverage": [
+            "2007-05-31",
+            "2025-06-30"
+          ],
+          "n": 218,
+          "univariate": {
+            "beta": 0.187,
+            "t": 2.239,
+            "p": 0.02517
+          },
+          "joint_with_regime": {
+            "beta": 0.1458,
+            "t": 2.188,
+            "p": 0.0287,
+            "infl_t": -1.75,
+            "vol_t": -0.34
+          },
+          "fwl_incremental": {
+            "beta": 0.1441,
+            "t": 1.886,
+            "p": 0.05924,
+            "orth_var_share": 0.9763
+          },
+          "loo": {
+            "loo_n_folds": 19,
+            "beta_min": 0.1095,
+            "beta_max": 0.1747,
+            "t_min": 1.755,
+            "t_max": 2.547,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        }
+      },
+      "commodity": {
+        "slope_level_fwd3": {
+          "coverage": [
+            "2006-03-31",
+            "2026-03-31"
+          ],
+          "n": 241,
+          "univariate": {
+            "beta": -0.0786,
+            "t": -0.958,
+            "p": 0.33792
+          },
+          "joint_with_regime": {
+            "beta": -0.078,
+            "t": -1.024,
+            "p": 0.306,
+            "infl_t": 1.94,
+            "vol_t": 1.5
+          },
+          "fwl_incremental": {
+            "beta": -0.078,
+            "t": -0.957,
+            "p": 0.33873,
+            "orth_var_share": 0.9999
+          },
+          "loo": {
+            "loo_n_folds": 21,
+            "beta_min": -0.1219,
+            "beta_max": -0.0316,
+            "t_min": -1.63,
+            "t_max": -0.346,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd3": {
+          "coverage": [
+            "2006-03-31",
+            "2026-03-31"
+          ],
+          "n": 241,
+          "univariate": {
+            "beta": 0.0025,
+            "t": 0.031,
+            "p": 0.97493
+          },
+          "joint_with_regime": {
+            "beta": 0.0109,
+            "t": 0.184,
+            "p": 0.85401,
+            "infl_t": 1.9,
+            "vol_t": 1.48
+          },
+          "fwl_incremental": {
+            "beta": 0.0108,
+            "t": 0.166,
+            "p": 0.86844,
+            "orth_var_share": 0.9807
+          },
+          "loo": {
+            "loo_n_folds": 21,
+            "beta_min": -0.0176,
+            "beta_max": 0.0421,
+            "t_min": -0.318,
+            "t_max": 0.635,
+            "sign_stable": false,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_level_fwd6": {
+          "coverage": [
+            "2006-03-31",
+            "2025-12-31"
+          ],
+          "n": 238,
+          "univariate": {
+            "beta": -0.1092,
+            "t": -1.027,
+            "p": 0.30463
+          },
+          "joint_with_regime": {
+            "beta": -0.1111,
+            "t": -1.082,
+            "p": 0.27917,
+            "infl_t": 1.71,
+            "vol_t": 1.35
+          },
+          "fwl_incremental": {
+            "beta": -0.1111,
+            "t": -1.04,
+            "p": 0.2984,
+            "orth_var_share": 0.9998
+          },
+          "loo": {
+            "loo_n_folds": 20,
+            "beta_min": -0.1816,
+            "beta_max": -0.0576,
+            "t_min": -1.845,
+            "t_max": -0.511,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd6": {
+          "coverage": [
+            "2006-03-31",
+            "2025-12-31"
+          ],
+          "n": 238,
+          "univariate": {
+            "beta": 0.0451,
+            "t": 0.551,
+            "p": 0.58135
+          },
+          "joint_with_regime": {
+            "beta": 0.0455,
+            "t": 0.694,
+            "p": 0.48772,
+            "infl_t": 1.74,
+            "vol_t": 1.28
+          },
+          "fwl_incremental": {
+            "beta": 0.0451,
+            "t": 0.638,
+            "p": 0.52341,
+            "orth_var_share": 0.9795
+          },
+          "loo": {
+            "loo_n_folds": 20,
+            "beta_min": 0.0156,
+            "beta_max": 0.0751,
+            "t_min": 0.269,
+            "t_max": 1.222,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_level_fwd12": {
+          "coverage": [
+            "2006-03-31",
+            "2025-06-30"
+          ],
+          "n": 232,
+          "univariate": {
+            "beta": -0.1867,
+            "t": -1.187,
+            "p": 0.23539
+          },
+          "joint_with_regime": {
+            "beta": -0.1888,
+            "t": -1.231,
+            "p": 0.21817,
+            "infl_t": 1.09,
+            "vol_t": 0.82
+          },
+          "fwl_incremental": {
+            "beta": -0.1888,
+            "t": -1.197,
+            "p": 0.23142,
+            "orth_var_share": 0.9998
+          },
+          "loo": {
+            "loo_n_folds": 20,
+            "beta_min": -0.2829,
+            "beta_max": -0.1063,
+            "t_min": -2.023,
+            "t_max": -0.757,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd12": {
+          "coverage": [
+            "2006-03-31",
+            "2025-06-30"
+          ],
+          "n": 232,
+          "univariate": {
+            "beta": 0.0172,
+            "t": 0.234,
+            "p": 0.81492
+          },
+          "joint_with_regime": {
+            "beta": 0.017,
+            "t": 0.273,
+            "p": 0.78458,
+            "infl_t": 1.06,
+            "vol_t": 0.77
+          },
+          "fwl_incremental": {
+            "beta": 0.0169,
+            "t": 0.262,
+            "p": 0.79308,
+            "orth_var_share": 0.9785
+          },
+          "loo": {
+            "loo_n_folds": 20,
+            "beta_min": -0.0351,
+            "beta_max": 0.0841,
+            "t_min": -0.644,
+            "t_max": 1.285,
+            "sign_stable": false,
+            "t_all_sig": false
+          },
+          "maxlags": 12,
+          "survives_bonferroni": false
+        }
+      }
+    },
+    "n_comparisons": 24,
+    "bonferroni_alpha": 0.002083
+  },
+  "quarterly": {
+    "rule": "QE",
+    "results": {
+      "us_stock": {
+        "slope_level_fwd2": {
+          "coverage": [
+            "2005-12-31",
+            "2025-12-31"
+          ],
+          "n": 81,
+          "univariate": {
+            "beta": -0.0773,
+            "t": -0.668,
+            "p": 0.50445
+          },
+          "joint_with_regime": {
+            "beta": -0.1478,
+            "t": -1.364,
+            "p": 0.17272,
+            "infl_t": -0.92,
+            "vol_t": 0.44
+          },
+          "fwl_incremental": {
+            "beta": -0.1396,
+            "t": -1.303,
+            "p": 0.19268,
+            "orth_var_share": 0.8922
+          },
+          "loo": {
+            "loo_n_folds": 21,
+            "beta_min": -0.1971,
+            "beta_max": -0.0978,
+            "t_min": -1.888,
+            "t_max": -0.84,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd2": {
+          "coverage": [
+            "2005-12-31",
+            "2025-12-31"
+          ],
+          "n": 81,
+          "univariate": {
+            "beta": 0.0194,
+            "t": 0.126,
+            "p": 0.89999
+          },
+          "joint_with_regime": {
+            "beta": 0.0093,
+            "t": 0.069,
+            "p": 0.94485,
+            "infl_t": -0.73,
+            "vol_t": 0.47
+          },
+          "fwl_incremental": {
+            "beta": 0.0092,
+            "t": 0.064,
+            "p": 0.94864,
+            "orth_var_share": 0.9884
+          },
+          "loo": {
+            "loo_n_folds": 21,
+            "beta_min": -0.0351,
+            "beta_max": 0.0903,
+            "t_min": -0.272,
+            "t_max": 0.699,
+            "sign_stable": false,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        },
+        "slope_level_fwd4": {
+          "coverage": [
+            "2005-12-31",
+            "2025-06-30"
+          ],
+          "n": 79,
+          "univariate": {
+            "beta": -0.1058,
+            "t": -1.076,
+            "p": 0.28171
+          },
+          "joint_with_regime": {
+            "beta": -0.2118,
+            "t": -1.955,
+            "p": 0.05062,
+            "infl_t": -2.19,
+            "vol_t": 0.58
+          },
+          "fwl_incremental": {
+            "beta": -0.2003,
+            "t": -1.82,
+            "p": 0.06878,
+            "orth_var_share": 0.8941
+          },
+          "loo": {
+            "loo_n_folds": 21,
+            "beta_min": -0.3089,
+            "beta_max": -0.1273,
+            "t_min": -2.868,
+            "t_max": -1.24,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd4": {
+          "coverage": [
+            "2005-12-31",
+            "2025-06-30"
+          ],
+          "n": 79,
+          "univariate": {
+            "beta": -0.0558,
+            "t": -0.335,
+            "p": 0.73797
+          },
+          "joint_with_regime": {
+            "beta": -0.0754,
+            "t": -0.46,
+            "p": 0.64558,
+            "infl_t": -1.7,
+            "vol_t": 0.55
+          },
+          "fwl_incremental": {
+            "beta": -0.075,
+            "t": -0.459,
+            "p": 0.64637,
+            "orth_var_share": 0.9881
+          },
+          "loo": {
+            "loo_n_folds": 21,
+            "beta_min": -0.1319,
+            "beta_max": 0.0507,
+            "t_min": -0.734,
+            "t_max": 0.4,
+            "sign_stable": false,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        }
+      },
+      "bond_ief": {
+        "slope_level_fwd2": {
+          "coverage": [
+            "2005-12-31",
+            "2025-12-31"
+          ],
+          "n": 81,
+          "univariate": {
+            "beta": 0.1443,
+            "t": 1.156,
+            "p": 0.24776
+          },
+          "joint_with_regime": {
+            "beta": 0.105,
+            "t": 0.781,
+            "p": 0.43487,
+            "infl_t": -1.15,
+            "vol_t": -1.82
+          },
+          "fwl_incremental": {
+            "beta": 0.0991,
+            "t": 0.754,
+            "p": 0.45113,
+            "orth_var_share": 0.8922
+          },
+          "loo": {
+            "loo_n_folds": 21,
+            "beta_min": -0.0025,
+            "beta_max": 0.1642,
+            "t_min": -0.02,
+            "t_max": 1.186,
+            "sign_stable": false,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd2": {
+          "coverage": [
+            "2005-12-31",
+            "2025-12-31"
+          ],
+          "n": 81,
+          "univariate": {
+            "beta": 0.2007,
+            "t": 1.647,
+            "p": 0.09956
+          },
+          "joint_with_regime": {
+            "beta": 0.1769,
+            "t": 1.68,
+            "p": 0.09291,
+            "infl_t": -1.51,
+            "vol_t": -1.86
+          },
+          "fwl_incremental": {
+            "beta": 0.1759,
+            "t": 1.56,
+            "p": 0.11877,
+            "orth_var_share": 0.9884
+          },
+          "loo": {
+            "loo_n_folds": 21,
+            "beta_min": 0.1476,
+            "beta_max": 0.2034,
+            "t_min": 1.397,
+            "t_max": 2.195,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        },
+        "slope_level_fwd4": {
+          "coverage": [
+            "2005-12-31",
+            "2025-06-30"
+          ],
+          "n": 79,
+          "univariate": {
+            "beta": 0.1153,
+            "t": 1.017,
+            "p": 0.30902
+          },
+          "joint_with_regime": {
+            "beta": 0.0515,
+            "t": 0.422,
+            "p": 0.67322,
+            "infl_t": -1.76,
+            "vol_t": -2.81
+          },
+          "fwl_incremental": {
+            "beta": 0.0487,
+            "t": 0.352,
+            "p": 0.72473,
+            "orth_var_share": 0.8941
+          },
+          "loo": {
+            "loo_n_folds": 21,
+            "beta_min": -0.0317,
+            "beta_max": 0.1901,
+            "t_min": -0.269,
+            "t_max": 1.443,
+            "sign_stable": false,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd4": {
+          "coverage": [
+            "2005-12-31",
+            "2025-06-30"
+          ],
+          "n": 79,
+          "univariate": {
+            "beta": 0.2829,
+            "t": 2.751,
+            "p": 0.00594
+          },
+          "joint_with_regime": {
+            "beta": 0.2482,
+            "t": 2.498,
+            "p": 0.01248,
+            "infl_t": -1.99,
+            "vol_t": -2.63
+          },
+          "fwl_incremental": {
+            "beta": 0.2467,
+            "t": 2.462,
+            "p": 0.0138,
+            "orth_var_share": 0.9881
+          },
+          "loo": {
+            "loo_n_folds": 21,
+            "beta_min": 0.2088,
+            "beta_max": 0.3188,
+            "t_min": 2.189,
+            "t_max": 3.832,
+            "sign_stable": true,
+            "t_all_sig": true
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        }
+      },
+      "bond_agg": {
+        "slope_level_fwd2": {
+          "coverage": [
+            "2007-09-30",
+            "2025-12-31"
+          ],
+          "n": 74,
+          "univariate": {
+            "beta": 0.1293,
+            "t": 1.063,
+            "p": 0.28759
+          },
+          "joint_with_regime": {
+            "beta": -0.0131,
+            "t": -0.105,
+            "p": 0.91627,
+            "infl_t": -1.9,
+            "vol_t": -1.17
+          },
+          "fwl_incremental": {
+            "beta": -0.0122,
+            "t": -0.099,
+            "p": 0.92144,
+            "orth_var_share": 0.8728
+          },
+          "loo": {
+            "loo_n_folds": 19,
+            "beta_min": -0.0891,
+            "beta_max": 0.0315,
+            "t_min": -0.725,
+            "t_max": 0.223,
+            "sign_stable": false,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd2": {
+          "coverage": [
+            "2007-09-30",
+            "2025-12-31"
+          ],
+          "n": 74,
+          "univariate": {
+            "beta": 0.2417,
+            "t": 1.576,
+            "p": 0.11496
+          },
+          "joint_with_regime": {
+            "beta": 0.2,
+            "t": 1.697,
+            "p": 0.08967,
+            "infl_t": -2.16,
+            "vol_t": -1.13
+          },
+          "fwl_incremental": {
+            "beta": 0.1985,
+            "t": 1.478,
+            "p": 0.13938,
+            "orth_var_share": 0.9856
+          },
+          "loo": {
+            "loo_n_folds": 19,
+            "beta_min": 0.1731,
+            "beta_max": 0.2554,
+            "t_min": 1.43,
+            "t_max": 2.657,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        },
+        "slope_level_fwd4": {
+          "coverage": [
+            "2007-09-30",
+            "2025-06-30"
+          ],
+          "n": 72,
+          "univariate": {
+            "beta": 0.0816,
+            "t": 0.762,
+            "p": 0.44635
+          },
+          "joint_with_regime": {
+            "beta": -0.0978,
+            "t": -0.769,
+            "p": 0.44216,
+            "infl_t": -2.53,
+            "vol_t": -1.54
+          },
+          "fwl_incremental": {
+            "beta": -0.0914,
+            "t": -0.64,
+            "p": 0.52248,
+            "orth_var_share": 0.8746
+          },
+          "loo": {
+            "loo_n_folds": 19,
+            "beta_min": -0.1668,
+            "beta_max": 0.0713,
+            "t_min": -1.328,
+            "t_max": 0.496,
+            "sign_stable": false,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd4": {
+          "coverage": [
+            "2007-09-30",
+            "2025-06-30"
+          ],
+          "n": 72,
+          "univariate": {
+            "beta": 0.2703,
+            "t": 2.241,
+            "p": 0.02504
+          },
+          "joint_with_regime": {
+            "beta": 0.2187,
+            "t": 2.45,
+            "p": 0.01429,
+            "infl_t": -2.51,
+            "vol_t": -1.36
+          },
+          "fwl_incremental": {
+            "beta": 0.2171,
+            "t": 1.937,
+            "p": 0.05269,
+            "orth_var_share": 0.9855
+          },
+          "loo": {
+            "loo_n_folds": 19,
+            "beta_min": 0.183,
+            "beta_max": 0.3157,
+            "t_min": 2.163,
+            "t_max": 3.238,
+            "sign_stable": true,
+            "t_all_sig": true
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        }
+      },
+      "commodity": {
+        "slope_level_fwd2": {
+          "coverage": [
+            "2006-06-30",
+            "2025-12-31"
+          ],
+          "n": 79,
+          "univariate": {
+            "beta": -0.1277,
+            "t": -1.251,
+            "p": 0.2108
+          },
+          "joint_with_regime": {
+            "beta": -0.1156,
+            "t": -1.05,
+            "p": 0.29375,
+            "infl_t": 0.44,
+            "vol_t": 0.7
+          },
+          "fwl_incremental": {
+            "beta": -0.1092,
+            "t": -1.021,
+            "p": 0.30736,
+            "orth_var_share": 0.8913
+          },
+          "loo": {
+            "loo_n_folds": 20,
+            "beta_min": -0.1977,
+            "beta_max": -0.0552,
+            "t_min": -1.655,
+            "t_max": -0.514,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd2": {
+          "coverage": [
+            "2006-06-30",
+            "2025-12-31"
+          ],
+          "n": 79,
+          "univariate": {
+            "beta": 0.0657,
+            "t": 0.625,
+            "p": 0.53169
+          },
+          "joint_with_regime": {
+            "beta": 0.0793,
+            "t": 0.799,
+            "p": 0.4243,
+            "infl_t": 0.93,
+            "vol_t": 0.8
+          },
+          "fwl_incremental": {
+            "beta": 0.0788,
+            "t": 0.765,
+            "p": 0.44438,
+            "orth_var_share": 0.9869
+          },
+          "loo": {
+            "loo_n_folds": 20,
+            "beta_min": 0.0196,
+            "beta_max": 0.1167,
+            "t_min": 0.197,
+            "t_max": 1.146,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        },
+        "slope_level_fwd4": {
+          "coverage": [
+            "2006-06-30",
+            "2025-06-30"
+          ],
+          "n": 77,
+          "univariate": {
+            "beta": -0.2089,
+            "t": -1.674,
+            "p": 0.09416
+          },
+          "joint_with_regime": {
+            "beta": -0.2051,
+            "t": -1.471,
+            "p": 0.14138,
+            "infl_t": 0.36,
+            "vol_t": 1.12
+          },
+          "fwl_incremental": {
+            "beta": -0.1939,
+            "t": -1.417,
+            "p": 0.15658,
+            "orth_var_share": 0.8933
+          },
+          "loo": {
+            "loo_n_folds": 20,
+            "beta_min": -0.3076,
+            "beta_max": -0.14,
+            "t_min": -2.018,
+            "t_max": -0.981,
+            "sign_stable": true,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        },
+        "slope_delta_fwd4": {
+          "coverage": [
+            "2006-06-30",
+            "2025-06-30"
+          ],
+          "n": 77,
+          "univariate": {
+            "beta": 0.0205,
+            "t": 0.174,
+            "p": 0.86148
+          },
+          "joint_with_regime": {
+            "beta": 0.0377,
+            "t": 0.311,
+            "p": 0.75573,
+            "infl_t": 0.96,
+            "vol_t": 1.17
+          },
+          "fwl_incremental": {
+            "beta": 0.0374,
+            "t": 0.298,
+            "p": 0.76594,
+            "orth_var_share": 0.9867
+          },
+          "loo": {
+            "loo_n_folds": 20,
+            "beta_min": -0.0511,
+            "beta_max": 0.1439,
+            "t_min": -0.41,
+            "t_max": 1.475,
+            "sign_stable": false,
+            "t_all_sig": false
+          },
+          "maxlags": 1,
+          "survives_bonferroni": false
+        }
+      }
+    },
+    "n_comparisons": 16,
+    "bonferroni_alpha": 0.003125
+  },
+  "recession_probit": {
+    "lead6m": {
+      "n": 275,
+      "slope_beta": 0.0806,
+      "t": 0.498,
+      "p": 0.61849,
+      "pseudo_r2": 0.0032,
+      "n_recession_months": 20,
+      "coverage": [
+        "2003-01-31",
+        "2025-11-30"
+      ]
+    },
+    "lead12m": {
+      "n": 269,
+      "slope_beta": -0.2418,
+      "t": -1.172,
+      "p": 0.24115,
+      "pseudo_r2": 0.0278,
+      "n_recession_months": 20,
+      "coverage": [
+        "2003-01-31",
+        "2025-05-31"
+      ]
+    }
+  }
+}

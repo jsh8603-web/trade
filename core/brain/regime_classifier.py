@@ -202,16 +202,32 @@ class RegimeClassifier:
 
     def _inflation_signal(self, b: MacroFeatureBundle) -> Optional[float]:
         """
-        인플레축: 코어CPI YoY 모멘텀 + breakeven(시장 선행). Truflation 연동 시 우선 가중.
+        물가축: 코어CPI YoY **레벨(목표 대비) + 모멘텀** 2D 합성 + breakeven(시장 선행).
         macro.md(라인 33~37): CPI vs PCE 괴리 → 둘 다 보고, breakeven 으로 기대 보강.
+
+        ★M1(2026-06-02, 자문 gemini+claude 2R 수렴 + T0 2022 실측): momentum-only 는 가속이 멈춘
+        지속 고물가 국면(2022 CPI 9.1% peak, yoy momentum≈0)을 "물가 낮음"으로 오독 → Recovery 오분류.
+        Investment Clock 원형도 물가의 절대수준을 버리지 않음. level(목표 2% 대비 편차를 역사 변동성으로
+        정규화) 을 주신호, momentum(전환점 선행) 을 보조로 결합. 자문 공식:
+        w1·(yoy−target)/σ_level + w2·Δyoy/σ_mom. w1>w2 (level 주도, 지속성 포착).
+
+        ★상수 calibration: target=2.0 / w_level=1.0 / w_mom=0.5 / w_bei=0.7 / window=36 은
+        **자문 합의 기반 advisory prior, 백테스트 미캘리브레이션**(backtested=false). 독립 audit(2026-06-02,
+        af651d4c) raw 재현 verdict=채택: 2022 복원 정당(core CPI 6.6% 실측), w_level 0.7~2.0 전부 2022 양
+        유지=과적합 아님, PIT lookahead 0. minor: core PCE fallback 시 2.0 target 은 ~0.3%p 보수(CPI>PCE).
         """
         signals, weights = [], []
         core = b.ts("core_cpi")
         if core is None:
             core = b.ts("core_pce")
         if core is not None and len(core) >= 13:
-            signals.append(_momentum_z(_yoy(core, 12), window=3))
+            yoy = _yoy(core, 12).dropna()
+            # level: 목표(2%) 대비 편차 = 지속 고물가 포착 (momentum miss 보완). 주신호.
+            signals.append(_level_z(yoy, target=2.0, window=36))
             weights.append(1.0)
+            # momentum: yoy 가속/감속 = 국면 전환점 선행. 보조.
+            signals.append(_momentum_z(yoy, window=3))
+            weights.append(0.5)
         bei = b.ts("breakeven_5y")
         if bei is not None and len(bei) >= 13:
             signals.append(_zscore(bei.diff(), window=12))
@@ -480,6 +496,21 @@ def _zscore(s: pd.Series, window: int = 36) -> float:
 
 def _yoy_z(s: pd.Series, periods: int, window: int = 36) -> float:
     return _zscore(_yoy(s, periods).dropna(), window)
+
+
+def _level_z(s: pd.Series, target: float = 0.0, window: int = 36) -> float:
+    """목표(target) 대비 현재 레벨 편차를 rolling 변동성으로 정규화 (PIT-safe, 미래 미참조).
+
+    ★M1: _zscore 는 자체 평균 대비(상대 위치)라 안정 평균이 따라 올라가면 지속 고물가를 못 잡음.
+    target anchor(물가=목표 2%) 대비 편차를 σ 로 정규화 → 절대 수준이 목표를 벗어날수록 큰 신호.
+    """
+    s = s.dropna()
+    if len(s) < max(window // 2, 4):
+        return 0.0
+    sd = s.tail(window).std()
+    if sd == 0 or pd.isna(sd):
+        return 0.0
+    return float((s.iloc[-1] - target) / sd)
 
 
 def _momentum_z(s: pd.Series, window: int = 3, z_window: int = 36) -> float:

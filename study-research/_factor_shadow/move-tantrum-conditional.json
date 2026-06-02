@@ -1,0 +1,342 @@
+{
+  "_meta": {
+    "title": "M4-B MOVE rate-tantrum 조건부 재판정",
+    "date": "2026-06-02",
+    "tantrum_def": "|Δ10y|>=p90(0.090) AND VIX<=median(16.9)",
+    "tantrum_days": 182,
+    "total_days": 5816,
+    "method": "daily MOVE Δlog → sleeve return, rate(DGS10 level) 통제, VIX 통제 有/無, full/tantrum/nontantrum split, NW-HAC=5, LOO year, Bonferroni",
+    "note": "Y5 joint β→0(VIX 흡수). 자문=tantrum 국면 한정 살아있다+VIX직교 bad-control 주장. 조건부도 0이면 폐기 확정."
+  },
+  "bonferroni_alpha": 0.004167,
+  "sleeves": {
+    "us_stock": {
+      "full_with_vix": {
+        "n": 5815,
+        "beta": -0.0022,
+        "t": -0.14,
+        "p": 0.88891,
+        "survives_bonferroni": false,
+        "loo": {
+          "folds": 25,
+          "beta_min": -0.0104,
+          "beta_max": 0.0096,
+          "t_min": -0.63,
+          "t_max": 0.773,
+          "sign_stable": false,
+          "t_all_sig": false
+        }
+      },
+      "full_no_vix": {
+        "n": 5816,
+        "beta": -0.2188,
+        "t": -9.631,
+        "p": 0.0,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 25,
+          "beta_min": -0.2352,
+          "beta_max": -0.2066,
+          "t_min": -11.53,
+          "t_max": -8.827,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      },
+      "tantrum_with_vix": {
+        "n": 182,
+        "beta": -0.0244,
+        "t": -0.404,
+        "p": 0.68601,
+        "survives_bonferroni": false,
+        "loo": {
+          "folds": 20,
+          "beta_min": -0.0684,
+          "beta_max": 0.011,
+          "t_min": -1.006,
+          "t_max": 0.176,
+          "sign_stable": false,
+          "t_all_sig": false
+        }
+      },
+      "tantrum_no_vix": {
+        "n": 182,
+        "beta": -0.2586,
+        "t": -2.93,
+        "p": 0.00339,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 20,
+          "beta_min": -0.3352,
+          "beta_max": -0.2091,
+          "t_min": -3.697,
+          "t_max": -2.204,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      },
+      "nontantrum_no_vix": {
+        "n": 5634,
+        "beta": -0.2232,
+        "t": -9.569,
+        "p": 0.0,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 25,
+          "beta_min": -0.2405,
+          "beta_max": -0.2107,
+          "t_min": -11.496,
+          "t_max": -8.781,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      }
+    },
+    "bond_ief": {
+      "full_with_vix": {
+        "n": 5815,
+        "beta": -0.1974,
+        "t": -8.525,
+        "p": 0.0,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 25,
+          "beta_min": -0.2166,
+          "beta_max": -0.1784,
+          "t_min": -9.642,
+          "t_max": -7.578,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      },
+      "full_no_vix": {
+        "n": 5816,
+        "beta": -0.1169,
+        "t": -4.651,
+        "p": 0.0,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 25,
+          "beta_min": -0.1376,
+          "beta_max": -0.0965,
+          "t_min": -5.841,
+          "t_max": -3.795,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      },
+      "tantrum_with_vix": {
+        "n": 182,
+        "beta": -0.4193,
+        "t": -5.977,
+        "p": 0.0,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 20,
+          "beta_min": -0.445,
+          "beta_max": -0.3498,
+          "t_min": -6.865,
+          "t_max": -4.617,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      },
+      "tantrum_no_vix": {
+        "n": 182,
+        "beta": -0.3753,
+        "t": -5.495,
+        "p": 0.0,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 20,
+          "beta_min": -0.4142,
+          "beta_max": -0.3108,
+          "t_min": -6.394,
+          "t_max": -4.216,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      },
+      "nontantrum_no_vix": {
+        "n": 5634,
+        "beta": -0.085,
+        "t": -3.274,
+        "p": 0.00106,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 25,
+          "beta_min": -0.1053,
+          "beta_max": -0.0633,
+          "t_min": -4.3,
+          "t_max": -2.385,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      }
+    },
+    "commodity": {
+      "full_with_vix": {
+        "n": 5016,
+        "beta": 0.0009,
+        "t": 0.044,
+        "p": 0.96528,
+        "survives_bonferroni": false,
+        "loo": {
+          "folds": 21,
+          "beta_min": -0.0145,
+          "beta_max": 0.0138,
+          "t_min": -0.701,
+          "t_max": 0.709,
+          "sign_stable": false,
+          "t_all_sig": false
+        }
+      },
+      "full_no_vix": {
+        "n": 5017,
+        "beta": -0.0943,
+        "t": -4.129,
+        "p": 4e-05,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 21,
+          "beta_min": -0.1088,
+          "beta_max": -0.0757,
+          "t_min": -4.784,
+          "t_max": -3.653,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      },
+      "tantrum_with_vix": {
+        "n": 140,
+        "beta": -0.0975,
+        "t": -1.481,
+        "p": 0.1385,
+        "survives_bonferroni": false,
+        "loo": {
+          "folds": 17,
+          "beta_min": -0.1394,
+          "beta_max": -0.0653,
+          "t_min": -2.241,
+          "t_max": -0.936,
+          "sign_stable": true,
+          "t_all_sig": false
+        }
+      },
+      "tantrum_no_vix": {
+        "n": 140,
+        "beta": -0.1704,
+        "t": -2.899,
+        "p": 0.00374,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 17,
+          "beta_min": -0.2185,
+          "beta_max": -0.147,
+          "t_min": -3.804,
+          "t_max": -2.302,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      },
+      "nontantrum_no_vix": {
+        "n": 4877,
+        "beta": -0.0942,
+        "t": -3.949,
+        "p": 8e-05,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 21,
+          "beta_min": -0.1095,
+          "beta_max": -0.0746,
+          "t_min": -4.608,
+          "t_max": -3.494,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      }
+    },
+    "gold": {
+      "full_with_vix": {
+        "n": 5319,
+        "beta": -0.059,
+        "t": -3.389,
+        "p": 0.0007,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 23,
+          "beta_min": -0.0681,
+          "beta_max": -0.0489,
+          "t_min": -3.883,
+          "t_max": -2.811,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      },
+      "full_no_vix": {
+        "n": 5320,
+        "beta": -0.0688,
+        "t": -4.045,
+        "p": 5e-05,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 23,
+          "beta_min": -0.0787,
+          "beta_max": -0.0578,
+          "t_min": -4.584,
+          "t_max": -3.342,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      },
+      "tantrum_with_vix": {
+        "n": 160,
+        "beta": -0.3234,
+        "t": -3.765,
+        "p": 0.00017,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 19,
+          "beta_min": -0.3844,
+          "beta_max": -0.2533,
+          "t_min": -4.604,
+          "t_max": -2.815,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      },
+      "tantrum_no_vix": {
+        "n": 160,
+        "beta": -0.2684,
+        "t": -3.188,
+        "p": 0.00143,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 19,
+          "beta_min": -0.3438,
+          "beta_max": -0.2057,
+          "t_min": -4.11,
+          "t_max": -2.373,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      },
+      "nontantrum_no_vix": {
+        "n": 5160,
+        "beta": -0.0561,
+        "t": -3.202,
+        "p": 0.00137,
+        "survives_bonferroni": true,
+        "loo": {
+          "folds": 23,
+          "beta_min": -0.0658,
+          "beta_max": -0.0441,
+          "t_min": -3.724,
+          "t_max": -2.504,
+          "sign_stable": true,
+          "t_all_sig": true
+        }
+      }
+    }
+  }
+}
