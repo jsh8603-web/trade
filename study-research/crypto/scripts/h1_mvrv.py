@@ -122,7 +122,7 @@ def main():
     # ===== 5. e-CUSUM Rank-IC breakdown 검정 =====
     w("## 5. e-CUSUM Rank-IC 단측 붕괴 검정")
     w("- score = -MVRV_z (mean-revert prediction sign 반영, high MVRV = neg fwd_ret 예측)")
-    w("- rolling window 90d, baseline_ic = 0.0, sd = 0.15 (heuristic)")
+    w("- rolling window 90d, baseline_ic = 0.0 (score⊥fwd null), sd = ★empirical rolling-IC std (heuristic 0.15 = spurious 발산 원인, audit 격하 → 실측 sd 대체)")
     df["mvrv_z"] = (df["mvrv"] - df["mvrv"].mean()) / df["mvrv"].std()
     df["score"] = -df["mvrv_z"]
     # rolling Rank-IC (window 90d, fwd_30d 타겟)
@@ -135,10 +135,14 @@ def main():
     if rolling:
         rdf = pd.DataFrame(rolling)
         w(f"- rolling IC: n_windows={len(rdf)}, mean={rdf['ic'].mean():+.4f}, std={rdf['ic'].std():+.4f}")
-        # e-CUSUM
-        z = (0.0 - rdf["ic"].values) / 0.15
+        # ★e-CUSUM empirical baseline: heuristic sd=0.15 → 실측 rolling-IC std (spurious 발산 격하).
+        emp_sd = float(rdf["ic"].std()) or 0.15
+        z = (0.0 - rdf["ic"].values) / emp_sd
         rejected, max_r = e_cusum_one_sided(z, alpha=0.05, tau2=1.0)
+        w(f"- empirical sd = {emp_sd:.4f} (heuristic 0.15 대체)")
         w(f"- max e-process R = {max_r:.4f}, threshold (1/0.05)=20.0, rejected={rejected}")
+        w(f"  ★주의: rolling-IC mean={rdf['ic'].mean():+.3f} 양(score⊥fwd null 아래 *붕괴* 아님) + window overlap "
+          f"자기상관 → e-CUSUM 단측붕괴 = small-n spurious, 의사결정 미사용(라벨 only).")
     w()
 
     # ===== 6. regime conditioning — FGI × halving phase =====
@@ -154,15 +158,32 @@ def main():
                 continue
             rho, n = rank_ic(sub["mvrv"], sub["fwd_30d"])
             eff_n = effective_n(sub["mvrv"].values)
-            cells.append({"fgi": fg, "phase": hp, "n": n, "ic": rho, "eff_n": eff_n})
+            # ★per-cell p = eff_n 기반 t (자기상관 보정 — raw-n Spearman p 는 과대확신).
+            if eff_n > 2 and abs(rho) < 1.0:
+                t_ic = rho * np.sqrt((eff_n - 2) / (1 - rho ** 2))
+                p_eff = float(2 * stats.t.sf(abs(t_ic), df=eff_n - 2))
+            else:
+                p_eff = np.nan
+            cells.append({"fgi": fg, "phase": hp, "n": n, "ic": rho,
+                          "eff_n": eff_n, "p_eff": p_eff})
     cdf = pd.DataFrame(cells)
     w("```")
     w(cdf.to_string(index=False))
     w("```")
+    n_valid = int(cdf["ic"].notna().sum())
+    alpha_bonf = 0.05 / n_valid if n_valid else np.nan
+    n_surv = int((cdf["p_eff"] < alpha_bonf).sum()) if n_valid else 0
+    surv_cells = cdf[cdf["p_eff"] < alpha_bonf][["fgi", "phase", "ic", "eff_n", "p_eff"]] if n_valid else None
     w(f"- 전체 cell 수: {len(cdf)}")
-    w(f"- N≥30 통과 cell: {cdf['ic'].notna().sum()}")
+    w(f"- N(raw)≥30 통과 cell: {n_valid}")
     w(f"- N<24 (small-N gate 미달) cell: {(cdf['n']<24).sum()}")
-    w(f"- effective_n < 30 cell: {(cdf['eff_n'] < 30).sum() if cdf['eff_n'].notna().any() else 'na'}")
+    w(f"- ★effective_n < 30 cell: {(cdf['eff_n'] < 30).sum() if cdf['eff_n'].notna().any() else 'na'} / {n_valid} "
+      f"(자기상관 보정 후 *전 cell* eff_n<30 = n≥30 claim 무효)")
+    w(f"- ★Bonferroni α/{n_valid} = {alpha_bonf:.5f} 임계, eff_n 기반 per-cell p 생존 cell = {n_surv}")
+    if surv_cells is not None and len(surv_cells):
+        w("```")
+        w(surv_cells.to_string(index=False))
+        w("```")
     w()
 
     # ===== 7. 종합 판정 =====

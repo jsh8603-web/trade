@@ -1,6 +1,6 @@
 # H1 MVRV mean-revert — 실데이터 검증
 
-as_of: 2026-06-01T06:58:48.870503+00:00
+as_of: 2026-06-02T01:59:25.424838+00:00
 data: CoinMetrics CapMVRVCur (2010-07-18 ~ 2026-05-29, n=5795)
 price: CoinMetrics PriceUSD/ReferenceRateUSD
 FGI merge: alternative.me (2018-02-01 ~ 2026-05-30)
@@ -51,38 +51,41 @@ MVRV < 1.0 일수: 775 / 5795 = 13.374%
 
 ## 5. e-CUSUM Rank-IC 단측 붕괴 검정
 - score = -MVRV_z (mean-revert prediction sign 반영, high MVRV = neg fwd_ret 예측)
-- rolling window 90d, baseline_ic = 0.0, sd = 0.15 (heuristic)
+- rolling window 90d, baseline_ic = 0.0 (score⊥fwd null), sd = ★empirical rolling-IC std (heuristic 0.15 = spurious 발산 원인, audit 격하 → 실측 sd 대체)
 - rolling IC: n_windows=187, mean=+0.3467, std=+0.3453
-- max e-process R = 21284882048738524967196400935024067128910701525191566215466070839141854773480010538525702600662210067749371849785525888977616393373197935832938449285528385012963857032491810610070343909376.0000, threshold (1/0.05)=20.0, rejected=True
+- empirical sd = 0.3453 (heuristic 0.15 대체)
+- max e-process R = 3801288240233.8188, threshold (1/0.05)=20.0, rejected=True
+  ★주의: rolling-IC mean=+0.347 양(score⊥fwd null 아래 *붕괴* 아님) + window overlap 자기상관 → e-CUSUM 단측붕괴 = small-n spurious, 의사결정 미사용(라벨 only).
 
 ## 6. Regime-conditional MVRV → fwd_30d Rank-IC
 ```
-          fgi       phase   n        ic     eff_n
- extreme_fear   post_0_6m   4       NaN       NaN
- extreme_fear  post_6_18m  69 -0.653014 14.555514
- extreme_fear post_18_24m 240 -0.487070 12.767881
- extreme_fear post_24_36m 233 -0.531693  4.474817
-         fear   post_0_6m 129 -0.332553  6.491991
-         fear  post_6_18m 100 -0.315716 10.993188
-         fear post_18_24m 208 -0.394658 10.966214
-         fear post_24_36m 246 -0.386739  6.580687
-      neutral   post_0_6m  83  0.038328  3.448889
-      neutral  post_6_18m  98 -0.294264  9.384772
-      neutral post_18_24m  46 -0.145853  9.820677
-      neutral post_24_36m  95 -0.512738  6.289137
-        greed   post_0_6m 116 -0.341752  7.216911
-        greed  post_6_18m 278 -0.483754  5.460170
-        greed post_18_24m  27       NaN       NaN
-        greed post_24_36m 146 -0.150172  5.996786
-extreme_greed   post_0_6m  34 -0.142246  3.132768
-extreme_greed  post_6_18m 184 -0.065154  5.733342
-extreme_greed post_18_24m   1       NaN       NaN
-extreme_greed post_24_36m  20       NaN       NaN
+          fgi       phase   n        ic     eff_n    p_eff
+ extreme_fear   post_0_6m   4       NaN       NaN      NaN
+ extreme_fear  post_6_18m  69 -0.653014 14.555514 0.009535
+ extreme_fear post_18_24m 240 -0.487070 12.767881 0.095035
+ extreme_fear post_24_36m 233 -0.531693  4.474817 0.409843
+         fear   post_0_6m 129 -0.332553  6.491991 0.492084
+         fear  post_6_18m 100 -0.315716 10.993188 0.344454
+         fear post_18_24m 208 -0.394658 10.966214 0.230609
+         fear post_24_36m 246 -0.386739  6.580687 0.414103
+      neutral   post_0_6m  83  0.038328  3.448889 0.968715
+      neutral  post_6_18m  98 -0.294264  9.384772 0.429000
+      neutral post_18_24m  46 -0.145853  9.820677 0.691194
+      neutral post_24_36m  95 -0.512738  6.289137 0.279549
+        greed   post_0_6m 116 -0.341752  7.216911 0.442545
+        greed  post_6_18m 278 -0.483754  5.460170 0.370300
+        greed post_18_24m  27       NaN       NaN      NaN
+        greed post_24_36m 146 -0.150172  5.996786 0.776533
+extreme_greed   post_0_6m  34 -0.142246  3.132768 0.901077
+extreme_greed  post_6_18m 184 -0.065154  5.733342 0.906106
+extreme_greed post_18_24m   1       NaN       NaN      NaN
+extreme_greed post_24_36m  20       NaN       NaN      NaN
 ```
 - 전체 cell 수: 20
-- N≥30 통과 cell: 16
+- N(raw)≥30 통과 cell: 16
 - N<24 (small-N gate 미달) cell: 3
-- effective_n < 30 cell: 16
+- ★effective_n < 30 cell: 16 / 16 (자기상관 보정 후 *전 cell* eff_n<30 = n≥30 claim 무효)
+- ★Bonferroni α/16 = 0.00313 임계, eff_n 기반 per-cell p 생존 cell = 0
 
 ## 7. 가설 판정
 - 2장 closed-loop binomial p < 0.05? → MVRV>2.4 mean-revert 가설 1차 검증

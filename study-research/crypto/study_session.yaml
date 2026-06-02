@@ -71,11 +71,11 @@ lens:
     - "stablecoin growth → BTC: Granger lag 7d p=0.0005 / lag 14d p=0.0022 = supply lead 확인. ★단 BTC→supply 도 lag 7d p=0.0138 = bidirectional (reflexive 위험). rolling Rank-IC sharpe=-0.43 (역방향 시기 다수). dry powder 효과 = regime-dependent, prior 보수화 필수"
     - "halving 4 phase: post_0_6m / post_6_18m / post_18_24m / post_24_36m 의 fwd_30d 단순평균 = +6.6% / +8.5% / -7.5% / +1.1%. post_6_18m 최대 +, post_18_24m distribution → bear 전이 가설 데이터 일치 but N=4 통계 검정 불가 (구조적 prior 라벨)"
     - "BTC ETF (post-2024) net flow → 5d cum > 0 인 경우 fwd_30d > 0 hit rate = 56.7% (n=374, binomial p=0.006). digital-gold 채택 가설 1차 검증, but CI 포함. 1.5~2yr probation observe-only prior 유지"
-    - "FGI regime conditioning 안에서 MVRV → fwd_30d IC 모두 음 (-0.06 ~ -0.65, 20 cell 중 16 cell N≥30 통과). MVRV 의 신호는 *FGI/halving conditioning 후* 만 안정"
+    - "FGI×halving 20 cell: raw IC 모두 음 (-0.065 ~ -0.653) = mean-revert 방향성 일관(약 prior). ★단 effective_n(자기상관 보정) *전 16 cell <30* (raw N≥30 claim 무효, audit B축) + Bonferroni α/16=0.0031 per-cell p(eff_n 기반) 생존 = 0 cell → 개별 cell 통계 비유의(tentative). conditioning 후 신호 = 방향성 힌트만, magnitude 점추정 불가"
     - "거시 transmission: M2↑→stablecoin demand↑→BTC. real_rate↑→ 위험자산 멀티 압박 (post-2020 채널, 2024 ETF 부분 디커플)"
   regime_reading: >
     FGI 5단계 × halving phase 4단계 conditioning 으로 가설별 부호 달라짐.
-    ★ extreme_fear & post_6_18m (markup) = MVRV mean-revert 가장 약함 (IC -0.03). ★ extreme_fear & post_18_24m (distribution) = MVRV mean-revert 가장 강함 (IC -0.51). ★ funding extreme long & all phase = trend 지속 (자문 cascade 가설 기각). belief b(t) primary = FGI 5-state soft membership, macro·halving = parametric multiplier.
+    ★실측 정정(audit C축 label 강·약 뒤바뀜 + 점추정 박제 교정): extreme_fear post_6_18m raw IC=-0.653(eff_n 14.6) / extreme_greed post_6_18m=-0.065(eff_n 5.7) / extreme_fear post_18_24m=-0.487(eff_n 12.8). 이전 "markup IC-0.03 약 / distribution IC-0.51 강"은 extreme_fear↔extreme_greed 혼동 + 점추정 박제(철회). ★전 cell eff_n<30 + Bonferroni 후 생존 0 = 개별 cell 강·약 단정 불가(비유의). 방향(전 cell 음=mean-revert)만 약 prior 일관. funding extreme long = trend 지속(자문 cascade 기각, 별도 가설). belief b(t) primary = FGI 5-state soft membership, macro·halving = parametric multiplier(약 prior, magnitude 미박제).
   estimation_note: >
     2026-05 추정 (실데이터 anchor, ★신뢰도 中→低, 후속 OOS 재검증 의무):
     (a) 현재 MVRV (CoinMetrics 최신) = 1.36 (low, 9th percentile 부근), MVRV<1.5 영역.
@@ -119,7 +119,7 @@ indicators:
 relationships:
   - {node_a: mvrv_btc, node_b: btc_price, edge_type: undetermined,
      conditioning_set: [fgi, halving_phase], lag_routing: lagged, prior_sign: neg, prior_strength: 0.30,
-     theory_basis: "실측: marginal Spearman(MVRV,fwd_30d)=-0.071 / partial(|FGI,halving)=-0.085 p<0.001 BB95%CI=(-0.235,+0.073). CI 0 포함 = direct 확정 X. regime-conditional 20 cell 모두 음 IC = conditioning 후 mean-revert 잔존. marginal 단독 사용 시 trend confound."}
+     theory_basis: "실측: marginal Spearman(MVRV,fwd_30d)=-0.071 / partial(|FGI,halving)=-0.085 p<0.001 BB95%CI=(-0.235,+0.073). CI 0 포함 = direct 확정 X. regime-conditional 20 cell 모두 음 IC = mean-revert 방향 일관, but eff_n<30 전 cell + Bonferroni 후 생존 0 = 비유의(약 prior). marginal 단독 사용 시 trend confound."}
   - {node_a: funding_rate, node_b: btc_price, edge_type: undetermined,
      conditioning_set: [], lag_routing: lagged, prior_sign: pos, prior_strength: 0.15,
      theory_basis: "★[자문 REJECT] cascade 가설 부호 정반대 실측. extreme long funding (p99) 후 fwd_3d=+1.9% (trend 지속). Rank-IC=-0.041 CI=(-0.11,+0.02). prior 0.6→0.15 하향 + 부호 정정 (자문 neg → 실측 pos / trend follow). cascade 효과는 intra-day 분 단위 신호 가능성, daily 손실"}
@@ -131,7 +131,7 @@ relationships:
      theory_basis: "post-2024 only n=613. 5d cum flow >0 후 fwd_30d>0 hit rate 56.7% binomial p=0.006. Rank-IC=+0.057 CI=(-0.16,+0.23) 0 포함. ★probation observe-only 0.05 유지 (claude r3 정정)"}
   - {node_a: mvrv_btc, node_b: halving_phase, edge_type: undetermined,
      conditioning_set: [], lag_routing: contemporaneous, prior_sign: unsigned, prior_strength: 0.10,
-     theory_basis: "regime label only. MVRV→fwd_30d IC 가 phase 별로 -0.03 (post_6_18m markup, 약함) ~ -0.61 (post_18_24m distribution, 강함). conditioning 효과 확인, but standalone IC 산출 X"}
+     theory_basis: "regime label only. MVRV→fwd_30d phase별 raw IC 음 일관, but eff_n<30 전 cell + Bonferroni 후 생존 0 = 비유의 → magnitude 점추정 불가(이전 -0.03/-0.61 박제 철회 = audit C축 3중 불일치 정정). 방향성 약 prior 라벨만"}
   - {node_a: fgi, node_b: btc_price, edge_type: undetermined,
      conditioning_set: [mvrv_btc, halving_phase], lag_routing: lagged, prior_sign: unsigned, prior_strength: 0.15,
      theory_basis: "FGI 단독 → BTC 효과는 MVRV 와 강 공통원인 매개 (둘 다 sentiment cycle proxy). FGI×halving 의 conditioning 만 belief b(t) 입력 의미. 자문 prior 0.20→0.15"}
@@ -146,7 +146,7 @@ relationships:
 #   halving: regime label only 0.10 유지
 weight_rules:
   - {indicator_id: mvrv_btc, base_weight: 0.55, modulate_by: [regime, industry],
-     direction: "★실측 정정 후 가장 강한 sleeve modulator (on-chain rolling sharpe 1.27). conditioning regime = FGI 5 × halving 4. mvrv 신호 = *conditional only* (marginal 단독 사용 X). post_18_24m + extreme_fear 에서 -0.65 강한 mean-revert → coin_sizing Kelly 보수화 강. post_6_18m + greed 에서 -0.03 약 → modulator 거의 무영향",
+     direction: "on-chain rolling sharpe 1.27 (eff_n~16 신뢰 낮음). conditioning regime = FGI 5 × halving 4. mvrv 신호 = *conditional only* (marginal 단독 사용 X). ★20 cell raw IC 전부 음(mean-revert 방향 일관)이나 eff_n<30 전 cell + Bonferroni α/16 생존 0 = magnitude 점추정 불가(이전 -0.65/-0.03 강·약 박제 철회 = cell-label 혼동 정정, audit C축). coin_sizing Kelly 보수화 = 방향성 약 prior 한정, cell별 강도 차등 없음",
      granularity: sleeve}
   - {indicator_id: funding_rate, base_weight: 0.15, modulate_by: [regime],
      direction: "★[자문 정정] cascade 가설 REJECT → trend follow 부호로 재정의. extreme long funding (p95+) 진입 시 = bull trend 지속 정황 → coin_sizing fraction 유지 또는 소폭 확대 (Kelly 보수화 trigger X). 단 rolling sharpe 0.97 (양수 안정) — 신호 자체는 보존, 부호만 반전",
@@ -158,7 +158,7 @@ weight_rules:
      direction: "probation observe-only. 5d cum>0 + risk-off macro regime 시에만 'digital-gold demand' 가중 적용 (자문 가설). 데이터 누적 시 confidence_hooks 가 OOS reject_signal 발화. glasso 노드 미포함 (complete-case window 수축 회피)",
      granularity: sleeve}
   - {indicator_id: halving_phase, base_weight: 0.10, modulate_by: [regime],
-     direction: "regime label only (standalone IC 산출 X). belief b(t) regime 입력. post_0_6m / post_6_18m = MVRV mean-revert 약 → 가중 modulator 낮춤. post_18_24m / post_24_36m = mean-revert 강 → 가중 modulator 높임",
+     direction: "regime label only (standalone IC 산출 X). belief b(t) regime 입력. ★phase별 raw IC 음 일관이나 eff_n<30 + Bonferroni 비유의 → magnitude 미박제(이전 phase별 mean-revert 강·약 가중 차등 철회 = audit C축). regime label conditioning 역할만, 강도 단정 없음",
      granularity: sleeve}
   - {indicator_id: fgi, base_weight: 0.10, modulate_by: [regime],
      direction: "FGI 5-state = belief b(t) primary 축 (D5 합의). soft membership. extreme_fear/extreme_greed conditioning 시 다른 가설의 weight modulator 적용. 자체 가중치는 conditioning 역할 정도만 (15→10)",
@@ -168,8 +168,8 @@ weight_rules:
 # 매 거래/예측마다 flag 누적 → 신뢰도 → lens·가중 미세변동
 confidence_hooks:
   - hypothesis_id: crypto_mvrv_conditional_mean_revert
-    confirm_signal: "FGI × halving_phase conditioning 후 MVRV → fwd_30d Rank-IC 음 유지 (현재 실측: 20 cell 중 16 cell N≥30 통과, 모두 IC<-0.03 음)"
-    reject_signal: "조건부 IC 가 양으로 부호 반전 OR e-CUSUM 단측 붕괴 (baseline_ic=-0.10, sd=0.15)"
+    confirm_signal: "FGI × halving_phase conditioning 후 MVRV → fwd_30d Rank-IC 음 유지 (실측: 20 cell raw IC -0.065~-0.653 전부 음=방향 일관, ★단 eff_n<30 전 16 cell + Bonferroni α/16=0.0031 생존 0 = 개별 cell 비유의. 방향성 약 prior 한정, N≥30 claim 철회)"
+    reject_signal: "조건부 IC 가 양으로 부호 반전 OR e-CUSUM 단측 붕괴 (baseline_ic=0=score⊥fwd null, sd=empirical rolling-IC std≈0.345). ★e-CUSUM 은 window overlap 자기상관으로 small-n spurious → 의사결정 보조 라벨만(단독 retract 근거 X)"
     emit_where: "instrument_source.run_mvrv_closed_loop (이미 ledger 운영) + scripts/h1_mvrv.py 의 conditional Rank-IC 라이브 갱신"
     accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess (regime별 baseline_ic 사전등록)"
     confidence_metric: "e-value anytime-valid (Ville 이론, alpha=0.05) — 우리 e_cusum_one_sided 사용 가능"
@@ -317,7 +317,7 @@ code_change_plan:
     file: core/assume/weight_falsification.py
     symbol: "score_ic_breakdown_eprocess (L66~), rank_ic (L51~), omega_drift (L89~)"
     current: "PRIMARY=score IC e-CUSUM 단측 / SECONDARY=Ω drift re-fit"
-    change: "★블록5 confidence_hooks 6종 매핑 (실측 baseline_ic 사전등록): mvrv_conditional baseline=-0.10 sd=0.15 / funding_trend_follow baseline=+0.05 sd=0.10 / stablecoin baseline=0.0 sd=0.08 + lead-lag-validity gate / etf_probation baseline=+0.05 sd=0.10 / halving_phase=secondary omega_drift only / macro_abstain hit_rate=0.6 baseline"
+    change: "★블록5 confidence_hooks 6종 매핑 (실측 baseline_ic 사전등록): mvrv_conditional baseline=0 (score⊥fwd null; ★비유의 cell=Bonferroni 생존 0 이라 -0.10 점추정 철회) sd=empirical rolling-IC std≈0.345 (heuristic 0.15 격하) + e-CUSUM 보조라벨(단독 retract X) / funding_trend_follow baseline=+0.05 sd=0.10 / stablecoin baseline=0.0 sd=0.08 + lead-lag-validity gate / etf_probation baseline=+0.05 sd=0.10 / halving_phase=secondary omega_drift only / macro_abstain hit_rate=0.6 baseline"
     risk: "기존 함수 재사용 = 추가 코드 최소 (baseline 상수 + lead-lag 게이트 함수만). self-test 6 가설 각 kill/유지 케이스. 무회귀 (기존 stock 카드 임계 불변)"
   - stage: falsify
     file: core/assume/update_controller.py
