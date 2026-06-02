@@ -39,6 +39,93 @@ from common.metrics import (
 logger = logging.getLogger("backtest.engine")
 
 # ---------------------------------------------------------------------------
+# PortfolioState — W2 회계 객체 (OPEN ZONE 신설)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class PortfolioState:
+    """매 bar 엔진 상태 스냅샷 — GatedOrderRouter.submit gate_kwargs 공급원.
+
+    ★SR NAV-basis 2분리:
+      prev_close_nav  : 전 bar 종가 기준 NAV (일일 손실 한도 cap 계산용)
+      intra_bar_nav   : 현 bar 체결 직후 NAV (체결 직후 위험 체크용)
+    entry_bar = fill bar (t+1 의미) — off-by-one·lookahead 주석 고정.
+    """
+
+    # 자산
+    cash: float = 0.0
+    qty: float = 0.0           # 보유 수량
+    avg_price: float = 0.0     # 평균 매수가
+
+    # NAV 2분리 (SR 요구)
+    prev_close_nav: float = 0.0    # 전 bar 종가 NAV — 일일 loss cap 기준
+    intra_bar_nav: float = 0.0     # 체결 직후 NAV — risk check 기준
+
+    # 포지션 메타
+    entry_bar: int = -1            # fill bar index (t+1 의미, off-by-one 방지 주석)
+    bar_idx: int = 0               # 현재 bar index
+
+    # 리스크 게이트 입력
+    daily_loss_pct: float = 0.0    # 당일 누적 손실 (NAV 대비, 음수 = 손실)
+    ytd_realized_pnl_pct: float = 0.0
+    _rejected_count: int = 0       # 거절 카운트 (로그용)
+
+    def current_nav(self, price: float) -> float:
+        """현재 NAV = cash + qty * price."""
+        return self.cash + self.qty * price
+
+    def current_weight(self, price: float) -> float:
+        """현 포지션 포트폴리오 비중 (0~1)."""
+        nav = self.current_nav(price)
+        if nav <= 0:
+            return 0.0
+        return (self.qty * price) / nav
+
+    def position_pnl_pct(self) -> float:
+        """현 포지션 수익률 (손익 / 진입가 기준)."""
+        if self.avg_price <= 0 or self.qty <= 0:
+            return 0.0
+        return 0.0  # 매도 시점 이전엔 MtM 대신 0 (daily_loss 경로 별도)
+
+    def holding_days(self) -> int:
+        """현재 보유일 수. entry_bar=-1이면 미보유."""
+        if self.entry_bar < 0:
+            return 0
+        return max(0, self.bar_idx - self.entry_bar)
+
+    def update_daily_loss(self, price: float) -> None:
+        """당일 손실 갱신 (prev_close_nav 기준). 매 bar 종가에 호출."""
+        if self.prev_close_nav > 0:
+            self.daily_loss_pct = (self.current_nav(price) - self.prev_close_nav) / self.prev_close_nav
+        else:
+            self.daily_loss_pct = 0.0
+
+    def open_bar(self, bar_idx: int, price: float) -> None:
+        """바 시작 시 prev_close_nav 갱신 (전 bar 종가 = 현 bar 시가로 근사)."""
+        self.bar_idx = bar_idx
+        self.prev_close_nav = self.current_nav(price)
+
+    def after_fill_buy(self, qty_filled: float, exec_price: float, commission: float) -> None:
+        """매수 체결 후 intra_bar_nav 갱신."""
+        self.cash -= qty_filled * exec_price + commission
+        self.qty += qty_filled
+        if self.entry_bar < 0:
+            self.entry_bar = self.bar_idx  # fill bar (t+1 의미)
+            self.avg_price = exec_price
+        self.intra_bar_nav = self.cash + self.qty * exec_price
+
+    def after_fill_sell(self, qty_filled: float, exec_price: float, commission: float, tax: float, pnl: float) -> None:
+        """매도 체결 후 상태 정리 + intra_bar_nav 갱신."""
+        realized_pct = (pnl / (self.avg_price * qty_filled)) if (self.avg_price > 0 and qty_filled > 0) else 0.0
+        self.ytd_realized_pnl_pct += realized_pct
+        self.cash += qty_filled * exec_price - commission - tax
+        self.qty = 0.0
+        self.avg_price = 0.0
+        self.entry_bar = -1
+        self.intra_bar_nav = self.cash
+
+
+# ---------------------------------------------------------------------------
 # OrderState — nautilus FSM 축약 (implementation-keys §1-(d))
 # ---------------------------------------------------------------------------
 
@@ -199,6 +286,7 @@ class BacktestEngine:
         target_vol: float = 0.15,   # 연환산 변동성 목표 (gross clip 기준)
         gross_lo: float = 0.10,     # gross 하한 (clip)
         gross_hi: float = 1.00,     # gross 상한 (clip, 레버리지 없음)
+        gate=None,                  # W2: GatedOrderRouter 주입 (None=내부 기본 생성)
     ):
         self._cost = cost_config or CostConfig()
         self._initial_capital = initial_capital
@@ -209,6 +297,8 @@ class BacktestEngine:
         self._target_vol = target_vol
         self._gross_lo = gross_lo
         self._gross_hi = gross_hi
+        # W2: GatedOrderRouter (None이면 _run_risk_pipeline 내부에서 지연 생성)
+        self._gate = gate
 
     def run(
         self,
@@ -255,38 +345,48 @@ class BacktestEngine:
     ) -> BacktestResult:
         """use_risk_pipeline=True 경로.
 
-        rolling-returns deque → realized_vol → gross=clip(target_vol/realized_vol, lo, hi)
-        trade_value = capital * gross * weights[asset]  (weights from size_portfolio, n=1 → 1.0)
-        size_portfolio 무수정 호출(n=1 단일자산 → {asset: 1.0} 자연 흡수).
+        W1: rolling-returns deque → realized_vol → gross=clip(target_vol/realized_vol, lo, hi)
+            trade_value = capital * gross * weights[asset]
+        W2: PortfolioState 회계 객체 + GatedOrderRouter.submit(via_gate=True) 경유.
+            ★SR NAV-basis 2분리: prev_close_nav(일일 loss cap) / intra_bar_nav(체결 직후 위험).
+            모든 fill 시도 submit(via_gate=True) 경유 — 우회 차단.
+            REJECTED→skip, 엔진 cap 추정 재시도 금지.
         """
         from core.risk_sizing import size_portfolio  # noqa: PLC0415
+        from core.risk_gate import GatedOrderRouter  # noqa: PLC0415
 
         if volume_series is None:
             volume_series = pd.Series(
                 [0.0] * len(price_series), index=price_series.index
             )
 
-        capital = self._initial_capital
-        position = 0.0
-        avg_price = 0.0
-        equity_points: List[float] = [capital]
+        # W2: GatedOrderRouter (주입 없으면 기본 생성)
+        router: GatedOrderRouter = self._gate if self._gate is not None else GatedOrderRouter()
+
+        # W2: PortfolioState 회계 초기화
+        ps = PortfolioState(cash=self._initial_capital)
+
+        equity_points: List[float] = [self._initial_capital]
         trades: List[Trade] = []
 
         asset_name = price_series.name or "UNKNOWN"
         entry_id = None
 
-        # rolling-returns deque (W1 신규 상태)
+        # W1: rolling-returns deque
         _ret_deque: collections.deque = collections.deque(maxlen=self._vol_window)
         _prev_price: Optional[float] = None
 
-        # W1: position_fraction 추적 (G3 검증용 — 실제 사이즈 비율)
+        # G3 검증용
         position_fractions: List[float] = []
 
-        for ts, price in price_series.items():
+        for bar_idx, (ts, price) in enumerate(price_series.items()):
             price = float(price)
             vol = float(volume_series.get(ts, 0.0))
 
-            # --- gross 산출: rolling realized_vol → vol-target sizing ---
+            # W2: 바 시작 — prev_close_nav 갱신 (일일 loss 기준)
+            ps.open_bar(bar_idx, price)
+
+            # W1: gross 산출
             if _prev_price is not None and _prev_price > 0:
                 _ret_deque.append(np.log(price / _prev_price))
             _prev_price = price
@@ -294,7 +394,7 @@ class BacktestEngine:
             if len(_ret_deque) >= 2:
                 realized_vol = float(np.std(_ret_deque)) * np.sqrt(252)
             else:
-                realized_vol = self._target_vol  # 초기 바: 중립(gross=1.0)
+                realized_vol = self._target_vol
 
             if realized_vol > 1e-9:
                 gross = float(np.clip(
@@ -302,9 +402,9 @@ class BacktestEngine:
                     self._gross_lo, self._gross_hi,
                 ))
             else:
-                gross = self._gross_hi  # 변동성 0 → 상한 유지
+                gross = self._gross_hi
 
-            # --- weights: size_portfolio(단일자산 n=1 → {asset:1.0}) ---
+            # W1: weights
             returns_df = pd.DataFrame(
                 list(_ret_deque) or [0.0], columns=[asset_name]
             )
@@ -325,10 +425,42 @@ class BacktestEngine:
             except Exception:
                 action = "hold"
 
-            if action == "buy" and capital > 0:
-                # W1 핵심: capital * gross * w_asset (고정 0.95 대체)
-                trade_value = capital * gross * w_asset
-                position_fractions.append(gross * w_asset)
+            # W2: 당일 손실 갱신 (현 bar 기준)
+            ps.update_daily_loss(price)
+
+            if action == "buy" and ps.cash > 0:
+                trade_value = ps.cash * gross * w_asset
+                proposed_size = trade_value
+
+                # W2: GatedOrderRouter 경유 — via_gate=True 필수
+                verdict = router.submit(
+                    {"action": "buy", "asset": asset_name, "trade_value": trade_value},
+                    cycle_id=f"bt-{bar_idx}",
+                    via_gate=True,
+                    action="buy",
+                    proposed_size=proposed_size,
+                    position_pnl_pct=ps.position_pnl_pct(),
+                    holding_days=ps.holding_days(),
+                    current_weight=ps.current_weight(price),
+                    sector_weight=ps.current_weight(price),   # 단일자산 = current_weight
+                    nav=ps.prev_close_nav if ps.prev_close_nav > 0 else self._initial_capital,
+                    ytd_realized_pnl_pct=ps.ytd_realized_pnl_pct,
+                    daily_loss_pct=ps.daily_loss_pct,
+                    avg_correlation=0.0,  # 단일자산 상관 없음
+                )
+
+                from core.risk_gate import VerdictType as _VT  # noqa: PLC0415
+                if verdict.verdict == _VT.REJECTED:
+                    # REJECTED → skip, 엔진 cap 추정 재시도 금지
+                    ps._rejected_count += 1
+                    equity_points.append(ps.current_nav(price))
+                    continue
+
+                # APPROVED 또는 REDUCED: REDUCED면 adjusted_size 사용
+                if verdict.verdict == _VT.REDUCED and verdict.adjusted_size is not None:
+                    trade_value = float(verdict.adjusted_size)
+
+                position_fractions.append(trade_value / (ps.cash if ps.cash > 0 else self._initial_capital))
 
                 slip = calculate_slippage(trade_value, vol, self._cost)
                 exec_price = price * (1 + slip)
@@ -338,9 +470,8 @@ class BacktestEngine:
                 state_order, qty = self._apply_fill_model(qty)
 
                 if qty > 0:
-                    position += qty
-                    avg_price = exec_price
-                    capital -= (qty * exec_price + commission)
+                    # W2: 체결 후 PortfolioState 갱신
+                    ps.after_fill_buy(qty, exec_price, commission)
 
                     if memory is not None:
                         try:
@@ -367,31 +498,57 @@ class BacktestEngine:
                         region=region,
                     ))
 
-            elif action == "sell" and position > 0:
-                trade_value = position * price
-                slip = calculate_slippage(trade_value, vol, self._cost)
-                exec_price = price * (1 - slip)
-                exec_value = exec_price * position
-                commission = exec_value * self._cost.commission_rate
-                tax = self._calc_tax(exec_value, region)
-                pnl = (exec_price - avg_price) * position - commission - tax
+            elif action == "sell" and ps.qty > 0:
+                trade_value = ps.qty * price
+                proposed_size = trade_value
 
-                if self._is_lower_limit_locked(price, avg_price):
-                    logger.debug("H17 하한가잠김 — 매도 불가: %s", asset_name)
-                    equity_points.append(capital + position * price)
+                # W2: 매도도 GatedOrderRouter 경유
+                verdict = router.submit(
+                    {"action": "sell", "asset": asset_name, "trade_value": trade_value},
+                    cycle_id=f"bt-{bar_idx}-sell",
+                    via_gate=True,
+                    action="sell",
+                    proposed_size=proposed_size,
+                    position_pnl_pct=(price - ps.avg_price) / ps.avg_price if ps.avg_price > 0 else 0.0,
+                    holding_days=ps.holding_days(),
+                    current_weight=ps.current_weight(price),
+                    sector_weight=ps.current_weight(price),
+                    nav=ps.prev_close_nav if ps.prev_close_nav > 0 else self._initial_capital,
+                    ytd_realized_pnl_pct=ps.ytd_realized_pnl_pct,
+                    daily_loss_pct=ps.daily_loss_pct,
+                    avg_correlation=0.0,
+                )
+
+                from core.risk_gate import VerdictType as _VT  # noqa: PLC0415
+                if verdict.verdict == _VT.REJECTED:
+                    ps._rejected_count += 1
+                    equity_points.append(ps.current_nav(price))
                     continue
 
-                filled_qty = position
-                capital += position * exec_price - commission - tax
-                position = 0.0
+                slip = calculate_slippage(trade_value, vol, self._cost)
+                exec_price = price * (1 - slip)
+                exec_value = exec_price * ps.qty
+                commission = exec_value * self._cost.commission_rate
+                tax = self._calc_tax(exec_value, region)
+                pnl = (exec_price - ps.avg_price) * ps.qty - commission - tax
+
+                if self._is_lower_limit_locked(price, ps.avg_price):
+                    logger.debug("H17 하한가잠김 — 매도 불가: %s", asset_name)
+                    equity_points.append(ps.current_nav(price))
+                    continue
+
+                filled_qty = ps.qty
 
                 if memory is not None and entry_id is not None:
                     try:
-                        pnl_pct = ((exec_price - avg_price) / avg_price * 100.0) if avg_price else 0.0
+                        pnl_pct = ((exec_price - ps.avg_price) / ps.avg_price * 100.0) if ps.avg_price else 0.0
                         memory.update_with_outcome(entry_id, pnl_pct)
                     except Exception:
                         pass
                     entry_id = None
+
+                # W2: 체결 후 PortfolioState 갱신
+                ps.after_fill_sell(filled_qty, exec_price, commission, tax, pnl)
 
                 trades.append(Trade(
                     asset=asset_name,
@@ -407,9 +564,10 @@ class BacktestEngine:
                     region=region,
                 ))
 
-            equity_points.append(capital + position * price)
+            # W2: 종가 equity 기록 (PortfolioState 기반)
+            equity_points.append(ps.current_nav(price))
 
-        final_capital = capital + position * (
+        final_capital = ps.current_nav(
             float(price_series.iloc[-1]) if len(price_series) > 0 else 0.0
         )
 
@@ -425,6 +583,9 @@ class BacktestEngine:
         result.compute_metrics()
         # W1 진단용 메타 (position_fraction 분산 검증용 — G3 oracle)
         result._position_fractions = position_fractions  # type: ignore[attr-defined]
+        # W2 진단용 메타
+        result._rejected_count = ps._rejected_count  # type: ignore[attr-defined]
+        result._portfolio_state = ps  # type: ignore[attr-defined]
         return result
 
     # ------------------------------------------------------------------

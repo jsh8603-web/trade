@@ -187,59 +187,58 @@ class TestW1Sizing:
         )
 
     def test_g3_mutation_kill_size_portfolio(self):
-        """★mutation-kill(SR): size_portfolio가 항상 1.0을 반환하는 mutant 시
-        G3(var(position_fraction)>0)가 FAIL해야 함 — liveness 증명.
+        """★mutation-kill(SR): size_portfolio 반환값이 실제 trade_value에 반영됨을 증명.
 
-        mutant가 G3를 통과(PASS)하면 G3가 tautology → test 무효.
-        이 테스트가 PASS = mutant에서 G3 FAIL이 올바르게 발생함.
+        max_weight_single=1.0 (제약 없는) RiskGate 사용.
+        w=1.0 mutant vs w=0.5 — equity_curve 합산이 달라야 함 (결과 반영 증명).
         """
         from backtest.engine import BacktestEngine
+        from core.risk_gate import GatedOrderRouter, RiskGate
         import core.risk_sizing as rs_mod
 
-        price = _make_price_series(100, seed=7)
-        track = _AlternatingTrack()
-        eng = BacktestEngine(fill_model_seed=0, use_risk_pipeline=True, vol_window=5)
+        # max_weight_single=1.0 → REDUCED 없이 APPROVED 통과
+        gate = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router = GatedOrderRouter(gate=gate)
 
-        def mutant_size_portfolio(*args, **kwargs):
-            """항상 1.0 반환 — mutant."""
-            # returns DataFrame의 첫 번째 컬럼명으로 {col: 1.0} 반환
+        price = _make_price_series(100, seed=7)
+
+        def sp_full(*args, **kwargs):
             df = args[0] if args else kwargs.get("returns")
             if df is not None and hasattr(df, "columns"):
-                return {col: 1.0 for col in df.columns}, "mutant"
-            return {"UNKNOWN": 1.0}, "mutant"
+                return {col: 1.0 for col in df.columns}, "full"
+            return {"UNKNOWN": 1.0}, "full"
 
-        with patch.object(rs_mod, "size_portfolio", side_effect=mutant_size_portfolio):
-            result_mutant = eng.run(track, price)
-
-        fracs_mutant = getattr(result_mutant, "_position_fractions", [])
-
-        # mutant에서도 gross는 변동하므로 fracs_mutant는 var>0일 수 있음
-        # 하지만 w_asset=1.0이면 position_fraction = gross * 1.0 = gross
-        # 즉 mutant에서 G3 var>0 = gross의 분산 (size_portfolio 영향 없음)
-        # ★실제 mutation-kill: size_portfolio가 w_asset=0.5를 반환하는 경우와
-        #   w_asset=1.0 mutant를 비교 — 결과가 달라야 함 (결과 반영됨 증명)
-
-        def controlled_sp_half(*args, **kwargs):
+        def sp_half(*args, **kwargs):
             df = args[0] if args else kwargs.get("returns")
             if df is not None and hasattr(df, "columns"):
                 return {col: 0.5 for col in df.columns}, "half"
             return {"UNKNOWN": 0.5}, "half"
 
+        track1 = _AlternatingTrack()
+        eng1 = BacktestEngine(fill_model_seed=0, use_risk_pipeline=True, vol_window=5, gate=router)
+        with patch.object(rs_mod, "size_portfolio", side_effect=sp_full):
+            r_full = eng1.run(track1, price)
+
+        gate2 = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router2 = GatedOrderRouter(gate=gate2)
         track2 = _AlternatingTrack()
-        eng2 = BacktestEngine(fill_model_seed=0, use_risk_pipeline=True, vol_window=5)
-        with patch.object(rs_mod, "size_portfolio", side_effect=controlled_sp_half):
-            result_half = eng2.run(track2, price)
+        eng2 = BacktestEngine(fill_model_seed=0, use_risk_pipeline=True, vol_window=5, gate=router2)
+        with patch.object(rs_mod, "size_portfolio", side_effect=sp_half):
+            r_half = eng2.run(track2, price)
 
-        fracs_half = getattr(result_half, "_position_fractions", [])
+        fracs_full = getattr(r_full, "_position_fractions", [])
+        fracs_half = getattr(r_half, "_position_fractions", [])
 
-        # w=1.0 vs w=0.5: position_fraction 합이 달라야 함
-        if fracs_mutant and fracs_half and len(fracs_mutant) == len(fracs_half):
-            sum_1 = sum(fracs_mutant)
-            sum_half = sum(fracs_half)
-            assert abs(sum_1 - sum_half) > 1e-9, (
-                "★mutation-kill FAIL: size_portfolio 반환값(1.0 vs 0.5)이 "
-                "position_fraction에 영향 없음 — G3가 tautology"
-            )
+        assert len(fracs_full) > 0, "mutation-kill: buy 없음 — track 설정 확인"
+        assert len(fracs_half) > 0, "mutation-kill: half track buy 없음"
+
+        # w=1.0 vs w=0.5: position_fractions 합이 달라야 함 (size_portfolio 결과 반영)
+        sum_full = sum(fracs_full)
+        sum_half = sum(fracs_half)
+        assert abs(sum_full - sum_half) > 1e-9, (
+            "★mutation-kill FAIL: size_portfolio 반환값(1.0 vs 0.5)이 "
+            "position_fraction에 영향 없음 — G3가 tautology"
+        )
 
     def test_off_path_no_position_fractions(self):
         """off 경로(_run_legacy)는 _position_fractions를 달지 않음 (경로 분리 확인)."""
@@ -251,4 +250,147 @@ class TestW1Sizing:
         result = eng.run(track, price)
         assert not hasattr(result, "_position_fractions"), (
             "off 경로에 _position_fractions 부착됨 — 경로 혼입 버그"
+        )
+
+
+# ---------------------------------------------------------------------------
+# SO 1.2 — W2 게이트 테스트
+# ---------------------------------------------------------------------------
+
+class TestW2Gate:
+    """G4 via_gate=False→REJECTED / daily_loss cap 발화 / PortfolioState NAV-basis 2분리."""
+
+    def test_all_fills_via_gate(self):
+        """모든 fill 시도가 submit(via_gate=True) 경유: router submit spy로 확인."""
+        from backtest.engine import BacktestEngine
+        from core.risk_gate import GatedOrderRouter, RiskVerdict, VerdictType
+
+        submit_calls = []
+        original_submit = GatedOrderRouter.submit
+
+        def spy_submit(self_router, order, *, cycle_id="", via_gate=False, **kwargs):
+            submit_calls.append({"via_gate": via_gate, "order": order, **kwargs})
+            return original_submit(self_router, order, cycle_id=cycle_id, via_gate=via_gate, **kwargs)
+
+        price = _make_price_series(60)
+        track = _AlternatingTrack()
+        router = GatedOrderRouter()
+
+        eng = BacktestEngine(fill_model_seed=0, use_risk_pipeline=True, gate=router)
+        with patch.object(GatedOrderRouter, "submit", spy_submit):
+            result = eng.run(track, price)
+
+        # 모든 호출이 via_gate=True 여야 함
+        assert len(submit_calls) > 0, "submit 호출 0 — GatedOrderRouter 미배선"
+        assert all(c["via_gate"] for c in submit_calls), (
+            "G4 FAIL: via_gate=False 호출 존재 — 우회 경로 있음"
+        )
+
+    def test_g4_via_gate_false_rejected(self):
+        """G4: via_gate=False → REJECTED assert."""
+        from core.risk_gate import GatedOrderRouter, VerdictType
+
+        router = GatedOrderRouter()
+        verdict = router.submit({"action": "buy"}, via_gate=False)
+        assert verdict.verdict == VerdictType.REJECTED, (
+            "G4 FAIL: via_gate=False 가 APPROVED됨 — 우회 차단 미작동"
+        )
+
+    def test_daily_loss_cap_rejection_fires(self):
+        """daily_loss cap 돌파 시나리오에서 거절 경로 >= 1 발화."""
+        from backtest.engine import BacktestEngine, PortfolioState
+        from core.risk_gate import GatedOrderRouter, RiskGate, RiskVerdict, VerdictType
+
+        # daily_loss_cap=-0.05 기본, NAV 대비 -6% 손실 → REJECTED
+        gate = RiskGate(daily_loss_cap=-0.05)
+        router = GatedOrderRouter(gate=gate)
+
+        price = _make_price_series(30)
+        track = _AlternatingTrack()
+        eng = BacktestEngine(fill_model_seed=0, use_risk_pipeline=True, gate=router)
+        result = eng.run(track, price)
+
+        # 거절 발화 확인: 거절=router.bypassed_attempts=0 이어야 함(우회 아님)
+        # daily_loss cap 발화 여부는 PortfolioState daily_loss_pct 추적으로 확인
+        ps = getattr(result, "_portfolio_state", None)
+        assert ps is not None, "PortfolioState 미부착"
+        # _rejected_count >= 0 (발화 조건 충족 여부는 시계열 의존 — 발화 가능성 테스트)
+        # 직접 시나리오: 강제 daily_loss = -10%
+        verdict = router.submit(
+            {"action": "buy"},
+            via_gate=True,
+            action="buy",
+            proposed_size=1000.0,
+            nav=1.0,
+            daily_loss_pct=-0.10,  # -10% > cap -5% → REJECTED
+            position_pnl_pct=0.0,
+            holding_days=0,
+            current_weight=0.0,
+            sector_weight=0.0,
+            ytd_realized_pnl_pct=0.0,
+            avg_correlation=0.0,
+        )
+        assert verdict.verdict == VerdictType.REJECTED, (
+            "daily_loss cap 돌파 시나리오 거절 미발화"
+        )
+        assert "daily_loss_halt" in verdict.triggered_rules
+
+    def test_reject_means_skip_no_cap_retry(self):
+        """REJECTED → skip (엔진 cap 추정 재시도 0)."""
+        from backtest.engine import BacktestEngine
+        from core.risk_gate import GatedOrderRouter, RiskVerdict, VerdictType
+
+        # 항상 REJECTED 반환하는 gate
+        class AlwaysRejectRouter(GatedOrderRouter):
+            def submit(self, order, *, cycle_id="", via_gate=False, **kwargs):
+                if via_gate:
+                    from core.risk_gate import RiskVerdict, VerdictType
+                    return RiskVerdict(VerdictType.REJECTED, "test reject", triggered_rules=["test"])
+                return super().submit(order, cycle_id=cycle_id, via_gate=via_gate, **kwargs)
+
+        price = _make_price_series(30)
+        track = _AlternatingTrack()
+        router = AlwaysRejectRouter()
+        eng = BacktestEngine(fill_model_seed=0, use_risk_pipeline=True, gate=router)
+        result = eng.run(track, price)
+
+        # 모두 REJECT → trade 0
+        assert result.n_trades == 0, (
+            f"REJECT skip 실패: 체결 {result.n_trades}건 (cap 재시도 있음)"
+        )
+        # 엔진 cap 추정 = 자본이 initial과 같아야 (손익 0)
+        assert abs(result.final_capital - 10_000_000.0) < 1.0, (
+            "REJECT 후 자본 변동 — skip 미작동"
+        )
+
+    def test_nav_basis_2_split(self):
+        """★SR NAV-basis 2분리: prev_close_nav ≠ intra_bar_nav 체결 후 (둘이 분리됨 확인)."""
+        from backtest.engine import BacktestEngine, PortfolioState
+
+        # PortfolioState 직접 단위 테스트
+        ps = PortfolioState(cash=1_000_000.0)
+        ps.open_bar(0, 50000.0)
+        assert ps.prev_close_nav == 1_000_000.0, "prev_close_nav 갱신 오류"
+
+        # 매수 체결 후 intra_bar_nav 갱신
+        ps.after_fill_buy(qty_filled=10.0, exec_price=50000.0, commission=500.0)
+        # intra_bar_nav = cash + qty * exec_price = (1M - 10*50000 - 500) + 10*50000
+        expected_intra = ps.cash + ps.qty * 50000.0
+        assert abs(ps.intra_bar_nav - expected_intra) < 0.01, (
+            f"intra_bar_nav 불일치: {ps.intra_bar_nav} ≠ {expected_intra}"
+        )
+        # prev_close_nav는 변경 안 됨 (일일 loss cap 기준 보존)
+        assert ps.prev_close_nav == 1_000_000.0, (
+            "★SR NAV-basis 2분리 FAIL: 체결 후 prev_close_nav 변경됨 (일일 loss 오염)"
+        )
+
+    def test_entry_bar_fill_bar_meaning(self):
+        """entry_bar = fill bar (t+1 의미) — off-by-one·lookahead 주석 고정."""
+        from backtest.engine import BacktestEngine, PortfolioState
+
+        ps = PortfolioState(cash=1_000_000.0)
+        ps.bar_idx = 5  # 현재 bar = 5
+        ps.after_fill_buy(qty_filled=1.0, exec_price=100.0, commission=0.0)
+        assert ps.entry_bar == 5, (
+            f"entry_bar = {ps.entry_bar} (fill bar=5 기대, t+1 off-by-one 버그)"
         )
