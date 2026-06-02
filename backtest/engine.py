@@ -287,6 +287,8 @@ class BacktestEngine:
         gross_lo: float = 0.10,     # gross 하한 (clip)
         gross_hi: float = 1.00,     # gross 상한 (clip, 레버리지 없음)
         gate=None,                  # W2: GatedOrderRouter 주입 (None=내부 기본 생성)
+        judge_hook=None,            # W3: judge hook 주입 (None=coin bypass a=1.0)
+        track_type: str = "coin",   # W3: "coin" | "stock" — 트랙별 판단 정책
     ):
         self._cost = cost_config or CostConfig()
         self._initial_capital = initial_capital
@@ -299,6 +301,9 @@ class BacktestEngine:
         self._gross_hi = gross_hi
         # W2: GatedOrderRouter (None이면 _run_risk_pipeline 내부에서 지연 생성)
         self._gate = gate
+        # W3: judge hook + track_type
+        self._judge_hook = judge_hook
+        self._track_type = track_type
 
     def run(
         self,
@@ -379,6 +384,10 @@ class BacktestEngine:
         # G3 검증용
         position_fractions: List[float] = []
 
+        # W3: judge hook 카운트 (매 의사결정 bar 호출, G5 검증용)
+        judge_hook_calls: int = 0
+        judge_finals: List[float] = []   # final size_mult 기록 (final<=L1 검증용)
+
         for bar_idx, (ts, price) in enumerate(price_series.items()):
             price = float(price)
             vol = float(volume_series.get(ts, 0.0))
@@ -429,7 +438,36 @@ class BacktestEngine:
             ps.update_daily_loss(price)
 
             if action == "buy" and ps.cash > 0:
-                trade_value = ps.cash * gross * w_asset
+                # W3: 공통 judge hook — 매 의사결정 bar(buy 시도) 호출
+                # 결정론 단계: valuation/rag/qwen=None → fail-open a=1.0 → final=L1×1.0=L1
+                # coin bypass: firm/valuation 부재 → a=1.0 (hook 호출은 live)
+                judge_hook_calls += 1
+                a_judge = 1.0  # fail-open (결정론 baseline)
+                l1_size_ref = 1.0  # 천장 불변식용 L1 참조
+                if self._judge_hook is not None:
+                    try:
+                        jv = self._judge_hook(
+                            bar_idx=bar_idx,
+                            price=price,
+                            gross=gross,
+                            w_asset=w_asset,
+                            track_type=self._track_type,
+                        )
+                        # JudgeVerdict 또는 dict 두 형식 허용
+                        if hasattr(jv, "size_mult") and hasattr(jv, "l1_size"):
+                            l1_size_ref = float(jv.l1_size) if jv.l1_size else 1.0
+                            a_judge = float(jv.size_mult)
+                        elif isinstance(jv, dict):
+                            l1_size_ref = float(jv.get("l1_size", 1.0))
+                            a_judge = float(jv.get("size_mult", 1.0))
+                        # 천장 불변식: final ≤ L1 (down-only 보장)
+                        a_judge = min(max(a_judge, 0.0), l1_size_ref)
+                    except Exception:
+                        a_judge = 1.0  # 장애 = fail-open
+
+                judge_finals.append(a_judge)
+
+                trade_value = ps.cash * gross * w_asset * a_judge
                 proposed_size = trade_value
 
                 # W2: GatedOrderRouter 경유 — via_gate=True 필수
@@ -586,6 +624,9 @@ class BacktestEngine:
         # W2 진단용 메타
         result._rejected_count = ps._rejected_count  # type: ignore[attr-defined]
         result._portfolio_state = ps  # type: ignore[attr-defined]
+        # W3 진단용 메타
+        result._judge_hook_calls = judge_hook_calls  # type: ignore[attr-defined]
+        result._judge_finals = judge_finals  # type: ignore[attr-defined]
         return result
 
     # ------------------------------------------------------------------

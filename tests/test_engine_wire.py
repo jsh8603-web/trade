@@ -394,3 +394,163 @@ class TestW2Gate:
         assert ps.entry_bar == 5, (
             f"entry_bar = {ps.entry_bar} (fill bar=5 기대, t+1 off-by-one 버그)"
         )
+
+
+# ---------------------------------------------------------------------------
+# SO 1.3 — W3 judge 테스트
+# ---------------------------------------------------------------------------
+
+class TestW3Judge:
+    """judge_hook 호출수==bar수(!=0) / final<=L1 / no-op a==1.0 / G5 sensitivity."""
+
+    def _make_noop_hook(self):
+        """결정론 no-op hook: valuation/rag/qwen=None → a=1.0, final=L1."""
+        call_log = []
+        def hook(*, bar_idx, price, gross, w_asset, track_type):
+            call_log.append(bar_idx)
+            return {"l1_size": 1.0, "size_mult": 1.0}
+        hook._call_log = call_log
+        return hook
+
+    def _make_attenuating_hook(self, atten: float = 0.5):
+        """감쇠 hook: size_mult = l1_size * atten."""
+        def hook(*, bar_idx, price, gross, w_asset, track_type):
+            return {"l1_size": 1.0, "size_mult": atten}
+        return hook
+
+    def test_judge_hook_call_count_equals_buy_decisions(self):
+        """judge_hook 호출수 == 의사결정(buy 시도) bar 수 (!=0)."""
+        from backtest.engine import BacktestEngine
+        from core.risk_gate import GatedOrderRouter, RiskGate
+
+        gate = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router = GatedOrderRouter(gate=gate)
+        hook = self._make_noop_hook()
+
+        price = _make_price_series(60)
+        track = _AlternatingTrack()
+        eng = BacktestEngine(
+            fill_model_seed=0, use_risk_pipeline=True,
+            gate=router, judge_hook=hook
+        )
+        result = eng.run(track, price)
+
+        n_hook_calls = result._judge_hook_calls
+        assert n_hook_calls > 0, "judge_hook 호출 0회 — W3 배선 미작동"
+        # hook._call_log에서도 확인
+        assert len(hook._call_log) == n_hook_calls, (
+            f"hook 내부 카운트({len(hook._call_log)}) ≠ 엔진 카운트({n_hook_calls})"
+        )
+
+    def test_all_bar_final_leq_l1(self):
+        """모든 bar final ≤ L1 (천장 불변식 — down-only)."""
+        from backtest.engine import BacktestEngine
+        from core.risk_gate import GatedOrderRouter, RiskGate
+
+        gate = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router = GatedOrderRouter(gate=gate)
+
+        def overshooting_hook(*, bar_idx, price, gross, w_asset, track_type):
+            # l1_size=0.5 이지만 size_mult=1.5 를 반환 시도 — 엔진이 천장 클램핑해야 함
+            return {"l1_size": 0.5, "size_mult": 1.5}
+
+        price = _make_price_series(60)
+        track = _AlternatingTrack()
+        eng = BacktestEngine(
+            fill_model_seed=0, use_risk_pipeline=True,
+            gate=router, judge_hook=overshooting_hook
+        )
+        result = eng.run(track, price)
+
+        finals = result._judge_finals
+        assert len(finals) > 0, "judge_finals 비어있음"
+        # 모든 final ≤ l1_size(0.5) — 엔진 클램핑 확인
+        assert all(f <= 0.5 + 1e-9 for f in finals), (
+            f"final>L1 위반: max={max(finals):.4f} > 0.5 (down-only 불변식 깨짐)"
+        )
+
+    def test_noop_hook_a_equals_1(self):
+        """no-op 단계(valuation=None) → a==1.0, final==L1."""
+        from backtest.engine import BacktestEngine
+        from core.risk_gate import GatedOrderRouter, RiskGate
+
+        gate = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router = GatedOrderRouter(gate=gate)
+        hook = self._make_noop_hook()  # a=1.0, l1_size=1.0 → final=1.0
+
+        price = _make_price_series(60)
+        track = _AlternatingTrack()
+        eng = BacktestEngine(
+            fill_model_seed=0, use_risk_pipeline=True,
+            gate=router, judge_hook=hook
+        )
+        result = eng.run(track, price)
+
+        finals = result._judge_finals
+        assert len(finals) > 0
+        assert all(abs(f - 1.0) < 1e-9 for f in finals), (
+            f"no-op hook final!=1.0: {finals[:3]}"
+        )
+
+    def test_g5_sensitivity_attenuating_hook(self):
+        """G5 sensitivity: 합성 valuation 주입시 a<1.0 AND final<L1 (dead stub 구별)."""
+        from backtest.engine import BacktestEngine
+        from core.risk_gate import GatedOrderRouter, RiskGate
+
+        gate = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router_full = GatedOrderRouter(gate=gate)
+        gate2 = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router_half = GatedOrderRouter(gate=gate2)
+
+        full_hook = self._make_noop_hook()       # a=1.0
+        half_hook = self._make_attenuating_hook(0.3)  # a=0.3 < 1.0
+
+        price = _make_price_series(60)
+        track_full = _AlternatingTrack()
+        track_half = _AlternatingTrack()
+
+        eng_full = BacktestEngine(
+            fill_model_seed=0, use_risk_pipeline=True,
+            gate=router_full, judge_hook=full_hook
+        )
+        eng_half = BacktestEngine(
+            fill_model_seed=0, use_risk_pipeline=True,
+            gate=router_half, judge_hook=half_hook
+        )
+
+        r_full = eng_full.run(track_full, price)
+        r_half = eng_half.run(track_half, price)
+
+        finals_half = r_half._judge_finals
+        assert len(finals_half) > 0
+        assert all(abs(f - 0.3) < 1e-9 for f in finals_half), (
+            f"G5: atten=0.3인데 final≠0.3: {finals_half[:3]}"
+        )
+
+        # G5: final_capital 이 다름 (감쇠 효과 반영)
+        assert r_full.final_capital != r_half.final_capital, (
+            "G5 FAIL: hook 감쇠가 equity에 영향 없음 — dead stub"
+        )
+
+    def test_coin_bypass_no_judge_hook_a_1(self):
+        """coin track: judge_hook=None → a=1.0 (bypass, hook 호출 0)."""
+        from backtest.engine import BacktestEngine
+        from core.risk_gate import GatedOrderRouter, RiskGate
+
+        gate = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router = GatedOrderRouter(gate=gate)
+
+        price = _make_price_series(60)
+        track = _AlternatingTrack()
+        eng = BacktestEngine(
+            fill_model_seed=0, use_risk_pipeline=True,
+            gate=router, judge_hook=None, track_type="coin"
+        )
+        result = eng.run(track, price)
+
+        # judge_hook=None → a=1.0 → finals 모두 1.0
+        finals = result._judge_finals
+        assert len(finals) > 0
+        assert all(abs(f - 1.0) < 1e-9 for f in finals), (
+            f"coin bypass a!=1.0: {finals[:3]}"
+        )
