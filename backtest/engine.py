@@ -16,6 +16,7 @@ WHY: coin 13 분산 backtest_*.py + 슬리피지0 sim_engine.py 의 교체 대�
 
 from __future__ import annotations
 
+import collections
 import logging
 import uuid
 from dataclasses import dataclass, field
@@ -23,6 +24,7 @@ from datetime import datetime, timezone
 from enum import Enum, auto
 from typing import Any, Dict, List, Optional
 
+import numpy as np
 import pandas as pd
 
 from common.metrics import (
@@ -191,10 +193,22 @@ class BacktestEngine:
         cost_config: Optional[CostConfig] = None,
         initial_capital: float = 10_000_000.0,
         fill_model_seed: Optional[int] = None,
+        *,
+        use_risk_pipeline: bool = False,
+        vol_window: int = 20,       # rolling-returns deque 윈도우 (바 단위)
+        target_vol: float = 0.15,   # 연환산 변동성 목표 (gross clip 기준)
+        gross_lo: float = 0.10,     # gross 하한 (clip)
+        gross_hi: float = 1.00,     # gross 상한 (clip, 레버리지 없음)
     ):
         self._cost = cost_config or CostConfig()
         self._initial_capital = initial_capital
         self._rng = __import__("random").Random(fill_model_seed)
+        # W1: risk pipeline opt-in flag
+        self.use_risk_pipeline = use_risk_pipeline
+        self._vol_window = vol_window
+        self._target_vol = target_vol
+        self._gross_lo = gross_lo
+        self._gross_hi = gross_hi
 
     def run(
         self,
@@ -214,7 +228,218 @@ class BacktestEngine:
             memory: MemoryLayer 류(store_decision/update_with_outcome). 주입 시 학습 sink
               가동 — BUY=store_decision, SELL=update_with_outcome(realized pnl%). None=무학습
               (하위호환). WP6②: 리플레이가 결과로 prior 수정(전수조사 A5 F1 blocker 해소).
+
+        W1: use_risk_pipeline=True 이면 on-경로(_run_risk_pipeline) 진입.
+            False(기본) 이면 _run_legacy 경유 — 완전 byte-identical 동결.
         """
+        # W1 hard-branch: off=_run_legacy(동결) / on=_run_risk_pipeline(배선)
+        if not self.use_risk_pipeline:
+            return self._run_legacy(
+                asset_track, price_series, volume_series, region, memory
+            )
+        return self._run_risk_pipeline(
+            asset_track, price_series, volume_series, region, memory
+        )
+
+    # ------------------------------------------------------------------
+    # W1 on-경로: gross × weight 합성 사이징 (size_portfolio 무수정 호출)
+    # ------------------------------------------------------------------
+
+    def _run_risk_pipeline(
+        self,
+        asset_track,
+        price_series: pd.Series,
+        volume_series: Optional[pd.Series] = None,
+        region: str = "KR",
+        memory=None,
+    ) -> BacktestResult:
+        """use_risk_pipeline=True 경로.
+
+        rolling-returns deque → realized_vol → gross=clip(target_vol/realized_vol, lo, hi)
+        trade_value = capital * gross * weights[asset]  (weights from size_portfolio, n=1 → 1.0)
+        size_portfolio 무수정 호출(n=1 단일자산 → {asset: 1.0} 자연 흡수).
+        """
+        from core.risk_sizing import size_portfolio  # noqa: PLC0415
+
+        if volume_series is None:
+            volume_series = pd.Series(
+                [0.0] * len(price_series), index=price_series.index
+            )
+
+        capital = self._initial_capital
+        position = 0.0
+        avg_price = 0.0
+        equity_points: List[float] = [capital]
+        trades: List[Trade] = []
+
+        asset_name = price_series.name or "UNKNOWN"
+        entry_id = None
+
+        # rolling-returns deque (W1 신규 상태)
+        _ret_deque: collections.deque = collections.deque(maxlen=self._vol_window)
+        _prev_price: Optional[float] = None
+
+        # W1: position_fraction 추적 (G3 검증용 — 실제 사이즈 비율)
+        position_fractions: List[float] = []
+
+        for ts, price in price_series.items():
+            price = float(price)
+            vol = float(volume_series.get(ts, 0.0))
+
+            # --- gross 산출: rolling realized_vol → vol-target sizing ---
+            if _prev_price is not None and _prev_price > 0:
+                _ret_deque.append(np.log(price / _prev_price))
+            _prev_price = price
+
+            if len(_ret_deque) >= 2:
+                realized_vol = float(np.std(_ret_deque)) * np.sqrt(252)
+            else:
+                realized_vol = self._target_vol  # 초기 바: 중립(gross=1.0)
+
+            if realized_vol > 1e-9:
+                gross = float(np.clip(
+                    self._target_vol / realized_vol,
+                    self._gross_lo, self._gross_hi,
+                ))
+            else:
+                gross = self._gross_hi  # 변동성 0 → 상한 유지
+
+            # --- weights: size_portfolio(단일자산 n=1 → {asset:1.0}) ---
+            returns_df = pd.DataFrame(
+                list(_ret_deque) or [0.0], columns=[asset_name]
+            )
+            weights, _method = size_portfolio(returns_df)
+            w_asset = weights.get(asset_name, 1.0)
+
+            # AssetTrack 계약 경유
+            state = asset_track.collect_market_state(
+                as_of=ts if isinstance(ts, datetime) else None
+            )
+            state.raw_market_data["price"] = price
+            state.raw_market_data["asset"] = asset_name
+            state.raw_market_data["timestamp"] = str(ts)
+
+            try:
+                decision = asset_track.generate_candidate(state)
+                action = getattr(decision, "action", "hold")
+            except Exception:
+                action = "hold"
+
+            if action == "buy" and capital > 0:
+                # W1 핵심: capital * gross * w_asset (고정 0.95 대체)
+                trade_value = capital * gross * w_asset
+                position_fractions.append(gross * w_asset)
+
+                slip = calculate_slippage(trade_value, vol, self._cost)
+                exec_price = price * (1 + slip)
+                commission = trade_value * self._cost.commission_rate
+                qty = (trade_value - commission) / exec_price
+
+                state_order, qty = self._apply_fill_model(qty)
+
+                if qty > 0:
+                    position += qty
+                    avg_price = exec_price
+                    capital -= (qty * exec_price + commission)
+
+                    if memory is not None:
+                        try:
+                            entry_id = memory.store_decision(
+                                decision="buy",
+                                reason=str(getattr(decision, "reason", "") or "backtest buy"),
+                                confidence=float(getattr(decision, "confidence", 0.0) or 0.0),
+                                created_at=ts.timestamp() if isinstance(ts, datetime) else None,
+                                asset=asset_name,
+                                entry_price=exec_price,
+                            )
+                        except Exception:
+                            entry_id = None
+
+                    trades.append(Trade(
+                        asset=asset_name,
+                        side="BUY",
+                        price=exec_price,
+                        qty=qty,
+                        commission=commission,
+                        slippage=slip * trade_value,
+                        timestamp=ts if isinstance(ts, datetime) else datetime.now(timezone.utc),
+                        order_state=state_order,
+                        region=region,
+                    ))
+
+            elif action == "sell" and position > 0:
+                trade_value = position * price
+                slip = calculate_slippage(trade_value, vol, self._cost)
+                exec_price = price * (1 - slip)
+                exec_value = exec_price * position
+                commission = exec_value * self._cost.commission_rate
+                tax = self._calc_tax(exec_value, region)
+                pnl = (exec_price - avg_price) * position - commission - tax
+
+                if self._is_lower_limit_locked(price, avg_price):
+                    logger.debug("H17 하한가잠김 — 매도 불가: %s", asset_name)
+                    equity_points.append(capital + position * price)
+                    continue
+
+                filled_qty = position
+                capital += position * exec_price - commission - tax
+                position = 0.0
+
+                if memory is not None and entry_id is not None:
+                    try:
+                        pnl_pct = ((exec_price - avg_price) / avg_price * 100.0) if avg_price else 0.0
+                        memory.update_with_outcome(entry_id, pnl_pct)
+                    except Exception:
+                        pass
+                    entry_id = None
+
+                trades.append(Trade(
+                    asset=asset_name,
+                    side="SELL",
+                    price=exec_price,
+                    qty=filled_qty,
+                    commission=commission,
+                    tax=tax,
+                    slippage=slip * trade_value,
+                    pnl=pnl,
+                    timestamp=ts if isinstance(ts, datetime) else datetime.now(timezone.utc),
+                    order_state=OrderState.FILLED,
+                    region=region,
+                ))
+
+            equity_points.append(capital + position * price)
+
+        final_capital = capital + position * (
+            float(price_series.iloc[-1]) if len(price_series) > 0 else 0.0
+        )
+
+        result = BacktestResult(
+            asset=asset_name,
+            start=price_series.index[0] if len(price_series) > 0 else None,
+            end=price_series.index[-1] if len(price_series) > 0 else None,
+            initial_capital=self._initial_capital,
+            final_capital=final_capital,
+            trades=trades,
+            equity_curve=pd.Series(equity_points),
+        )
+        result.compute_metrics()
+        # W1 진단용 메타 (position_fraction 분산 검증용 — G3 oracle)
+        result._position_fractions = position_fractions  # type: ignore[attr-defined]
+        return result
+
+    # ------------------------------------------------------------------
+    # _run_legacy: 현 run 본문 verbatim 동결 (off 경로 byte-identical 보장)
+    # ------------------------------------------------------------------
+
+    def _run_legacy(
+        self,
+        asset_track,
+        price_series: pd.Series,
+        volume_series: Optional[pd.Series] = None,
+        region: str = "KR",
+        memory=None,
+    ) -> BacktestResult:
+        """off 경로 — use_risk_pipeline=False 시 호출. 본문 동결(verbatim), 수정 금지."""
         if volume_series is None:
             volume_series = pd.Series(
                 [0.0] * len(price_series), index=price_series.index
