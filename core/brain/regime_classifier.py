@@ -339,17 +339,21 @@ class RegimeClassifier:
         # # ★B(a) regime-eval harness REJECTED(2026-05-31, study-research/macro/raw/validation-bgroup-2026-05-31.md):
         # #   forward 21d risk-off OOS Rank-IC 게이트 4/4 FAIL(dxy 부호반전 IS+0.075→OOS-0.056·전 신호 CI∋0)
         # #   + baseline(real,term,VIX) 증분 -0.095 악화 → tautology 데이터 입증 = 보류 확정(활성화 차단).
-        for name in ["industrial_production", "core_cpi", "yield_10y_2y", "nfci",
-                     "credit_spread_baa", "credit_spread_hy_oas", "real_rate_10y",
-                     "unemployment_rate", "breakeven_5y", "cfnai"]:
+        # ★빈도 통일 fix(2026-06-02): 일/주/월 혼합 시리즈를 공통 월말(ME) 그리드로 정규화 후 변환.
+        #   이전엔 월별 yoy(매월 1일 인덱스)·resample ME diff(월말)·breakeven 일별 yoy(diff_list 누락→일별)
+        #   세 빈도가 섞여 DataFrame(cols).dropna() inner-join 교집합 ≈ 0 → X 0행 → *항상* insufficient_data
+        #   (단발/시계열 무관). 모든 시리즈를 ME.last() 로 월말 통일 → 변환 후 정렬 일치.
+        # 레벨 vs 변화율: 가격/스프레드/기대인플레(시장 level)는 diff, 거시지수는 YoY%.
+        diff_names = ("yield_10y_2y", "nfci", "cfnai", "credit_spread_baa",
+                      "credit_spread_hy_oas", "real_rate_10y", "breakeven_5y")
+        for name in (*diff_names, "industrial_production", "core_cpi", "unemployment_rate"):
             s = b.ts(name)
-            if s is not None and len(s) >= 60:
-                # 레벨 vs 변화율 통일: 가격/스프레드는 diff, 지수는 YoY.
-                if name in ("yield_10y_2y", "nfci", "cfnai", "credit_spread_baa",
-                            "credit_spread_hy_oas", "real_rate_10y"):
-                    cols[name] = s.resample("ME").last().diff() if _is_high_freq(s) else s.diff()
-                else:
-                    cols[name] = _yoy(s, 12)
+            if s is None or len(s) < 60:
+                continue
+            m = s.resample("ME").last()                       # 공통 월말 그리드(빈도 통일)
+            c = (m.diff() if name in diff_names else _yoy(m, 12)).dropna()
+            if len(c) >= 60:                                  # 변환후 60mo 미확보(hy_oas 35mo 등) → 제외
+                cols[name] = c
         if len(cols) < 3:
             return None, None
         X = pd.DataFrame(cols).dropna()
