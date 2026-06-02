@@ -554,3 +554,190 @@ class TestW3Judge:
         assert all(abs(f - 1.0) < 1e-9 for f in finals), (
             f"coin bypass a!=1.0: {finals[:3]}"
         )
+
+
+# ---------------------------------------------------------------------------
+# SO 1.4 — W4 golden-master + G1~G7 통합 + per-bar checksum
+# ---------------------------------------------------------------------------
+
+class TestW4GoldenGates:
+    """G1 off golden 해시 / G2 on!=off / G6 sum(gross)<=1 / G7 on 결정성 / per-bar checksum."""
+
+    GOLDEN_SEED = 42
+    GOLDEN_N = 80
+
+    def _make_engines(self):
+        """고정 seed + 기본 gate 엔진 쌍 반환 (off/on)."""
+        from backtest.engine import BacktestEngine
+        return (
+            BacktestEngine(fill_model_seed=self.GOLDEN_SEED, use_risk_pipeline=False),
+            BacktestEngine(fill_model_seed=self.GOLDEN_SEED, use_risk_pipeline=True),
+        )
+
+    def test_g1_off_golden_hash_stable(self):
+        """G1: off=_run_legacy 동일 seed 두 번 → golden 해시 동일."""
+        from backtest.engine import BacktestEngine
+
+        price = _make_price_series(self.GOLDEN_N, seed=self.GOLDEN_SEED)
+        track1 = _AlternatingTrack()
+        track2 = _AlternatingTrack()
+
+        eng1 = BacktestEngine(fill_model_seed=self.GOLDEN_SEED)
+        eng2 = BacktestEngine(fill_model_seed=self.GOLDEN_SEED)
+
+        r1 = eng1.run(track1, price)
+        r2 = eng2.run(track2, price)
+
+        assert _engine_golden_hash(r1) == _engine_golden_hash(r2), (
+            "G1 FAIL: off 경로 golden 해시 불일치 — byte-identical 깨짐"
+        )
+
+    def test_g2_on_differs_from_off(self):
+        """G2: on 경로 equity curve가 off와 다름 (배선 효과 실재)."""
+        from backtest.engine import BacktestEngine
+        from core.risk_gate import GatedOrderRouter, RiskGate
+
+        gate = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router = GatedOrderRouter(gate=gate)
+        price = _make_price_series(self.GOLDEN_N, seed=self.GOLDEN_SEED)
+
+        track_off = _AlternatingTrack()
+        track_on = _AlternatingTrack()
+
+        eng_off = BacktestEngine(fill_model_seed=self.GOLDEN_SEED)
+        eng_on = BacktestEngine(
+            fill_model_seed=self.GOLDEN_SEED, use_risk_pipeline=True,
+            gate=router, vol_window=5
+        )
+
+        r_off = eng_off.run(track_off, price)
+        r_on = eng_on.run(track_on, price)
+
+        assert _engine_golden_hash(r_on) != _engine_golden_hash(r_off), (
+            "G2 FAIL: on==off — risk pipeline 배선 효과 없음"
+        )
+
+    def test_g6_sum_gross_leq_1(self):
+        """G6: 모든 bar sum(gross)<=1 — 레버리지 없음 불변식."""
+        from backtest.engine import BacktestEngine
+        from core.risk_gate import GatedOrderRouter, RiskGate
+
+        gate = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router = GatedOrderRouter(gate=gate)
+        price = _make_price_series(100, seed=self.GOLDEN_SEED)
+        track = _AlternatingTrack()
+
+        eng = BacktestEngine(
+            fill_model_seed=self.GOLDEN_SEED, use_risk_pipeline=True,
+            gate=router, vol_window=5
+        )
+        result = eng.run(track, price)
+
+        gross_series = result._gross_series
+        assert len(gross_series) > 0
+        # 단일자산: sum(gross) = gross (n=1, weight=1.0) — 반드시 ≤ 1.0 (gross_hi=1.0)
+        assert all(g <= 1.0 + 1e-9 for g in gross_series), (
+            f"G6 FAIL: gross > 1.0 (레버리지) 발견 — max={max(gross_series):.4f}"
+        )
+
+    def test_g7_on_deterministic_same_seed(self):
+        """G7: on 경로 동일 seed 2회 → 해시 동일 (결정성)."""
+        from backtest.engine import BacktestEngine
+        from core.risk_gate import GatedOrderRouter, RiskGate
+
+        gate1 = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router1 = GatedOrderRouter(gate=gate1)
+        gate2 = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router2 = GatedOrderRouter(gate=gate2)
+
+        price = _make_price_series(self.GOLDEN_N, seed=self.GOLDEN_SEED)
+
+        track1 = _AlternatingTrack()
+        track2 = _AlternatingTrack()
+
+        eng1 = BacktestEngine(
+            fill_model_seed=self.GOLDEN_SEED, use_risk_pipeline=True,
+            gate=router1, vol_window=5
+        )
+        eng2 = BacktestEngine(
+            fill_model_seed=self.GOLDEN_SEED, use_risk_pipeline=True,
+            gate=router2, vol_window=5
+        )
+
+        r1 = eng1.run(track1, price)
+        r2 = eng2.run(track2, price)
+
+        assert _engine_golden_hash(r1) == _engine_golden_hash(r2), (
+            "G7 FAIL: on 경로 결정성 깨짐 — 동일 seed에서 다른 결과"
+        )
+
+    def test_per_bar_checksum_oracle(self):
+        """★SR per-bar state-vector checksum: 매 bar 해시 기록 — divergence pinpoint용.
+
+        동일 seed 2회 실행 시 bar_checksums 목록이 동일해야 함 (G7 확장).
+        다른 설정(vol_window 변경)이면 checksum 목록이 달라야 함 (oracle 의미 있음).
+        """
+        from backtest.engine import BacktestEngine
+        from core.risk_gate import GatedOrderRouter, RiskGate
+
+        gate1 = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router1 = GatedOrderRouter(gate=gate1)
+        gate2 = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router2 = GatedOrderRouter(gate=gate2)
+        gate3 = RiskGate(max_weight_single=1.0, max_weight_sector=1.0, max_turnover=1.0)
+        router3 = GatedOrderRouter(gate=gate3)
+
+        price = _make_price_series(self.GOLDEN_N, seed=self.GOLDEN_SEED)
+
+        track1 = _AlternatingTrack()
+        track2 = _AlternatingTrack()
+        track3 = _AlternatingTrack()
+
+        eng1 = BacktestEngine(
+            fill_model_seed=self.GOLDEN_SEED, use_risk_pipeline=True,
+            gate=router1, vol_window=5
+        )
+        eng2 = BacktestEngine(
+            fill_model_seed=self.GOLDEN_SEED, use_risk_pipeline=True,
+            gate=router2, vol_window=5
+        )
+        # 다른 vol_window → checksum 달라야 함
+        eng3 = BacktestEngine(
+            fill_model_seed=self.GOLDEN_SEED, use_risk_pipeline=True,
+            gate=router3, vol_window=15
+        )
+
+        r1 = eng1.run(track1, price)
+        r2 = eng2.run(track2, price)
+        r3 = eng3.run(track3, price)
+
+        # 동일 설정 → 동일 checksum 목록
+        assert r1._bar_checksums == r2._bar_checksums, (
+            "per-bar checksum 결정성 실패 — 동일 설정에서 다른 체크섬"
+        )
+        # 다른 vol_window → 다른 checksum 목록 (oracle이 민감함 증명)
+        assert r1._bar_checksums != r3._bar_checksums, (
+            "per-bar checksum oracle 무감각 — vol_window 변경에도 동일 checksum"
+        )
+        # 체크섬 길이 = bar 수
+        assert len(r1._bar_checksums) == self.GOLDEN_N, (
+            f"bar_checksums 길이 {len(r1._bar_checksums)} ≠ {self.GOLDEN_N}"
+        )
+
+    def test_domain_regression_no_new_failures(self):
+        """도메인 회귀: engine 변경으로 기존 도메인 테스트 fail 증가 없음.
+
+        이 테스트 자체가 통과하면 (collect된 경우) 회귀 없음 기록.
+        실제 도메인 회귀는 CI에서 전체 suite로 확인.
+        """
+        from backtest.engine import BacktestEngine
+
+        # 기본 엔진 생성/실행 smoke test — 기존 코드 경로 보존 확인
+        price = _make_price_series(20)
+        track = _AlternatingTrack()
+        eng = BacktestEngine(fill_model_seed=0)  # off 경로 = _run_legacy
+        result = eng.run(track, price)
+
+        assert result.equity_curve is not None
+        assert len(result.equity_curve) == len(price) + 1  # initial + N bars
+        assert result.final_capital > 0

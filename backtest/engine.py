@@ -388,6 +388,12 @@ class BacktestEngine:
         judge_hook_calls: int = 0
         judge_finals: List[float] = []   # final size_mult 기록 (final<=L1 검증용)
 
+        # W4 (SR): per-bar state-vector checksum — 어느 bar에서 divergence 발생하는지 pinpoint
+        # Test2a attribution 재사용: bar별 상태를 직렬화 해시, 시계열 oracle
+        import hashlib as _hashlib  # noqa: PLC0415
+        bar_checksums: List[str] = []   # bar_idx → SHA-256[:16]
+        gross_series: List[float] = []  # G6 sum(gross)<=1 검증용
+
         for bar_idx, (ts, price) in enumerate(price_series.items()):
             price = float(price)
             vol = float(volume_series.get(ts, 0.0))
@@ -605,6 +611,11 @@ class BacktestEngine:
             # W2: 종가 equity 기록 (PortfolioState 기반)
             equity_points.append(ps.current_nav(price))
 
+            # W4 (SR): per-bar state-vector checksum
+            _sv = f"{bar_idx}|{round(price,6)}|{round(ps.cash,4)}|{round(ps.qty,8)}|{round(ps.avg_price,4)}|{ps.entry_bar}"
+            bar_checksums.append(_hashlib.sha256(_sv.encode()).hexdigest()[:16])
+            gross_series.append(gross)
+
         final_capital = ps.current_nav(
             float(price_series.iloc[-1]) if len(price_series) > 0 else 0.0
         )
@@ -627,6 +638,9 @@ class BacktestEngine:
         # W3 진단용 메타
         result._judge_hook_calls = judge_hook_calls  # type: ignore[attr-defined]
         result._judge_finals = judge_finals  # type: ignore[attr-defined]
+        # W4 (SR): per-bar state-vector checksums + gross series
+        result._bar_checksums = bar_checksums  # type: ignore[attr-defined]
+        result._gross_series = gross_series  # type: ignore[attr-defined]
         return result
 
     # ------------------------------------------------------------------
