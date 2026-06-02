@@ -67,6 +67,21 @@ FRED_SERIES = {
 # NBER 침체일자 — *학습 라벨 전용* (§5.8-A NBER lag 분리; 실시간 추론 금지).
 FRED_NBER_RECESSION = "USREC"
 
+# market-priced 일별 시리즈 — ALFRED first_release vintage 과다(3000+)로 ValueError → silent drop 되던 군.
+# 이들은 시장가격 기반이라 revision≈0 (P2 독립 audit 2026-06-02: DFII10/T5YIE/T10Y2Y 2024 vintage
+# revised=0, max spread=0.0000 실측 입증 → latest==first_release). first_release 대신 get_series(latest)로
+# 직행해 vintage 호출 자체를 회피하되, as_of causal mask 는 observation-date 기준이라 PIT lookahead 없음.
+_MARKET_PRICED_DAILY = frozenset({"DFII10", "T5YIE", "T10Y2Y", "DGS10", "DGS2", "BAA10Y"})
+
+# first_release(ALFRED) 가 stale 에서 멈추는 군 — fredapi get_series_first_release 가 NFCI(1976-10)/
+# STLFSI4(2004-11) 에서 최신 미반환(실측 2026-06-02: stale 값이 "최신"으로 silent 오염). 실시간 추론은
+# latest 최신값이 정확(stale=명백 오류). ★단 revision 있음(NFCI |diff| mean 0.35·STLFSI4 0.05)→
+# 백테스트 PIT 는 ALFRED vintage 필요(Phase V TODO: get_series_all_releases + as_of). 현 실시간 e2e=latest.
+_FIRST_RELEASE_BROKEN = frozenset({"NFCI", "STLFSI4"})
+
+# first_release 우회(latest 직행) 군 = market-priced(revision≈0) ∪ first_release-broken(stale).
+_LATEST_FALLBACK = _MARKET_PRICED_DAILY | _FIRST_RELEASE_BROKEN
+
 
 @dataclass
 class SeriesPoint:
@@ -113,6 +128,11 @@ class RealFredAdapter:
         self.api_key = api_key
         self.pit_mode = pit_mode   # "first_release" | "vintage" | "latest"
         self._client = None
+        # ★Y5 fetch 캐시: 같은 series_id 의 full fetch(client.get_series*)는 as_of 무관(as_of=이후 causal
+        #   mask 만). build_sleeve_regime_ids 가 rep date N회 classify(as_of) → 같은 시리즈 N회 full-fetch
+        #   (255s 주범). raw 시리즈를 series_id 별 1회 캐시 → mask 는 매 호출 fresh slice(PIT 보존).
+        #   인스턴스 수명 = 단일 build/collect 사이클(coin_track_macro 매 collect 신규 adapter) → stale 0.
+        self._raw_cache: dict = {}
 
     def _ensure_client(self):
         if self._client is None:
@@ -131,13 +151,19 @@ class RealFredAdapter:
         if client in (None, False):
             return None
         try:
-            if self.pit_mode == "first_release":
-                # 발표시점값 = lookahead 없음 (§5.8-F).
-                s = client.get_series_first_release(series_id)
-            else:
-                s = client.get_series(series_id)
+            s = self._raw_cache.get(series_id)
+            if s is None:
+                if self.pit_mode == "first_release" and series_id not in _LATEST_FALLBACK:
+                    # 발표시점값 = lookahead 없음 (§5.8-F).
+                    s = client.get_series_first_release(series_id)
+                else:
+                    # latest. _LATEST_FALLBACK = market-priced 일별(revision≈0, vintage ValueError 회피)
+                    # ∪ first_release-broken(NFCI/STLFSI4 stale). as_of mask(아래)가 observation-date 기준
+                    # causal cut → 실시간 PIT lookahead 없음. ★단 broken 군 백테스트 revision 은 Phase V vintage.
+                    s = client.get_series(series_id)
+                self._raw_cache[series_id] = s        # raw(pre-mask) 캐시 — as_of 무관이라 안전
             if as_of is not None:
-                s = s[s.index <= as_of]   # causal mask.
+                s = s[s.index <= as_of]   # causal mask(매 호출 fresh slice, PIT 보존).
             return s.dropna()
         except Exception:
             return None

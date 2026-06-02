@@ -60,3 +60,22 @@ status_legend: "adopted=배분 레이어 코드화 대상(activate) / candidate=
 - **신설 시 선행 작업**: sleeve 추가 = portfolio 구성 변경. 해당 자산(reit/eq_intl/xle)의 지표 study(상관·국면·factor β·weight_rules) + 티커 인프라(`sleeve_returns SLEEVE_TICKERS`) + study yaml + 독립 audit(15축) 전부 선행 의무. ★defensive 는 us_stock 흡수(SLEEVE_AGG us_stock←cyclical+defensive)로 예외 — 이미 measured vol −0.63 반영.
 - **게이트**: 사용자 방향 논의(portfolio 구성 = 설계 결정). 자율 범위 밖. **나중 리서치 큐**.
 - **status**: 보류(cross 관계는 adopted 측정 완료, sleeve 진입은 신설 게이트 대기 — 재평가 트리거=사용자 portfolio 구성 확장 결정).
+
+## 6. Factor 축 확장 — P1 실측 + P2 독립 opus audit (2026-06-02)
+> series 공백 발굴(subagent afd5bb1) → ROI 선별(MOVE/A/FRA-OIS 3축, PMI·reit분리·외국인순매수·copper-gold·crypto-onchain 제외) → P1 실측(a656b5d5) → P2 독립 opus audit(a8f746b2, raw 재계산 ±0.005 일치, hard-fail 0). 잣대=배분 sleeve 실제 영향 + 일별 동적.
+
+| factor | source | status | sign / sleeve | reason (P2 verdict) | 실측[CI, n] | codify |
+|---|---|---|---|---|---|---|
+| **MOVE** (국채 IV) | Yahoo `^MOVE` 2002-11~ (FRED 미존재) | ★**Y5 covariance-DROP** (marginal=confirmed) | (joint 무효) | marginal CONFIRMED(univariate 음). ★**covariance-incremental REJECTED**: Y5 통일 joint mv(VIX 동시통제) 시 전 sleeve β→0(t=0.0~2.2 잡음). VIX가 risk-off 분산 완전 흡수 | univariate us −0.22/gold −0.07 ↔ **joint ≈0** | ★**factor set 미포함**(Y5). univariate −0.21 박으면 VIX와 이중계상(L축) |
+| **real** (DFII10 Δ) | FRED 2003~ | **adopted** | **gold−**(bond 매핑 부재) | 충실 CONFIRMED. Y5 joint 안정(gold −0.233 t=−11, univariate −0.249 대비 거의 불변). ★주식 양상관 OOS sign-flip→제외(재현됨) | gold −0.233[joint], n=4999 | ★**FACTOR_SERIES rate→real 교체 완료**(Y5, VIF 0.914 공선 회피). gold cell adopt |
+| **breakeven** (T5YIE Δ) | FRED 2003~ | **adopted** | commod+ | Y5 joint +0.117(t=3.1 유의, univariate +0.33 → 약화하나 생존). p=0.0018>Bonferroni α/40 → structural | commod +0.117[joint] (univariate +0.33), n=4975 | ★**FACTOR_SERIES +breakeven(diff) 완료**(Y5). commod structural cell(James-Stein 강수축) |
+| **slope** (T10Y2Y Δ=DGS10−DGS2) | FRED | ★**Y5 covariance-DROP** (marginal=candidate) | (joint 무효) | marginal 부분(univariate commod +0.13). ★**covariance-incremental REJECTED**: Y5 joint commod +0.015(t=1.2 비유의). MOVE와 동일 univariate-only attenuation | univariate commod +0.13 ↔ **joint +0.015** | ★**factor set 미포함**(Y5) |
+| **funding** (SOFR−EFFR Δ) | FRED 2018~ | **rejected_provisional** | (uncond 무효) | 불충분. uncond Bonferroni 0생존. stress한정 us/kr +0.19 약신호 | <0.03 전 sleeve, n2037 | 차단. ★재평가 트리거=repo발작/QT 가속(distinct stress regime 누적)=IC9 부활 대상 |
+
+### §6-Y5 reconcile (2026-06-02 — codify 완료, 외부자문 2모델 만장일치 수렴)
+- ★**핵심 발견**: P2 audit 헤드라인 β(MOVE us −0.213·slope commod +0.119)는 **univariate**였다. factor 공분산 prior B·Λ·Bᵀ 는 **joint(multivariate) β** 가 정합(B=Cov(r,f)·Λ⁻¹) — univariate 박으면 VIX와 risk-off 채널 **이중계상**(L축 불변식 위반). univariate inflation (1+3ρ²)는 sleeve별로 달라 magnitude FREEZE/cov2corr 로도 못 씻음(상대 corr 왜곡, Claude 미니증명).
+- ★**re-scope framing**(번복 아님): audit verdict = **marginal association**(유효, 위 표 보존) / **covariance-incremental** = 별도 더 엄격 게이트. MOVE/slope = marginal 통과 / covariance-incremental 실패(VIX 조건부 redundant). FWL: joint β = MOVE⊥ 잔차계수, VIF 1.26 → MOVE⊥ 분산 79% 보존 = 진짜 partialling(spec artifact 아님).
+- ★**채택 게이트 업그레이드**(governance): covariance-prior factor 는 univariate screen 만으로 부족 → **joint incremental 통과 필수**(기존 factor set 조건부 생존 + cross-sleeve 공분산 증분). 향후 factor 채택 시 적용.
+- **재평가 트리거(MOVE/slope 부활)**: ① bond sleeve 가 corr_prior 소비 대상에 편입(현 eye 독립) → MOVE=채권 IV 로 bond 전용 vol factor 가치 발생(option C) ② regime-conditional 분리(2022 rate-stress vs 2020 equity-stress 에서 MOVE↔VIX 결합 국면의존) — 현 corr_prior 3 sleeve(equity/commod/gold)는 VIX-dominated 라 full-sample drop.
+- **codify 결과**(measure=batch-std-beta-9factor.json, n≈5000, MAX VIF 1.26): FACTORS 6→**7**(real/dollar/oil/credit/vol/breakeven/fx). golden us×commodity 0.2951→**0.2880** / us×gold 0.249→**0.2721**. opt-in off byte-identical ✓ + self-test/회귀 통과 ✓.
+- **L축 가드**(★유지): rate 공통인자(real)는 1회 계상. slope drop 으로 bond 중복 우려 자동 해소.

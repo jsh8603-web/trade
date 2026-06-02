@@ -18,13 +18,16 @@ from typing import Callable, Optional, Sequence
 
 import numpy as np
 
-# factor → FRED series (rate/credit=Δ, dollar/oil/vol/fx=Δlog; 변환은 factor_cov_estimate.FACTOR_TRANSFORM)
+# factor → FRED series (real/credit/breakeven=Δ, dollar/oil/vol/fx=Δlog; 변환=factor_cov_estimate.FACTOR_TRANSFORM)
+# ★Y5(2026-06-02): rate(DGS10 명목)→real(DFII10) 교체(명목·실질 corr 0.914 공선, real=gold driver 경제적
+#   정합) + breakeven(T5YIE) 추가. MOVE/slope=joint multivariate β→0(VIX 흡수, 이중계상)로 DROP(factor 미포함).
 FACTOR_SERIES = {
-    "rate": "DGS10",            # 10Y Treasury yield
+    "real": "DFII10",           # 10Y TIPS real yield (★rate=DGS10 교체)
     "dollar": "DTWEXBGS",       # Broad USD TWI
     "oil": "DCOILWTICO",        # WTI spot
     "credit": "BAMLH0A0HYM2",   # HY OAS
     "vol": "VIXCLS",            # VIX
+    "breakeven": "T5YIE",       # 5Y breakeven inflation (★Y5 추가 — commod adopt)
     "fx": "DEXKOUS",            # KRW per USD (IC8 denomination factor — KRW 투자자 USD자산 환노출).
                                 #   dollar(broad TWI 글로벌 강세)와 별 채널: fx=USDKRW 환산. 이중계상 0.
 }

@@ -142,7 +142,9 @@ def test_build_sleeve_regime_ids():
 
     ids = build_sleeve_regime_ids(_Clf(list(rh.index)), rh, LABELS, bloc="USD")
     assert len(ids) == len(rh)
-    assert set(np.unique(ids)) <= {1, 2}                   # Recovery=1, Overheat=2
+    # Y4b monthly=True(기본): 월 최종거래일만 classify + PIT-safe 과거 ffill → 첫 부분월(첫 rep date
+    # 이전 날들)은 rep ≤ d 부재 → -1(미래 미참조, 정상). 따라서 {-1,1,2} 허용.
+    assert set(np.unique(ids)) <= {-1, 1, 2}               # Recovery=1, Overheat=2, 선행 부분월=-1
     assert (ids == 1).sum() > 0 and (ids == 2).sum() > 0
 
 
@@ -188,17 +190,15 @@ def test_ic_corr_prior_golden_deterministic(monkeypatch):
     assert np.array_equal(cp1, cp2)                    # 결정성(byte-identical replay, RNG 0)
 
     i = {s: k for k, s in enumerate(cols)}
-    # golden: SLEEVE_AGG(us_stock←cyc0.5+def0.5, commodity, gold) W roll-up, Λ=eye.
-    # ★IC10(a) batch multivariate measured β 전면 교체(2026-06-01) 후 값 — 이전 0.4372/0.5260 은
-    # M3 등급값(dollar −0.55 등) 기반. measured(dollar −0.171 등 약화 + vol factor 추가)로 갱신.
-    # ★IC8 fx denomination factor(2026-06-02, 외부자문 2모델+코드검증 수렴 B): USD-표시 자산 공통 환노출
-    #   (fx_β=절대 denomination 1.0, GLD 포함 full) + _static_factor_lambda eye fallback Λfx 축소.
-    #   ★Λfx 0.09→0.15 정밀화(2026-06-02, 자문 band 0.15~0.20 하단 + falsification 실측 F1/F2/F4):
-    #   naive (σ_fx/σ_asset)²=0.33 은 realized KRW corr(+0.17~0.20) over-load → 직교 할인(R²=0.268)+F4
-    #   target 재현으로 0.15 확정. → us_stock×commodity 0.2642→0.2951, us_stock×gold 0.1994→0.249.
-    #   ★fx_hedge="full" → us_stock×gold 0.0832 / us_stock×commodity 0.2026 정확 복원(IC10 불변).
-    assert abs(cp1[i["us_stock"], i["commodity"]] - 0.2951) < 1e-3
-    assert abs(cp1[i["us_stock"], i["gold"]] - 0.249) < 1e-3
+    # golden: SLEEVE_AGG(us_stock←cyc0.5+def0.5, commodity, gold) W roll-up, Λ=eye(Λfx=0.15).
+    # ★Y5 factor codify(2026-06-02): rate(DGS10 명목)→real(DFII10) 교체 + breakeven(T5YIE) 추가,
+    #   MOVE/slope=joint multivariate β→0(VIX 흡수=이중계상)로 DROP(외부자문 2모델 만장일치). 통일
+    #   8-factor joint mv 재측정(batch-std-beta-9factor, n≈5000, MAX VIF 1.26). gold real −0.233(명목
+    #   rate −0.2155 재현대) + commodity breakeven +0.117(structural) 반영. fx denomination(IC8) 유지.
+    #   → us_stock×commodity 0.2951→0.2880, us_stock×gold 0.249→0.2721.
+    #   ★fx_hedge="full" → us_stock×gold 0.1185 (fx 환산 동조 제거, IC10 decoupling 방향 복원).
+    assert abs(cp1[i["us_stock"], i["commodity"]] - 0.2880) < 1e-3
+    assert abs(cp1[i["us_stock"], i["gold"]] - 0.2721) < 1e-3
     # 미매핑 sleeve(kr_stock/bond/cash/coin) = eye 독립 (자기 대각 외 0)
     for s in ("kr_stock", "bond", "cash", "coin"):
         off = np.delete(cp1[i[s]], i[s])

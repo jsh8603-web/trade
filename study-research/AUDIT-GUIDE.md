@@ -1,7 +1,7 @@
 ---
 tags: [type/guide, domain/inv, phase/study-system, topic/audit]
 date: 2026-05-30
-note: 종목 스터디 산출물 독립 감사 가이드. opus subagent 가 방 산출 도착마다 이 문서만 읽고 8+4축 독립 감사한다. main 통과편향 배제용. gemini-web + claude-web 자문(2026-05-30) 반영.
+note: 종목 스터디 산출물 + wire 결선 독립 감사 가이드. opus subagent 가 산출 도착마다 이 문서만 읽고 15축(12 study축 A~L + 3 wire축 M~O) 독립 감사한다. main 통과편향 배제용. gemini-web + claude-web 자문(2026-05-30) 반영 + wire 3축 확장(2026-06-02, decisions §12 / 15axis-summary.md 정합).
 ---
 
 # AUDIT-GUIDE — 종목 스터디 산출물 독립 감사 가이드
@@ -33,7 +33,11 @@ note: 종목 스터디 산출물 독립 감사 가이드. opus subagent 가 방 
 
 ---
 
-## §1. 감사 12축 (8 핵심 + 4 신규) — 자문 반영
+## §1. 감사 15축 (12 study축 A~L + 3 wire축 M~O)
+
+> **15축 = 12 study축(A~L, 산출물 검증) + 3 wire축(M~O, 런타임 결선 충실)**. study 산출만 감사할 땐 A~L,
+> study→코드 wire 작업을 감사할 땐 M~O 를 추가 적용한다. 실측 도출(P1)·독립 audit(P2) 둘 다 15축 기준
+> (사용자 2026-06-02). 자기완결 압축 카드 = `study-research/_wire/15axis-summary.md` (subagent 전달용).
 
 ### 핵심 8축 (STUDY-KIT §2.5)
 
@@ -61,6 +65,17 @@ note: 종목 스터디 산출물 독립 감사 가이드. opus subagent 가 방 
 > 안정성 검증. 중첩 forward-return 윈도우는 t-stat 을 수배 부풀림 → **Newey-West / block-bootstrap
 > SE 강제**(B 의 t-stat 게이트 전제). 기준통화 단일 base-currency + FX 헤지 명시.
 
+### wire 3축 M~O (런타임 결선 충실 — study→코드 wire 작업 고유, decisions §12)
+
+> study 산출(A~L)이 충실해도, 코드에 결선되는 과정에서 회귀·이중계상·미래누수가 생기면 무효. wire 작업
+> (corr_prior·SEED β·factor 축·judge 배선 등) 감사 시 아래 3축을 추가한다.
+
+| 축 | 본다 | Pass 증거 | Fail |
+|---|---|---|---|
+| **M wire충실** ★ | study 산출이 코드에 정직히 결선됐나 | (a)opt-in **off=byte-identical**(golden test `tobytes()` 해시) (b)facade call-path 추적 가능 (c)orphan inject 0 (d)cross-view monotone(어떤 뷰도 다른 뷰 부호 못 뒤집음) | **off 회귀 = hard-fail**(무효) |
+| **N cross관계** ★ | 합성 상관행렬이 수학·경제 정합인가 | (a)sign-stable (b)**read-time 합성 PSD**(Cholesky assert log-and-halt, Higham silent-repair 차단) (c)**공통인자 1회 계상**(FX factor 이중계상 0 = empirical local-return) (d)tail 부호반전 점검 | **PSD 깨짐·이중계상 = hard-fail**(통합 차단) |
+| **O leakage** ★ | 미래정보·오염 차단됐나 | (a)PIT-safe(as_of=valid-time decision-time, transaction-time 누수 차단) (b)**reject≠missing**(tri-state, gold β:=0 lock·grand-fallback 오염 0) (c)full-sample-gate→FDR 2단계 (d)availability-lag | **lookahead·reject오염 = hard-fail** |
+
 ---
 
 ## §2. Hard-fail vs Soft vs Tier (통합 게이트 분류)
@@ -68,8 +83,9 @@ note: 종목 스터디 산출물 독립 감사 가이드. opus subagent 가 방 
 자문 원리: **hard = 숫자를 무효화/검증불가하게 하는 무결성 위반 / soft = 크기·신뢰도·capacity 를
 깎되 무효는 아님 / tier = 차단 없이 신뢰도 라벨 강등.**
 
-- **Hard-fail 코어 4 (통합 차단 — 숫자가 틀렸거나 검증 불가)**: **B**(실데이터/합성금지) · **C**(추적성·
-  재현성) · **D**(PIT·lookahead) · **I**(생존편향·무결성). 위반 = 결과가 약한 게 아니라 **잘못된 것**.
+- **Hard-fail 코어 (통합 차단 — 숫자가 틀렸거나 검증 불가)**: study **B**(실데이터/합성금지) · **C**(추적성·
+  재현성) · **D**(PIT·lookahead) · **I**(생존편향·무결성) + wire **M**(off 회귀) · **N**(PSD 깨짐·FX 이중계상) ·
+  **O**(lookahead·reject오염). 위반 = 결과가 약한 게 아니라 **잘못된 것**. (M~O 는 wire 작업 감사 시에만 적용.)
 - **조건부 hard**: K 시도횟수 공시 / J alpha 주장(비용 차감 후 음수면) / E 환각 claim / F 기각 0건.
   L 통합 PSD·중복(통합 단계 차단).
 - **Tier 강등(차단 X, 신뢰도 라벨)**: **G effective-N 은 게이트가 아니라 tier 함수.** ★crypto vs macro
@@ -156,8 +172,8 @@ note: 종목 스터디 산출물 독립 감사 가이드. opus subagent 가 방 
 ```
 [감사] {sid} — verdict: 충실 / 부분 / 불충분
 - Provenance(§0): yaml 수치 raw 재계산 일치 여부 / 합성 지문 검사 결과
-- 12축 결과: 통과 N / 부분 M / 불충분 K (어느 축이 왜)
-- Hard-fail 여부: B·C·D·I 중 위반 있나(있으면 즉시 불충분)
+- 15축 결과: 통과 N / 부분 M / 불충분 K (어느 축이 왜, wire 작업이면 M~O 포함)
+- Hard-fail 여부: B·C·D·I (+ wire 시 M·N·O) 중 위반 있나(있으면 즉시 불충분)
 - Tier(G): validated alpha vs structural prior(저신뢰) 라벨
 - 시스템 정합(§4): 현 골격 수용 가능 / 업그레이드 필요(어느 모듈·계획)
 - 판정: register 가능(충실) / 보강 요청(부분·불충분, 항목 구체)

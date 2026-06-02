@@ -27,20 +27,28 @@ import numpy as np
 
 
 # 팩터 순서 — system_priors.factor_implied_cross_cov betas 행과 일치 필수.
-# ★append-only(M5 Phase A): vol(VIX) 추가. macro VIF 실측 1.00 무공선(rate/dollar/oil/credit 직교).
-#   전 sleeve vol β=None=HOLD → pool 부재 → 노출 0(B·Λ·Bᵀ 0 기여=무회귀 placeholder). 어느 sleeve가
-#   vol β 측정 시 pool 형성·활성(VIX↑=cyclical−defensive excess 등 contemp risk-gate 채널 예상).
-# ★append-only(IC8): fx(USDKRW denomination) 추가. fx_β=measured 아니라 ★구조 denomination prior
-#   (KRW 투자자가 USD-표시 자산 보유 시 환산 노출). dollar(broad TWI 가격채널)와 별 layer = 이중계상 0.
-#   measured 가 아니므로 James-Stein 수축 우회(TIER_DENOMINATION) — build_seed_betas 가 β 원값 보존.
-#   ★fx_β 스케일(외부자문 2모델+코드검증 수렴 B, IC8): fx_β=**절대 denomination 1.0**(USD자산 환율
-#   100% 노출, 추정 β 아닌 결정론 값 — GLD 포함 full). corr_prior=magnitude FREEZE 라 fx 기여=fx_β²·Λfx
-#   곱만 의미 → 절대 1.0 유지하되 _static_factor_lambda 가 fx 대각만 축소(eye fallback Λfx=0.15, 실 FRED
-#   Λ면 환율 실변동성 자동)해 fx 가 corr 지배하는 것 방지. ★Λfx=0.15 근거(2026-06-02 자문+falsification
-#   실측): naive (σ_fx/σ_asset)²=0.33 은 무조건부 realized KRW gold×equity corr(+0.17~0.20) 초과=over-load
-#   → 직교 할인(R²=0.268→0.242 상한) + F4 target 재현(0.15→implied +0.20) 으로 0.15 확정(자문 band 하단).
-#   gold full 은 KRW 환산 현실. fx_hedge="full"=전 fx_β:=0(IC10 정확 복원 토글, off byte-identical).
-FACTORS = ("rate", "dollar", "oil", "credit", "vol", "fx")
+# ★append-only(M5 Phase A): vol(VIX) 추가. macro VIF 실측 1.00 무공선.
+#   gold vol β=reject(§3, p=0.077 비유의 → β:=0 lock, decoupling 방어). equity/commod vol 강음(risk-off).
+# ★Y5 factor codify(2026-06-02): rate(명목 DGS10)→**real(DFII10) 교체** + **breakeven(T5YIE) 추가**.
+#   근거: P2 독립 audit 가 real/breakeven/MOVE/slope 4축 adopted 판정 → 통일 8-factor joint multivariate
+#   재측정(batch-std-beta-9factor, n≈5000, MAX VIF 1.26 무공선) + 외부자문 2모델(gemini/claude) 만장일치.
+#   ★핵심 발견: audit 헤드라인 β 는 **univariate** 였고, VIX 동시통제(joint) 시 MOVE/slope β→0 으로 붕괴
+#     (VIX 가 risk-off 분산 완전 흡수). factor 공분산 prior(B·Λ·Bᵀ)는 joint β 가 정합 — univariate 박으면
+#     VIX 와 risk-off 채널 ★이중계상(L축 불변식 위반). univariate inflation (1+3ρ²)는 sleeve 별로 달라
+#     magnitude FREEZE/cov2corr 로도 못 씻음(상대 corr 까지 왜곡, Claude 미니증명). → ★MOVE/slope DROP.
+#   ★re-scope(번복 아님): audit verdict=marginal association(유효, ledger §6 보존) / covariance-incremental
+#     =rejected(VIX 조건부 redundant, FWL=joint β 가 이미 잔차계수, VIF 1.26 → MOVE⊥ 분산 79% 보존=진짜
+#     partialling). 채택 게이트 업그레이드: covariance-prior factor 는 univariate screen 만으로 부족, joint
+#     incremental 통과 필수. → cross-regime-ledger.md §6 Y5-reconcile.
+#   real: gold/bond 만 adopt(equity 양상관 OOS sign-flip 재현 → reject). gold real −0.233(명목 rate −0.2155
+#     재현대). breakeven: commod 만 adopt(joint +0.117 t=3.1 유의, univariate +0.33 → 약화하나 생존).
+# ★append-only(IC8): fx(USDKRW denomination). fx_β=measured 아니라 ★구조 denomination prior(KRW 투자자가
+#   USD-표시 자산 보유 시 환산 노출). dollar(broad TWI 가격채널)와 별 layer = 이중계상 0. James-Stein 우회
+#   (TIER_DENOMINATION). fx_β=절대 1.0(추정 아닌 결정론, GLD 포함 full). corr_prior=magnitude FREEZE 라
+#   fx 기여=fx_β²·Λfx 곱만 의미 → _static_factor_lambda eye fallback Λfx=0.15(자문 2모델 band 하단 +
+#   falsification 실측: naive 0.33=realized KRW gold×eq +0.17~0.20 초과 over-load → 직교할인 0.242 상한,
+#   F4 target 재현 0.15→implied +0.20). fx_hedge="full"=전 fx_β:=0(IC10 정확 복원 토글, off byte-identical).
+FACTORS = ("real", "dollar", "oil", "credit", "vol", "breakeven", "fx")
 
 # verdict tier — opus 독립 검증관(raw 재실행 provenance) 판정.
 TIER_VALIDATED = "validated"      # 통계 생존(t 강건·Bonferroni). w 그대로.
@@ -94,59 +102,65 @@ POOL_GROUP = {
 # ★gold = 유일 실측 std β(검증관 provenance 일치). 나머지 = tier + 검증관 강도 표현 등급(강 0.5/중 0.3/
 #   약 0.1). reject(rate-up 증폭·EM idio 오해석)는 β 미신뢰 → pool 노출만. credit = M3 미측정(전부 None).
 SEED_CELLS = (
-    # ★IC10(a) batch multivariate measured std β 전면 교체(2026-06-01, 사용자 "측정으로 magnitude 판단").
-    #   source=study-research/_factor_shadow/batch-std-beta-5sleeve.json (5f multivariate, HAC NW=5,
-    #   n≈5052, 2006-01~2026-05, VIF 1.0~1.14 직교). 이전 M3 등급값(강0.5/중0.3/약0.1)·verdict-derived 폐기.
-    #   ★shadow population 폐기(사용자): large-n 측정값 직접 박제(magnitude FREEZE=small-n 한정으로 좁힘).
-    #   tier=batch tier_suggest. reject 셀=build_seed_betas 가 β:=0 lock. defensive=batch 미포함→HOLD(pool).
-    #   ★독립 P2 audit(2026-06-01) 확정: cross-corr sign 정합(cyclical/intl/reit vol 강음=risk-off 동조).
-    # --- gold (batch mv, n=5052) ---
-    FactorCell("gold", "rate",   -0.2155, se=0.0179, t=-12.028, n=5052, tier=TIER_VALIDATED, note="batch mv std β"),
-    FactorCell("gold", "dollar", -0.3166, se=0.0190, t=-16.675, n=5052, tier=TIER_VALIDATED, note="batch mv, dollar>rate"),
-    FactorCell("gold", "oil",    +0.1209, se=0.0274, t=+4.415,  n=5052, tier=TIER_VALIDATED, note="batch mv, inflation hedge"),
-    FactorCell("gold", "credit", -0.0144, se=0.0184, t=-0.780,  n=5052, tier=TIER_REJECT,    note="batch mv 비유의 p=0.44"),
-    FactorCell("gold", "vol",    -0.0106, se=0.0239, t=-0.442,  n=5052, tier=TIER_REJECT,    note="batch mv 비유의 p=0.66 + 독립 audit p_NW=0.077 → β:=0 lock(decoupling/equity-vol 오염 방어)"),
-    FactorCell("gold", "fx",     +1.0,  tier=TIER_DENOMINATION, note="IC8 denomination full(+1.0, GLD=USD자산 KRW 환노출 — 외부자문 2모델+코드검증 수렴). IC10 risk-off decoupling은 dollar/vol 열 보존, fx는 별 KRW 환산 레이어(동조 추가=환노출 현실). dollar β(-0.32)=가격채널 별 layer"),
+    # ★Y5 codify(2026-06-02) 통일 8-factor joint multivariate 재측정 전면 교체.
+    #   source=study-research/_factor_shadow/batch-std-beta-9factor.json (real/dollar/oil/credit/vol/move/
+    #   breakeven/slope 8f multivariate, HAC NW=5, n≈5000, 2006-01~2026-05, MAX VIF 1.26 무공선).
+    #   ★rate→real(DFII10) 교체 + breakeven 추가. MOVE/slope=joint β→0 붕괴(VIX 흡수)로 ★DROP(자문 2모델
+    #   만장일치, factor set 미포함). gold dollar/oil 기존 batch(−0.3166/+0.1209) ±0.02 재현=방법 신뢰 게이트.
+    #   tier=joint tier_suggest. reject 셀=build_seed_betas β:=0 lock. defensive=batch 미포함→HOLD(pool).
+    # --- gold (joint mv, n=4999) ---
+    FactorCell("gold", "real",      -0.2329, se=0.0212, t=-10.986, n=4999, tier=TIER_VALIDATED, note="Y5 joint mv, real(DFII10)=gold 실질금리 기회비용(명목 rate −0.2155 재현대)"),
+    FactorCell("gold", "dollar",    -0.3004, se=0.0192, t=-15.641, n=4999, tier=TIER_VALIDATED, note="Y5 joint mv (기존 batch −0.3166 재현)"),
+    FactorCell("gold", "oil",       +0.1079, se=0.0255, t=+4.224,  n=4999, tier=TIER_VALIDATED, note="Y5 joint mv, inflation hedge"),
+    FactorCell("gold", "credit",    -0.0098, se=0.0190, t=-0.514,  n=4999, tier=TIER_REJECT,    note="Y5 joint mv 비유의"),
+    FactorCell("gold", "vol",       -0.0008, se=0.0239, t=-0.033,  n=4999, tier=TIER_REJECT,    note="§3 gold vol p=0.077 비유의 → β:=0 lock(decoupling/equity-vol 오염 방어)"),
+    FactorCell("gold", "breakeven", -0.0827, se=0.0246, t=-3.367,  n=4999, tier=TIER_REJECT,    note="§6 breakeven=commod only (gold joint −0.083=real 공선 ghost, 채택 set 외)"),
+    FactorCell("gold", "fx",        +1.0,  tier=TIER_DENOMINATION, note="IC8 denomination full(+1.0, GLD=USD자산 KRW 환노출 — 외부자문 2모델+코드검증 수렴). decoupling은 dollar/vol 열 보존, fx는 별 KRW 환산 레이어. dollar β(-0.30)=가격채널 별 layer"),
 
-    # --- eq_us_cyclical (XLB/XLI/SOXX, batch mv) ---
-    FactorCell("eq_us_cyclical", "rate",   +0.1052, se=0.0162, t=+6.488,  n=5052, tier=TIER_VALIDATED,  note="batch mv, rate 통제후 양(growth, 이전 −0.07 등급 정정)"),
-    FactorCell("eq_us_cyclical", "dollar", -0.1710, se=0.0172, t=-9.959,  n=5052, tier=TIER_VALIDATED,  note="batch mv(이전 −0.55 등급 정정)"),
-    FactorCell("eq_us_cyclical", "oil",    +0.0363, se=0.0225, t=+1.613,  n=5052, tier=TIER_STRUCTURAL, note="batch mv 약 p=0.11"),
-    FactorCell("eq_us_cyclical", "credit", -0.0037, se=0.0140, t=-0.268,  n=5052, tier=TIER_REJECT,     note="batch mv 비유의"),
-    FactorCell("eq_us_cyclical", "vol",    -0.6871, se=0.0247, t=-27.859, n=5052, tier=TIER_VALIDATED,  note="batch mv, risk-off 최강"),
-    FactorCell("eq_us_cyclical", "fx",     +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(USD-표시 자산, KRW 투자자 USDKRW 환노출); 절대 denomination 1.0=KRW 환노출 full, _static_factor_lambda Λfx 축소가 corr 지배 방지(B 수렴)"),
+    # --- eq_us_cyclical (XLB/XLI/SOXX, joint mv) ---
+    FactorCell("eq_us_cyclical", "real",      +0.0592, se=0.0180, t=+3.294,  n=4999, tier=TIER_REJECT,     note="§6 real=bond/gold only — equity 양상관 OOS sign-flip 재현 → reject(in-sample 유의해도 채택 set 외)"),
+    FactorCell("eq_us_cyclical", "dollar",    -0.1663, se=0.0164, t=-10.155, n=4999, tier=TIER_VALIDATED,  note="Y5 joint mv"),
+    FactorCell("eq_us_cyclical", "oil",       +0.0366, se=0.0243, t=+1.505,  n=4999, tier=TIER_REJECT,     note="Y5 joint mv 비유의(t=1.5, real/MOVE 추가 통제후 약화)"),
+    FactorCell("eq_us_cyclical", "credit",    -0.0056, se=0.0138, t=-0.402,  n=4999, tier=TIER_REJECT,     note="Y5 joint mv 비유의"),
+    FactorCell("eq_us_cyclical", "vol",       -0.6978, se=0.0276, t=-25.316, n=4999, tier=TIER_VALIDATED,  note="Y5 joint mv, risk-off 최강"),
+    FactorCell("eq_us_cyclical", "breakeven", +0.0552, se=0.0275, t=+2.009,  n=4999, tier=TIER_REJECT,     note="§6 breakeven=commod only"),
+    FactorCell("eq_us_cyclical", "fx",        +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(USD-표시 자산, KRW 투자자 USDKRW 환노출); Λfx 축소가 corr 지배 방지"),
 
-    # --- eq_intl (EFA/EEM, batch mv) ---
-    FactorCell("eq_intl", "rate",   +0.0942, se=0.0152, t=+6.206,  n=5052, tier=TIER_VALIDATED,  note="batch mv, rate 통제후 양(이전 reject 정정)"),
-    FactorCell("eq_intl", "dollar", -0.2951, se=0.0178, t=-16.558, n=5052, tier=TIER_VALIDATED,  note="batch mv, Bonferroni 생존"),
-    FactorCell("eq_intl", "oil",    +0.0434, se=0.0176, t=+2.463,  n=5052, tier=TIER_STRUCTURAL, note="batch mv 약 p=0.014"),
-    FactorCell("eq_intl", "credit", -0.0420, se=0.0165, t=-2.542,  n=5052, tier=TIER_STRUCTURAL, note="batch mv p=0.011"),
-    FactorCell("eq_intl", "vol",    -0.6414, se=0.0299, t=-21.441, n=5052, tier=TIER_VALIDATED,  note="batch mv"),
-    FactorCell("eq_intl", "fx",     +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(EFA/EEM USD-표시 ETF, KRW 환산); 절대 denomination 1.0=KRW 환노출 full, _static_factor_lambda Λfx 축소가 corr 지배 방지(B 수렴)"),
+    # --- eq_intl (EFA/EEM, joint mv) ---
+    FactorCell("eq_intl", "real",      +0.0777, se=0.0162, t=+4.786,  n=4999, tier=TIER_REJECT,     note="§6 real=bond/gold only — equity OOS sign-flip → reject"),
+    FactorCell("eq_intl", "dollar",    -0.2965, se=0.0167, t=-17.707, n=4999, tier=TIER_VALIDATED,  note="Y5 joint mv, Bonferroni 생존"),
+    FactorCell("eq_intl", "oil",       +0.0473, se=0.0195, t=+2.421,  n=4999, tier=TIER_STRUCTURAL, note="Y5 joint mv 약 p=0.016"),
+    FactorCell("eq_intl", "credit",    -0.0443, se=0.0165, t=-2.689,  n=4999, tier=TIER_STRUCTURAL, note="Y5 joint mv p=0.007"),
+    FactorCell("eq_intl", "vol",       -0.6476, se=0.0326, t=-19.844, n=4999, tier=TIER_VALIDATED,  note="Y5 joint mv"),
+    FactorCell("eq_intl", "breakeven", +0.0423, se=0.0274, t=+1.547,  n=4999, tier=TIER_REJECT,     note="§6 breakeven=commod only"),
+    FactorCell("eq_intl", "fx",        +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(EFA/EEM USD-표시 ETF, KRW 환산); Λfx 축소가 corr 지배 방지"),
 
-    # --- reit (VNQ, batch mv) — ★rate multivariate 비유의(univariate −0.45는 vol/dollar 공선 흡수) ---
-    FactorCell("reit", "rate",   -0.0035, se=0.0213, t=-0.166,  n=5052, tier=TIER_REJECT,    note="batch mv 비유의(univariate +0.13 → vol(VIX) 단독 흡수, omitted-var 구조 corr(rate,vol)=−0.24·dollar 무관). yaml rate-duration=univariate 단일사이클 자산특성(별 unit, Phase W4 caveat)"),
-    FactorCell("reit", "dollar", -0.0896, se=0.0258, t=-3.477,  n=5052, tier=TIER_VALIDATED, note="batch mv p=0.0005"),
-    FactorCell("reit", "oil",    -0.0044, se=0.0242, t=-0.183,  n=5052, tier=TIER_REJECT,    note="batch mv 비유의"),
-    FactorCell("reit", "credit", -0.0247, se=0.0206, t=-1.199,  n=5052, tier=TIER_REJECT,    note="batch mv 비유의"),
-    FactorCell("reit", "vol",    -0.5647, se=0.0352, t=-16.025, n=5052, tier=TIER_VALIDATED, note="batch mv, risk-off 주채널"),
-    FactorCell("reit", "fx",     +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(US REIT VNQ USD-표시); 절대 denomination 1.0=KRW 환노출 full, _static_factor_lambda Λfx 축소가 corr 지배 방지(B 수렴)"),
+    # --- reit (VNQ, joint mv) ---
+    FactorCell("reit", "real",      -0.0161, se=0.0254, t=-0.636,  n=4999, tier=TIER_REJECT,    note="§6 real=bond/gold only; joint 비유의"),
+    FactorCell("reit", "dollar",    -0.0998, se=0.0255, t=-3.922,  n=4999, tier=TIER_VALIDATED, note="Y5 joint mv p=0.0001"),
+    FactorCell("reit", "oil",       +0.0081, se=0.0271, t=+0.298,  n=4999, tier=TIER_REJECT,    note="Y5 joint mv 비유의"),
+    FactorCell("reit", "credit",    -0.0281, se=0.0211, t=-1.330,  n=4999, tier=TIER_REJECT,    note="Y5 joint mv 비유의"),
+    FactorCell("reit", "vol",       -0.5827, se=0.0388, t=-15.033, n=4999, tier=TIER_VALIDATED, note="Y5 joint mv, risk-off 주채널"),
+    FactorCell("reit", "breakeven", -0.0559, se=0.0519, t=-1.078,  n=4999, tier=TIER_REJECT,    note="§6 breakeven=commod only; joint 비유의"),
+    FactorCell("reit", "fx",        +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(US REIT VNQ USD-표시); Λfx 축소가 corr 지배 방지"),
 
-    # --- commodity (DBC, batch mv, n=5028) ---
-    FactorCell("commodity", "rate",   +0.0665, se=0.0190, t=+3.490, n=5028, tier=TIER_VALIDATED,  note="batch mv p=0.0005"),
-    FactorCell("commodity", "dollar", -0.2054, se=0.0228, t=-9.027, n=5028, tier=TIER_VALIDATED,  note="batch mv"),
-    FactorCell("commodity", "oil",    +0.6128, se=0.0988, t=+6.201, n=5028, tier=TIER_VALIDATED,  note="batch mv, oil 본체"),
-    FactorCell("commodity", "credit", -0.0335, se=0.0168, t=-1.991, n=5028, tier=TIER_STRUCTURAL, note="batch mv p=0.046"),
-    FactorCell("commodity", "vol",    -0.1408, se=0.0160, t=-8.823, n=5028, tier=TIER_VALIDATED,  note="batch mv"),
-    FactorCell("commodity", "fx",     +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(DBC USD-표시); 절대 denomination 1.0=KRW 환노출 full, _static_factor_lambda Λfx 축소가 corr 지배 방지(B 수렴)"),
+    # --- commodity (DBC, joint mv, n=4975) ---
+    FactorCell("commodity", "real",      -0.0034, se=0.0143, t=-0.240, n=4975, tier=TIER_REJECT,     note="§6 real=bond/gold only; commod joint 비유의"),
+    FactorCell("commodity", "dollar",    -0.1885, se=0.0206, t=-9.160, n=4975, tier=TIER_VALIDATED,  note="Y5 joint mv"),
+    FactorCell("commodity", "oil",       +0.5968, se=0.0983, t=+6.069, n=4975, tier=TIER_VALIDATED,  note="Y5 joint mv, oil 본체"),
+    FactorCell("commodity", "credit",    -0.0333, se=0.0176, t=-1.893, n=4975, tier=TIER_STRUCTURAL, note="Y5 joint mv p=0.058"),
+    FactorCell("commodity", "vol",       -0.1530, se=0.0181, t=-8.462, n=4975, tier=TIER_VALIDATED,  note="Y5 joint mv"),
+    FactorCell("commodity", "breakeven", +0.1165, se=0.0372, t=+3.129, n=4975, tier=TIER_STRUCTURAL, note="§6 commod adopt. Y5 joint +0.117 t=3.1 유의(univariate +0.33 → joint 약화하나 생존). p=0.0018>Bonferroni α/40 → structural(James-Stein 강수축)"),
+    FactorCell("commodity", "fx",        +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(DBC USD-표시); Λfx 축소가 corr 지배 방지"),
 
     # --- eq_us_defensive (batch 미포함) — HOLD: equity_risk pool 노출(vol≈−0.63 = 독립 audit corr −0.66 정합) ---
-    FactorCell("eq_us_defensive", "rate",   None, tier=TIER_HOLD, note="batch 미측정 → equity_risk pool"),
-    FactorCell("eq_us_defensive", "dollar", None, tier=TIER_HOLD, note="batch 미측정 → equity_risk pool"),
-    FactorCell("eq_us_defensive", "oil",    None, tier=TIER_HOLD, note="batch 미측정"),
-    FactorCell("eq_us_defensive", "credit", None, tier=TIER_HOLD, note="batch 미측정"),
-    FactorCell("eq_us_defensive", "vol",    None, tier=TIER_HOLD, note="batch 미측정 → equity_risk vol pool(≈−0.63, 독립 audit corr −0.66 정합)"),
-    FactorCell("eq_us_defensive", "fx",     +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(USD-표시 방어주); 구조값=측정대상 아님 → HOLD 무관 직접 부여(measured β 대역 +0.30)"),
+    FactorCell("eq_us_defensive", "real",      None, tier=TIER_HOLD, note="batch 미측정 → equity_risk pool(real=gold/bond only 라 equity pool 노출도 작음)"),
+    FactorCell("eq_us_defensive", "dollar",    None, tier=TIER_HOLD, note="batch 미측정 → equity_risk pool"),
+    FactorCell("eq_us_defensive", "oil",       None, tier=TIER_HOLD, note="batch 미측정"),
+    FactorCell("eq_us_defensive", "credit",    None, tier=TIER_HOLD, note="batch 미측정"),
+    FactorCell("eq_us_defensive", "vol",       None, tier=TIER_HOLD, note="batch 미측정 → equity_risk vol pool(≈−0.63, 독립 audit corr −0.66 정합)"),
+    FactorCell("eq_us_defensive", "breakeven", None, tier=TIER_HOLD, note="batch 미측정"),
+    FactorCell("eq_us_defensive", "fx",        +1.0 , tier=TIER_DENOMINATION, note="IC8 denomination full(USD-표시 방어주); 구조값=측정대상 아님 → HOLD 무관 직접 부여"),
 )
 
 
@@ -277,27 +291,26 @@ if __name__ == "__main__":
           " ".join(f"{s}={sb.betas[s][di]:+.3f}" for s in
                    ("gold", "eq_us_cyclical", "eq_intl", "reit", "commodity")))
 
-    # 2) validated(gold dollar) 는 수축 약함, structural(commodity dollar)·hold 는 강수축/노출만
-    # measured: gold/commodity 둘 다 group 단독 validated(w=0.5 자기수축). validated vs structural 비교는
-    # equity_risk 군 내에서(dollar=validated pool 복수 → 덜 수축 / oil=structural 캡). hold=defensive w=0.
-    w_cyc_dollar = sb.weights[("eq_us_cyclical", "dollar")]   # validated, equity_risk pool
-    w_cyc_oil = sb.weights[("eq_us_cyclical", "oil")]          # structural, 캡
-    w_def = sb.weights[("eq_us_defensive", "dollar")]          # hold
-    assert w_cyc_dollar > w_cyc_oil, f"validated({w_cyc_dollar}) 가 structural({w_cyc_oil}) 보다 덜 수축해야"
-    assert w_cyc_oil <= _W_MAX_STRUCTURAL + 1e-9, f"structural w 캡 위반: {w_cyc_oil}"
+    # 2) validated 는 수축 약함, structural 은 강수축(캡), hold 는 노출만. eq_intl 군 내에서 비교
+    #    (dollar=validated 복수 pool → 덜 수축 / oil=structural 캡). hold=defensive w=0.
+    w_intl_dollar = sb.weights[("eq_intl", "dollar")]   # validated, equity_risk pool
+    w_intl_oil = sb.weights[("eq_intl", "oil")]          # structural, 캡
+    w_def = sb.weights[("eq_us_defensive", "dollar")]    # hold
+    assert w_intl_dollar > w_intl_oil, f"validated({w_intl_dollar}) 가 structural({w_intl_oil}) 보다 덜 수축해야"
+    assert w_intl_oil <= _W_MAX_STRUCTURAL + 1e-9, f"structural w 캡 위반: {w_intl_oil}"
     assert w_def == 0.0, f"hold sleeve w=0 이어야: {w_def}"
-    print(f"2) tier 수축 OK: eq_us_cyclical dollar(validated) w={w_cyc_dollar:.3f} > oil(structural) w={w_cyc_oil:.3f} "
+    print(f"2) tier 수축 OK: eq_intl dollar(validated) w={w_intl_dollar:.3f} > oil(structural) w={w_intl_oil:.3f} "
           f"/ eq_us_defensive(hold) w={w_def:.3f}")
 
-    # 3) ★IC3 오염차단 + IC10 measured: reject=β:=0 lock. batch mv 에서 reit rate 가 reject —
-    #    univariate −0.45 는 vol/dollar 공선 흡수, multivariate(직교 통제) 후 t=−0.166 비유의 → 정정.
-    #    가설상 무관 확정이므로 group pool 노출도 차단(reject≠missing). hold(미측정 pool)와 구분.
-    ri = fi["rate"]
-    b_reit_rate = sb.betas["reit"][ri]
-    w_reit_rate = sb.weights[("reit", "rate")]
-    assert w_reit_rate == 0.0, f"reject w=0 이어야: {w_reit_rate}"
-    assert b_reit_rate == 0.0, f"reject β:=0 lock 이어야(오염차단): {b_reit_rate}"
-    print(f"3) reject β:=0 lock OK: reit rate w=0, b={b_reit_rate:+.3f}(batch mv 비유의 → 노출 0, univariate 공선 정정)")
+    # 3) ★IC3 오염차단: reject=β:=0 lock(group pool 노출도 차단, reject≠missing). reit oil 가 reject(Y5
+    #    joint 비유의 t=0.30) — equity_risk oil pool(eq_intl oil structural +0.047)이 존재하나 reject 라
+    #    그 pool 을 ★안 빌리고 β:=0. hold(미측정 → pool 빌림)와 구분되는 핵심 케이스.
+    oi = fi["oil"]
+    b_reit_oil = sb.betas["reit"][oi]
+    w_reit_oil = sb.weights[("reit", "oil")]
+    assert w_reit_oil == 0.0, f"reject w=0 이어야: {w_reit_oil}"
+    assert b_reit_oil == 0.0, f"reject β:=0 lock 이어야(equity_risk oil pool 안 빌림): {b_reit_oil}"
+    print(f"3) reject β:=0 lock OK: reit oil w=0, b={b_reit_oil:+.3f}(joint 비유의 → 노출 0, oil pool 미상속)")
 
     # 4) hold(eq_us_defensive) 가 equity_risk pool dollar 노출 받음(미검증이나 동조 가시성 유지)
     b_def_dollar = sb.betas["eq_us_defensive"][di]
@@ -310,7 +323,7 @@ if __name__ == "__main__":
     print(f"5) idio conservation OK: floor κ={_KAPPA_IDIO} 전 sleeve 충족")
 
     # 6) ★end-to-end: seed betas → factor_implied_cross_cov → PD + dollar 동조 양공분산
-    Lam = np.diag([0.04, 0.05, 0.03, 0.05, 0.06, 0.02])   # rate/dollar/oil/credit/vol/fx 분산(self-test 가정)
+    Lam = np.diag([0.04, 0.05, 0.03, 0.05, 0.06, 0.04, 0.02])  # real/dollar/oil/credit/vol/breakeven/fx(self-test 가정)
     sb2 = build_seed_betas(factor_cov=Lam)
     res = factor_implied_cross_cov(sb2.betas, Lam, factors=list(sb2.factors), idio_var=sb2.idio_var)
     eig = np.linalg.eigvalsh(res.cov)
@@ -324,7 +337,7 @@ if __name__ == "__main__":
     # 7) ★IC10(a) vol(VIX) measured: equity/commodity sleeve vol 강음(risk-off 공통인자). gold vol=
     #    reject(β:=0 lock, batch+audit 비유의). defensive(hold)=equity_risk vol pool 노출(audit corr −0.66 정합).
     #    ★L축: vol 공통인자는 SEED vol factor 1회만 계상(VIX-regime 별도 wire 금지, 독립 audit 가드).
-    assert "vol" in sb.factors and len(sb.factors) == 6, f"vol append 실패: {sb.factors}"
+    assert "vol" in sb.factors and len(sb.factors) == 7, f"vol append 실패: {sb.factors}"
     vi = fi["vol"]
     for s in ("eq_us_cyclical", "eq_intl", "reit", "commodity"):
         assert sb.betas[s][vi] < 0, f"{s} vol 음노출(risk-off) 이어야: {sb.betas[s][vi]}"
@@ -336,7 +349,7 @@ if __name__ == "__main__":
 
     # 8) ★IC8 fx denomination: USD-표시 자산 fx_β=원값 보존(James-Stein 우회) / gold=부분(+0.3) /
     #    fx_hedge="full" → 전 sleeve fx_β:=0(완전 환헤지). measured 셀과 다른 layer(회귀추정 대상 아님).
-    assert "fx" in sb.factors and len(sb.factors) == 6, f"fx append 실패: {sb.factors}"
+    assert "fx" in sb.factors and len(sb.factors) == 7, f"fx append 실패: {sb.factors}"
     xi = fi["fx"]
     assert abs(sb.betas["eq_us_cyclical"][xi] - 1.0) < 1e-9, f"USD자산 fx_β=+1.0 절대 denomination 실패: {sb.betas['eq_us_cyclical'][xi]}"
     assert abs(sb.betas["gold"][xi] - 1.0) < 1e-9, f"gold fx_β=+1.0(GLD=USD자산 full denomination) 실패: {sb.betas['gold'][xi]}"
@@ -349,7 +362,7 @@ if __name__ == "__main__":
     # 9) ★gold decoupling 측정(fx 영향): fx_hedge none vs full 비교. gold full(+1.0, GLD=USD자산)이나
     #    Λfx 작아(self-test 0.02 / 런타임 eye fallback 0.15) fx_β²·Λfx 곱 작음 → Δcorr<0.25 게이트.
     #    IC10 risk-off decoupling 은 dollar/vol 열에 보존, fx 는 별 KRW 환산 레이어(동조 추가는 환노출 현실).
-    Lam6 = np.diag([0.04, 0.05, 0.03, 0.05, 0.06, 0.02])
+    Lam6 = np.diag([0.04, 0.05, 0.03, 0.05, 0.06, 0.04, 0.02])  # 7f: real/dollar/oil/credit/vol/breakeven/fx
     sb_n = build_seed_betas(factor_cov=Lam6, fx_hedge="none")
     sb_f = build_seed_betas(factor_cov=Lam6, fx_hedge="full")
     res_n = factor_implied_cross_cov(sb_n.betas, Lam6, factors=list(sb_n.factors), idio_var=sb_n.idio_var)

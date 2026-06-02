@@ -23,8 +23,9 @@ import numpy as np
 
 # 팩터별 변환 규칙(자문 §5): 레벨차분 vs 로그수익.
 FACTOR_TRANSFORM = {
-    "rate": "diff",      # DGS10 Δbp
+    "real": "diff",      # DFII10 실질금리 Δ (★Y5 rate=DGS10 교체)
     "credit": "diff",    # HY OAS Δbp
+    "breakeven": "diff", # T5YIE 기대인플레 Δ (★Y5 추가)
     "dollar": "dlog",    # DTWEXBGS broad TWI Δlog
     "oil": "dlog",       # WTI Δlog
     "vol": "dlog",       # VIX Δlog (M5 Phase A — 변동성지수 양수·mean-reverting, 로그수익 클러스터)

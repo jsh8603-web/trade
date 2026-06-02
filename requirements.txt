@@ -43,6 +43,7 @@ dart-fss>=0.4.16
 python-kis>=2.1.6          # KIS 어댑트 (import 명: pykis) — modify/cancel/pending·websocket·모의투자
 fredapi>=0.5.2             # FRED realtime_*(ALFRED) vintage 거시 PIT
 pandas-market-calendars>=5.4.0  # H31 휴장일 calendar (US NYSE 등)
+jumpmodels>=0.1.1          # JM/SJM 2상태 stress/calm 메타신호 → regime_classifier IC confidence 보정 (§5.8-A R10)
 
 # === 기타 유틸 ===
 pyyaml>=6.0

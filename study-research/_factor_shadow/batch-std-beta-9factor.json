@@ -1,0 +1,753 @@
+{
+  "_frontmatter": {
+    "title": "Y5 factor codify — 8-factor 통일 multivariate 재측정",
+    "tags": [
+      "study/factor-beta",
+      "Y5-codify",
+      "9factor"
+    ],
+    "date": "2026-06-02",
+    "scope": "core/study 미수정 · SEED 재측정 산출"
+  },
+  "meta": {
+    "factors": [
+      "real",
+      "dollar",
+      "oil",
+      "credit",
+      "vol",
+      "move",
+      "breakeven",
+      "slope"
+    ],
+    "factor_source": "FRED 캐시(DFII10/DTWEXBGS/DCOILWTICO/BAA10Y/AAA10Y/VIXCLS/DGS10/DGS2) + fredapi(T5YIE) + yfinance(^MOVE)",
+    "factor_coverage": [
+      "2006-01-03",
+      "2026-05-22"
+    ],
+    "adf_factor": {
+      "real": 0.0,
+      "dollar": 0.0,
+      "oil": 0.0,
+      "credit": 0.0,
+      "vol": 0.0,
+      "move": 0.0,
+      "breakeven": 0.0,
+      "slope": 0.0
+    },
+    "n_comparisons": 40,
+    "bonferroni_alpha": 0.00125,
+    "method": "z-score std beta, HAC(NW=5), multivariate(8f)+univariate, VIF, ADF; rate→real 교체",
+    "max_vif": 1.26
+  },
+  "sleeves": {
+    "gold": {
+      "GOLD": {
+        "coverage_start": "2006-01-03",
+        "coverage_end": "2026-05-22",
+        "n": 4999,
+        "adf_ret": 0.0,
+        "univariate": {
+          "real": {
+            "beta": -0.2495,
+            "se": 0.0205,
+            "t": -12.171,
+            "p": 0.0,
+            "n": 4999
+          },
+          "dollar": {
+            "beta": -0.3467,
+            "se": 0.02,
+            "t": -17.343,
+            "p": 0.0,
+            "n": 4999
+          },
+          "oil": {
+            "beta": 0.1532,
+            "se": 0.0313,
+            "t": 4.895,
+            "p": 0.0,
+            "n": 4999
+          },
+          "credit": {
+            "beta": -0.0137,
+            "se": 0.0218,
+            "t": -0.626,
+            "p": 0.53104,
+            "n": 4999
+          },
+          "vol": {
+            "beta": -0.0563,
+            "se": 0.0252,
+            "t": -2.235,
+            "p": 0.02543,
+            "n": 4999
+          },
+          "move": {
+            "beta": -0.0711,
+            "se": 0.0175,
+            "t": -4.066,
+            "p": 5e-05,
+            "n": 4999
+          },
+          "breakeven": {
+            "beta": 0.034,
+            "se": 0.0515,
+            "t": 0.659,
+            "p": 0.51002,
+            "n": 4999
+          },
+          "slope": {
+            "beta": -0.01,
+            "se": 0.0228,
+            "t": -0.438,
+            "p": 0.66154,
+            "n": 4999
+          }
+        },
+        "multivariate": {
+          "real": {
+            "beta": -0.2329,
+            "se": 0.0212,
+            "t": -10.986,
+            "p": 0.0
+          },
+          "dollar": {
+            "beta": -0.3004,
+            "se": 0.0192,
+            "t": -15.641,
+            "p": 0.0
+          },
+          "oil": {
+            "beta": 0.1079,
+            "se": 0.0255,
+            "t": 4.224,
+            "p": 2e-05
+          },
+          "credit": {
+            "beta": -0.0098,
+            "se": 0.019,
+            "t": -0.514,
+            "p": 0.60721
+          },
+          "vol": {
+            "beta": -0.0008,
+            "se": 0.0239,
+            "t": -0.033,
+            "p": 0.97362
+          },
+          "move": {
+            "beta": 0.014,
+            "se": 0.0171,
+            "t": 0.818,
+            "p": 0.41318
+          },
+          "breakeven": {
+            "beta": -0.0827,
+            "se": 0.0246,
+            "t": -3.367,
+            "p": 0.00076
+          },
+          "slope": {
+            "beta": 0.0379,
+            "se": 0.0218,
+            "t": 1.738,
+            "p": 0.08224
+          },
+          "_n": 4999,
+          "_r2": 0.1748
+        },
+        "vif": {
+          "real": 1.259,
+          "dollar": 1.178,
+          "oil": 1.139,
+          "credit": 1.007,
+          "vol": 1.194,
+          "move": 1.159,
+          "breakeven": 1.136,
+          "slope": 1.238
+        },
+        "tier_suggest": {
+          "real": "validated",
+          "dollar": "validated",
+          "oil": "validated",
+          "credit": "reject",
+          "vol": "reject",
+          "move": "reject",
+          "breakeven": "validated",
+          "slope": "structural"
+        },
+        "tickers": [
+          "GLD"
+        ]
+      }
+    },
+    "eq_us_cyclical": {
+      "CYCLICAL_PRO": {
+        "coverage_start": "2006-01-03",
+        "coverage_end": "2026-05-22",
+        "n": 4999,
+        "adf_ret": 0.0,
+        "univariate": {
+          "real": {
+            "beta": 0.0894,
+            "se": 0.0247,
+            "t": 3.622,
+            "p": 0.00029,
+            "n": 4999
+          },
+          "dollar": {
+            "beta": -0.333,
+            "se": 0.0206,
+            "t": -16.194,
+            "p": 0.0,
+            "n": 4999
+          },
+          "oil": {
+            "beta": 0.2346,
+            "se": 0.0434,
+            "t": 5.411,
+            "p": 0.0,
+            "n": 4999
+          },
+          "credit": {
+            "beta": -0.0316,
+            "se": 0.0345,
+            "t": -0.917,
+            "p": 0.35932,
+            "n": 4999
+          },
+          "vol": {
+            "beta": -0.7575,
+            "se": 0.0244,
+            "t": -31.056,
+            "p": 0.0,
+            "n": 4999
+          },
+          "move": {
+            "beta": -0.2203,
+            "se": 0.0235,
+            "t": -9.389,
+            "p": 0.0,
+            "n": 4999
+          },
+          "breakeven": {
+            "beta": 0.207,
+            "se": 0.1053,
+            "t": 1.965,
+            "p": 0.04936,
+            "n": 4999
+          },
+          "slope": {
+            "beta": 0.1122,
+            "se": 0.028,
+            "t": 4.012,
+            "p": 6e-05,
+            "n": 4999
+          }
+        },
+        "multivariate": {
+          "real": {
+            "beta": 0.0592,
+            "se": 0.018,
+            "t": 3.294,
+            "p": 0.00099
+          },
+          "dollar": {
+            "beta": -0.1663,
+            "se": 0.0164,
+            "t": -10.155,
+            "p": 0.0
+          },
+          "oil": {
+            "beta": 0.0366,
+            "se": 0.0243,
+            "t": 1.505,
+            "p": 0.13241
+          },
+          "credit": {
+            "beta": -0.0056,
+            "se": 0.0138,
+            "t": -0.402,
+            "p": 0.68743
+          },
+          "vol": {
+            "beta": -0.6978,
+            "se": 0.0276,
+            "t": -25.316,
+            "p": 0.0
+          },
+          "move": {
+            "beta": 0.0005,
+            "se": 0.0173,
+            "t": 0.029,
+            "p": 0.97671
+          },
+          "breakeven": {
+            "beta": 0.0552,
+            "se": 0.0275,
+            "t": 2.009,
+            "p": 0.04455
+          },
+          "slope": {
+            "beta": 0.0232,
+            "se": 0.0124,
+            "t": 1.874,
+            "p": 0.06091
+          },
+          "_n": 4999,
+          "_r2": 0.6119
+        },
+        "vif": {
+          "real": 1.259,
+          "dollar": 1.178,
+          "oil": 1.139,
+          "credit": 1.007,
+          "vol": 1.194,
+          "move": 1.159,
+          "breakeven": 1.136,
+          "slope": 1.238
+        },
+        "tier_suggest": {
+          "real": "validated",
+          "dollar": "validated",
+          "oil": "reject",
+          "credit": "reject",
+          "vol": "validated",
+          "move": "reject",
+          "breakeven": "structural",
+          "slope": "structural"
+        },
+        "tickers": [
+          "XLB",
+          "XLI",
+          "SOXX"
+        ]
+      }
+    },
+    "eq_intl": {
+      "EQ_INTL": {
+        "coverage_start": "2006-01-03",
+        "coverage_end": "2026-05-22",
+        "n": 4999,
+        "adf_ret": 0.0,
+        "univariate": {
+          "real": {
+            "beta": 0.0744,
+            "se": 0.0253,
+            "t": 2.944,
+            "p": 0.00324,
+            "n": 4999
+          },
+          "dollar": {
+            "beta": -0.4495,
+            "se": 0.0209,
+            "t": -21.492,
+            "p": 0.0,
+            "n": 4999
+          },
+          "oil": {
+            "beta": 0.2574,
+            "se": 0.047,
+            "t": 5.47,
+            "p": 0.0,
+            "n": 4999
+          },
+          "credit": {
+            "beta": -0.0736,
+            "se": 0.0389,
+            "t": -1.892,
+            "p": 0.05856,
+            "n": 4999
+          },
+          "vol": {
+            "beta": -0.739,
+            "se": 0.0314,
+            "t": -23.519,
+            "p": 0.0,
+            "n": 4999
+          },
+          "move": {
+            "beta": -0.2419,
+            "se": 0.0206,
+            "t": -11.768,
+            "p": 0.0,
+            "n": 4999
+          },
+          "breakeven": {
+            "beta": 0.2092,
+            "se": 0.1092,
+            "t": 1.916,
+            "p": 0.05539,
+            "n": 4999
+          },
+          "slope": {
+            "beta": 0.0975,
+            "se": 0.0302,
+            "t": 3.229,
+            "p": 0.00124,
+            "n": 4999
+          }
+        },
+        "multivariate": {
+          "real": {
+            "beta": 0.0777,
+            "se": 0.0162,
+            "t": 4.786,
+            "p": 0.0
+          },
+          "dollar": {
+            "beta": -0.2965,
+            "se": 0.0167,
+            "t": -17.707,
+            "p": 0.0
+          },
+          "oil": {
+            "beta": 0.0473,
+            "se": 0.0195,
+            "t": 2.421,
+            "p": 0.01548
+          },
+          "credit": {
+            "beta": -0.0443,
+            "se": 0.0165,
+            "t": -2.689,
+            "p": 0.00716
+          },
+          "vol": {
+            "beta": -0.6476,
+            "se": 0.0326,
+            "t": -19.844,
+            "p": 0.0
+          },
+          "move": {
+            "beta": -0.0078,
+            "se": 0.0163,
+            "t": -0.475,
+            "p": 0.63487
+          },
+          "breakeven": {
+            "beta": 0.0423,
+            "se": 0.0274,
+            "t": 1.547,
+            "p": 0.12189
+          },
+          "slope": {
+            "beta": -0.0072,
+            "se": 0.0175,
+            "t": -0.411,
+            "p": 0.68104
+          },
+          "_n": 4999,
+          "_r2": 0.6431
+        },
+        "vif": {
+          "real": 1.259,
+          "dollar": 1.178,
+          "oil": 1.139,
+          "credit": 1.007,
+          "vol": 1.194,
+          "move": 1.159,
+          "breakeven": 1.136,
+          "slope": 1.238
+        },
+        "tier_suggest": {
+          "real": "validated",
+          "dollar": "validated",
+          "oil": "structural",
+          "credit": "structural",
+          "vol": "validated",
+          "move": "reject",
+          "breakeven": "reject",
+          "slope": "reject"
+        },
+        "tickers": [
+          "EFA",
+          "EEM"
+        ]
+      }
+    },
+    "reit": {
+      "REIT": {
+        "coverage_start": "2006-01-03",
+        "coverage_end": "2026-05-22",
+        "n": 4999,
+        "adf_ret": 0.0,
+        "univariate": {
+          "real": {
+            "beta": 0.0197,
+            "se": 0.0287,
+            "t": 0.688,
+            "p": 0.49151,
+            "n": 4999
+          },
+          "dollar": {
+            "beta": -0.215,
+            "se": 0.0285,
+            "t": -7.537,
+            "p": 0.0,
+            "n": 4999
+          },
+          "oil": {
+            "beta": 0.1299,
+            "se": 0.0376,
+            "t": 3.455,
+            "p": 0.00055,
+            "n": 4999
+          },
+          "credit": {
+            "beta": -0.0421,
+            "se": 0.0318,
+            "t": -1.322,
+            "p": 0.18607,
+            "n": 4999
+          },
+          "vol": {
+            "beta": -0.584,
+            "se": 0.0345,
+            "t": -16.914,
+            "p": 0.0,
+            "n": 4999
+          },
+          "move": {
+            "beta": -0.146,
+            "se": 0.0209,
+            "t": -6.972,
+            "p": 0.0,
+            "n": 4999
+          },
+          "breakeven": {
+            "beta": 0.0618,
+            "se": 0.1064,
+            "t": 0.581,
+            "p": 0.56129,
+            "n": 4999
+          },
+          "slope": {
+            "beta": 0.0215,
+            "se": 0.026,
+            "t": 0.827,
+            "p": 0.40849,
+            "n": 4999
+          }
+        },
+        "multivariate": {
+          "real": {
+            "beta": -0.0161,
+            "se": 0.0254,
+            "t": -0.636,
+            "p": 0.52458
+          },
+          "dollar": {
+            "beta": -0.0998,
+            "se": 0.0255,
+            "t": -3.922,
+            "p": 9e-05
+          },
+          "oil": {
+            "beta": 0.0081,
+            "se": 0.0271,
+            "t": 0.298,
+            "p": 0.7656
+          },
+          "credit": {
+            "beta": -0.0281,
+            "se": 0.0211,
+            "t": -1.33,
+            "p": 0.18342
+          },
+          "vol": {
+            "beta": -0.5827,
+            "se": 0.0388,
+            "t": -15.033,
+            "p": 0.0
+          },
+          "move": {
+            "beta": 0.0401,
+            "se": 0.0197,
+            "t": 2.029,
+            "p": 0.04242
+          },
+          "breakeven": {
+            "beta": -0.0559,
+            "se": 0.0519,
+            "t": -1.078,
+            "p": 0.28104
+          },
+          "slope": {
+            "beta": -0.0199,
+            "se": 0.0191,
+            "t": -1.046,
+            "p": 0.29564
+          },
+          "_n": 4999,
+          "_r2": 0.3539
+        },
+        "vif": {
+          "real": 1.259,
+          "dollar": 1.178,
+          "oil": 1.139,
+          "credit": 1.007,
+          "vol": 1.194,
+          "move": 1.159,
+          "breakeven": 1.136,
+          "slope": 1.238
+        },
+        "tier_suggest": {
+          "real": "reject",
+          "dollar": "validated",
+          "oil": "reject",
+          "credit": "reject",
+          "vol": "validated",
+          "move": "structural",
+          "breakeven": "reject",
+          "slope": "reject"
+        },
+        "tickers": [
+          "VNQ"
+        ]
+      }
+    },
+    "commodity": {
+      "COMMODITY": {
+        "coverage_start": "2006-02-07",
+        "coverage_end": "2026-05-22",
+        "n": 4975,
+        "adf_ret": 0.0,
+        "univariate": {
+          "real": {
+            "beta": -0.0118,
+            "se": 0.0197,
+            "t": -0.602,
+            "p": 0.54742,
+            "n": 4975
+          },
+          "dollar": {
+            "beta": -0.3765,
+            "se": 0.0198,
+            "t": -19.034,
+            "p": 0.0,
+            "n": 4975
+          },
+          "oil": {
+            "beta": 0.6984,
+            "se": 0.1041,
+            "t": 6.707,
+            "p": 0.0,
+            "n": 4975
+          },
+          "credit": {
+            "beta": -0.0316,
+            "se": 0.027,
+            "t": -1.17,
+            "p": 0.24191,
+            "n": 4975
+          },
+          "vol": {
+            "beta": -0.3303,
+            "se": 0.0215,
+            "t": -15.368,
+            "p": 0.0,
+            "n": 4975
+          },
+          "move": {
+            "beta": -0.0924,
+            "se": 0.0231,
+            "t": -3.999,
+            "p": 6e-05,
+            "n": 4975
+          },
+          "breakeven": {
+            "beta": 0.3264,
+            "se": 0.1151,
+            "t": 2.837,
+            "p": 0.00455,
+            "n": 4975
+          },
+          "slope": {
+            "beta": 0.1292,
+            "se": 0.0218,
+            "t": 5.938,
+            "p": 0.0,
+            "n": 4975
+          }
+        },
+        "multivariate": {
+          "real": {
+            "beta": -0.0034,
+            "se": 0.0143,
+            "t": -0.24,
+            "p": 0.81023
+          },
+          "dollar": {
+            "beta": -0.1885,
+            "se": 0.0206,
+            "t": -9.16,
+            "p": 0.0
+          },
+          "oil": {
+            "beta": 0.5968,
+            "se": 0.0983,
+            "t": 6.069,
+            "p": 0.0
+          },
+          "credit": {
+            "beta": -0.0333,
+            "se": 0.0176,
+            "t": -1.893,
+            "p": 0.05831
+          },
+          "vol": {
+            "beta": -0.153,
+            "se": 0.0181,
+            "t": -8.462,
+            "p": 0.0
+          },
+          "move": {
+            "beta": 0.0289,
+            "se": 0.0129,
+            "t": 2.232,
+            "p": 0.02561
+          },
+          "breakeven": {
+            "beta": 0.1165,
+            "se": 0.0372,
+            "t": 3.129,
+            "p": 0.00175
+          },
+          "slope": {
+            "beta": 0.0148,
+            "se": 0.0127,
+            "t": 1.159,
+            "p": 0.24657
+          },
+          "_n": 4975,
+          "_r2": 0.5767
+        },
+        "vif": {
+          "real": 1.26,
+          "dollar": 1.178,
+          "oil": 1.139,
+          "credit": 1.007,
+          "vol": 1.194,
+          "move": 1.16,
+          "breakeven": 1.136,
+          "slope": 1.238
+        },
+        "tier_suggest": {
+          "real": "reject",
+          "dollar": "validated",
+          "oil": "validated",
+          "credit": "structural",
+          "vol": "validated",
+          "move": "structural",
+          "breakeven": "structural",
+          "slope": "reject"
+        },
+        "tickers": [
+          "DBC"
+        ]
+      }
+    }
+  }
+}

@@ -84,6 +84,7 @@ def build_sleeve_regime_ids(
     labels: Sequence[str],
     *,
     bloc=None,
+    monthly: bool = True,
 ) -> np.ndarray:
     """슬리브 returns_history 각 행 날짜 → classify(as_of) → regime int id 배열 (④ 배선 a).
 
@@ -91,12 +92,37 @@ def build_sleeve_regime_ids(
     각 과거 시점이 어느 거시 국면이었는지 알아야 regime-conditional 공분산(Σ_eff)을 학습한다.
     returns_history.index(슬리브 수익률 시점) 를 PIT 학습 시점으로 보고 국면을 재구성한다.
 
-    반환 = regime_to_weights(sleeve_regime_ids=) substrate. ⛔ 라이브 allocate 가 매 사이클 과거
-    전체를 classify 하는 것은 무겁다(설계원칙 5: 학습=배치/적용=조회) → 배치 산출분을 조회 주입.
+    ★Y4b(2026-06-02): regime 은 거시(월·분기) 기반 저빈도 → 일별 N회 classify(각 FRED 전 시리즈
+    재fetch)는 라이브 부적합(252일=20분+). monthly=True(기본)면 **각 월 최종 거래일만 classify(~N/21
+    회) + PIT-safe 과거 ffill**(일별 d 의 regime = d 이하 최근 월 대표일 국면, 미래 미참조). regime
+    전환은 최대 1개월 lag(거시 발표지연과 정합). monthly=False = 기존 일별(정밀 배치·백테스트용).
     classify 실패/미지 시점 → -1(RegimeGlasso 제외, graceful).
     """
     dates = list(getattr(returns_history, "index", returns_history))
-    hist = build_regime_history(classifier, dates, bloc=bloc)
+    if not monthly or len(dates) == 0:
+        hist = build_regime_history(classifier, dates, bloc=bloc)
+        return regime_id_series(hist, dates, labels)
+
+    import pandas as pd
+    idx = pd.DatetimeIndex([pd.Timestamp(d) for d in dates])
+    # 각 월 최종 거래일 = 그 달 데이터 확정 시점 = 대표 classify as_of (dates 정렬 가정).
+    rep_by_period: dict = {}
+    for d, p in zip(dates, idx.to_period("M")):
+        rep_by_period[p] = d
+    rep_dates = sorted(rep_by_period.values(), key=lambda x: pd.Timestamp(x))
+    hist_rep = build_regime_history(classifier, rep_dates, bloc=bloc)  # 월 1회 (~12/년)
+    # 일별 d → d 이하 최근 대표일 regime (PIT-safe ffill: 과거 전파, 미래 미참조). 첫 대표 이전=None.
+    rep_sorted = sorted(((pd.Timestamp(k), hist_rep.get(k)) for k in rep_dates), key=lambda x: x[0])
+    hist: dict = {}
+    for d in dates:
+        td = pd.Timestamp(d)
+        lab = None
+        for rd, rl in rep_sorted:
+            if rd <= td:
+                lab = rl
+            else:
+                break
+        hist[d] = lab
     return regime_id_series(hist, dates, labels)
 
 
