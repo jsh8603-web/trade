@@ -132,9 +132,9 @@ cross:
     - {factor: dollar, beta: -0.098, contemporaneous: true, note: "비유의 (CI 넓음)"}
     - {factor: hy_oas, beta: 0.004, contemporaneous: true, note: "비유의 (sub-sector 별 상이: staples +0.022 약)"}
     - {factor: vix, beta: 0.000, contemporaneous: true, note: "비유의 (staples -0.002 t=-2.2 약 음만)"}
-  # ★sub-sector 분기 (H5): utilities real_rate -0.213(t=-2.9 최강 듀레이션) / staples -0.154(t=-3.1) / healthcare -0.137(t=-1.9 약)
+  # ★sub-sector 분기 (H5): utilities real_rate -0.213(t=-2.9 듀레이션 민감 상대 강) / staples -0.154(t=-3.1) / healthcare -0.137(t=-1.9 약)
   sub_sector_rate_sensitivity:
-    - {sector: utilities, real_rate_beta: -0.213, t: -2.9, note: "★최강 듀레이션 = 채권 대용 (H5 utility rate−)"}
+    - {sector: utilities, real_rate_beta: -0.213, t: -2.9, note: "★듀레이션 민감 상대 강(sub-sector 중 최대) = 채권 대용 (H5 utility rate−). n=36 small hedge."}
     - {sector: staples, real_rate_beta: -0.154, t: -3.1, note: "듀레이션 민감"}
     - {sector: healthcare, real_rate_beta: -0.137, t: -1.9, note: "약 (방어적이나 성장 성분)"}
     - {sector: comm_mature, real_rate_beta: -0.197, t: -1.8, note: "듀레이션 (배당주)"}
@@ -249,10 +249,10 @@ verdict_detail:
   valuation_cross_sectional: >
     ★메커니즘 작동(EDGAR PIT, PBR cov 5150/PER 5108, avgN 26) but IC 약·비유의 — per_z 24M value premium 방향(-0.025)만 약,
     pbr_z 24M 역방향(+0.062 value trap 가능). BY 미생존. 한국 consumer/telecom 강 value premium 미재현 = battery valuation 약 패턴 동일.
-  common_factor: "★real_rate 듀레이션 민감 dominant(β -0.171 t=-4.1 유의, 채권 대용, H2 정합). utilities 최강(-0.213). n=36 small hedge."
+  common_factor: "★real_rate 듀레이션 민감 dominant(β -0.171 t=-4.1 유의, 채권 대용, H2 정합). utilities sub-sector 중 최대(-0.213). n=36 small hedge(CI 넓음)."
 verdict_note: >
   sleeve 전체 = PARTIAL. ★핵심 발견 = momentum 무효(asset_stable, 한국 consumer/telecom 동형) + 단기 reversal(rev_1m -0.045 유의) +
-  저변동성 프리미엄(vol_60 +0.076 TENTATIVE) + ★real_rate 듀레이션 민감(채권 대용, t=-4.1 강, H2 TSY 정합). utilities 최강 듀레이션.
+  저변동성 프리미엄(vol_60 +0.076 TENTATIVE) + ★real_rate 듀레이션 민감(채권 대용, t=-4.1 강, H2 TSY 정합). utilities sub-sector 중 듀레이션 최대.
   ★valuation 횡단면 = EDGAR PIT 메커니즘 작동(cov 5150, avgN 26) but IC 약·비유의(PER value premium 방향만 약, PBR 역방향) = 한국 consumer/telecom
   강 value premium 미재현 = battery valuation 약 패턴 동일(cf. us_cyclical PER 작동 = sleeve 별 상이). ★dominant 신호 = rev_1m reversal + real_rate 듀레이션.
   ★합성 P0 재검증(§1.7-D) 통과 = v1 synthetic 격리, 현 데이터 실데이터 입증. ★IID→block bootstrap 교체(§1.4). n=183개월(한국 대비 장기).
