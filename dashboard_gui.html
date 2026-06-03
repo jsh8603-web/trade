@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>통합 투자 시스템 — 포트폴리오 대시보드</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0d13; --panel:#11151e; --panel2:#161b26; --line:#222a38;
+    --text:#e8ebf2; --dim:#8a94a6; --faint:#5b6678;
+    --up:#35c08a; --down:#f2585b; --gold:#c9a24b; --blue:#5b9cf0;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --sans:'Pretendard','Pretendard Variable',-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--ink);color:var(--text);font-family:var(--sans);
+    background-image:radial-gradient(1200px 600px at 80% -10%,rgba(91,156,240,.06),transparent),
+                     radial-gradient(900px 500px at 0% 110%,rgba(201,162,75,.05),transparent);
+    min-height:100vh;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 26px 60px}
+  /* top bar */
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+  .brand{display:flex;align-items:baseline;gap:11px}
+  .brand h1{font-size:17px;font-weight:700;letter-spacing:-.02em}
+  .brand .v{font-family:var(--mono);font-size:11px;color:var(--gold);border:1px solid var(--line);
+    padding:2px 7px;border-radius:5px;letter-spacing:0}
+  .sample{font-size:11px;color:var(--faint);font-family:var(--mono)}
+  /* phase toggle */
+  .phases{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px;gap:2px}
+  .phases button{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--dim);background:none;
+    border:0;padding:8px 16px;border-radius:7px;cursor:pointer;transition:.18s;letter-spacing:-.01em}
+  .phases button:hover{color:var(--text)}
+  .phases button.on{background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+  .phases button.on .dot{background:var(--gold)}
+  .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--faint);margin-right:7px;vertical-align:middle}
+  .ctx{font-size:12px;color:var(--dim);margin:14px 0 18px;font-family:var(--mono)}
+  .ctx b{color:var(--text);font-weight:500}
+  /* kpi row */
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:13px 14px}
+  .kpi .k{font-size:11px;color:var(--dim);margin-bottom:7px;font-weight:500}
+  .kpi .val{font-family:var(--mono);font-size:21px;font-weight:600;letter-spacing:-.02em}
+  .kpi .sub{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:3px}
+  .up{color:var(--up)} .down{color:var(--down)}
+  /* layout */
+  .grid{display:grid;grid-template-columns:1.7fr 1fr;gap:14px;margin-bottom:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px 17px}
+  .card h2{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;display:flex;justify-content:space-between;align-items:center}
+  .card h2 .leg{font-size:11px;color:var(--dim);font-weight:400;font-family:var(--mono)}
+  .card .cap{font-size:11px;color:var(--faint);margin-bottom:12px}
+  /* equity chart */
+  .chartwrap{position:relative}
+  svg.eq{width:100%;height:230px;display:block}
+  .axis{fill:var(--faint);font-family:var(--mono);font-size:9px}
+  /* sleeve bars */
+  .sleeve{margin-bottom:11px}
+  .sleeve .row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+  .sleeve .nm{color:var(--text)} .sleeve .pc{font-family:var(--mono);color:var(--dim)}
+  .bar{height:7px;background:var(--panel2);border-radius:4px;overflow:hidden}
+  .bar span{display:block;height:100%;border-radius:4px}
+  .contrib{font-family:var(--mono);font-size:10px;margin-left:7px}
+  /* tracks */
+  .tracks{display:flex;gap:10px;margin-bottom:14px}
+  .track{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:13px 14px}
+  .track .t{font-size:12px;color:var(--dim);margin-bottom:6px}
+  .track .p{font-family:var(--mono);font-size:18px;font-weight:600}
+  .track .s{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:2px}
+  /* holdings table */
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:right;color:var(--faint);font-weight:500;font-size:11px;padding:7px 8px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:9px 8px;border-bottom:1px solid rgba(34,42,56,.5);font-family:var(--mono)}
+  td.nm{font-family:var(--sans);color:var(--text)}
+  .tag{font-size:10px;color:var(--faint);border:1px solid var(--line);border-radius:4px;padding:1px 5px;margin-left:6px;font-family:var(--sans)}
+  /* phase panel */
+  .ppanel{margin-top:14px}
+  .gonogo{display:flex;align-items:center;gap:16px;padding:15px 18px;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
+  .verdict{font-size:24px;font-weight:800;letter-spacing:.02em;padding:8px 18px;border-radius:9px}
+  .verdict.go{color:var(--up);background:rgba(53,192,138,.1);border:1px solid rgba(53,192,138,.35)}
+  .verdict.no{color:var(--down);background:rgba(242,88,91,.1);border:1px solid rgba(242,88,91,.35)}
+  .gates{display:flex;flex-wrap:wrap;gap:8px}
+  .gate{font-size:11px;font-family:var(--mono);padding:5px 10px;border-radius:7px;border:1px solid var(--line);background:var(--panel2)}
+  .gate.pass{color:var(--up)} .gate.warn{color:var(--gold)} .gate.fail{color:var(--down)}
+  .folds{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:10px}
+  .fold{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px;text-align:center}
+  .fold .fn{font-size:10px;color:var(--faint)} .fold .fv{font-family:var(--mono);font-size:14px;font-weight:600;margin-top:3px}
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .mini{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(34,42,56,.5);font-size:12px}
+  .mini:last-child{border:0}
+  .mini .mk{color:var(--dim)} .mini .mv{font-family:var(--mono);color:var(--text)}
+  .note{font-size:11px;color:var(--faint);margin-top:16px;line-height:1.6;font-family:var(--mono)}
+  @media(max-width:860px){.kpis{grid-template-columns:repeat(3,1fr)}.grid,.twocol{grid-template-columns:1fr}.folds{grid-template-columns:repeat(3,1fr)}.tracks{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>통합 투자 시스템</h1><span class="v">PORTFOLIO · G8</span>
+    </div>
+    <div class="phases" id="phases">
+      <button data-p="backtest" class="on"><span class="dot"></span>백테스트</button>
+      <button data-p="paper"><span class="dot"></span>모의</button>
+      <button data-p="live"><span class="dot"></span>실전(소액)</button>
+    </div>
+  </header>
+  <div class="ctx" id="ctx"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>누적 수익 곡선 <span class="leg">— 시스템 &nbsp;·· 벤치마크</span></h2>
+      <div class="cap" id="eqcap"></div>
+      <div class="chartwrap"><svg class="eq" id="eq" preserveAspectRatio="none"></svg></div>
+    </div>
+    <div class="card">
+      <h2>자산군(슬리브) 배분 <span class="leg">비중 · 기여도</span></h2>
+      <div class="cap">현 거시국면 기준 목표 비중과 누적 수익 기여</div>
+      <div id="sleeves"></div>
+    </div>
+  </div>
+
+  <div class="tracks" id="tracks"></div>
+
+  <div class="card">
+    <h2>보유 종목 <span class="leg" id="holdcap"></span></h2>
+    <div style="overflow-x:auto"><table id="holdings"></table></div>
+  </div>
+
+  <div class="ppanel" id="ppanel"></div>
+
+  <div class="note" id="note"></div>
+</div>
+
+<script>
+const fmtKRW = n => (n<0?'-':'')+'₩'+Math.abs(Math.round(n)).toLocaleString('ko-KR');
+const pct = n => (n>=0?'+':'')+n.toFixed(2)+'%';
+const cls = n => n>=0?'up':'down';
+
+// ───────── 샘플 데이터 (3단계) ─────────
+const SLEEVE_COLORS = {'미국주식':'#5b9cf0','한국주식':'#35c08a','원자재':'#c9a24b','금':'#e0b659','채권':'#8a7bd8','현금':'#5b6678','코인':'#f2585b'};
+
+function mkCurve(start, pts, drift, vol, seed){
+  let v=start, out=[v], r=seed;
+  for(let i=1;i<pts;i++){ r=(r*9301+49297)%233280; const n=(r/233280-0.5);
+    v=v*(1+drift+vol*n); out.push(v);} return out;
+}
+
+const DATA = {
+  backtest:{
+    ctx:'기간 <b>2018-01 ~ 2026-05</b> · 일봉 · 비용·세금 차감(국내 0.20% / 해외 22% netting) · walk-forward 6 folds',
+    kpis:[
+      {k:'기간 수익률',v:'+214.7%',c:'up',s:'CAGR +15.3%'},
+      {k:'MDD',v:'-23.8%',c:'down',s:'2022-06'},
+      {k:'Sharpe',v:'1.42',s:'세후 기준'},
+      {k:'승률',v:'58.1%',s:'412 trades'},
+      {k:'회전율',v:'2.9x',s:'연 환산'},
+      {k:'vs Buy&Hold',v:'+47.2%p',c:'up',s:'위험조정 우위'},
+    ],
+    eqcap:'시스템 vs 60/40 buy&hold (로그 스케일 근사)',
+    sys:mkCurve(100,200,0.0056,0.018,7), bench:mkCurve(100,200,0.0040,0.020,19),
+    sleeves:[['미국주식',32,'+74.1'],['한국주식',18,'+31.0'],['코인',12,'+58.3'],['금',10,'+12.4'],['원자재',8,'+9.1'],['채권',12,'-3.2'],['현금',8,'0.0']],
+    tracks:[['코인 트랙','+128.4%','realized · 비중 12%','up'],['주식 트랙','+86.3%','realized · 비중 50%','up']],
+    holdcap:'백테스트 종료 시점 스냅샷',
+    holdings:[
+      ['SPY','미국주식',32.0,'+18.2','ETF'],['삼성전자','한국주식',9.0,'+11.4','005930'],
+      ['KODEX 200','한국주식',9.0,'+7.8','ETF'],['BTC','코인',8.0,'+42.1','KRW-BTC'],
+      ['ETH','코인',4.0,'+71.0','KRW-ETH'],['IAU','금',10.0,'+12.4','ETF'],
+    ],
+    panel:{type:'gonogo'}
+  },
+  paper:{
+    ctx:'기간 <b>2026-05-14 ~ 2026-05-28 (14일)</b> · 실시간 모의 · 백테스트 대비 추적 · 슬리피지 실측',
+    kpis:[
+      {k:'기간 수익률',v:'+1.84%',c:'up',s:'14일'},
+      {k:'MDD',v:'-2.1%',c:'down',s:'세션내'},
+      {k:'추적오차',v:'0.7%',s:'vs 백테스트'},
+      {k:'승률',v:'61.0%',s:'18 trades'},
+      {k:'평균 슬리피지',v:'4.2bps',s:'모델 3.0bps'},
+      {k:'vs Buy&Hold',v:'+0.9%p',c:'up',s:''},
+    ],
+    eqcap:'모의 계좌 vs 동기간 buy&hold',
+    sys:mkCurve(100,30,0.0013,0.006,3), bench:mkCurve(100,30,0.0007,0.007,11),
+    sleeves:[['미국주식',30,'+0.8'],['한국주식',20,'+0.5'],['코인',12,'+0.9'],['금',10,'+0.1'],['원자재',8,'-0.1'],['채권',12,'0.0'],['현금',8,'0.0']],
+    tracks:[['코인 트랙','+2.6%','모의 · 비중 12%','up'],['주식 트랙','+1.3%','모의 · 비중 50%','up']],
+    holdcap:'실시간 (모의)',
+    holdings:[
+      ['SPY','미국주식',30.0,'+1.1','ETF'],['삼성전자','한국주식',10.0,'+0.9','005930'],
+      ['KODEX 200','한국주식',10.0,'+0.4','ETF'],['BTC','코인',8.0,'+3.0','KRW-BTC'],
+      ['ETH','코인',4.0,'+1.9','KRW-ETH'],['IAU','금',10.0,'+0.1','ETF'],
+    ],
+    panel:{type:'paper'}
+  },
+  live:{
+    ctx:'기간 <b>2026-05-21 ~ 2026-05-28</b> · 실전 소액(₩2,000,000) · reconciliation 활성 · 안전게이트 ON',
+    kpis:[
+      {k:'기간 수익률',v:'+0.62%',c:'up',s:'세후'},
+      {k:'평가금액',v:'₩2,012,400',s:'원금 ₩2,000,000'},
+      {k:'금일 P&L',v:'+0.18%',c:'up',s:'+₩3,600'},
+      {k:'승률',v:'57.1%',s:'7 trades'},
+      {k:'Recon. drift',v:'0',c:'up',s:'미설명 불일치'},
+      {k:'미체결',v:'0',s:'정상'},
+    ],
+    eqcap:'실전 소액 계좌 (세후)',
+    sys:mkCurve(100,16,0.0006,0.004,5), bench:mkCurve(100,16,0.0004,0.005,13),
+    sleeves:[['미국주식',30,'+0.3'],['한국주식',20,'+0.2'],['코인',10,'+0.2'],['금',10,'0.0'],['원자재',8,'0.0'],['채권',14,'+0.0'],['현금',8,'0.0']],
+    tracks:[['코인 트랙','+1.1%','실전 · 비중 10%','up'],['주식 트랙','+0.4%','실전 · 비중 50%','up']],
+    holdcap:'실시간 (실전) · 거래소 대조 완료',
+    holdings:[
+      ['SPY','미국주식',30.0,'+0.4','ETF'],['삼성전자','한국주식',10.0,'+0.3','005930'],
+      ['KODEX 200','한국주식',10.0,'+0.1','ETF'],['BTC','코인',7.0,'+1.4','KRW-BTC'],
+      ['IAU','금',10.0,'0.0','ETF'],['현금','현금',33.0,'—','KRW'],
+    ],
+    panel:{type:'live'}
+  }
+};
+
+// ───────── 렌더 ─────────
+function buildPath(arr,w,h,min,max){
+  const dx=w/(arr.length-1), rng=(max-min)||1;
+  return arr.map((v,i)=>`${i===0?'M':'L'}${(i*dx).toFixed(1)},${(h-((v-min)/rng)*h).toFixed(1)}`).join(' ');
+}
+function renderChart(d){
+  const svg=document.getElementById('eq'); const w=700,h=230,pad=8;
+  const all=d.sys.concat(d.bench); const min=Math.min(...all)*0.99,max=Math.max(...all)*1.01;
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  const sysP=buildPath(d.sys,w,h-pad,min,max), benP=buildPath(d.bench,w,h-pad,min,max);
+  const area=sysP+` L${w},${h} L0,${h} Z`;
+  svg.innerHTML=`
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#35c08a" stop-opacity=".22"/><stop offset="1" stop-color="#35c08a" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#g)"/>
+    <path d="${benP}" fill="none" stroke="#5b6678" stroke-width="1.4" stroke-dasharray="4 4"/>
+    <path d="${sysP}" fill="none" stroke="#35c08a" stroke-width="2"/>`;
+  document.getElementById('eqcap').textContent=d.eqcap;
+}
+function renderKPIs(d){
+  document.getElementById('kpis').innerHTML=d.kpis.map(k=>`
+    <div class="kpi"><div class="k">${k.k}</div>
+    <div class="val ${k.c||''}">${k.v}</div><div class="sub">${k.s||''}</div></div>`).join('');
+}
+function renderSleeves(d){
+  document.getElementById('sleeves').innerHTML=d.sleeves.map(([nm,w,c])=>{
+    const col=SLEEVE_COLORS[nm]||'#5b9cf0'; const cn=parseFloat(c)>=0?'up':(c==='0.0'?'':'down');
+    return `<div class="sleeve"><div class="row"><span class="nm">${nm}<span class="contrib ${cn}">${c==='0.0'?'':(parseFloat(c)>=0?'+':'')+c+'%'}</span></span><span class="pc">${w}%</span></div>
+    <div class="bar"><span style="width:${w*2.2}%;background:${col}"></span></div></div>`;}).join('');
+}
+function renderTracks(d){
+  document.getElementById('tracks').innerHTML=d.tracks.map(([t,p,s,c])=>`
+    <div class="track"><div class="t">${t}</div><div class="p ${c}">${p}</div><div class="s">${s}</div></div>`).join('');
+}
+function renderHoldings(d){
+  document.getElementById('holdcap').textContent=d.holdcap;
+  document.getElementById('holdings').innerHTML=`<thead><tr><th>종목</th><th>슬리브</th><th>비중</th><th>손익</th><th>식별자</th></tr></thead><tbody>`+
+    d.holdings.map(([nm,sl,w,pl,id])=>`<tr><td class="nm">${nm}</td><td style="color:var(--dim)">${sl}</td>
+    <td>${w.toFixed(1)}%</td><td class="${pl==='—'?'':(pl.startsWith('-')?'down':'up')}">${pl==='—'?'—':pl+'%'}</td>
+    <td style="color:var(--faint)">${id}</td></tr>`).join('')+`</tbody>`;
+}
+function renderPanel(d){
+  const p=d.panel, el=document.getElementById('ppanel');
+  if(p.type==='gonogo'){
+    el.innerHTML=`<div class="card"><h2>모의 전환 판정 (G5) <span class="leg">과적합 통제 지표</span></h2>
+      <div class="cap">백테스트 → 모의 게이트. 기본 컷: PBO &lt; 0.5 · Deflated Sharpe &gt; 0 · MDD 허용내 · 단일레짐 비의존</div>
+      <div class="gonogo"><div class="verdict go">GO</div>
+        <div style="flex:1"><div class="gates">
+          <span class="gate pass">PBO 0.31 &lt; 0.5 ✓</span>
+          <span class="gate pass">DSR +0.84 &gt; 0 ✓</span>
+          <span class="gate pass">MDD -23.8% (한도 -30%) ✓</span>
+          <span class="gate warn">레짐 의존도 0.42 (관찰)</span>
+          <span class="gate pass">비용차감 양(+) ✓</span>
+        </div></div></div>
+      <div class="folds">${[1.5,1.2,1.8,0.9,1.6,1.4].map((s,i)=>`<div class="fold"><div class="fn">Fold ${i+1}</div><div class="fv ${s>0?'up':'down'}">${s.toFixed(1)}</div></div>`).join('')}</div>
+      </div>`;
+  } else if(p.type==='paper'){
+    el.innerHTML=`<div class="twocol">
+      <div class="card"><h2>백테스트 대비 추적</h2><div class="cap">모의가 백테스트 기대와 얼마나 일치하나</div>
+        <div class="mini"><span class="mk">추적오차 (TE)</span><span class="mv up">0.7% · 밴드 ±2% 내 ✓</span></div>
+        <div class="mini"><span class="mk">기대 수익 (백테스트 동기간)</span><span class="mv">+1.6%</span></div>
+        <div class="mini"><span class="mk">실현 수익 (모의)</span><span class="mv up">+1.84%</span></div>
+        <div class="mini"><span class="mk">결정 일치율</span><span class="mv">91%</span></div></div>
+      <div class="card"><h2>슬리피지 실측 vs 모델 (E4)</h2><div class="cap">백테스트 슬리피지 모델 캘리브레이션 신호</div>
+        <div class="mini"><span class="mk">모델 가정</span><span class="mv">3.0 bps</span></div>
+        <div class="mini"><span class="mk">실측 평균</span><span class="mv down">4.2 bps</span></div>
+        <div class="mini"><span class="mk">괴리</span><span class="mv warn" style="color:var(--gold)">+1.2 bps → 모델 상향 권고</span></div>
+        <div class="mini"><span class="mk">미체결/재시도</span><span class="mv up">0 / 0</span></div></div>
+    </div>`;
+  } else {
+    el.innerHTML=`<div class="twocol">
+      <div class="card"><h2>Reconciliation 상태 (R2)</h2><div class="cap">거래소 실잔고 ↔ 내부 DB 대조</div>
+        <div class="mini"><span class="mk">미설명 drift</span><span class="mv up">0 (정상) ✓</span></div>
+        <div class="mini"><span class="mk">마지막 대조</span><span class="mv">14초 전</span></div>
+        <div class="mini"><span class="mk">배당·수수료 (예상변동 등록)</span><span class="mv">₩0 · 정상</span></div>
+        <div class="mini"><span class="mk">leg 불일치 (kimchirang)</span><span class="mv up">0</span></div></div>
+      <div class="card"><h2>안전 게이트 상태</h2><div class="cap">우회 불가 · 실시간</div>
+        <div class="gates" style="margin-top:4px">
+          <span class="gate pass">EMERGENCY_STOP OFF</span>
+          <span class="gate pass">서킷브레이커 정상</span>
+          <span class="gate pass">일일손실 -0.4% / -3%</span>
+          <span class="gate pass">상관캡 OK</span>
+          <span class="gate pass">단일종목 ≤10% OK</span>
+          <span class="gate warn">US장 야간 무인 — H27 감시중</span>
+        </div></div>
+    </div>`;
+  }
+}
+
+const NOTES={
+  backtest:'※ 샘플 데이터. 결정론 코어(지표·레짐·배분·리스크)만 2018~ 완전 백테스트. LLM층의 알파 기여는 백테스트로 평가 불가 → 모의·실전에서만 측정(G6).',
+  paper:'※ 샘플 데이터. 모의 지표는 백테스트와 동일한 계산 함수를 공유해야 비교가 유효(엔진↔대시보드 일관성).',
+  live:'※ 샘플 데이터. 실전 뷰는 세후 손익 + reconciliation + 안전게이트를 항상 동반. 운영자 부재 시 H27 자동 보수화.'
+};
+
+function render(phase){
+  const d=DATA[phase];
+  document.getElementById('ctx').innerHTML=d.ctx;
+  renderKPIs(d); renderChart(d); renderSleeves(d); renderTracks(d); renderHoldings(d); renderPanel(d);
+  document.getElementById('note').textContent=NOTES[phase];
+}
+document.getElementById('phases').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  document.querySelectorAll('.phases button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); render(b.dataset.p);
+});
+render('backtest');
+</script>
+</body>
+</html>

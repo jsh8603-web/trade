@@ -1,0 +1,46 @@
+# config/sector_rules/cyclical.yaml — cyclical 업종 signal seed (S11, 사용자 "seed 사전정의").
+# 메인이 박는 seed. threshold_anchor 있는 것은 seed_builder 가 sector_multiples 실데이터로
+# 런타임 보정(정량 앵커). 나머지는 라벨 에피소드 적합값(정성→정량, R4 anchoring).
+# ⛔ 파이프라인(consensus S9 + promotion_gate S3)이 이 seed 를 조정·승격·무한확장한다.
+archetype: cyclical
+sectors: [semiconductor, chemicals, steel]
+signals:
+  # --- cheap 신호 (5+) ---
+  - id: cyc_cheapz
+    feature: cheapness_z
+    op: lt
+    threshold: -1.0          # 구조모델 잔차 1σ 이상 저평가
+    kind: cheap
+    weight: 2.0
+  - id: cyc_ev_ebitda_disc
+    feature: ev_ebitda
+    op: lt
+    threshold_anchor: {metric: ev_ebitda, factor: 0.7}   # 섹터 median × 0.7 (실데이터 앵커)
+    kind: cheap
+    weight: 1.0
+  - id: cyc_pb_disc
+    feature: pb
+    op: lt
+    threshold_anchor: {metric: pb, factor: 0.7}
+    kind: cheap
+  - id: cyc_book_to_bill
+    feature: book_to_bill
+    op: gt
+    threshold: 1.0           # 수주 > 출하 = 업황 회복
+    kind: cheap
+  - id: cyc_inventory_drop
+    feature: inventory_qoq
+    op: lt
+    threshold: 0.0           # 재고 감소 = 사이클 저점 통과
+    kind: cheap
+  # --- value_trap_guard (peak-EPS 함정) ---
+  - id: cyc_trap_peak_capex
+    feature: capex_to_rev
+    op: gt
+    threshold: 0.25          # capex 정점 = peak-EPS, 저멀티플 함정
+    kind: trap_guard
+  - id: cyc_trap_margin_peak
+    feature: gross_margin
+    op: gt
+    threshold_anchor: {metric: _margin_peak, factor: 1.0}   # 마진 역사적 정점 근방=함정
+    kind: trap_guard

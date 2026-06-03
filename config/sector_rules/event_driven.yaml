@@ -1,0 +1,32 @@
+# config/sector_rules/event_driven.yaml — event_driven(바이오·인터넷) signal seed (S11).
+# ★ 멀티플 percentile 무의미(L1 floor 미적용) → 이벤트 catalyst·성장 신호 중심.
+archetype: event_driven
+sectors: [biotech, internet]
+signals:
+  - id: ev_catalyst_near
+    feature: catalyst_proximity      # 임상/승인/출시 임박도 (0~1)
+    op: ge
+    threshold: 0.7
+    kind: cheap
+    weight: 2.0
+  - id: ev_ps_disc
+    feature: ps
+    op: lt
+    threshold_anchor: {metric: ps, factor: 0.6}
+    kind: cheap
+  - id: ev_user_growth
+    feature: mau_yoy
+    op: gt
+    threshold: 0.20                   # MAU 20%+ 성장
+    kind: cheap
+  - id: ev_pipeline_depth
+    feature: pipeline_count
+    op: ge
+    threshold: 3.0
+    kind: cheap
+  # --- trap: 이벤트 binary 실패 / 현금소진 ---
+  - id: ev_trap_cash_burn
+    feature: months_of_runway
+    op: lt
+    threshold: 12.0                   # 런웨이 12개월 미만 = 희석/도산 위험
+    kind: trap_guard
