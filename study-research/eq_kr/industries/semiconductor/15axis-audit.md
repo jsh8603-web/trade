@@ -1,3 +1,7 @@
+<!-- author: equity study subagent (1단계 산출, 2026-06-04) -->
+<!-- auditor: harness2 Worker (§M.12 반영 audit + S6 추적성, author != auditor, 2026-06-04) -->
+<!-- audit_date: 2026-06-04 -->
+
 # 15axis-audit.md — semiconductor §M v3 (frame v3 §E, A~P 15축)
 
 > 독립 감사: yaml↔raw 재현·hard-fail 0 확인. raw 재현 = `raw-v3/*.py`. battery 15axis-audit.md 미러.
