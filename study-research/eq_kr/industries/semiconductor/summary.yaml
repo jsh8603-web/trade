@@ -1,0 +1,298 @@
+# summary.yaml — semiconductor(반도체) 산업 v3 (frame v3 §M exposure card 계약)
+# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge 어휘, BY 보정, LOO/block-boot).
+# 산출 범위 = §M.7 exposure card (측정 전용). battery summary.yaml 미러.
+# raw 재현: raw-v3/{collect, measure, measure_cross, exposure_card, collect_dart, measure_valuation}.py
+
+industry: kr_semiconductor    # eq_kr 12산업 中 Tier 1 (반도체)
+asset_scope: [equity.kr]
+archetype: cyclical           # capex/메모리 ASP 사이클 산업 (DRAM/NAND/HBM hyper-cycle)
+archetype_attestation:
+  valid_from: "2019-01-01"    # ★PIT 사전선언 (§M.5 ex-post 금지). cyclical = ASP/capex 주도 사이클
+  declared_at: "2026-06-03"   # 선언 시점 (사후편향 hazard 방지 attestation)
+  primary_metric: ev_ebitda   # cyclical primary (peak-EPS trap 경계 — 사이클 정점 EPS 高→PER 低 value trap)
+  secondary: event_driven     # soft/probabilistic: HBM/AI capex event 비중 (보조, prob~0.3)
+  basis: >
+    DRAM/NAND ASP 사이클 + HBM/AI capex 1차 가설. ★실측 검증: cross-sectional momentum forward IC = 음
+    (-0.065, 12M reversal) = cyclical peak-reversal 패턴 정합 → cyclical 지지 (battery 의 양 momentum 과 반대 부호).
+as_of: "2026-05-31"
+
+# ── 블록1 LENS (정성) ──
+lens:
+  pricing_principle: >
+    반도체 = cyclical. "싸다" = EV/EBITDA·P/B (★peak-EPS 함정 심함: 사이클 정점에 EPS 高 → PER 낮아 보임 = value trap,
+    저점엔 적자 → PER 무의미). primary_metric=ev_ebitda(peak 경계). ★실측 결론: 가격기반 cross-sectional momentum(6M·12M)이
+    forward 12M 에 **음의 예측력**(IC -0.065 reversal) = 사이클 정점 종목 되돌림. valuation 횡단면(PBR/PER) = §10(DART 재구성).
+  cycle_reading: >
+    2019-2026 = 메모리 down(2019)→COVID 회복(2020-21)→AI/HBM hyper-cycle(2023-26). SOXX yoy regime ex-ante
+    라벨: bull 49 / neutral 34 / bear 6 month (2023~ AI 랠리 = bull 편중). HBM cycle = SK하이닉스 단독공급(2024-26) + 한미반도체 capex.
+  estimation_note: >
+    2026-05 시점: universe 85종(시총≥3000억 ∧ ADV≥30억, 메모리+파운드리+소부장). 횡단면 avg N ~73 = battery(26) 3배 breadth.
+    momentum reversal 시변 IC = regime 함수. 본 산출 = 측정 + peer-relative z card. KOSPI 대형주(삼성+SK) 50%+ 집중 → cap-weighted IC 점검.
+
+# ── 블록2 INDICATORS (forward 횡단면 Rank-IC, horizon-tagged) ──
+# ★점추정 금지: ic_mean + ic_ci_95(block-boot ∧ NW) + n_effective + oos(CPCV)
+indicators_passed:
+  - id: cs_mom_6m_reversal
+    layer: 3                  # 가격 cycle proxy (cross-sectional 모멘텀 → reversal)
+    family: momentum          # ★부호 음 = reversal (cyclical peak 되돌림)
+    horizon: 12M_mom          # 6M 신호 → 12M forward 본진
+    ic_mean: -0.065
+    ic_ci_95: [-0.106, -0.028]  # block-bootstrap(block=3M,B=2000). NW CI [-0.109,-0.021] 정합. 0 비포함.
+    ic_se_nw: 0.0225          # Newey-West HAC (lag=horizon=12, overlapping forward 보정)
+    t_nw: -2.90
+    n_effective: 71           # months
+    oos_ratio: 1.00           # CPCV OOS hit=1.00 (15 folds, purge=12M, embargo=1)
+    avg_universe_n: 72.8      # 횡단면 평균 종목수
+    source_id: "raw-v3/validation-metrics-v3.json:indicators.mom_6__12M_mom"
+    notes: |
+      cross-sectional 6M 모멘텀 z-score → 12M forward return Rank-IC = ★음(reversal/contrarian).
+      within-period 연도별 부호 일관 100% (2019-2025 전부 음). leave-episode 생존(ex-peak -0.087 강화).
+      유동성-티어: hi-ADV -0.021 / lo-ADV -0.040 / cap-weighted -0.092 (대형주 reversal 강 = microcap 아티팩트 아님).
+      ★BY 보정(16 테스트, BY factor 3.38, rank1 thresh 0.00185) raw_p=0.00498 → 미생존. Bonferroni α/16=0.00313 도 미생존.
+      = 방향 robust(CI 0배제 + CPCV 1.00) but 다중검정 보정 후 비유의 → small-n hedge, PARTIAL.
+  - id: cs_mom_12_1_reversal
+    layer: 3
+    family: momentum
+    horizon: 12M_mom
+    ic_mean: -0.068
+    ic_ci_95: [-0.108, -0.019]  # block-boot. NW CI [-0.116,-0.019]. 0 배제.
+    ic_se_nw: 0.0247
+    t_nw: -2.75
+    n_effective: 65
+    oos_ratio: 0.87           # CPCV OOS hit=0.87 (mom_6 보다 약)
+    avg_universe_n: 72.0
+    source_id: "raw-v3/validation-metrics-v3.json:indicators.mom_12_1__12M_mom"
+    notes: "12-1 모멘텀 z → 12M forward reversal. within-period 0.83. BY 미생존. PARTIAL (CPCV 0.87, cs_mom_6m 보다 약)."
+  - id: cs_rev_1m
+    layer: 3
+    family: reversal
+    horizon: 1M_PEAD
+    ic_mean: -0.043
+    ic_ci_95: [-0.071, -0.020]  # block-boot 0 배제
+    ic_se_nw: 0.0149
+    t_nw: -2.86
+    n_effective: 87
+    oos_ratio: 1.00
+    avg_universe_n: 74.8
+    source_id: "raw-v3/validation-metrics-v3.json:indicators.rev_1m__1M_PEAD"
+    notes: "1M 단기수익 z → 1M forward = 단기 reversal(음). within-period 0.875. BY 미생존. TENTATIVE (단기 reversal 약효)."
+  - id: cs_pbr_z_24m
+    layer: 1                   # valuation (자본 기준 cross-sectional, EPS 왜곡 면역)
+    family: value
+    horizon: 24M_value
+    ic_mean: -0.1142
+    ic_ci_95: [-0.1516, -0.073]  # block-boot 0 배제 (NW CI [-0.167,-0.061] 정합)
+    ic_se_nw: 0.027
+    t_nw: -4.23
+    n_effective: 61
+    oos_ratio: 1.00            # CPCV 15 folds, purge 24M, oos_hit 1.00
+    avg_universe_n: 69.5
+    source_id: "raw-v3/validation-valuation-v3.json:indicators.pbr_z__24M_value"
+    notes: |
+      ★PBR cross-sectional value premium = 반도체 cyclical 핵심 valuation. 저 PBR(낮은 z) → 高 forward(음 IC).
+      within-period 100% (2019-2024 전 연도 음), CPCV oos_hit 1.00, ★BY 생존(m=8 factor 2.718, 유일).
+      ★PER 무신호(peak-EPS trap, IC -0.024~-0.046 비유의) = core/structure/archetype.py cyclical 정의 입증(auto 동형).
+      small-n hedge: n=61 month, 24M overlapping → NW HAC + block-boot CI. magnitude 보수 cap(점추정 단정 회피).
+      ★★[frame §M.12 정정] 24M overlap eff_indep_N = 61/24 ≈ 2.5 = degenerate. ★단 universe 85종(avgN 69.5)
+      = small-universe inflation 없음(telecom/auto와 차이), t=-4.23 = 24M overlap 영향만(battery 26종 t=3.87 유사 스케일).
+      → significance 신뢰 telecom/auto보다 높으나 24M eff_N 2.5 hedge: primary 증거 = 3M/6M/12M, 24M_value = 보조.
+      ★peak-EPS 메커니즘 정정: earnings cycle 진폭(흑자도 정점 EPS↑→저PER trap), ⛔시총 인과 금지, E/P 대체 권고.
+
+# ── 블록3 RELATIONSHIPS (partial-corr) — RegimeGlasso 통합 단계 입력 ──
+relationships_passed:
+  - {node_a: cs_mom_6m_reversal, node_b: semi_fwd_12m, lag_months: 0, corr: -0.065,
+     corr_ci_95: [-0.106, -0.028], conditioning_set: [], n: 71,
+     source_id: "raw-v3/validation-metrics-v3.json:indicators.mom_6__12M_mom",
+     note: "본 corr = cross-sectional IC(unconditional, 음=reversal). partial-corr(공통인자 통제) = 통합 RegimeGlasso 단계."}
+
+# ── 블록4 WEIGHT_RULES — derive_weights(w∝Θ_signal·IC) 입력 (range, 점추정 금지) ──
+weight_rule_candidates:
+  - indicator_id: cs_mom_6m_reversal
+    base_weight_range: [-0.10, -0.04]   # ★음의 IC = reversal → weight 부호 음(저 mom 종목 overweight). CI 반영 보수 range.
+    modulate_by: [archetype, regime, cycle_phase]
+    direction: >
+      ★cross-sectional 6M 모멘텀 z 상위(많이 오른) 종목 underweight, 하위 overweight (reversal/contrarian, peer-relative).
+      long-only-implementable = 저 mom_z 종목 top-quantile overweight vs benchmark (decile long-short 아님).
+    granularity: cross_sectional       # ★universe-relative z (own-history 아님)
+    gate_status: {n: pass, se: pass, power: pass, fdr: fail, oos: pass}  # ★G2(BY/Bonferroni) FAIL = battery 와 차이
+    source_ids: ["raw-v3/validation-metrics-v3.json:indicators.mom_6__12M_mom"]
+    hedge_note: >
+      n=71 months Tentative-Validated 경계. CI [-0.106,-0.028] 유지. ★FDR 게이트 FAIL(BY/Bonferroni 미생존) =
+      방향 robust 하나 다중검정 후 비유의 → supervisor 가 conservative cap + Σ_signal 조립 시 hedge weight.
+
+# ── 블록5 CONFIDENCE_HOOKS — ★affects_indicator 필수 (비우면 결선 dead) ──
+confidence_hooks:
+  - hypothesis_id: semi_cs_momentum_reversal_persistence
+    affects_indicator: cs_mom_6m_reversal  # ★★필수 — indicators_passed.id 와 매칭
+    affects_edge: [cs_mom_6m_reversal, semi_fwd_12m]
+    confirm_signal: "live 횡단면 6M 모멘텀 z 하위 종목의 12M forward rank > 상위 유지 (rolling 12M, reversal 지속)"
+    reject_signal: "Rank-IC e-CUSUM 부호 반전 붕괴 (IC 음→양 전환 누적 K=3 month = reversal 소멸/모멘텀 전환)"
+    emit_where: "panel-score-IC 축 (backtest SELL 아님)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "derive_weights 재적합 → cross-sectional reversal base_weight 변동 (부호 음 유지 조건)"
+    action_threshold: "e-value > 1/alpha=20 → retract(live 차단) / 회복 = score_ic_recovery_eprocess"
+
+# ── 블록6 COLLECTOR_PLAN ──
+collector_plan_industry:
+  - missing: "EV-EBITDA (cyclical primary_metric, 부채/현금 = DART BS 추가 계정) + 시점별 발행주식수(시총 PIT)"
+    source: "DART fnlttSinglAcntAll(부채총계/현금성자산) + stockTotqySttus(주식총수). 현 = FDR 현재주식수 근사."
+    priority: high   # ★cyclical primary=ev_ebitda 인데 미산출 = 핵심 gap (PBR/PER 만 §10 산출)
+    status: "PBR/PER cross-sectional = §10(DART 재구성). EV-EBITDA = 후속 high."
+  - missing: "PIT universe 멤버십 (시점별 섹터 편입/편출 + delisted 종목)"
+    source: "FDR KRX-DESC = 현재 스냅샷만. KRX PIT 섹터분류 인증 필요"
+    priority: high   # 생존편향 보정 (현 = 상장 시점 차이만 정량화, 85종 中 21종 부분이력)
+  - missing: "KR HY credit spread (공통인자 credit β KR-local)"
+    source: "현 = US BAML HY OAS proxy(FRED). KR 회사채 spread = 금융투자협회/한국신용평가 유료"
+    priority: medium
+  - missing: "메모리 ASP cycle 직접 지표 (DRAM 현물가) + 외국인 flow regime (round-1 H5)"
+    source: "DRAMeXchange/TrendForce 유료 → SOXX/SMH yoy proxy. 외국인 flow = KRX 인증 또는 ETF flow proxy"
+    priority: medium
+
+# ── ★cross (분석 단위 간 상관) — §M.3 3소비자 라우팅 (산업=보고만) ──
+cross:
+  common_factor_exposure:
+    - {factor: credit, beta: -0.1895, beta_ci_95: [-0.2999, -0.0790], contemporaneous: true,
+       source_id: "raw-v3/validation-cross-v3.json:common_factor_exposure.credit",
+       note: "credit risk-off 시 반도체 약세 (t=-3.36 유의, battery -0.164 보다 강). ★credit=US HY OAS proxy(KR HY 부재), n=35 small."}
+    - {factor: dollar, beta: -1.6823, beta_ci_95: [-4.2954, 0.9308], contemporaneous: true,
+       note: "약한 음 방향성 (t=-1.26 비유의, CI 넓음). round-1 H1 수출주 환율(USDKRW 강세→outperform) 가설 = 약/비유의."}
+    - {factor: oil, beta: 0.1454, beta_ci_95: [-0.1017, 0.3924], contemporaneous: true, note: "비유의 (t=+1.15)"}
+    - {factor: VIX, beta: 0.0009, beta_ci_95: [-0.0218, 0.0236], contemporaneous: true, note: "비유의"}
+    - {factor: rate, beta: 0.0031, beta_ci_95: [-0.1787, 0.1849], contemporaneous: true, note: "비유의"}
+  directional_spillover: []   # §M.3: DY connectedness = supervisor 통합, I-O centrality = optional 최하위
+  structural_linkage:
+    - supplier_or_customer: global_semi_cycle   # SOXX(글로벌 반도체)/NVDA(AI 수요)
+      io_weight: null            # BEA I-O = US, KR I-O 부재 → 정성 supply-chain
+      lagged_return_signal: 0.042  # lag0 SOXX corr (best, forward 1M)
+      p_value: 0.705
+      source_id: "raw-v3/validation-cross-v3.json:customer_supplier_momentum"
+      verdict: >
+        REJECTED as alpha — SOXX/NVDA 전 lag(0-3) 비유의. ★한국 반도체 = 글로벌 cycle contemporaneous 동조
+        (round-1 H4 corr>0.7)이나 forward 예측력 부재(§D falsifier 작동). 동조성분은 RegimeGlasso Ω 흡수.
+  # ⛔ sector-rotation business-cycle clock = 학술 myth(Molchanov 2024). 모멘텀 rotation 만 tentative.
+
+# ── ★valuation 횡단면 (§M.7 핵심 — DART 재구성) ──
+# [측정 완료 2026-06-04: dart_financials 2038rows/85종 → measure_valuation.py → validation-valuation-v3.json 박제]
+valuation_cross_sectional:
+  data_source: "raw-v3/validation-valuation-v3.json (DART fnlttSinglAcntAll 2038 rows/85종 + pykrx 가격). PBR coverage 6231 cells / PER 4866 cells."
+  mechanism_works:
+    pbr: true     # PBR value premium 작동 (24M IC -0.114, BY 생존, CPCV 1.00, within 100%)
+    per: false    # ★PER 무신호 = peak-EPS trap (auto 동형, cyclical 공통)
+  pit_note: "재무 = rcept_dt(공시일) 이후만(lookahead 회피). FY 보고지연 median 108-120일. DART CFS→OFS fallback(소부장 OFS-only 종목 포함, 가온칩스 등)."
+  archetype_caveat: >
+    ★반도체 cyclical = peak-EPS trap 실증: PER cross-sectional 전 horizon 비유의(IC -0.024~-0.046, p_NW>0.10) =
+    사이클 정점 EPS 高→PER 低 왜곡으로 PER value premium 무효. PBR(자본 기준, EPS 왜곡 면역)은 작동 = auto 와 동형.
+  indicators:
+    - id: cs_pbr_z_24m
+      signal: pbr_z
+      horizon: 24M_value
+      ic_mean: -0.1142
+      t_nw: -4.23
+      n_months: 61
+      p_value_nw: 0.0001
+      cpcv_oos: 1.00
+      within_period: 1.00
+      avg_universe_n: 69.5
+      by_survived: true          # BY m=8 factor 2.718, 유일 생존
+      note: "PBR value premium 방향 robust(CPCV 1.00 + within 100% + BY 생존). ★small-n hedge: n=61 month, 24M overlapping → NW HAC 보정. magnitude 보수 cap(점추정 단정 회피)."
+    - id: cs_pbr_z_3m
+      signal: pbr_z
+      horizon: 3M
+      ic_mean: -0.0565
+      t_nw: -2.17
+      n_months: 82
+      p_value_nw: 0.033
+      cpcv_oos: 0.93
+      within_period: 0.88
+      by_survived: false         # raw p<0.05 이나 BY 미생존
+      note: "단기도 value 방향 일관(부호 음). BY 보정 후 비유의 = tentative directional."
+    - id: per_z_all
+      signal: per_z
+      horizon: "3M/6M/12M/24M"
+      ic_mean: "-0.024 ~ -0.046 (전 horizon)"
+      p_value_nw: ">0.10 (전부 비유의)"
+      by_survived: false
+      note: "★PER 전 horizon 비유의 = peak-EPS trap. ★[frame §M.12] 메커니즘 = earnings cycle 진폭(흑자도 정점 EPS↑→저PER 왜곡), 적자 2차 증폭. ⛔시총 인과 귀속 금지. PER → E/P 대체 권고. 미국 us_cyclical PER○ = consistent-with(시장·시총 의존)."
+  verdict: >
+    PBR value premium 작동(24M IC -0.114, BY 생존, CPCV 1.00, within 100% = 방향 robust, small-n magnitude hedge).
+    ★PER 무효 = peak-EPS trap 실증(auto 동형). cyclical valuation = PBR○ PER✗. ev_ebitda = collector_plan high(부채/현금 계정 추가).
+    ★★[frame §M.12] 24M eff_indep_N≈2.5 degenerate → primary 증거 = 3M/6M/12M, 24M_value 보조. ★단 universe 85종이라
+    small-universe inflation 없음(telecom/auto 와 차이) = significance 상대 신뢰 높으나 eff_N hedge 적용. peak-EPS = earnings cycle 진폭(시총 인과 금지).
+
+# ── robustness_checks (측정 17종 통과 기록, 지표별) ──
+robustness_checks:
+  - indicator_id: cs_mom_6m_reversal   # primary
+    leave_episode: pass              # ex-peak -0.087 (full -0.065), 부호·magnitude 생존(강화)
+    within_period: pass              # 연도별 부호 일관 100% (2019-2025 전부 음)
+    partial_corr_ratio: null         # 통합 RegimeGlasso 단계 (산업 = unconditional IC 까지)
+    net_sharpe_ratio: null           # |IC| 0.065 > 16.5bps/월 이나 reversal turnover 높을 수 있음 → marginal
+    forward_vs_contemp: "forward present (음=reversal)"  # ★forward IC 유효 (§M.2 forward=primary)
+    family_neutralized_ic: null      # FF5/KR-factor neutralize = 통합 단계 (region-matched)
+    eff_n_tier: Tentative            # n=71 months (50-100 = Tentative). 종목 breadth 73 보완.
+    multiple_testing_gate: fail      # ★BY/Bonferroni 미생존 = battery momentum(생존) 과 차이
+  - indicator_id: cs_mom_12_1_reversal
+    leave_episode: pass
+    within_period: pass              # 0.83
+    eff_n_tier: Tentative
+    forward_vs_contemp: "forward present (음, CPCV 0.87 약)"
+    multiple_testing_gate: fail
+  - indicator_id: cs_rev_1m
+    leave_episode: pass
+    within_period: pass              # 0.875
+    eff_n_tier: Tentative
+    forward_vs_contemp: "forward present (단기 reversal, weak)"
+    multiple_testing_gate: fail
+
+# ── horizon_verdict (forward alpha falsifier) ──
+horizon_verdict:
+  best_horizon: "12M (6M·12-1 모멘텀 신호 → 12M forward reversal)"
+  forward_alpha_present: true        # ★present (음의 reversal alpha) — 단독 베팅 근거 O 단 BY 미생존 hedge
+  note: >
+    horizon 구조 = ★모멘텀 reversal (cyclical peak 되돌림): |IC| 12M(0.065-0.068)>6M(0.051-0.061)>3M(0.034) 단조.
+    1M 단기 reversal 도 음. customer momentum forward = null(REJECTED). 가격 reversal 이 primary 단 다중검정 후 비유의.
+    ★battery(양 momentum)와 부호 반대 = cyclical archetype 핵심 증거.
+
+# ── net-cost (KR 비대칭) ──
+net_cost:
+  model: "spread/2 + commission + STT_sell(0.20%, 매도측만) — §M.4 비대칭"
+  roundtrip_bps: 33.0
+  monthly_cost_bps: 16.5   # turnover 0.5/월 가정
+  note: "|IC| 0.065 (breadth 73종 IR) > 16.5bps/월 이나 battery(0.086) 대비 마진 좁음 + reversal turnover 높을 수 있음 → net 보존 marginal. sqrt impact = supervisor."
+
+# ── Hard-fail 4 (B C D I) self-check ──
+hard_fail_self_check:
+  B_real_data: {status: PASS, note: "합성 0%. pykrx OHLCV 실측 85종(1818일) + yfinance(SOXX/NVDA/factors) + DART + FDR. raw-v3/*.py 재현."}
+  C_traceability: {status: PASS, note: "모든 yaml 수치 = raw-v3/validation-metrics-v3.json + validation-cross-v3.json + validation-valuation-v3.json(dart_financials 2038rows/85종) key 매핑. valuation §10 산출 완료."}
+  D_pit:
+    status: PASS
+    note: >
+      가격신호 = PIT-safe(forward return shift). ★valuation 횡단면 = DART rcept_dt(공시일) 이후만 적용
+      = lookahead·restatement 회피(FY 보고지연 median 108-120일 실측). 시총=Close×현재주식수(시점별 주식수 정밀화 = collector_plan high).
+  I_survivor_bias:
+    status: PARTIAL
+    note: >
+      universe = FDR 현재 스냅샷(생존 종목만). delisted/M&A 종목 누락 = 생존편향 잔존. 상장 시점 차이 정량화
+      (85종 中 21종 부분 이력 = 신규 상장) = look-back gap. PIT 멤버십 = collector_plan high.
+
+# ── verdict (small-n rule) ──
+verdict_label: PARTIAL  # ★전체 산업 = PARTIAL CONFIRMED
+verdict_detail:
+  cs_mom_6m__12M: >
+    PARTIAL (n=71, t_NW=-2.90, NW+block-boot CI 0배제, CPCV OOS hit 1.00, within-period 100%, leave-episode 생존(강화),
+    cap-weighted 강). ★BY/Bonferroni 미생존(raw_p 0.005 > 임계) = 방향 robust but 다중검정 후 비유의. battery momentum(CONFIRMED) 보다 한 단계 낮음.
+  cs_mom_12_1__12M: "PARTIAL (CPCV 0.87, within 0.83, BY 미생존)"
+  cs_rev_1m__1M: "TENTATIVE (단기 reversal, BY 미생존)"
+  cs_pbr_z_24m: >
+    PARTIAL→강 (n=61, IC -0.114, t_NW=-4.23, block-boot CI [-0.152,-0.073] 0배제, CPCV oos_hit 1.00 purge24M,
+    within-period 100%(2019-2024 전연도 음), ★BY 생존(m=8 유일)). 가격 momentum reversal(BY 미생존)보다 강한 valuation 신호.
+    small-n magnitude hedge(n=61, 24M overlapping). = cyclical 이지만 PBR value premium 작동.
+  valuation_per: >
+    ★PER 무신호 = peak-EPS trap 실증 (전 horizon IC -0.024~-0.046, p_NW>0.10 전부 비유의). 사이클 정점 EPS 왜곡 →
+    PER cross-sectional 무효. = core/structure/archetype.py cyclical 정의(primary=P/B, trap=peak-EPS) 데이터 입증(auto 동형).
+  customer_momentum: "REJECTED (글로벌 cycle contemporaneous 동조, forward 예측력 부재, 전 lag 비유의)"
+  common_factor: "credit 유의(t=-3.36, US proxy n=35 small) / dollar 약 음(수출주 환율 가설 약) / 나머지 비유의"
+verdict_note: >
+  산업 전체 = PARTIAL. ★핵심 발견 = momentum forward IC 부호 = 음(reversal, -0.065) = battery(양 +0.086)와 반대 =
+  cyclical archetype 지지(사이클 peak 되돌림). 방향 robust(CI 0배제+CPCV 1.00+within 100%) 하나 BY/Bonferroni 미생존 =
+  battery 보다 신호 약 + 다중검정 후 비유의 → hedge. valuation 횡단면 = §10(DART). archetype cyclical = ev_ebitda primary
+  (EV-EBITDA 미산출 = collector_plan high, PBR/PER 만 §10). pilot 결론: cyclical 산업은 momentum 이 reversal 로 발현 = 부호 검증의 가치 입증.

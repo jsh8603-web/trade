@@ -1,0 +1,86 @@
+{
+  "as_of": "2026-05-31",
+  "n_universe": 11,
+  "standardization": "peer-relative cross-sectional z (Mag7 basket 11종, local). ★n=11 small-basket = z 안정성 낮음 hedge.",
+  "signal_sign_note": "★compounder: vol_60 IC +0.241 강(저변동성 mega-cap quality = AAPL/MSFT 안정성장). 저vol_z 상위 = forward 강. momentum 약 양(growth persistence). valuation=PBR 약 value(§10).",
+  "note": "valuation(PER/PBR/capex) = measure_valuation §10(EDGAR). supervisor 조립은 dispatch 밖.",
+  "cards": [
+    {
+      "ticker": "AAPL",
+      "sub": "mag7",
+      "vol_60_z": -1.344,
+      "mom_6_z": -0.271,
+      "mom_12_1_z": -0.3
+    },
+    {
+      "ticker": "MSFT",
+      "sub": "mag7",
+      "vol_60_z": -0.951,
+      "mom_6_z": -0.874,
+      "mom_12_1_z": -0.967
+    },
+    {
+      "ticker": "AMZN",
+      "sub": "mag7",
+      "vol_60_z": -0.811,
+      "mom_6_z": -0.146,
+      "mom_12_1_z": -0.39
+    },
+    {
+      "ticker": "GOOGL",
+      "sub": "mag7",
+      "vol_60_z": -0.434,
+      "mom_6_z": -0.037,
+      "mom_12_1_z": 0.982
+    },
+    {
+      "ticker": "NVDA",
+      "sub": "mag7",
+      "vol_60_z": -0.345,
+      "mom_6_z": -0.06,
+      "mom_12_1_z": -0.125
+    },
+    {
+      "ticker": "META",
+      "sub": "mag7",
+      "vol_60_z": -0.028,
+      "mom_6_z": -0.609,
+      "mom_12_1_z": -0.885
+    },
+    {
+      "ticker": "TSLA",
+      "sub": "mag7",
+      "vol_60_z": -0.008,
+      "mom_6_z": -0.499,
+      "mom_12_1_z": -0.664
+    },
+    {
+      "ticker": "AVGO",
+      "sub": "ai_semi",
+      "vol_60_z": 0.065,
+      "mom_6_z": -0.415,
+      "mom_12_1_z": 0.25
+    },
+    {
+      "ticker": "ASML",
+      "sub": "ai_semi_adr",
+      "vol_60_z": 0.65,
+      "mom_6_z": 0.685,
+      "mom_12_1_z": 0.58
+    },
+    {
+      "ticker": "ORCL",
+      "sub": "ai_sw",
+      "vol_60_z": 0.989,
+      "mom_6_z": -0.53,
+      "mom_12_1_z": -0.832
+    },
+    {
+      "ticker": "AMD",
+      "sub": "ai_semi",
+      "vol_60_z": 2.217,
+      "mom_6_z": 2.756,
+      "mom_12_1_z": 2.351
+    }
+  ]
+}

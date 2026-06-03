@@ -1,0 +1,345 @@
+{
+  "meta": {
+    "universe_n": 14,
+    "pbr_coverage_cells": 1124,
+    "per_coverage_cells": 887,
+    "pit_note": "재무 = rcept_dt(공시일) 이후만 적용. 시총=Close×현재주식수(시점별 주식수 정밀화 collector_plan).",
+    "sign_note": "z-score signal. PBR/PER 저(싸다)=낮은 z → value premium 이면 IC<0(저밸류→고forward)."
+  },
+  "indicators": {
+    "pbr_z__3M": {
+      "signal": "pbr_z__3M",
+      "h_months": 3,
+      "ic_mean": -0.1574,
+      "n_months": 82,
+      "se_nw": 0.0585,
+      "t_nw": -2.69,
+      "p_value_nw": 0.0086,
+      "ci95_nw": [
+        -0.2721,
+        -0.0428
+      ],
+      "ci95_block_boot": [
+        -0.2821,
+        -0.064
+      ],
+      "cpcv": {
+        "oos_ic_mean": -0.18290402312582799,
+        "oos_hit": 0.8,
+        "n_folds": 15,
+        "purge_months": 3
+      },
+      "within_period": {
+        "consistency": 0.75,
+        "by_year": {
+          "2019": 0.273,
+          "2020": -0.196,
+          "2021": -0.364,
+          "2022": -0.13,
+          "2023": -0.308,
+          "2024": -0.29,
+          "2025": -0.014,
+          "2026": 0.268
+        }
+      },
+      "avg_universe_n": 13.2,
+      "eprocess": {
+        "reject": true,
+        "max": 15403711988101.46
+      }
+    },
+    "pbr_z__6M": {
+      "signal": "pbr_z__6M",
+      "h_months": 6,
+      "ic_mean": -0.1987,
+      "n_months": 79,
+      "se_nw": 0.0814,
+      "t_nw": -2.44,
+      "p_value_nw": 0.0169,
+      "ci95_nw": [
+        -0.3584,
+        -0.0391
+      ],
+      "ci95_block_boot": [
+        -0.3394,
+        -0.0992
+      ],
+      "cpcv": {
+        "oos_ic_mean": -0.20520544934081028,
+        "oos_hit": 0.9333333333333333,
+        "n_folds": 15,
+        "purge_months": 6
+      },
+      "within_period": {
+        "consistency": 0.7142857142857143,
+        "by_year": {
+          "2019": 0.373,
+          "2020": -0.359,
+          "2021": -0.429,
+          "2022": -0.167,
+          "2023": -0.253,
+          "2024": -0.407,
+          "2025": 0.063
+        }
+      },
+      "avg_universe_n": 13.2,
+      "eprocess": {
+        "reject": true,
+        "max": 1.1743933714164173e+19
+      }
+    },
+    "pbr_z__12M": {
+      "signal": "pbr_z__12M",
+      "h_months": 12,
+      "ic_mean": -0.3349,
+      "n_months": 73,
+      "se_nw": 0.1079,
+      "t_nw": -3.1,
+      "p_value_nw": 0.0027,
+      "ci95_nw": [
+        -0.5464,
+        -0.1234
+      ],
+      "ci95_block_boot": [
+        -0.4971,
+        -0.2098
+      ],
+      "cpcv": {
+        "oos_ic_mean": -0.3443890713929483,
+        "oos_hit": 1.0,
+        "n_folds": 15,
+        "purge_months": 12
+      },
+      "within_period": {
+        "consistency": 0.7142857142857143,
+        "by_year": {
+          "2019": 0.337,
+          "2020": -0.626,
+          "2021": -0.442,
+          "2022": -0.207,
+          "2023": -0.647,
+          "2024": -0.441,
+          "2025": 0.243
+        }
+      },
+      "avg_universe_n": 13.1,
+      "eprocess": {
+        "reject": true,
+        "max": 2.613945381613463e+29
+      }
+    },
+    "pbr_z__24M_value": {
+      "signal": "pbr_z__24M_value",
+      "h_months": 24,
+      "ic_mean": -0.5423,
+      "n_months": 61,
+      "se_nw": 0.0449,
+      "t_nw": -12.08,
+      "p_value_nw": 0.0,
+      "ci95_nw": [
+        -0.6303,
+        -0.4543
+      ],
+      "ci95_block_boot": [
+        -0.6525,
+        -0.4685
+      ],
+      "cpcv": {
+        "oos_ic_mean": -0.5538794538794538,
+        "oos_hit": 1.0,
+        "n_folds": 15,
+        "purge_months": 24
+      },
+      "within_period": {
+        "consistency": 1.0,
+        "by_year": {
+          "2019": -0.517,
+          "2020": -0.713,
+          "2021": -0.392,
+          "2022": -0.664,
+          "2023": -0.623,
+          "2024": -0.048
+        }
+      },
+      "avg_universe_n": 13.0,
+      "eprocess": {
+        "reject": true,
+        "max": 4.254670907135482e+71
+      }
+    },
+    "per_z__3M": {
+      "signal": "per_z__3M",
+      "h_months": 3,
+      "ic_mean": -0.0955,
+      "n_months": 82,
+      "se_nw": 0.0612,
+      "t_nw": -1.56,
+      "p_value_nw": 0.1224,
+      "ci95_nw": [
+        -0.2155,
+        0.0244
+      ],
+      "ci95_block_boot": [
+        -0.2094,
+        0.0124
+      ],
+      "cpcv": {
+        "oos_ic_mean": -0.09552594138654696,
+        "oos_hit": 0.7333333333333333,
+        "n_folds": 15,
+        "purge_months": 3
+      },
+      "within_period": {
+        "consistency": 0.75,
+        "by_year": {
+          "2019": 0.407,
+          "2020": -0.305,
+          "2021": -0.24,
+          "2022": 0.081,
+          "2023": -0.179,
+          "2024": -0.135,
+          "2025": -0.068,
+          "2026": -0.467
+        }
+      },
+      "avg_universe_n": 10.5,
+      "eprocess": {
+        "reject": true,
+        "max": 837272.4
+      }
+    },
+    "per_z__6M": {
+      "signal": "per_z__6M",
+      "h_months": 6,
+      "ic_mean": -0.1309,
+      "n_months": 79,
+      "se_nw": 0.0726,
+      "t_nw": -1.8,
+      "p_value_nw": 0.0753,
+      "ci95_nw": [
+        -0.2733,
+        0.0114
+      ],
+      "ci95_block_boot": [
+        -0.2512,
+        -0.0323
+      ],
+      "cpcv": {
+        "oos_ic_mean": -0.1311241574254972,
+        "oos_hit": 0.8,
+        "n_folds": 15,
+        "purge_months": 6
+      },
+      "within_period": {
+        "consistency": 0.7142857142857143,
+        "by_year": {
+          "2019": 0.424,
+          "2020": -0.44,
+          "2021": -0.294,
+          "2022": 0.028,
+          "2023": -0.164,
+          "2024": -0.153,
+          "2025": -0.132
+        }
+      },
+      "avg_universe_n": 10.5,
+      "eprocess": {
+        "reject": true,
+        "max": 1318791873.3
+      }
+    },
+    "per_z__12M": {
+      "signal": "per_z__12M",
+      "h_months": 12,
+      "ic_mean": -0.2222,
+      "n_months": 73,
+      "se_nw": 0.0719,
+      "t_nw": -3.09,
+      "p_value_nw": 0.0029,
+      "ci95_nw": [
+        -0.3632,
+        -0.0812
+      ],
+      "ci95_block_boot": [
+        -0.3414,
+        -0.1207
+      ],
+      "cpcv": {
+        "oos_ic_mean": -0.22253405961005931,
+        "oos_hit": 1.0,
+        "n_folds": 15,
+        "purge_months": 12
+      },
+      "within_period": {
+        "consistency": 0.8571428571428571,
+        "by_year": {
+          "2019": 0.238,
+          "2020": -0.501,
+          "2021": -0.321,
+          "2022": -0.021,
+          "2023": -0.315,
+          "2024": -0.295,
+          "2025": -0.136
+        }
+      },
+      "avg_universe_n": 10.7,
+      "eprocess": {
+        "reject": true,
+        "max": 1.1282152510332465e+21
+      }
+    },
+    "per_z__24M_value": {
+      "signal": "per_z__24M_value",
+      "h_months": 24,
+      "ic_mean": -0.2803,
+      "n_months": 61,
+      "se_nw": 0.0548,
+      "t_nw": -5.12,
+      "p_value_nw": 0.0,
+      "ci95_nw": [
+        -0.3877,
+        -0.1729
+      ],
+      "ci95_block_boot": [
+        -0.3953,
+        -0.1899
+      ],
+      "cpcv": {
+        "oos_ic_mean": -0.2863111888111888,
+        "oos_hit": 1.0,
+        "n_folds": 15,
+        "purge_months": 24
+      },
+      "within_period": {
+        "consistency": 0.8333333333333334,
+        "by_year": {
+          "2019": -0.227,
+          "2020": -0.469,
+          "2021": -0.217,
+          "2022": -0.433,
+          "2023": -0.191,
+          "2024": 0.086
+        }
+      },
+      "avg_universe_n": 10.8,
+      "eprocess": {
+        "reject": true,
+        "max": 2.821427511146558e+29
+      }
+    }
+  },
+  "multiple_testing": {
+    "m": 8,
+    "by_factor": 2.718,
+    "survivors_BY": [
+      "pbr_z__24M_value",
+      "per_z__24M_value",
+      "pbr_z__12M",
+      "per_z__12M",
+      "pbr_z__3M",
+      "pbr_z__6M"
+    ],
+    "raw_p_min": 0.0,
+    "raw_p_min_key": "pbr_z__24M_value"
+  }
+}

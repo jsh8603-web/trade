@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "n": 71,
+    "signal": "cs_mom_6m → 12M forward IC",
+    "regime_driver": "ΔRate_3M (TNX)"
+  },
+  "interaction_regression": {
+    "spec": "IC_t ~ const + ΔRate_3M_t (NW HAC lag=12)",
+    "slope": 0.1256,
+    "se": 0.0626,
+    "t_nw": 2.01,
+    "p_value": 0.0488,
+    "interpretation": "slope>0 = 금리상승 시 IC↑ = rate_up 모멘텀 강 가설 통계근거"
+  },
+  "welch_test": {
+    "spec": "rate_up IC vs (rate_down+rate_flat) pooled IC, unequal-var",
+    "rate_up_mean": 0.102,
+    "rate_up_n": 21,
+    "pooled_mean": -0.051,
+    "pooled_n": 50,
+    "welch_t": 2.65,
+    "welch_p": 0.0121
+  },
+  "regime_block_boot_ci": {
+    "rate_up": {
+      "ic_mean": 0.102,
+      "n": 21,
+      "ci95_block_boot": [
+        -0.026,
+        0.2278
+      ],
+      "block": 5
+    },
+    "rate_down": {
+      "ic_mean": -0.0536,
+      "n": 19,
+      "ci95_block_boot": [
+        -0.1677,
+        0.0702
+      ],
+      "block": 4
+    },
+    "rate_flat": {
+      "ic_mean": -0.0494,
+      "n": 31,
+      "ci95_block_boot": [
+        -0.1593,
+        0.0371
+      ],
+      "block": 6
+    }
+  },
+  "verdict_gate": {
+    "interaction_significant": true,
+    "welch_significant": true,
+    "verdict": "regime-conditional 신호 강화(단 n<30 magnitude hedge 유지)",
+    "live_excluded": true,
+    "tentative": true
+  }
+}

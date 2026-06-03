@@ -1,0 +1,345 @@
+{
+  "as_of": "2026-05-31",
+  "n_universe": 48,
+  "standardization": "sector-neutral cross-sectional z = (x - defensive_universe_mean)/std (local, R2-1 gap)",
+  "signal_sign_note": "★asset_stable: vol_60 IC 양(+0.076 저vol→고forward 저변동성 프리미엄) + rev_1m IC 음(-0.045 단기 reversal 유의). momentum 무효. valuation(PER value)=EDGAR §10.",
+  "note": "valuation(PER/PBR) z = EDGAR XBRL 재구성(§10, #15 파이프라인 후). supervisor 조립(score→target)은 dispatch 밖.",
+  "cards": [
+    {
+      "ticker": "DUK",
+      "sector": "utilities",
+      "vol_60_z": -1.388,
+      "rev_1m_z": -0.476,
+      "mom_6_z": -0.086
+    },
+    {
+      "ticker": "JNJ",
+      "sector": "healthcare",
+      "vol_60_z": -1.226,
+      "rev_1m_z": 0.286,
+      "mom_6_z": 0.838
+    },
+    {
+      "ticker": "KO",
+      "sector": "staples",
+      "vol_60_z": -1.202,
+      "rev_1m_z": 0.467,
+      "mom_6_z": 0.733
+    },
+    {
+      "ticker": "ED",
+      "sector": "utilities",
+      "vol_60_z": -1.159,
+      "rev_1m_z": -0.511,
+      "mom_6_z": 0.415
+    },
+    {
+      "ticker": "SO",
+      "sector": "utilities",
+      "vol_60_z": -1.128,
+      "rev_1m_z": -0.457,
+      "mom_6_z": 0.046
+    },
+    {
+      "ticker": "WEC",
+      "sector": "utilities",
+      "vol_60_z": -1.048,
+      "rev_1m_z": -0.617,
+      "mom_6_z": -0.105
+    },
+    {
+      "ticker": "CMS",
+      "sector": "utilities",
+      "vol_60_z": -1.013,
+      "rev_1m_z": -0.52,
+      "mom_6_z": -0.342
+    },
+    {
+      "ticker": "PPL",
+      "sector": "utilities",
+      "vol_60_z": -0.996,
+      "rev_1m_z": -0.803,
+      "mom_6_z": -0.443
+    },
+    {
+      "ticker": "AEE",
+      "sector": "utilities",
+      "vol_60_z": -0.949,
+      "rev_1m_z": -0.559,
+      "mom_6_z": 0.103
+    },
+    {
+      "ticker": "VZ",
+      "sector": "comm_mature",
+      "vol_60_z": -0.852,
+      "rev_1m_z": 0.116,
+      "mom_6_z": 1.483
+    },
+    {
+      "ticker": "PFE",
+      "sector": "healthcare",
+      "vol_60_z": -0.843,
+      "rev_1m_z": 0.044,
+      "mom_6_z": 0.193
+    },
+    {
+      "ticker": "DTE",
+      "sector": "utilities",
+      "vol_60_z": -0.765,
+      "rev_1m_z": -0.777,
+      "mom_6_z": 0.313
+    },
+    {
+      "ticker": "PEG",
+      "sector": "utilities",
+      "vol_60_z": -0.706,
+      "rev_1m_z": -0.382,
+      "mom_6_z": -0.522
+    },
+    {
+      "ticker": "EXC",
+      "sector": "utilities",
+      "vol_60_z": -0.692,
+      "rev_1m_z": -0.023,
+      "mom_6_z": -0.417
+    },
+    {
+      "ticker": "AEP",
+      "sector": "utilities",
+      "vol_60_z": -0.684,
+      "rev_1m_z": -0.886,
+      "mom_6_z": 0.18
+    },
+    {
+      "ticker": "COST",
+      "sector": "staples",
+      "vol_60_z": -0.676,
+      "rev_1m_z": -0.167,
+      "mom_6_z": 0.546
+    },
+    {
+      "ticker": "PEP",
+      "sector": "staples",
+      "vol_60_z": -0.661,
+      "rev_1m_z": -1.142,
+      "mom_6_z": -0.199
+    },
+    {
+      "ticker": "PG",
+      "sector": "staples",
+      "vol_60_z": -0.45,
+      "rev_1m_z": -0.009,
+      "mom_6_z": -0.222
+    },
+    {
+      "ticker": "GILD",
+      "sector": "healthcare",
+      "vol_60_z": -0.441,
+      "rev_1m_z": 0.798,
+      "mom_6_z": 0.575
+    },
+    {
+      "ticker": "MDT",
+      "sector": "healthcare",
+      "vol_60_z": -0.342,
+      "rev_1m_z": -0.973,
+      "mom_6_z": -2.455
+    },
+    {
+      "ticker": "ES",
+      "sector": "utilities",
+      "vol_60_z": -0.339,
+      "rev_1m_z": -0.061,
+      "mom_6_z": 0.307
+    },
+    {
+      "ticker": "XEL",
+      "sector": "utilities",
+      "vol_60_z": -0.327,
+      "rev_1m_z": -0.608,
+      "mom_6_z": -0.382
+    },
+    {
+      "ticker": "MDLZ",
+      "sector": "staples",
+      "vol_60_z": -0.275,
+      "rev_1m_z": 0.377,
+      "mom_6_z": 0.635
+    },
+    {
+      "ticker": "KMB",
+      "sector": "staples",
+      "vol_60_z": -0.264,
+      "rev_1m_z": 0.408,
+      "mom_6_z": -0.708
+    },
+    {
+      "ticker": "CL",
+      "sector": "staples",
+      "vol_60_z": -0.255,
+      "rev_1m_z": 1.335,
+      "mom_6_z": 1.057
+    },
+    {
+      "ticker": "AMGN",
+      "sector": "healthcare",
+      "vol_60_z": -0.221,
+      "rev_1m_z": -0.22,
+      "mom_6_z": -0.314
+    },
+    {
+      "ticker": "GIS",
+      "sector": "staples",
+      "vol_60_z": -0.083,
+      "rev_1m_z": -0.538,
+      "mom_6_z": -2.377
+    },
+    {
+      "ticker": "T",
+      "sector": "comm_mature",
+      "vol_60_z": -0.039,
+      "rev_1m_z": -0.663,
+      "mom_6_z": -0.401
+    },
+    {
+      "ticker": "ABBV",
+      "sector": "healthcare",
+      "vol_60_z": 0.154,
+      "rev_1m_z": 0.691,
+      "mom_6_z": -0.415
+    },
+    {
+      "ticker": "BMY",
+      "sector": "healthcare",
+      "vol_60_z": 0.196,
+      "rev_1m_z": -0.875,
+      "mom_6_z": 1.289
+    },
+    {
+      "ticker": "MO",
+      "sector": "staples",
+      "vol_60_z": 0.315,
+      "rev_1m_z": -0.031,
+      "mom_6_z": 1.952
+    },
+    {
+      "ticker": "HSY",
+      "sector": "staples",
+      "vol_60_z": 0.326,
+      "rev_1m_z": 1.256,
+      "mom_6_z": 0.301
+    },
+    {
+      "ticker": "KHC",
+      "sector": "staples",
+      "vol_60_z": 0.329,
+      "rev_1m_z": 1.435,
+      "mom_6_z": -0.42
+    },
+    {
+      "ticker": "ABT",
+      "sector": "healthcare",
+      "vol_60_z": 0.332,
+      "rev_1m_z": -0.689,
+      "mom_6_z": -2.88
+    },
+    {
+      "ticker": "MRK",
+      "sector": "healthcare",
+      "vol_60_z": 0.346,
+      "rev_1m_z": 1.734,
+      "mom_6_z": 1.12
+    },
+    {
+      "ticker": "NEE",
+      "sector": "utilities",
+      "vol_60_z": 0.395,
+      "rev_1m_z": -1.661,
+      "mom_6_z": -0.067
+    },
+    {
+      "ticker": "D",
+      "sector": "utilities",
+      "vol_60_z": 0.405,
+      "rev_1m_z": 0.857,
+      "mom_6_z": 0.585
+    },
+    {
+      "ticker": "WMT",
+      "sector": "staples",
+      "vol_60_z": 0.534,
+      "rev_1m_z": -1.471,
+      "mom_6_z": 0.464
+    },
+    {
+      "ticker": "TMUS",
+      "sector": "comm_mature",
+      "vol_60_z": 0.549,
+      "rev_1m_z": -0.422,
+      "mom_6_z": -0.97
+    },
+    {
+      "ticker": "CI",
+      "sector": "healthcare",
+      "vol_60_z": 0.595,
+      "rev_1m_z": -0.23,
+      "mom_6_z": 0.088
+    },
+    {
+      "ticker": "DHR",
+      "sector": "healthcare",
+      "vol_60_z": 0.977,
+      "rev_1m_z": 0.277,
+      "mom_6_z": -1.872
+    },
+    {
+      "ticker": "STZ",
+      "sector": "staples",
+      "vol_60_z": 1.338,
+      "rev_1m_z": -1.393,
+      "mom_6_z": 0.246
+    },
+    {
+      "ticker": "UNH",
+      "sector": "healthcare",
+      "vol_60_z": 1.63,
+      "rev_1m_z": 0.657,
+      "mom_6_z": 1.243
+    },
+    {
+      "ticker": "CVS",
+      "sector": "healthcare",
+      "vol_60_z": 1.701,
+      "rev_1m_z": 2.032,
+      "mom_6_z": 1.242
+    },
+    {
+      "ticker": "PM",
+      "sector": "staples",
+      "vol_60_z": 2.009,
+      "rev_1m_z": 1.467,
+      "mom_6_z": 1.059
+    },
+    {
+      "ticker": "TMO",
+      "sector": "healthcare",
+      "vol_60_z": 2.061,
+      "rev_1m_z": 0.406,
+      "mom_6_z": -1.651
+    },
+    {
+      "ticker": "LLY",
+      "sector": "healthcare",
+      "vol_60_z": 2.312,
+      "rev_1m_z": 3.535,
+      "mom_6_z": 0.207
+    },
+    {
+      "ticker": "CMCSA",
+      "sector": "comm_mature",
+      "vol_60_z": 2.518,
+      "rev_1m_z": -1.019,
+      "mom_6_z": 0.027
+    }
+  ]
+}

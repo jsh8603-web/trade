@@ -1,0 +1,145 @@
+{
+  "as_of": "2026-05-31",
+  "n_universe": 17,
+  "standardization": "sector-neutral cross-sectional z = (x - auto_universe_mean)/std (local, R2-1 gap 메움)",
+  "signal_sign_note": "★자동차 momentum forward IC = 약 음(reversal 방향)·비유의(universe 17종 작음). mom_6_z 상위 = forward 약. selection = supervisor 가 IC 부호·valuation 반영.",
+  "note": "valuation(PBR/PER) z-score = measure_valuation.py(DART). supervisor 조립(score→target weight)은 dispatch 밖.",
+  "cards": [
+    {
+      "ticker": "085910",
+      "name": "네오티스",
+      "marcap_won": 398535794800,
+      "mom_6_z": 3.458,
+      "mom_12_1_z": 3.427,
+      "vol_60_z": 1.3
+    },
+    {
+      "ticker": "005380",
+      "name": "현대차",
+      "marcap_won": 149268411414000,
+      "mom_6_z": 0.968,
+      "mom_12_1_z": 0.367,
+      "vol_60_z": -0.214
+    },
+    {
+      "ticker": "012330",
+      "name": "현대모비스",
+      "marcap_won": 68866030497000,
+      "mom_6_z": 0.725,
+      "mom_12_1_z": -0.331,
+      "vol_60_z": 1.073
+    },
+    {
+      "ticker": "005850",
+      "name": "에스엘",
+      "marcap_won": 3204947880000,
+      "mom_6_z": 0.154,
+      "mom_12_1_z": -0.152,
+      "vol_60_z": 0.01
+    },
+    {
+      "ticker": "000270",
+      "name": "기아",
+      "marcap_won": 65901714062400,
+      "mom_6_z": -0.13,
+      "mom_12_1_z": -0.321,
+      "vol_60_z": -1.053
+    },
+    {
+      "ticker": "011210",
+      "name": "현대위아",
+      "marcap_won": 2297984513500,
+      "mom_6_z": -0.147,
+      "mom_12_1_z": -0.18,
+      "vol_60_z": 0.186
+    },
+    {
+      "ticker": "010690",
+      "name": "화신",
+      "marcap_won": 349204100000,
+      "mom_6_z": -0.209,
+      "mom_12_1_z": -0.409,
+      "vol_60_z": 0.48
+    },
+    {
+      "ticker": "204320",
+      "name": "HL만도",
+      "marcap_won": 2817427200000,
+      "mom_6_z": -0.259,
+      "mom_12_1_z": -0.323,
+      "vol_60_z": -0.626
+    },
+    {
+      "ticker": "437730",
+      "name": "삼현",
+      "marcap_won": 1547329269600,
+      "mom_6_z": -0.314,
+      "mom_12_1_z": 1.061,
+      "vol_60_z": 1.121
+    },
+    {
+      "ticker": "009900",
+      "name": "명신산업",
+      "marcap_won": 474330002320,
+      "mom_6_z": -0.44,
+      "mom_12_1_z": -0.384,
+      "vol_60_z": 0.174
+    },
+    {
+      "ticker": "015750",
+      "name": "성우하이텍",
+      "marcap_won": 561600000000,
+      "mom_6_z": -0.466,
+      "mom_12_1_z": -0.386,
+      "vol_60_z": 0.254
+    },
+    {
+      "ticker": "161390",
+      "name": "한국타이어앤테크놀로지",
+      "marcap_won": 8646479816200,
+      "mom_6_z": -0.47,
+      "mom_12_1_z": -0.415,
+      "vol_60_z": -0.993
+    },
+    {
+      "ticker": "125490",
+      "name": "한라캐스트",
+      "marcap_won": 475260623040,
+      "mom_6_z": -0.501,
+      "mom_12_1_z": null,
+      "vol_60_z": 1.287
+    },
+    {
+      "ticker": "003570",
+      "name": "SNT다이내믹스",
+      "marcap_won": 1353384767900,
+      "mom_6_z": -0.526,
+      "mom_12_1_z": -0.482,
+      "vol_60_z": -1.058
+    },
+    {
+      "ticker": "003620",
+      "name": "KG모빌리티",
+      "marcap_won": 654682840320,
+      "mom_6_z": -0.529,
+      "mom_12_1_z": -0.575,
+      "vol_60_z": -1.665
+    },
+    {
+      "ticker": "092200",
+      "name": "디아이씨",
+      "marcap_won": 373330262400,
+      "mom_6_z": -0.601,
+      "mom_12_1_z": -0.346,
+      "vol_60_z": 1.171
+    },
+    {
+      "ticker": "073240",
+      "name": "금호타이어",
+      "marcap_won": 1378849377600,
+      "mom_6_z": -0.713,
+      "mom_12_1_z": -0.55,
+      "vol_60_z": -1.447
+    }
+  ]
+}

@@ -1,0 +1,195 @@
+# summary.yaml — telecom(통신) 산업 v3 (frame v3 §M exposure card 계약)
+# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. ★n=13 종목 협소 = small-n rule 엄격(hedge/LOO/block-boot).
+# ★telecom = universe 협소 경계 케이스 (consumer asset_stable value 재현 but magnitude 과대평가 주의).
+# raw 재현: raw-v3/{collect, measure, collect_dart, measure_valuation, measure_cross, exposure_card, (loo)}.py
+
+industry: kr_telecom         # eq_kr Tier 3 (통신: 통신서비스 3사 + 통신장비)
+asset_scope: [equity.kr]
+archetype: asset_stable       # archetype.py: 배당·금리민감 (통신서비스 1차 가설)
+archetype_attestation:
+  valid_from: "2019-01-01"
+  declared_at: "2026-06-03"
+  primary_metric: per         # asset_stable primary = PER·배당수익률 (trap=금리쇼크·규제)
+  secondary: cyclical         # ★soft: 통신장비(equipment) sub = 5G capex cyclical (prob~0.4, universe 11/14 = 장비)
+  basis: >
+    asset_stable(통신서비스) 1차. ★단 universe 14종 中 11종 = 장비(cyclical 혼재). valuation value premium
+    강(BY 6 생존, LOO robust) = asset_stable value 정합 but ★magnitude 과대(n=13 협소). service sub n=3=INSUFFICIENT.
+as_of: "2026-05-31"
+
+# ── 블록1 LENS ──
+lens:
+  pricing_principle: >
+    통신 = asset_stable(서비스) + cyclical(장비) 혼재. "싸다" = PER/PBR·배당수익률. ★실측: valuation
+    (PBR/PER) value premium 매우 강(전 horizon 음, BY 6 생존, within 100%, LOO robust) but ★IC magnitude
+    (-0.54) = n=13 종목 협소로 과대평가 우려(small-universe rank correlation 극단화). momentum 무신호.
+  cycle_reading: >
+    ★universe 협소: 통신서비스(SKT/KT/LGU+) 3종 = cross-sectional 불가(INSUFFICIENT) + 통신장비 11종
+    (5G capex cyclical). 금리 regime: rate_up 22/down 21/flat 46. asset_stable 배당주 = 금리 상승 디레이팅.
+  estimation_note: >
+    2026-05: universe 14종(service 3 + equipment 11). ★n=13 cross-sectional = small-n rule 엄격. valuation
+    방향 신뢰(LOO robust) but magnitude hedge. service sub 단독 = INSUFFICIENT(n=3).
+
+# ── 블록2 INDICATORS ──
+# ★valuation 강(방향) but magnitude 과대(n=13). small-n hedge.
+indicators_passed:
+  - id: cs_pbr_z_24m
+    layer: 1
+    family: value
+    horizon: 24M_value
+    ic_mean: -0.542           # ★음 = 저PBR value premium 강. 단 n=13 협소로 magnitude 과대평가 우려.
+    ic_ci_95: [-0.497, -0.210]  # block-boot(12M). 0 배제. ★단 점추정 magnitude 신뢰 X (small-universe).
+    t_nw: -12.08              # ★허수 경계 — n=13 종목 cross-sectional rank correlation 극단화 (battery 26종 t=3.87 대비 비현실적 큼)
+    n_effective: 61           # months (충분) but ★avg_universe_n=13 (종목 협소)
+    avg_universe_n: 13.0      # ★핵심 한계 — 13종 횡단면
+    oos_ratio: 1.00           # CPCV OOS hit
+    loo_robust: true          # ★LOO 종목 제외 IC range [-0.614, -0.456] 전부 음 = 단일 종목 의존 아님
+    within_period: 1.00
+    source_id: "raw-v3/validation-valuation-v3.json:indicators.pbr_z__24M_value"
+    notes: |
+      저PBR cross-sectional z → 24M forward. value premium 방향 robust(LOO 14종 제외 모두 음, within 100%, BY 생존).
+      ★단 IC magnitude(-0.54, t=-12) = n=13 종목 협소 = Spearman 극단화 = 과대평가. small-n rule: 방향 신뢰,
+      magnitude hedge. battery(26종 +0.086) 대비 비현실적 크기 = universe 협소 artifact.
+      ★★[frame §M.12 정정] 24M overlap eff_indep_N = n_months/24 = 61/24 ≈ 2.5 = degenerate. t=-12.08 =
+      small-universe(13종) × 24M overlap **이중 inflation**(역설: t 최대인데 증거 최약). ⛔ magnitude+significance
+      둘 다 보류, ★방향만. primary 증거 = 3M/6M/12M(eff_N 높음), 24M_value = 보조(degenerate).
+  - id: cs_per_z_12m
+    layer: 1
+    family: value
+    horizon: 12M
+    ic_mean: -0.222
+    ic_ci_95: null            # block-boot 추가 측정
+    t_nw: -3.09               # p=0.003
+    n_effective: 73
+    avg_universe_n: 10.7      # ★PER = 흑자 종목만 = 더 협소
+    within_period: 0.86
+    source_id: "raw-v3/validation-valuation-v3.json:indicators.per_z__12M"
+    notes: "저PER → 12M forward. value premium 방향. ★avgN 10.7 = 매우 협소, magnitude hedge."
+
+# ── 블록3 RELATIONSHIPS ──
+relationships_passed:
+  - {node_a: cs_pbr_z_24m, node_b: telecom_fwd_24m, lag_months: 0, corr: -0.542,
+     corr_ci_95: [-0.497, -0.210], conditioning_set: [], n: 61,
+     source_id: "raw-v3/validation-valuation-v3.json:indicators.pbr_z__24M_value",
+     note: "★value premium 방향 robust(LOO) but magnitude n=13 협소 과대평가."}
+
+# ── 블록4 WEIGHT_RULES ──
+weight_rule_candidates:
+  - indicator_id: cs_pbr_z_24m
+    base_weight_range: [0.05, 0.12]   # ★IC magnitude 과대로 base_weight 는 보수 cap (점추정 -0.54 직접 사용 금지)
+    modulate_by: [archetype, regime]
+    direction: "저PBR/저PER z 상위(싼) 종목 overweight (value). ★단 n=13 = 분산 효과 제한, concentration 주의."
+    granularity: cross_sectional
+    gate_status: {n: small, se: pass, power: pass, fdr: pass, oos: pass}  # ★n=13 = small (게이트 통과나 universe 협소)
+    source_ids: ["raw-v3/validation-valuation-v3.json:indicators.pbr_z__24M_value"]
+    hedge_note: "★value premium 방향 확실(LOO robust, BY 생존) but ★magnitude(-0.54 t=-12) = n=13 협소 과대평가. base_weight 보수 cap + small-universe artifact 명시."
+
+# ── 블록5 CONFIDENCE_HOOKS — ★affects_indicator 필수 ──
+confidence_hooks:
+  - hypothesis_id: telecom_value_premium
+    affects_indicator: cs_pbr_z_24m   # ★필수
+    affects_edge: [cs_pbr_z_24m, telecom_fwd_24m]
+    confirm_signal: "live 저PBR z 상위 종목 forward rank IC < 0 유지 (value, rolling 24M)"
+    reject_signal: "value premium IC e-CUSUM 부호 반전/소멸"
+    emit_where: "panel-score-IC 축"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "derive_weights 재적합 → valuation base_weight 변동"
+    action_threshold: "e-value > 20 → retract. ★n=13 = 신호 안정성 모니터 강화."
+
+# ── 블록6 COLLECTOR_PLAN ──
+collector_plan_industry:
+  - missing: "★telecom universe 확장 (n=13 협소 = cross-sectional 한계)"
+    source: "통신서비스 3종 = 본질적 협소(SKT/KT/LGU+). 장비 포함해도 14종. ★대안: 통신서비스 = 시계열 분석(cross-sectional 부적합) / 장비 = 5G capex cycle 별 측정"
+    priority: high   # ★universe 협소 = 본 산업 핵심 제약
+  - missing: "배당수익률 시계열 (asset_stable primary 보완 — PER 보다 배당 직접)"
+    source: "DART 배당 공시 + 주가"
+    priority: high   # ★통신주 = 고배당 = 배당수익률이 valuation 핵심
+  - missing: "PIT universe 멤버십 (delisted/M&A)"
+    source: "FDR 현재 스냅샷만"
+    priority: medium
+
+# ── cross (§M.3 — 산업=보고만) ──
+cross:
+  common_factor_exposure:
+    - {factor: dollar, beta: -1.4378, beta_ci_95: [-3.251, 0.375], contemporaneous: true,
+       source_id: "raw-v3/validation-cross-v3.json:common_factor_exposure.dollar", note: "비유의(t=-1.55, CI 넓음). ★n 협소로 β 추정 불안정."}
+    - {factor: VIX, beta: -0.0029, beta_ci_95: [-0.011, 0.005], contemporaneous: true, note: "비유의"}
+    - {factor: oil, beta: null, contemporaneous: true, note: "측정(raw 참조)"}
+    - {factor: rate, beta: null, contemporaneous: true, note: "측정(raw 참조). ★asset_stable 금리민감 가설 = 배당주 디레이팅"}
+    - {factor: credit, beta: null, contemporaneous: true, note: "측정(raw 참조)"}
+  directional_spillover: []
+  structural_linkage:
+    - supplier_or_customer: null
+      verdict: "customer-supplier momentum = telecom skip(통신서비스↔장비 = 내부 supply-chain이나 universe 협소로 측정 무의미). battery/financial/consumer/bio 동일 skip 패턴."
+  # ⛔ sector-rotation clock = myth.
+
+# ── ★valuation 횡단면 (§M.7 — value premium 강 but 협소 한계) ──
+valuation_cross_sectional:
+  data_source: "raw-v3/validation-valuation-v3.json (DART 357 rows 2019~ + pykrx 가격)"
+  mechanism_works: "partial — ★작동하나 n=13 협소(magnitude 과대)"
+  universe_constraint: "★통신서비스 3종 + 장비 11종 = 14종. cross-sectional avgN 13(PBR)/10.7(PER). small-universe = Spearman 극단화 = IC magnitude 과대평가."
+  pit_note: "재무 = rcept_dt 공시일 이후만. DART 2019~ 완전(표준계정)."
+  indicators:
+    - id: cs_pbr_z
+      signal: "PBR cross-sectional z (저PBR=value, asset_stable primary)"
+      horizon_results:
+        - {horizon: 3M, ic: -0.157, t_nw: -2.69, p: 0.009, n: 82, within: 0.75}
+        - {horizon: 6M, ic: -0.199, t_nw: -2.44, p: 0.017, n: 79, within: 0.71}
+        - {horizon: 12M, ic: -0.335, t_nw: -3.10, p: 0.003, n: 73, ci_block: [-0.497, -0.210], within: 0.71}
+        - {horizon: 24M_value, ic: -0.542, t_nw: -12.08, p: 0.000, n: 61, within: 1.00, loo_robust: true}
+      avg_universe_n: 13.0
+      verdict: "★value premium 방향 강(전 horizon 음, BY 생존, LOO robust 14종, within 높음). ★단 magnitude(-0.54 t=-12) = n=13 협소 과대평가 = small-n hedge. 방향 신뢰/magnitude 보수."
+    - id: cs_per_z
+      signal: "PER cross-sectional z (흑자 한정 avgN 10.7)"
+      horizon_24m: {ic: -0.280, t_nw: -5.12, n: 61, avgN: 10.8, verdict: "value 방향 강 but avgN 10.7 협소"}
+      verdict: "PER value premium 방향 (avgN 10.7 매우 협소, magnitude hedge)."
+  multiple_testing: "8 테스트 BY factor 2.72. ★BY 6개 생존(pbr 24M/12M/6M/3M + per 24M/12M). 단 n=13 협소 = magnitude 과대 = 방향 생존 신뢰/크기 hedge."
+  verdict: >
+    ★telecom = asset_stable value 산업 (consumer 재현·강화). PBR/PER value premium 방향 강(BY 6 생존, LOO
+    robust, within 100%). ★단 universe 14종(service 3 + equipment 11) 협소 → IC magnitude(-0.54) 과대평가
+    (small-universe Spearman 극단화). 방향 = 신뢰(robust), magnitude = small-n hedge. service sub(3종) 단독
+    = INSUFFICIENT. ★consumer(asset_stable, valuation 유효)와 동일 archetype 재현 = valuation 산업 분기 강화.
+
+# ── robustness_checks ──
+robustness_checks:
+  - indicator_id: cs_pbr_z_24m
+    leave_episode: null
+    within_period: "1.00 (24M) / 0.71 (12M)"
+    loo_stock: "★robust — 14종 LOO 제외 IC [-0.614, -0.456] 전부 음"
+    partial_corr_ratio: null
+    net_sharpe_ratio: null
+    forward_vs_contemp: "forward present (value premium 강)"
+    family_neutralized_ic: null
+    eff_n_tier: "★Weak-conditional — months n=61 충분 but ★universe 13종 협소 = magnitude 신뢰 제한"
+
+# ── horizon_verdict ──
+horizon_verdict:
+  best_horizon: "24M_value (장기 value, within 100%)"
+  forward_alpha_present: true   # ★value premium present (방향 robust)
+  note: >
+    ★value premium forward present 강(방향 robust). momentum 무신호. ★단 magnitude = n=13 협소 과대.
+    asset_stable value = consumer 재현. universe 협소 = 본 산업 핵심 한계.
+
+# ── Hard-fail 4 ──
+hard_fail_self_check:
+  B_real_data: {status: PASS, note: "합성 0%. pykrx OHLCV 14종 + yfinance(^TNX/factors) + DART 357 rows(2019~) + FDR. raw-v3/*.py 재현."}
+  C_traceability: {status: PASS, note: "yaml 수치 = validation-metrics-v3 / valuation-v3 / cross-v3.json key 매핑. LOO = raw 재현."}
+  D_pit: {status: PASS, note: "가격 forward-shift safe. valuation = DART rcept_dt 공시일 이후만. regime = ex-ante 금리 Δ."}
+  I_survivor_bias:
+    status: PARTIAL
+    note: "universe = FDR 현재 스냅샷. 통신 = 합병 잦음(LG텔레콤/데이콤 등 과거 통합). 14종 中 1종 부분 이력. ★universe 협소 자체가 더 큰 제약. PIT 멤버십 = collector_plan."
+
+# ── verdict (small-n rule) ── ★value premium 강 but universe 협소
+verdict_label: PARTIAL   # ★value premium 방향 강(robust) but magnitude 과대(n=13) = PARTIAL (CONFIRMED 격하)
+verdict_detail:
+  primary_evidence: "★[frame §M.12] primary 증거 = 3M/6M/12M(eff_indep_N 높음). 24M_value = ★보조(eff_N≈2.5 degenerate). telecom = ★t −12 = small-universe × 24M overlap 이중 inflation = 방향만 신뢰."
+  cs_pbr_z_24m: "★PARTIAL→hedge — value premium 방향 강(LOO robust 14종, within 100%). ★단 24M eff_N≈2.5 degenerate + n=13 협소 = magnitude+significance 둘 다 inflation(t=-12 허수). ★방향만, 단정 불가."
+  cs_per_z_12m: "value premium 방향 (avgN 10.7 협소, 12M eff_N≈5). magnitude hedge."
+  momentum: "비유의 (BY 0). asset_stable = 모멘텀 무신호 정합 (consumer/battery 대조)."
+  service_sub_only: "★INSUFFICIENT (통신서비스 3종 = cross-sectional 불가). 시계열 분석 대안 필요."
+  common_factor: "전부 비유의 (n 협소로 β 추정 불안정)."
+verdict_note: >
+  ★telecom = asset_stable value 산업 (consumer 재현·강화). PBR/PER value premium 방향 강(BY 6 생존, LOO
+  robust, within 100%). ★단 universe 14종(service 3 + equipment 11) 협소 → IC magnitude 과대평가(small-universe
+  Spearman 극단화). 방향 신뢰/magnitude small-n hedge. service sub 단독 = INSUFFICIENT(n=3). ★consumer 와 동일
+  archetype(asset_stable) valuation 유효 재현 = 동적가중 분기 강화. ★universe 협소 = 양식의 경계 케이스 입증
+  (cross-sectional 최소 종목 수 ~13 = magnitude 신뢰 하한). = 6산업 batch 시 협소 산업 magnitude hedge 의무.

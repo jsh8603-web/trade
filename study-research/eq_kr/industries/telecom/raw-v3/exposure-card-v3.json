@@ -1,0 +1,120 @@
+{
+  "as_of": "2026-05-31",
+  "n_universe": 14,
+  "standardization": "sector-neutral cross-sectional z = (x - battery_universe_mean)/std (local, R2-1 gap 메움)",
+  "note": "valuation(PBR/PER) z-score = pykrx 스냅샷 부재로 미산출 → 가격신호 z만. supervisor 조립(score→target weight)은 dispatch 밖.",
+  "cards": [
+    {
+      "ticker": "069540",
+      "name": "빛과전자",
+      "marcap_won": 402546269880,
+      "mom_6_z": 2.886,
+      "mom_12_1_z": 1.442,
+      "vol_60_z": 2.182
+    },
+    {
+      "ticker": "037460",
+      "name": "삼지전자",
+      "marcap_won": 740044972700,
+      "mom_6_z": 0.648,
+      "mom_12_1_z": 0.655,
+      "vol_60_z": 0.067
+    },
+    {
+      "ticker": "218410",
+      "name": "RFHIC",
+      "marcap_won": 2188003620800,
+      "mom_6_z": 0.543,
+      "mom_12_1_z": 2.058,
+      "vol_60_z": 0.284
+    },
+    {
+      "ticker": "189300",
+      "name": "인텔리안테크",
+      "marcap_won": 1341113375300,
+      "mom_6_z": 0.507,
+      "mom_12_1_z": 0.366,
+      "vol_60_z": -0.147
+    },
+    {
+      "ticker": "138080",
+      "name": "오이솔루션",
+      "marcap_won": 427032651000,
+      "mom_6_z": 0.23,
+      "mom_12_1_z": 0.989,
+      "vol_60_z": 0.968
+    },
+    {
+      "ticker": "230240",
+      "name": "에치에프알",
+      "marcap_won": 411913550000,
+      "mom_6_z": 0.021,
+      "mom_12_1_z": -0.851,
+      "vol_60_z": 0.852
+    },
+    {
+      "ticker": "032500",
+      "name": "케이엠더블유",
+      "marcap_won": 1476709535000,
+      "mom_6_z": -0.159,
+      "mom_12_1_z": 0.173,
+      "vol_60_z": 0.586
+    },
+    {
+      "ticker": "050890",
+      "name": "쏠리드",
+      "marcap_won": 875501654940,
+      "mom_6_z": -0.21,
+      "mom_12_1_z": 0.132,
+      "vol_60_z": 0.37
+    },
+    {
+      "ticker": "017670",
+      "name": "SK텔레콤",
+      "marcap_won": 26891714635600,
+      "mom_6_z": -0.373,
+      "mom_12_1_z": -0.48,
+      "vol_60_z": -1.147
+    },
+    {
+      "ticker": "489790",
+      "name": "한화비전",
+      "marcap_won": 3418064003000,
+      "mom_6_z": -0.59,
+      "mom_12_1_z": -0.645,
+      "vol_60_z": -0.342
+    },
+    {
+      "ticker": "049070",
+      "name": "인탑스",
+      "marcap_won": 327660000000,
+      "mom_6_z": -0.751,
+      "mom_12_1_z": -1.02,
+      "vol_60_z": -0.864
+    },
+    {
+      "ticker": "032640",
+      "name": "LG유플러스",
+      "marcap_won": 6854507871800,
+      "mom_6_z": -0.902,
+      "mom_12_1_z": -1.004,
+      "vol_60_z": -1.346
+    },
+    {
+      "ticker": "030200",
+      "name": "KT",
+      "marcap_won": 13583968821500,
+      "mom_6_z": -0.917,
+      "mom_12_1_z": -1.037,
+      "vol_60_z": -1.413
+    },
+    {
+      "ticker": "025770",
+      "name": "한국정보통신",
+      "marcap_won": 305170808650,
+      "mom_6_z": -0.932,
+      "mom_12_1_z": -0.776,
+      "vol_60_z": -0.051
+    }
+  ]
+}

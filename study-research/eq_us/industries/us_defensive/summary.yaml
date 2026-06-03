@@ -1,0 +1,259 @@
+# summary.yaml — us_defensive sleeve v3 (frame v3 §M exposure card 계약)
+# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge, BY/FDR, block-boot/LOO).
+# 산출 범위 = §M.7 exposure card (측정 전용). 한국 consumer/auto + battery summary.yaml 미러.
+# raw 재현: raw-v3/{collect, measure, measure_cross, exposure_card, (collect_edgar, measure_valuation)}.py
+# ★valuation §10 = EDGAR XBRL (#15 us_cyclical 파이프라인 검증 후 박제) = placeholder.
+
+industry: us_defensive        # eq_us sleeve (asset_stable, XLP/XLU/XLV/XLC-mature)
+asset_scope: [equity.us]
+archetype: asset_stable       # 방어주 (소비필수/유틸/헬스케어/성숙통신) — 안정 현금흐름·배당·듀레이션 민감
+archetype_attestation:
+  valid_from: "2010-01-01"    # ★PIT 사전선언 (§M.5 ex-post 금지). asset_stable = 안정 현금흐름 방어주
+  declared_at: "2026-06-03"
+  primary_metric: per         # asset_stable primary (PER value premium — 한국 consumer/telecom 동형)
+  secondary: dividend_yield   # 배당 (방어주 핵심, EDGAR §10 보조)
+  basis: >
+    방어주 안정 현금흐름 1차 가설. ★실측 검증: 가격 momentum 무효(한국 consumer/telecom asset_stable 동형) +
+    저변동성 프리미엄(vol_60 IC +0.076) + 단기 reversal(rev_1m -0.045 유의) + ★real_rate 듀레이션 민감(β -0.171 t=-4.1).
+    → asset_stable 지지(momentum 무효 + 채권 대용 rate 민감). valuation(PER value) = EDGAR §10.
+as_of: "2026-05-31"
+
+# ── 블록1 LENS (정성) ──
+lens:
+  pricing_principle: >
+    us_defensive = asset_stable. "싸다" = PER·배당수익률 (안정 EPS → value premium, 한국 consumer/telecom 동형).
+    ★실측 결론: 가격 momentum 무효, 저변동성(vol_60 양) + 단기 reversal(rev_1m 음) + real_rate 듀레이션 민감(채권 대용).
+    valuation 횡단면(PER) = EDGAR XBRL 재구성(§10, #15 후). asset_stable = valuation·저변동성이 진짜 신호.
+  cycle_reading: >
+    2010-2026 = QE→정상화→COVID→인플레이션·금리급등(2022-23)→pivot. ★real_rate(DFII10) 상승 시 방어주 약세
+    (듀레이션 민감, t=-4.1 강). HY OAS regime: normal 28 / stress 9 month(>p75=3.55). credit stress 시 defensive 상대강세.
+  estimation_note: >
+    2026-05 시점: universe 48종(XLP/XLU/XLV/XLC-mature 대표 대형주, yfinance). avg N 47종 = 한국 대비 breadth 우수.
+    n=183개월(2010~) = 한국(71-88개월) 대비 표본 길어 통계력 강. 가격신호 약(asset_stable) → valuation·저변동성 우위. 본 산출 = 측정+peer-relative z card.
+
+# ── 블록2 INDICATORS (forward 횡단면 Rank-IC, horizon-tagged, ★block-boot) ──
+indicators_passed:
+  - id: cs_rev_1m
+    layer: 3
+    family: reversal           # ★단기 reversal (asset_stable, 가장 robust)
+    horizon: 3M
+    ic_mean: -0.045
+    ic_ci_95: [-0.081, -0.014]  # ★block-bootstrap(block=6M, autocorr 보정). NW CI [-0.077,-0.012] 정합. 둘 다 0 배제.
+    ic_se_nw: 0.0166
+    t_nw: -2.70
+    n_effective: 193           # months (2010~, 한국 대비 장기)
+    oos_ratio: 0.93            # CPCV OOS hit=0.93
+    avg_universe_n: 47.5
+    source_id: "raw-v3/validation-metrics-v3.json:indicators.rev_1m__3M"
+    notes: |
+      cross-sectional 1M 단기수익 z → 3M forward = 음(단기 reversal). t_NW=-2.70 p=0.008.
+      ★NW+block-boot CI 둘 다 0 배제 = 유의. leave-episode 생존(ex-peak -0.053). within 0.647.
+      cap-weighted -0.041(대형주 일관). ★BY 보정(16테스트) raw_p=0.0077 → 미생존(BY 임계 미달) = small-n hedge.
+  - id: cs_lowvol
+    layer: 3
+    family: low_volatility     # ★저변동성 프리미엄 (asset_stable 핵심, 한국 bio 동형)
+    horizon: 12M_mom
+    ic_mean: 0.076
+    ic_ci_95: [0.006, 0.144]   # ★block-bootstrap 0 배제. NW CI [-0.011, 0.163] 0 포함(보수 NW 채택 시 TENTATIVE).
+    ic_se_nw: 0.0443
+    t_nw: 1.71
+    n_effective: 183
+    oos_ratio: 0.87
+    avg_universe_n: 47.4
+    source_id: "raw-v3/validation-metrics-v3.json:indicators.vol_60__12M_mom"
+    notes: |
+      cross-sectional 60d 변동성 z → 12M forward = 양(★저변동성→고forward = 저변동성 프리미엄).
+      ★block-boot CI [0.006,0.144] 0 배제 but NW CI 0 포함(보수 채택) → TENTATIVE DIRECTIONAL.
+      cap-weighted +0.079(대형주 일관 강). leave-episode 생존. within 0.625. BY 미생존. 한국 bio cs_lowvol 동형.
+
+# ── 블록3 RELATIONSHIPS ──
+relationships_passed:
+  - {node_a: cs_rev_1m, node_b: defensive_fwd_3m, lag_months: 0, corr: -0.045,
+     corr_ci_95: [-0.081, -0.014], conditioning_set: [], n: 193,
+     source_id: "raw-v3/validation-metrics-v3.json:indicators.rev_1m__3M",
+     note: "cross-sectional IC(unconditional, 단기 reversal 유의). partial-corr = 통합 RegimeGlasso 단계."}
+
+# ── 블록4 WEIGHT_RULES ──
+weight_rule_candidates:
+  - indicator_id: cs_rev_1m
+    base_weight_range: [-0.07, -0.02]   # 음 IC(reversal) → 1M 하락 종목 overweight. CI 반영.
+    modulate_by: [archetype, regime, real_rate_phase]
+    direction: "cross-sectional 1M 단기수익 z 하위(하락) 종목 overweight (단기 reversal). long-only-implementable."
+    granularity: cross_sectional
+    gate_status: {n: pass, se: pass, power: pass, fdr: fail, oos: pass}  # ★FDR(BY) fail = small-n hedge
+    source_ids: ["raw-v3/validation-metrics-v3.json:indicators.rev_1m__3M"]
+    hedge_note: "n=193 months 장기. CI [-0.081,-0.014] 0 배제 유의. ★BY 미생존 → supervisor conservative cap. valuation(§10) 보강 권장."
+  - indicator_id: cs_lowvol
+    base_weight_range: [0.0, 0.10]      # 양 IC(저변동성) → 저변동성 종목 overweight. NW 0 포함 보수.
+    modulate_by: [archetype, regime]
+    direction: "cross-sectional 60d 변동성 z 하위(저변동성) 종목 overweight (저변동성 프리미엄). long-only."
+    granularity: cross_sectional
+    gate_status: {n: pass, se: marginal, power: weak, fdr: fail, oos: pass}  # NW 0 포함 = TENTATIVE
+    source_ids: ["raw-v3/validation-metrics-v3.json:indicators.vol_60__12M_mom"]
+    hedge_note: "block-boot 0 배제 but NW 0 포함 = TENTATIVE. supervisor weight 보수. 한국 bio cs_lowvol 동형 = asset_stable 저변동성 신호 일반성 가능."
+
+# ── 블록5 CONFIDENCE_HOOKS — ★affects_indicator 필수 ──
+confidence_hooks:
+  - hypothesis_id: us_defensive_short_reversal
+    affects_indicator: cs_rev_1m       # ★★필수 — indicators_passed.id 매칭
+    affects_edge: [cs_rev_1m, defensive_fwd_3m]
+    confirm_signal: "live 횡단면 1M 단기수익 z 하위 종목의 3M forward rank IC 음 유지 (rolling 12M, reversal 지속)"
+    reject_signal: "Rank-IC e-CUSUM 부호 양 전환 누적 K=3 month (reversal 소멸)"
+    emit_where: "panel-score-IC 축 (backtest SELL 아님)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "derive_weights 재적합 → 단기 reversal base_weight 변동 (부호 음 유지)"
+    action_threshold: "e-value > 1/alpha=20 → retract / 회복 = score_ic_recovery_eprocess"
+
+# ── 블록6 COLLECTOR_PLAN ──
+collector_plan_industry:
+  - missing: "PER/PBR/배당수익률 cross-sectional (EDGAR XBRL 재구성) + EV-EBITDA"
+    source: "SEC EDGAR 10-K/10-Q XBRL(equity/net_income) + Form 4 + yfinance 가격. PIT=filing acceptance timestamp."
+    priority: high   # ★asset_stable primary=per 인데 미산출 = 핵심 gap (#15 us_cyclical 파이프라인 검증 후)
+    status: "EDGAR valuation §10 = #15 후 박제. 가격신호/저변동성/cross = 완료."
+  - missing: "PIT universe 멤버십 (XLP/XLU/XLV/XLC holdings 시점별 + 상폐/M&A 종목)"
+    source: "현 = yfinance 현재 대형주 스냅샷. SSGA holdings 이력 = survivorship-biased 보정"
+    priority: high   # 생존편향 (현 = 상장 시점 차이만, 48종 中 2종 부분이력)
+  - missing: "FF5+Mom+QMJ+BAB factor neutralize (concentration β 분리, H12)"
+    source: "Ken French + AQR public datasets. 모든 alpha → time-series 회귀 intercept NW t"
+    priority: medium
+  - missing: "장기 표본 real_rate/HY OAS cross (현 n=36개월 = factor 교집합 제약)"
+    source: "DFII10 가용 2003~, HY OAS 1997~ → 교집합 확대 가능. daily β(742일)는 기존 m3 prior 보유."
+    priority: medium
+
+# ── ★cross (분석 단위 간 상관) — §M.3 3소비자 라우팅 (산업=보고만) ──
+cross:
+  common_factor_exposure:
+    # ★sub-sector β 분기 = asset_stable 핵심 (DEFENSIVE_ALL 대표값, HAC maxlags=6, n=36 small)
+    - {factor: real_rate, beta: -0.171, beta_ci_95: [-0.255, -0.087], contemporaneous: true,
+       source_id: "raw-v3/validation-cross-v3.json:sub_sector_factor_beta.DEFENSIVE_ALL.real_rate",
+       note: "★실질금리(DFII10) 상승 시 방어주 약세 = 듀레이션 민감(채권 대용, t=-4.1 유의). H2(TSY long duration) 정합. ★n=36 small."}
+    - {factor: rate, beta: 0.038, beta_ci_95: [-0.009, 0.085], contemporaneous: true,
+       note: "명목금리(DGS10) 약 양 비유의. ★real_rate 가 진짜 듀레이션 채널. utilities rate +0.070(H5 부분)."}
+    - {factor: dollar, beta: -0.098, contemporaneous: true, note: "비유의 (CI 넓음)"}
+    - {factor: hy_oas, beta: 0.004, contemporaneous: true, note: "비유의 (sub-sector 별 상이: staples +0.022 약)"}
+    - {factor: vix, beta: 0.000, contemporaneous: true, note: "비유의 (staples -0.002 t=-2.2 약 음만)"}
+  # ★sub-sector 분기 (H5): utilities real_rate -0.213(t=-2.9 최강 듀레이션) / staples -0.154(t=-3.1) / healthcare -0.137(t=-1.9 약)
+  sub_sector_rate_sensitivity:
+    - {sector: utilities, real_rate_beta: -0.213, t: -2.9, note: "★최강 듀레이션 = 채권 대용 (H5 utility rate−)"}
+    - {sector: staples, real_rate_beta: -0.154, t: -3.1, note: "듀레이션 민감"}
+    - {sector: healthcare, real_rate_beta: -0.137, t: -1.9, note: "약 (방어적이나 성장 성분)"}
+    - {sector: comm_mature, real_rate_beta: -0.197, t: -1.8, note: "듀레이션 (배당주)"}
+  directional_spillover: []   # DY = supervisor 통합
+  structural_linkage: []      # defensive = supply-chain lead-lag 약 → sector-rotation 만 (REJECTED as alpha 전제)
+
+# ── ★valuation 횡단면 (§M.7 핵심 — EDGAR XBRL PIT, 박제 완료 2026-06-03) ──
+valuation_cross_sectional:
+  data_source: "raw-v3/validation-valuation-v3.json (SEC EDGAR XBRL 21149 rows + yfinance 가격)"
+  mechanism_works: true   # ★EDGAR PIT 재구성 작동. PBR cov 5150 / PER cov 5108 cells. avg_N 26종(30종 valuation 가용).
+  pipeline_validation: "EDGAR companyconcept XBRL(StockholdersEquity/NetIncomeLoss/shares, filed date PIT) = us_cyclical 검증 파이프라인 미러. 48종 수집 21149 rows."
+  pit_note: "재무 = filed date(filing acceptance) 이후만(forward-fill) = lookahead 회피(Large accel 10-K 60d/10-Q 40d). 한국 DART rcept_dt 대응."
+  archetype_note: >
+    ★asset_stable PER value premium 예상했으나 ★실측 = battery valuation 처럼 약·비유의. PER value premium 방향(음)만 약,
+    PBR 역방향(양=저PBR→저forward, value trap 가능). = 미국 defensive 는 한국 consumer/telecom 강 value premium 재현 안 됨.
+  indicators:
+    - id: cs_per_z_24m
+      signal: "PER cross-sectional z (저PER=value)"
+      horizon: 24M_value
+      ic_mean: -0.025       # 부호 음 = value premium 방향(저PER→고forward) 일치하나 약
+      ic_ci_95_nw: [-0.144, 0.094]      # NW(n=173) = 0 포함 → 비유의
+      ic_ci_95_block_boot: [-0.106, 0.049]  # block-boot(6M) = 0 포함
+      t_nw: -0.41
+      n_effective: 173
+      cpcv_oos_hit: 0.53
+      within_period: 0.47
+      avg_universe_n: 25.8
+      source_id: "raw-v3/validation-valuation-v3.json:indicators.per_z__24M_value"
+      verdict: "INSUFFICIENT signal — PER value premium 방향(음)만 약, NW+boot CI 0 포함 비유의(p=0.68), BY 미생존. 한국 consumer/telecom 강 value premium 미재현."
+    - id: cs_pbr_z_24m
+      signal: "PBR cross-sectional z (저PBR=value)"
+      horizon: 24M_value
+      ic_mean: 0.062        # ★부호 양 = 역방향(저PBR→저forward = value trap 가능)
+      ic_ci_95_nw: [-0.072, 0.195]
+      ic_ci_95_block_boot: [-0.019, 0.148]
+      t_nw: 0.91
+      n_effective: 173
+      avg_universe_n: 25.9
+      source_id: "raw-v3/validation-valuation-v3.json:indicators.pbr_z__24M_value"
+      verdict: "INSUFFICIENT signal — ★부호 역방향(저PBR→저forward, value premium 반대 = 방어주 저PBR value trap 가능). 비유의(p=0.37). BY 미생존."
+  multiple_testing: "8 테스트(2 신호×4 horizon) BY factor 2.72. raw_p_min=0.366(pbr_z__24M). ★BY 생존 0 = 전 valuation 비유의."
+  verdict: >
+    valuation 횡단면 메커니즘 = 작동(EDGAR PIT, avgN 26, cov 5150). 단 us_defensive 내 IC = 약·비유의
+    (PER value premium 방향 약, PBR 역방향). ★momentum 무효 + rev_1m 단기 reversal(유의) + real_rate 듀레이션이
+    defensive dominant 신호 — valuation 은 약. 사용자 "PER/PBR 평균대비 골고루" 산출 구조 완성, IC 유효성은 us_defensive 한정 약.
+    ★battery(valuation 약) 패턴 = us_defensive 도 동일. cf. us_cyclical PER 작동 = sleeve 별 valuation IC 상이.
+
+# ── robustness_checks ──
+robustness_checks:
+  - indicator_id: cs_rev_1m          # primary
+    leave_episode: pass              # ex-peak -0.053 (full -0.045), 부호 생존
+    within_period: pass              # 0.647
+    partial_corr_ratio: null         # 통합 RegimeGlasso 단계
+    net_sharpe_ratio: null           # |IC| 0.045 > 8bps/월(US 저비용) → net 보존 양호
+    forward_vs_contemp: "forward present (단기 reversal 유의)"
+    family_neutralized_ic: null      # FF5+Mom+QMJ+BAB = 통합 단계
+    eff_n_tier: Validated            # ★n=193 months (≥100 = Validated) = 한국 대비 강
+    multiple_testing_gate: fail      # BY 미생존(raw_p 0.0077)
+    block_boot_applied: true         # ★IID 아님 (small-n rule §1.4, 기존 IID 격하 교훈)
+  - indicator_id: cs_lowvol
+    leave_episode: pass
+    within_period: marginal          # 0.625
+    eff_n_tier: Validated            # n=183
+    forward_vs_contemp: "forward present (저변동성, NW 0 포함 = TENTATIVE)"
+    multiple_testing_gate: fail
+    block_boot_applied: true         # block-boot 0 배제 vs NW 0 포함 (보수 NW)
+
+# ── horizon_verdict ──
+horizon_verdict:
+  best_horizon: "3M (rev_1m 단기 reversal 유의) + 12M (vol_60 저변동성 TENTATIVE)"
+  forward_alpha_present: true        # ★rev_1m forward alpha 유의(단기 reversal). vol_60 TENTATIVE.
+  note: >
+    ★asset_stable horizon: momentum(mom_6/mom_12_1) 무효(한국 consumer/telecom 동형) + rev_1m 단기 reversal 유의(-0.045)
+    + vol_60 저변동성 프리미엄 방향 robust(NW 비유의). = 방어주 = valuation·저변동성·reversal 이 신호, momentum 아님.
+    real_rate 듀레이션 민감(채권 대용)이 dominant 공통인자. valuation(PER value) = EDGAR §10.
+
+# ── net-cost (US 비대칭 없음) ──
+net_cost:
+  model: "spread/2 + commission (★US: STT 없음, 대칭) — §M.4"
+  roundtrip_bps: 16.0
+  monthly_cost_bps: 8.0    # turnover 0.5/월
+  note: "US 비용 = 한국(33bps) 대비 낮음(STT 없음). |IC| rev 0.045 > 8bps/월 → net 보존 양호. impact = supervisor 캘리브레이션."
+
+# ── Hard-fail 4 (B C D I) self-check ──
+hard_fail_self_check:
+  B_real_data:
+    status: PASS
+    note: >
+      합성 0%. ★합성 P0 재검증(§1.7-D) 수행: v1 `_deprecated_lens-...-synthetic.txt` = 격리 폐기 확인.
+      현 데이터 = 실데이터 입증(sector_etf_close.csv 2000~ 실거래일, SHY/SOXX/TLT 2000 미상장 NaN = 역사 정확).
+      yfinance 48종 OHLCV(2010~, 4125일) + FRED 14 CSV(DGS10/DFII10/HY OAS/DXY/VIX 실시리즈). raw-v3/*.py 재현.
+  C_traceability: {status: PASS, note: "모든 yaml 수치 = raw-v3/validation-metrics-v3.json + validation-cross-v3.json key 매핑. valuation = §10 EDGAR 후."}
+  D_pit:
+    status: PASS
+    note: >
+      가격신호 = PIT-safe(forward shift). ★valuation = EDGAR filing acceptance timestamp 이후만(lookahead 회피, 한국 DART rcept_dt 대응) = #15 후.
+      ★IID bootstrap → block bootstrap 교체(small-n rule §1.4, 월간 regime autocorr persistence 보정).
+  I_survivor_bias:
+    status: PARTIAL
+    note: >
+      universe = yfinance 현재 대형주 스냅샷(생존 종목만). 상폐/M&A 종목(과거 staples/utility 합병 多) 누락 = survivorship-biased.
+      상장 시점 차이 정량화(48종 中 2종 부분이력: ABBV 2013 spinoff 등). PIT holdings 멤버십 = collector_plan high.
+
+# ── verdict (small-n rule) ──
+verdict_label: PARTIAL  # ★전체 sleeve = PARTIAL (rev 유의, vol/valuation 보조)
+verdict_detail:
+  cs_rev_1m__3M: >
+    PARTIAL CONFIRMED — IC -0.045(단기 reversal), t_NW=-2.70 p=0.008, ★NW+block-boot CI 둘 다 0 배제 유의,
+    CPCV OOS 0.93, leave-episode 생존, within 0.647, cap-weighted 일관, n=193(Validated tier). ★BY 미생존(raw_p 0.0077) = small-n hedge.
+  cs_lowvol__12M: "TENTATIVE DIRECTIONAL — IC +0.076(저변동성 프리미엄), block-boot 0 배제 but NW 0 포함(t=1.71 p=0.090). 한국 bio 동형."
+  price_momentum_overall: "★momentum(mom_6/mom_12_1) 무효 = asset_stable 정합(한국 consumer/telecom 동형)"
+  valuation_cross_sectional: >
+    ★메커니즘 작동(EDGAR PIT, PBR cov 5150/PER 5108, avgN 26) but IC 약·비유의 — per_z 24M value premium 방향(-0.025)만 약,
+    pbr_z 24M 역방향(+0.062 value trap 가능). BY 미생존. 한국 consumer/telecom 강 value premium 미재현 = battery valuation 약 패턴 동일.
+  common_factor: "★real_rate 듀레이션 민감 dominant(β -0.171 t=-4.1 유의, 채권 대용, H2 정합). utilities 최강(-0.213). n=36 small hedge."
+verdict_note: >
+  sleeve 전체 = PARTIAL. ★핵심 발견 = momentum 무효(asset_stable, 한국 consumer/telecom 동형) + 단기 reversal(rev_1m -0.045 유의) +
+  저변동성 프리미엄(vol_60 +0.076 TENTATIVE) + ★real_rate 듀레이션 민감(채권 대용, t=-4.1 강, H2 TSY 정합). utilities 최강 듀레이션.
+  ★valuation 횡단면 = EDGAR PIT 메커니즘 작동(cov 5150, avgN 26) but IC 약·비유의(PER value premium 방향만 약, PBR 역방향) = 한국 consumer/telecom
+  강 value premium 미재현 = battery valuation 약 패턴 동일(cf. us_cyclical PER 작동 = sleeve 별 상이). ★dominant 신호 = rev_1m reversal + real_rate 듀레이션.
+  ★합성 P0 재검증(§1.7-D) 통과 = v1 synthetic 격리, 현 데이터 실데이터 입증. ★IID→block bootstrap 교체(§1.4). n=183개월(한국 대비 장기).
+  archetype asset_stable 지지 = momentum 무효 + reversal·저변동성·rate 듀레이션 신호(valuation 보조 약).

@@ -1,0 +1,142 @@
+{
+  "common_factor_exposure": {
+    "VIX": {
+      "beta": 0.0109,
+      "se": 0.0018,
+      "t": 6.03,
+      "ci95": [
+        0.0073,
+        0.0144
+      ],
+      "contemporaneous": true
+    },
+    "dollar": {
+      "beta": -0.1235,
+      "se": 0.6268,
+      "t": -0.2,
+      "ci95": [
+        -1.3521,
+        1.105
+      ],
+      "contemporaneous": true
+    },
+    "oil": {
+      "beta": -0.0845,
+      "se": 0.0947,
+      "t": -0.89,
+      "ci95": [
+        -0.2702,
+        0.1012
+      ],
+      "contemporaneous": true
+    },
+    "rate": {
+      "beta": -0.0698,
+      "se": 0.046,
+      "t": -1.52,
+      "ci95": [
+        -0.1599,
+        0.0204
+      ],
+      "contemporaneous": true
+    },
+    "credit": {
+      "beta": -0.1219,
+      "se": 0.0253,
+      "t": -4.82,
+      "ci95": [
+        -0.1715,
+        -0.0723
+      ],
+      "contemporaneous": true
+    },
+    "_meta": {
+      "n": 35,
+      "r2": 0.217,
+      "note": "HAC(maxlags=3). credit=US HY OAS proxy(KR HY 부재). contemporaneous risk 노출."
+    }
+  },
+  "customer_supplier_momentum": {
+    "lithium_upstream": {
+      "lag0": {
+        "corr": 0.016,
+        "p": 0.881,
+        "n": 85
+      },
+      "lag1": {
+        "corr": -0.048,
+        "p": 0.665,
+        "n": 84
+      },
+      "lag2": {
+        "corr": -0.009,
+        "p": 0.934,
+        "n": 83
+      },
+      "lag3": {
+        "corr": -0.009,
+        "p": 0.934,
+        "n": 82
+      }
+    },
+    "albemarle_lithium_producer": {
+      "lag0": {
+        "corr": 0.006,
+        "p": 0.959,
+        "n": 85
+      },
+      "lag1": {
+        "corr": -0.072,
+        "p": 0.517,
+        "n": 84
+      },
+      "lag2": {
+        "corr": -0.072,
+        "p": 0.517,
+        "n": 83
+      },
+      "lag3": {
+        "corr": -0.044,
+        "p": 0.693,
+        "n": 82
+      }
+    },
+    "_note": "upstream(lithium) lagged 3M momentum → battery forward 1M. alpha 후보 = 측정 17종 검증 후 IC→weight. 동조성분은 RegimeGlasso Ω 자동흡수(이중라우팅 X)."
+  },
+  "pit_reporting_delay": {
+    "available": true,
+    "annual_report_delay": [
+      {
+        "year": 2021,
+        "n": 9,
+        "median_delay_days": 120,
+        "max_delay_days": 120
+      },
+      {
+        "year": 2022,
+        "n": 23,
+        "median_delay_days": 108,
+        "max_delay_days": 119
+      },
+      {
+        "year": 2023,
+        "n": 20,
+        "median_delay_days": 114,
+        "max_delay_days": 118
+      },
+      {
+        "year": 2024,
+        "n": 8,
+        "median_delay_days": 120,
+        "max_delay_days": 120
+      },
+      {
+        "year": 2025,
+        "n": 3,
+        "median_delay_days": 120,
+        "max_delay_days": 120
+      }
+    ],
+    "note": "사업보고서 제출 median delay ~85-90일(FY-end 후). PIT: 펀더멘털 신호는 rcept_dt 이후만 사용 의무. 본 v3 가격신호는 PIT-safe(보고지연 무관)."
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "common_factor_exposure": {
+    "VIX": {
+      "beta": -0.0013,
+      "se": 0.0052,
+      "t": -0.25,
+      "ci95": [
+        -0.0114,
+        0.0089
+      ],
+      "contemporaneous": true
+    },
+    "dollar": {
+      "beta": -0.0837,
+      "se": 0.742,
+      "t": -0.11,
+      "ci95": [
+        -1.538,
+        1.3706
+      ],
+      "contemporaneous": true
+    },
+    "oil": {
+      "beta": -0.166,
+      "se": 0.1133,
+      "t": -1.47,
+      "ci95": [
+        -0.3881,
+        0.056
+      ],
+      "contemporaneous": true
+    },
+    "rate": {
+      "beta": -0.0445,
+      "se": 0.0487,
+      "t": -0.91,
+      "ci95": [
+        -0.14,
+        0.0509
+      ],
+      "contemporaneous": true
+    },
+    "credit": {
+      "beta": -0.0724,
+      "se": 0.0459,
+      "t": -1.58,
+      "ci95": [
+        -0.1623,
+        0.0176
+      ],
+      "contemporaneous": true
+    },
+    "_meta": {
+      "n": 35,
+      "r2": 0.175,
+      "note": "HAC(maxlags=3). credit=US HY OAS proxy(KR HY 부재). ★자동차=경기소비재 = credit/dollar(수출) 민감 예상."
+    }
+  },
+  "customer_supplier_momentum": {
+    "global_auto_demand": {
+      "lag0": {
+        "corr": 0.22,
+        "p": 0.043,
+        "n": 85
+      },
+      "lag1": {
+        "corr": 0.17,
+        "p": 0.121,
+        "n": 84
+      },
+      "lag2": {
+        "corr": 0.128,
+        "p": 0.247,
+        "n": 83
+      },
+      "lag3": {
+        "corr": 0.14,
+        "p": 0.21,
+        "n": 82
+      }
+    },
+    "steel_input_cost": {
+      "lag0": {
+        "corr": 0.231,
+        "p": 0.034,
+        "n": 85
+      },
+      "lag1": {
+        "corr": 0.203,
+        "p": 0.064,
+        "n": 84
+      },
+      "lag2": {
+        "corr": 0.188,
+        "p": 0.088,
+        "n": 83
+      },
+      "lag3": {
+        "corr": 0.176,
+        "p": 0.114,
+        "n": 82
+      }
+    },
+    "_note": "global auto demand(CARZ)/steel cost(SLX) lagged 3M → 한국 자동차 forward 1M. alpha 후보 = 측정 17종 검증 후 IC→weight. 동조성분은 RegimeGlasso Ω 흡수."
+  },
+  "pit_reporting_delay": {
+    "available": true,
+    "annual_report_delay": [
+      {
+        "year": 2021,
+        "n": 9,
+        "median_delay_days": 120,
+        "max_delay_days": 120
+      },
+      {
+        "year": 2022,
+        "n": 23,
+        "median_delay_days": 108,
+        "max_delay_days": 119
+      },
+      {
+        "year": 2023,
+        "n": 20,
+        "median_delay_days": 114,
+        "max_delay_days": 118
+      },
+      {
+        "year": 2024,
+        "n": 8,
+        "median_delay_days": 120,
+        "max_delay_days": 120
+      },
+      {
+        "year": 2025,
+        "n": 3,
+        "median_delay_days": 120,
+        "max_delay_days": 120
+      }
+    ],
+    "note": "사업보고서 median delay ~108-120일. PIT: 펀더멘털 신호는 rcept_dt 이후만. 가격신호는 PIT-safe."
+  }
+}

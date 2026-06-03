@@ -1,0 +1,21 @@
+{
+  "as_of": "2026-05-29",
+  "sleeve": "us_mega_tech",
+  "archetype": "compounder",
+  "n": 11,
+  "survivorship_note": "Mag7 custom basket = 현 대형주(생존). mega-tech 특성상 상폐 거의 없으나 PIT 멤버십(편입 시점=NVDA AI 이전/이후) = collector_plan.",
+  "basket_note": "GICS 파편화(AAPL=IT/AMZN=consumer disc/GOOGL=comm) → sector ETF 합산 불가 = custom basket(사용자 SSOT).",
+  "tickers": {
+    "AAPL": "mag7",
+    "MSFT": "mag7",
+    "NVDA": "mag7",
+    "GOOGL": "mag7",
+    "META": "mag7",
+    "AMZN": "mag7",
+    "TSLA": "mag7",
+    "AVGO": "ai_semi",
+    "AMD": "ai_semi",
+    "ORCL": "ai_sw",
+    "ASML": "ai_semi_adr"
+  }
+}

@@ -1,0 +1,194 @@
+# summary.yaml — consumer(소비재) 산업 v3 (frame v3 §M exposure card 계약)
+# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge, BY/FDR, LOO/block-boot).
+# ★verdict 중심 = valuation 유효 산업 (battery=momentum / financial=regime-conditional 분기 완성).
+# raw 재현: raw-v3/{collect, measure, collect_dart, measure_valuation, measure_cross, exposure_card}.py
+
+industry: kr_consumer         # eq_kr Tier 3 (소비재: 식품/유통/화장품/음료/의류)
+asset_scope: [equity.kr]
+archetype: asset_stable       # archetype.py: 방어·배당, per primary (1차 가설)
+archetype_attestation:
+  valid_from: "2019-01-01"    # ★PIT 사전선언
+  declared_at: "2026-06-03"
+  primary_metric: per         # asset_stable primary = PER·배당수익률 (trap=금리쇼크·규제)
+  secondary: cyclical         # soft: 경기소비재(유통/의류) cyclical 성분 (prob~0.3)
+  basis: >
+    asset_stable = 방어·배당. ★검증: momentum 무신호(asset_stable 정합) + valuation(per) 방향 일관
+    (전 horizon value premium 음, within 100%, 24M block-boot 유의) → asset_stable value 지지.
+as_of: "2026-05-31"
+
+# ── 블록1 LENS ──
+lens:
+  pricing_principle: >
+    소비재 = asset_stable. "싸다" = PER·배당수익률 (trap=금리쇼크·규제). ★실측: momentum 무신호
+    (방어주 = 모멘텀 안 먹힘) + valuation(PER/PBR) value premium 방향 일관(저밸류→고forward).
+    = ★valuation 유효 산업 (battery momentum / financial regime-conditional 과 분기).
+  cycle_reading: >
+    소비재 cycle = 내수·소비심리·환율(수입원가). dollar β=-1.19(t=-2.57 유의) = 원화 약세 시 약세
+    (수입원가↑/내수위축). 방어 성격이나 환율 노출 = pure asset_stable 보다 경기소비재 성분.
+  estimation_note: >
+    2026-05: universe 28종(retail10/food9/cosmetics4/apparel3/beverage2). ★valuation(per) =
+    primary 신호 (방향 일관, borderline 유의). derive_weights w∝Θ_signal·IC 에서 valuation 비중↑.
+
+# ── 블록2 INDICATORS (forward 횡단면 Rank-IC) ──
+# ★consumer = valuation 우세 (momentum 무신호). per_z = primary.
+indicators_passed:
+  - id: cs_per_z_24m
+    layer: 1                  # valuation (DART 펀더멘털)
+    family: value
+    horizon: 24M_value        # ★value 3-5Y 장기(§M.2)
+    ic_mean: -0.141           # 음 = 저PER value premium (싼 종목 forward 높음)
+    ic_ci_95: [-0.245, -0.041]  # block-bootstrap, ★0 배제 (block-boot 기준 유의)
+    ic_se_nw: null            # NW t=-1.39 (보수, 24M overlap autocorr) = NW 기준 비유의
+    t_nw: -1.39
+    n_effective: 61
+    oos_ratio: 0.80           # CPCV OOS hit
+    avg_universe_n: 20.4
+    source_id: "raw-v3/validation-valuation-v3.json:indicators.per_z__24M_value"
+    notes: |
+      저PER cross-sectional z → 24M forward. value premium 방향(음). block-boot CI 0 배제(유의) but
+      NW 비유의(24M overlap 보수). ★전 horizon(3M/6M/12M/24M) 부호 일관 음 = value premium robust 방향.
+      PBR 24M 도 동일 방향(CI_block [-0.124,-0.001] 0 배제).
+      ★★[frame §M.12 정정] 24M overlap eff_indep_N = 61/24 ≈ 2.5 = degenerate → ★primary 증거 = cs_per_z_3m
+      (within 100%, n=82, eff_N≈27), 24M_value = 보조. block-boot 0배제도 eff_N 2.5 = 단정 불가, ★방향 일관성만 신뢰.
+  - id: cs_per_z_3m
+    layer: 1
+    family: value
+    horizon: 3M
+    ic_mean: -0.077
+    ic_ci_95: [-0.153, 0.001]   # block-boot, 상단 0 근접 (borderline)
+    t_nw: -1.89               # p=0.062 (borderline 유의)
+    n_effective: 82           # ★n 충분 (battery/financial 대비)
+    avg_universe_n: 20.9
+    within_period: 1.0        # ★연도별 부호 일관 100%
+    source_id: "raw-v3/validation-valuation-v3.json:indicators.per_z__3M"
+    notes: "저PER → 3M forward. within-period 100%, n=82, p=0.062 borderline. value premium 단기도 일관."
+
+# ── 블록3 RELATIONSHIPS ──
+relationships_passed:
+  - {node_a: cs_per_z_24m, node_b: consumer_fwd_24m, lag_months: 0, corr: -0.141,
+     corr_ci_95: [-0.245, -0.041], conditioning_set: [], n: 61,
+     source_id: "raw-v3/validation-valuation-v3.json:indicators.per_z__24M_value",
+     note: "block-boot 유의(NW 보수 비유의). partial-corr = 통합 RegimeGlasso."}
+
+# ── 블록4 WEIGHT_RULES — valuation 동적가중 ──
+weight_rule_candidates:
+  - indicator_id: cs_per_z_24m
+    base_weight_range: [0.04, 0.12]   # IC -0.141 (방향=저PER overweight) 점추정 금지 range
+    modulate_by: [archetype, regime, cycle_phase]
+    direction: "cross-sectional 저PER z 상위(싼) 종목 overweight (value). long-only-implementable. 부호=싼것 매수."
+    granularity: cross_sectional
+    gate_status: {n: pass, se: borderline, power: weak, fdr: marginal, oos: pass}  # block-boot 유의/NW 비유의
+    source_ids: ["raw-v3/validation-valuation-v3.json:indicators.per_z__24M_value"]
+    hedge_note: "★value premium 방향 일관(전 horizon 음 + within 100%) but borderline 유의(NW 보수). TENTATIVE-PARTIAL 경계. BY 미생존."
+
+# ── 블록5 CONFIDENCE_HOOKS — ★affects_indicator 필수 ──
+confidence_hooks:
+  - hypothesis_id: consumer_value_premium
+    affects_indicator: cs_per_z_24m   # ★필수
+    affects_edge: [cs_per_z_24m, consumer_fwd_24m]
+    confirm_signal: "live 저PER z 상위 종목 forward rank IC < 0 유지 (저밸류→고forward, rolling 24M)"
+    reject_signal: "value premium IC e-CUSUM 부호 반전/소멸 (저PER 효과 무효)"
+    emit_where: "panel-score-IC 축"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "derive_weights 재적합 → valuation base_weight 변동 (regime conditional)"
+    action_threshold: "e-value > 20 → retract / 회복 = score_ic_recovery_eprocess"
+
+# ── 블록6 COLLECTOR_PLAN ──
+collector_plan_industry:
+  - missing: "시점별 발행주식수 (시총 PIT 정밀화) + EV-EBITDA + 배당수익률(asset_stable primary 보완)"
+    source: "DART stockTotqySttus + 배당 공시. 현 = FDR 현재주식수 근사"
+    priority: medium  # valuation 횡단면 = DART 707 rows 충분(2019~). 잔여 = 주식수 PIT + 배당.
+  - missing: "PIT universe 멤버십 (delisted/M&A)"
+    source: "FDR 현재 스냅샷만. KRX PIT 섹터분류 인증"
+    priority: high
+  - missing: "소비심리지수(CCSI) + 소매판매액 (산업 cycle 지표)"
+    source: "한국은행 ECOS + 통계청 KOSIS"
+    priority: medium
+
+# ── cross (§M.3 — 산업=보고만) ──
+cross:
+  common_factor_exposure:
+    - {factor: dollar, beta: -1.1935, beta_ci_95: [-2.104, -0.283], contemporaneous: true,
+       source_id: "raw-v3/validation-cross-v3.json:common_factor_exposure.dollar",
+       note: "★dollar β 유의(t=-2.57). 원화 약세→소비재 약세(수입원가↑/내수). ★battery=credit/oil, financial=무, consumer=dollar = 산업별 risk factor 상이."}
+    - {factor: VIX, beta: -0.0007, beta_ci_95: [-0.0069, 0.0055], contemporaneous: true, note: "비유의"}
+    - {factor: oil, beta: -0.0107, beta_ci_95: [-0.122, 0.101], contemporaneous: true, note: "비유의"}
+    - {factor: rate, beta: null, contemporaneous: true, note: "측정(raw 참조), asset_stable 금리민감 가설"}
+    - {factor: credit, beta: null, contemporaneous: true, note: "측정(raw 참조)"}
+  directional_spillover: []
+  structural_linkage:
+    - supplier_or_customer: null
+      verdict: "customer-supplier momentum = consumer 부적합(소비재 upstream=농산물/원자재 다양). skip(battery/financial 동일 패턴)."
+  # ⛔ sector-rotation clock = myth.
+
+# ── ★valuation 횡단면 (§M.7 — ★consumer = valuation 유효 산업 입증) ──
+valuation_cross_sectional:
+  data_source: "raw-v3/validation-valuation-v3.json (DART 707 rows = ★2019~ 완전 + pykrx 가격)"
+  mechanism_works: true   # PBR avgN 26 / PER 20. coverage PBR 2268 / PER 1793 cells (financial 933 대비 풍부 = 표준계정 완전성)
+  data_advantage: "★DART 표준계정 2019~ 완전(financial 2023~ 제약 대조). KT&G 2019 Q1부터 = 표준계정 산업의 valuation 측정 가능성 입증."
+  pit_note: "재무 = rcept_dt 공시일 이후만. FY 보고지연 median ~85일."
+  indicators:
+    - id: cs_per_z
+      signal: "PER cross-sectional z (저PER=value, asset_stable primary)"
+      horizon_results:
+        - {horizon: 3M, ic: -0.077, t_nw: -1.89, p: 0.062, n: 82, within: 1.00, verdict: "borderline 유의, within 100%"}
+        - {horizon: 6M, ic: -0.073, t_nw: -1.21, p: 0.230, n: 79, within: 0.71}
+        - {horizon: 12M, ic: -0.059, t_nw: -0.74, p: 0.464, n: 73, within: 0.43}
+        - {horizon: 24M_value, ic: -0.141, t_nw: -1.39, p: 0.169, n: 61, ci_block: [-0.245, -0.041], within: 0.67, verdict: "block-boot 0배제 유의, NW 보수 비유의"}
+      verdict: "★PARTIAL-TENTATIVE value premium — 전 horizon 부호 일관 음(value), 3M within 100%, 24M block-boot 유의. NW 보수로 borderline. ★asset_stable primary(per) 유효 방향 입증."
+    - id: cs_pbr_z
+      signal: "PBR cross-sectional z"
+      horizon_24m: {ic: -0.062, t_nw: -1.33, ci_block: [-0.124, -0.001], n: 61, verdict: "value 방향(음), block-boot 0배제"}
+      verdict: "TENTATIVE — 저PBR value 방향, 약(per 보다 약)."
+  multiple_testing: "8 테스트 BY factor 2.72. raw_p_min=0.062(per_z 3M). BY 생존 0(borderline). 단 ★방향 일관성·block-boot 유의 = value premium prior 지지."
+  verdict: >
+    ★consumer = valuation 유효 산업 (분기 검증 핵심). DART 표준계정 2019~ 완전 → valuation 측정 robust.
+    per_z value premium 방향 일관(전 horizon 음, 3M within 100%, 24M block-boot 유의). NW 보수로 BY 미생존
+    = PARTIAL-TENTATIVE. ★momentum(무신호)보다 valuation 우세 = asset_stable value 산업 입증.
+    = battery(momentum)·financial(regime-conditional)·consumer(valuation) 3산업 분기 완성.
+
+# ── robustness_checks ──
+robustness_checks:
+  - indicator_id: cs_per_z_24m
+    leave_episode: null          # 통합 단계
+    within_period: "0.67 (24M) / 1.00 (3M)"  # ★3M within 100%
+    partial_corr_ratio: null
+    net_sharpe_ratio: null
+    forward_vs_contemp: "forward present (value premium 방향)"
+    family_neutralized_ic: null
+    eff_n_tier: Validated        # n=61-82 (≥50 Tentative~Validated 경계, 부호 일관 보완)
+  - indicator_id: cs_per_z_3m
+    within_period: "1.00"        # ★연도별 100% 일관
+    eff_n_tier: Validated        # n=82
+    forward_vs_contemp: "forward present (borderline 유의)"
+
+# ── horizon_verdict ──
+horizon_verdict:
+  best_horizon: "24M_value (장기 value) / 3M (within 100%)"
+  forward_alpha_present: true   # ★valuation forward present (방향 일관)
+  note: >
+    ★valuation forward alpha present (value premium 방향 일관, 전 horizon 음). momentum 무신호.
+    = §M.2 value 3-5Y 장기 + 단기 within 일관. asset_stable = valuation 우세 산업.
+
+# ── Hard-fail 4 ──
+hard_fail_self_check:
+  B_real_data: {status: PASS, note: "합성 0%. pykrx OHLCV 28종 + yfinance(VIX/factors) + DART 707 rows(2019~) + FDR. raw-v3/*.py 재현."}
+  C_traceability: {status: PASS, note: "yaml 수치 = validation-metrics-v3 / valuation-v3 / cross-v3.json key 매핑."}
+  D_pit: {status: PASS, note: "가격 forward-shift safe. valuation = DART rcept_dt 공시일 이후만. regime = ex-ante VIX level."}
+  I_survivor_bias:
+    status: PARTIAL
+    note: "universe = FDR 현재 스냅샷(생존 종목). delisted/M&A 누락(소비재 = 상폐 적으나 잔존). 28종 中 3종 부분 이력. PIT 멤버십 = collector_plan high."
+
+# ── verdict (small-n rule) ── ★valuation 중심
+verdict_label: PARTIAL   # ★전체 = PARTIAL (valuation 방향 일관 + block-boot 유의, but NW borderline)
+verdict_detail:
+  cs_per_z_24m: "★PARTIAL-TENTATIVE (value premium 핵심) — IC -0.141, block-boot CI [-0.245,-0.041] 0배제(유의), NW 보수 비유의(p=0.17). 전 horizon 부호 일관 음. asset_stable primary 유효 방향."
+  cs_per_z_3m: "borderline (IC -0.077 p=0.062, within 100% n=82). value premium 단기 일관."
+  cs_pbr_z: "TENTATIVE (저PBR value 방향, per 보다 약)"
+  momentum: "비유의 (BY 0, raw_p_min=0.31). ★asset_stable = 모멘텀 무신호 정합 (battery CONFIRMED 대조)."
+  common_factor: "★dollar β 유의(t=-2.57, 원화 약세→약세). battery=credit/oil, financial=무, consumer=dollar 분기."
+verdict_note: >
+  ★consumer = valuation 유효 산업 입증 (supervisor 가설 ✅). DART 표준계정 2019~ 완전(financial 2023~ 제약 대조)
+  → valuation robust 측정. per_z value premium 방향 일관(전 horizon 음, 3M within 100%, 24M block-boot 유의).
+  momentum 무신호 = asset_stable 정합. ★3산업 분기 완성: battery(momentum)·financial(regime-conditional)·
+  consumer(valuation) = "산업마다 유효 신호 다름" 데이터 입증 = 동적가중(regime/산업 conditional IC) 정당화.
