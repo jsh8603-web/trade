@@ -224,8 +224,9 @@ hard_fail_self_check:
 verdict_label: PARTIAL
 verdict_detail:
   cs_lowvol__12M: >
-    PARTIAL CONFIRMED — IC +0.241(저변동성 quality), t_NW=3.10, NW+block-boot CI 둘 다 0 배제, CPCV 1.00, leave-episode 생존,
-    within 0.73(6M 0.91), eff_N 10.2(Validated). ★BY 미생존(n=11 basket) + ★magnitude breadth-IR 2.56 병기(50-70% haircut §M.12).
+    ★PARTIAL (small-basket, ★over-claim 회피 — CONFIRMED 격하) — IC +0.241(저변동성 quality), t_NW=3.10, NW+block-boot CI 둘 다 0 배제, CPCV 1.00, leave-episode 생존,
+    within 0.73(6M 0.91), eff_N 10.2. ★단 n=11 basket = small-basket → ★BY 미생존(raw m=16 multiple_testing: raw_p_min=0.0024 vs BY rank-1 임계 (1/16)×0.05/3.381≈0.00092 = 미달, survivors_BY=[]).
+    ★magnitude(0.241) literal 금지 = breadth-IR 2.56 병기 + 50-70% haircut(§M.12, posterior 권역 0.07~0.12). = PARTIAL(small-basket) 정직화.
   cs_mom_6m__1M: "TENTATIVE — momentum 약 양(growth persistence, t=1.56 비유의). battery 양 momentum 동방향 약."
   valuation_cross_sectional: >
     ★PER 무신호(expensive_trap 정합, 고PER 정상) = compounder archetype 지지. PBR 약 value(비유의), capex 약. 24M degenerate. value premium 없음.

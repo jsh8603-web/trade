@@ -147,7 +147,7 @@ valuation_cross_sectional:
       signal: "PBR cross-sectional z"
       horizon_24m: {ic: -0.100, t_nw: -1.21, ci_block: [-0.168, -0.024], n: 113, avgN: 40, verdict: "value 방향(음), block-boot 0배제 but NW 비유의"}
       verdict: "TENTATIVE — 저PBR value 방향이나 NW 비유의(PER 보다 약). = 미국 cyclical 은 PER > PBR."
-  multiple_testing: "20 테스트 BY factor 3.60. raw_p_min=0.0068(per_z 24M). ★BY 생존 0(borderline). 단 block-boot 유의 + LOO 안정적 = value premium 방향 약 prior(비유의, BY 미생존 → TENTATIVE)."
+  multiple_testing: "raw m=20 BY factor 3.598. raw_p_min=0.0068(per_z 24M, ★degen) > BY rank-1 임계 (1/20)×0.05/3.598≈0.000695 = 미달, survivors_BY=[]. ★BY 생존 0. 단 block-boot 유의 + LOO 안정적 = value premium 방향 약 prior(비유의, BY 미생존 + 비-degen 유의 3M 1개 → TENTATIVE)."
   verdict: >
     ★미국 cyclical = PER value premium 방향 약 prior(EDGAR PIT, block-boot 유의, LOO sector 안정적, BY 미생존 → TENTATIVE). = ★한국 auto/반도체
     (PER✗ peak-EPS / PBR○)와 **반대 패턴** = peak-EPS trap 의 시장·시총 의존성 발견(미국 대형 cyclical earnings 안정).

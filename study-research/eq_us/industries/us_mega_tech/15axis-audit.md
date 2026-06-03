@@ -40,8 +40,8 @@
 ## verdict
 
 - 코어 4축 위반 0. 조건부 J/K/L/M/O/P PASS, N=N/A.
-- **status = PARTIAL CONFIRMED** — primary cs_lowvol(저변동성 quality) NW+boot+CPCV+leave-episode 통과(eff_N 10.2 Validated) but ★BY 미생존 + n=11 basket small-n = ★magnitude breadth-IR 2.56 병기 + 50-70% haircut(§M.12). 점추정 단정 회피.
-- ★**핵심 검증 가치**: ★PER 무신호 = compounder expensive_trap 정합(고PER 정상, value premium 없음) = `core/structure/archetype.py` compounder 정의 입증. ★5 archetype 전수 완성 = cyclical(반도체 reversal/auto PBR) / asset_stable(consumer/telecom/us_defensive) / spread_driven(financial) / event_driven(bio) / ★compounder(us_mega_tech quality·expensive-trap).
+- **status = ★PARTIAL (small-basket, CONFIRMED 격하)** — primary cs_lowvol(저변동성 quality) NW+boot+CPCV+leave-episode 통과(eff_N 10.2) but ★n=11 basket + BY 미생존(raw_p 0.0024 > BY rank-1 ≈0.00092) = small-basket → CONFIRMED 불가. ★magnitude breadth-IR 2.56 병기 + 50-70% haircut(§M.12). 점추정 단정 회피.
+- ★**핵심 검증 가치**: ★PER 무신호 = compounder expensive_trap 정합(고PER 정상, value premium 없음) = `core/structure/archetype.py` compounder 정의 지지. ★5 archetype 전수 = cyclical(반도체 reversal/auto PBR) / asset_stable(consumer/telecom/us_defensive) / spread_driven(financial) / event_driven(bio) / ★compounder(us_mega_tech quality·expensive-trap).
 - ★§M.12 정직 반영: 24M_value eff_N degenerate 라벨, block=horizon, magnitude haircut/breadth-IR 병기.
 - ★H9 reflexivity monitor = mega-tech 고유 산출(supervisor de-risk throttle 입력, 현 정점 아님).
 - archetype compounder 사후편향 검사(M.5): valid_from 2015 사전선언, declared_at 명시 = ex-post hazard 회피.
@@ -68,9 +68,9 @@
 ### §M.12 정합 — 독립 재독 (★small-n 사전 준수 확인)
 - raw `multiple_testing`: m=16 / `survivors_BY: []` / raw_p_min=0.0024 / key="vol_60__12M_mom"(raw L482-486). = ★BY 생존 0 raw 확인. ★raw_p_min source = **비-degenerate 12M**(primary, n=11 basket).
 - ★us_mega_tech = §M.12 결론 2(small-n magnitude) **사전 준수**: summary `breadth_ir`(2.56) 필드 + "50-70% haircut" 명시 = n=11 basket magnitude literal 회피. 24M_value(pbr/per) = eff_N 4.7 degenerate 라벨(기존). primary cs_lowvol = 비-24M.
-- ★us_mega_tech verdict = PARTIAL CONFIRMED 유지 정당: primary 가 비-degenerate(12M) + breadth-IR 병기 + BY 미생존 hedge. → ★reversal 불요(primary 비-24M, magnitude 사전 haircut).
+- ★us_mega_tech verdict = ★PARTIAL(small-basket) 정당: primary 가 비-degenerate(12M) + breadth-IR 병기 + BY 미생존 hedge. ★n=11 basket = CONFIRMED 불가(small-basket). → ★reversal 불요(primary 비-24M, magnitude 사전 haircut)이나 ★PARTIAL CONFIRMED→PARTIAL 톤 격하(over-claim 회피).
 - **§M.12 재판정: 정합** — 24M degenerate + breadth-IR + haircut 사전 준수 확인.
 
 ### cross-audit verdict
-- **hard-fail 0 재확인** (B/D PASS, I PARTIAL). status = **PARTIAL CONFIRMED** (author 판정 raw 동의 — primary 비-degen 12M quality, n=11 basket breadth-IR 2.56 + BY 미생존 hedge).
+- **hard-fail 0 재확인** (B/D PASS, I PARTIAL). status = ★**PARTIAL (small-basket)** (author 판정 raw 동의 + ★CONFIRMED→PARTIAL 톤 격하 — primary 비-degen 12M quality, n=11 basket breadth-IR 2.56 + BY 미생존 hedge = small-basket).
 - gap 보고: 없음. compounder = 5번째 archetype(한국 대응 부재), expensive_trap = §M.12 결론 3 별 메커니즘(고PER 정상) 정합.
