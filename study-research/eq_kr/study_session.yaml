@@ -1,0 +1,353 @@
+# study_session.yaml — eq_kr supervisor 통합 v1 (Phase 7)
+# 입력: 7개 industry summary.yaml (battery/semiconductor/auto/financial/consumer/bio/telecom)
+# 산출: L축 직교화 + PSD 게이트 + derive_weights 입력
+# ⛔ 점추정 prior 박제 금지. small-n rule(hedge 어휘, CI 범위, BY 보정).
+# supersedes: 없음 (Phase 7 신규 supervisor 레이어)
+
+scope: eq_kr
+phase: 7
+as_of: "2026-06-04"
+source_cards:
+  - study-research/eq_kr/industries/battery/summary.yaml
+  - study-research/eq_kr/industries/semiconductor/summary.yaml
+  - study-research/eq_kr/industries/auto/summary.yaml
+  - study-research/eq_kr/industries/financial/summary.yaml
+  - study-research/eq_kr/industries/consumer/summary.yaml
+  - study-research/eq_kr/industries/bio/summary.yaml
+  - study-research/eq_kr/industries/telecom/summary.yaml
+
+# ── 블록1 LENS ──
+lens:
+  scope: "eq_kr 7산업 supervisor 통합"
+  L_axis: [credit, dollar, vix, rate_regime]
+  L_axis_basis:
+    credit: "battery(-0.164*, CI[-0.294,-0.034]) + semiconductor(-0.190*, CI[-0.339,-0.041]) 양쪽 유의 → 공통 1회 계상. US HY OAS proxy(FRED BAMLH0A0HYM2 2023~만=생존편향, BBB-AAA spread 대안 필요)."
+    dollar: "consumer(-1.19*, n=35 wide CI) 단독 유의. battery/semiconductor 비유의 → consumer 전담."
+    vix: "bio(+0.011***) 단독 유의. battery/semiconductor 비유의 → bio 전담."
+    rate_regime: "financial regime-conditional(rate_up IC+0.102, interaction t=2.01 p=0.049, Welch t=2.65). level β 전 산업 비유의 → regime-conditional 채널이 primary."
+  derive_weights_note: "w∝Θ_signal·IC, regime/archetype-conditional. Σ_signal ≠ Σ_return. 점추정 박제 금지."
+  cross_routing: "RegimeGlasso → Σ_return (L축 공통인자 partial-out) / DY throttle(방향성 spillover 감쇠) / customer-momentum alpha 검증 후 반영"
+  psd_gate: "7×7 공분산 행렬 PSD 필수. np.linalg.eigvalsh(Sigma_signal) 최소 고유값 ≥ 0. Higham 투영 실패 시 배분 차단."
+
+# ── 블록2 INDICATORS ──
+indicators:
+
+  - industry: kr_battery
+    archetype: cyclical
+    primary_indicator: cs_mom_6m
+    primary_family: momentum
+    ic_mean: 0.086
+    ic_ci_95: [0.032, 0.132]         # block-boot(block=3M, B=2000). NW 정합. 0 미포함.
+    horizon: 12M_mom
+    n_effective: 71
+    verdict: PARTIAL
+    verdict_note: "CONFIRMED 경계(n=71 Tentative tier, BY 생존 유일, CPCV 1.00, within-period 100%). cyclical dominant 신호."
+    L_axis_exposure:
+      credit: {beta: -0.164, ci_95: [-0.294, -0.034], significant: true}
+      oil:    {beta: 0.248,  ci_95: [0.012, 0.484],   significant: true}
+      dollar: {beta: -1.305, ci_95: [-4.334, 1.724],  significant: false}
+      vix:    {beta: 0.0008, ci_95: [-0.018, 0.019],  significant: false}
+
+  - industry: kr_semiconductor
+    archetype: cyclical
+    primary_indicator: cs_mom_6m_reversal  # confidence_hook: semi_cs_momentum_reversal_persistence
+    primary_family: reversal
+    secondary_indicator: cs_pbr_z_24m
+    ic_mean_reversal: -0.114               # 방향: 음 = reversal (저모멘텀 overweight)
+    ic_ci_95: null                         # summary.yaml 참조 (BY 생존)
+    horizon: 12M_mom
+    verdict: PARTIAL
+    verdict_note: "reversal 패턴(peak-EPS trap 회피). credit β -0.190*(유의) = L축. BY 생존. PER 무신호(peak-EPS trap)."
+    L_axis_exposure:
+      credit: {beta: -0.190, significant: true}
+      others: "비유의"
+
+  - industry: kr_auto
+    archetype: cyclical
+    primary_indicator: cs_pbr_z_24m
+    primary_family: value
+    ic_mean_raw: -0.463                    # n=14 소표본 허수 — magnitude 사용 금지
+    ic_haircut_range: [-0.12, -0.20]       # §M.12 small-universe haircut(50-70%). base_weight 산정 입력.
+    horizon: 24M_value
+    n_raw: 14
+    verdict: PARTIAL
+    verdict_note: "n=14 소표본(haircut 적용). LOO 전부 음 = 방향 안정. L축 β 전부 비유의."
+    L_axis_exposure: "all 비유의"
+
+  - industry: kr_financial
+    archetype: spread_driven
+    primary_indicator: cs_mom_6m_rate_up   # confidence_hook: financial_nim_regime_momentum
+    primary_family: momentum
+    ic_mean: 0.102                         # rate_up 국면만
+    ic_ci_95: [-0.026, 0.228]              # n=21 wide CI(0 포함) → magnitude hedge
+    horizon: 12M_mom
+    regime_conditional: rate_up
+    n_rate_up: 21
+    verdict: TENTATIVE
+    verdict_note: "rate_up 국면 한정. unconditional 비유의. interaction t=2.01(borderline p=0.049) + Welch t=2.65. n=21<30 magnitude 미박제."
+    L_axis_exposure:
+      rate_regime: {mechanism: "rate_up NIM 수혜", primary: true}
+
+  - industry: kr_consumer
+    archetype: asset_stable
+    primary_indicator: cs_per_z_24m
+    secondary_indicator: cs_per_z_3m
+    primary_family: value
+    ic_mean_24m: -0.141                    # 방향: 음 = 저PER overweight
+    ic_mean_3m: -0.077
+    ic_ci_95: null                         # NW 비유의 / block-boot 유의 불일치 = TENTATIVE
+    horizon: 24M_value
+    verdict: TENTATIVE
+    verdict_note: "NW 비유의, block-boot 유의 불일치 = TENTATIVE. dollar β -1.19*(n=35 wide) = L축 전담. PER value direction 약 prior."
+    L_axis_exposure:
+      dollar: {beta: -1.19, ci_95: null, significant: true, n: 35, caveat: "wide CI, tentative"}
+
+  - industry: kr_bio
+    archetype: event_driven
+    primary_indicator: cs_lowvol
+    primary_family: lowvol
+    ic_mean: -0.078                        # 방향: 음 = 저변동성 overweight
+    ic_nw_t: -3.02
+    ic_ci_95: null                         # summary.yaml 참조(NW t=-3.02 유의, BY 미세미달)
+    horizon: 12M_mom
+    verdict: PARTIAL
+    verdict_note: "NW t=-3.02 유의. BY 미세미달 = PARTIAL. VIX β +0.011*** = L축 전담(임상리스크 프리미엄)."
+    L_axis_exposure:
+      vix: {beta: 0.011, significant: true, p: "***"}
+
+  - industry: kr_telecom
+    archetype: asset_stable
+    primary_indicator: cs_pbr_z_24m
+    primary_family: value
+    ic_mean_raw: -0.542                    # n=13 소표본 허수 — magnitude 사용 금지
+    ic_haircut_range: [-0.14, -0.22]       # §M.12 small-universe haircut(50-70%)
+    horizon: 24M_value
+    n_raw: 13
+    verdict: PARTIAL
+    verdict_note: "n=13 협소(haircut 적용). LOO 14종 전부 음 = 방향 안정. BY 6종 생존. L축 β 전부 비유의."
+    L_axis_exposure: "all 비유의"
+
+# ── 블록3 RELATIONSHIPS (L축 공통인자 + 산업 간 연결) ──
+relationships:
+
+  L_axis_credit:
+    node_a: credit_proxy               # US HY OAS (FRED BAMLH0A0HYM2 2023~)
+    affects: [kr_battery, kr_semiconductor]
+    beta_evidence:
+      kr_battery:      {beta: -0.164, ci_95: [-0.294, -0.034], t: -2.48, n: 35}
+      kr_semiconductor: {beta: -0.190, significant: true}
+    mechanism: "risk-off 공통노출 (credit spread 확대 → battery/semi 동반 약세)"
+    orthogonalization: "supervisor Σ_return에서 credit factor 1회 partial-out. 두 산업 중복 계상 금지."
+    caveat: "US HY OAS proxy(FRED 2023~only). KR HY spread 부재 = BBB-AAA spread 대안 필요."
+
+  L_axis_dollar:
+    node_a: dollar_proxy               # DTWEXBGS (broad TWI)
+    affects: [kr_consumer]
+    beta_evidence:
+      kr_consumer: {beta: -1.19, n: 35, significant: true, caveat: "wide CI, tentative"}
+    mechanism: "원화 약세(달러 강세) → 수입원가 압력 → consumer 마진 압박"
+    orthogonalization: "consumer 전담. battery/semiconductor 비유의 = 직교 처리."
+
+  L_axis_vix:
+    node_a: vix_proxy                  # CBOE VIX
+    affects: [kr_bio]
+    beta_evidence:
+      kr_bio: {beta: 0.011, significant: true, p: "***"}
+    mechanism: "VIX 상승 = 글로벌 리스크회피 → 임상 불확실성 프리미엄 동반 → bio lowvol 신호 강화"
+    orthogonalization: "bio 전담. 여타 산업 비유의."
+
+  L_axis_rate_regime:
+    node_a: rate_regime                # US 10Y 3M Δ ex-ante 라벨(up/down/flat)
+    affects: [kr_financial]
+    mechanism: "rate_up 국면 → 은행 NIM 수혜 → financial momentum IC 양전(+0.102)"
+    orthogonalization: "financial 전담. level β 전 산업 비유의."
+    caveat: "regime label(3분류). level 연속 β 아님 — rate_regime 전환 시 hook 비활성화 정책 필요."
+
+  cyclical_cluster:
+    industries: [kr_battery, kr_semiconductor, kr_auto]
+    common_driver: "capex 사이클 + 수출 경기민감"
+    credit_exposure: "battery + semiconductor 유의(credit L축 공유). auto 비유의."
+    cross_routing: "RegimeGlasso Ω off-diagonal 추정 대상. supervisor 통합 단계."
+
+# ── 블록4 WEIGHT_RULES ──
+# ★점추정 base_weight 박제 금지 — range + archetype/regime 조건부만
+weight_rules:
+
+  - industry: kr_battery
+    base_weight_range: [0.06, 0.15]    # IC 0.086 CI 기반. 점추정 금지.
+    archetype: cyclical
+    regime_modulate: true              # credit/oil regime conditional
+    direction: "cs_mom_6m z 상위 overweight (peer-relative, long-only-implementable)"
+    ic_gate: {status: pass, primary: cs_mom_6m, by_survived: true}
+    derive_note: "w∝Θ_signal·IC(cs_mom_6m). cyclical = 경기확장 시 가중 상향."
+
+  - industry: kr_semiconductor
+    base_weight_range: [0.06, 0.15]    # reversal IC -0.114 방향 보정
+    archetype: cyclical
+    regime_modulate: true
+    direction: "cs_mom_6m_reversal z 하위(저모멘텀) overweight — peak-EPS trap 회피"
+    ic_gate: {status: pass, primary: cs_mom_6m_reversal, by_survived: true}
+    derive_note: "reversal 방향. credit L축 1회 partial-out."
+
+  - industry: kr_auto
+    base_weight_range: [0.04, 0.12]    # haircut IC[-0.12,-0.20]. n=14 penalty.
+    archetype: cyclical
+    regime_modulate: true
+    small_n_penalty: true
+    direction: "cs_pbr_z_24m 저PBR overweight (24M horizon)"
+    ic_gate: {status: pass_with_haircut, primary: cs_pbr_z_24m, haircut_applied: true}
+    derive_note: "haircut IC range. LOO 방향 안정성이 inclusion 근거."
+
+  - industry: kr_financial
+    base_weight_range: [0.04, 0.12]    # TENTATIVE → 보수. rate_up 외 = range[0] 최소화.
+    archetype: spread_driven
+    regime_conditional: rate_up
+    regime_modulate: true
+    direction: "rate_up 국면 → 모멘텀 z 상위 overweight. rate_down/flat = 패시브 수준."
+    ic_gate: {status: tentative, primary: cs_mom_6m_rate_up, n: 21}
+    derive_note: "regime_conditional = rate_regime L축 연동. n=21 magnitude 미박제."
+
+  - industry: kr_consumer
+    base_weight_range: [0.04, 0.12]    # TENTATIVE + dollar sensitivity → 보수
+    archetype: asset_stable
+    regime_modulate: true
+    dollar_sensitivity: high           # β -1.19* → dollar 강세 시 가중 감소
+    direction: "cs_per_z_24m 저PER overweight (24M horizon, NW 비유의 → 방향 prior만)"
+    ic_gate: {status: tentative, primary: cs_per_z_24m}
+    derive_note: "TENTATIVE. dollar L축 conditional. cs_per_z_3m(IC -0.077) 보조 병행."
+
+  - industry: kr_bio
+    base_weight_range: [0.05, 0.12]    # PARTIAL. lowvol signal.
+    archetype: event_driven
+    regime_modulate: true
+    vix_sensitivity: high              # VIX β +0.011*** → VIX 급등 시 모니터링
+    direction: "cs_lowvol 저변동성 overweight (임상리스크 = 고변동성 회피)"
+    ic_gate: {status: pass_partial, primary: cs_lowvol, by_marginal: true}
+    derive_note: "event_driven = 임상결과 이벤트 기간 FHC 모니터링 필수."
+
+  - industry: kr_telecom
+    base_weight_range: [0.04, 0.12]    # haircut IC[-0.14,-0.22]. n=13 penalty.
+    archetype: asset_stable
+    regime_modulate: false             # all L축 비유의 → regime 무조건부
+    small_n_penalty: true
+    direction: "cs_pbr_z_24m 저PBR overweight (24M horizon, n=13 협소)"
+    ic_gate: {status: pass_with_haircut, primary: cs_pbr_z_24m, haircut_applied: true}
+    derive_note: "haircut 적용. LOO 14종 전부 음 = 방향 신뢰. BY 6종 생존."
+
+# ── 블록5 CONFIDENCE_HOOKS ──
+# 각 hook = 개별 summary.yaml confidence_hooks 직접 참조 (중복 박제 최소화)
+confidence_hooks:
+
+  - industry: kr_battery
+    hook_id: battery_cs_momentum_persistence
+    affects_indicator: cs_mom_6m
+    source_yaml: "study-research/eq_kr/industries/battery/summary.yaml"
+    wire_target: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    action: "e-value > 1/alpha=20 → retract(cs_mom_6m 차단)"
+
+  - industry: kr_semiconductor
+    hook_id: semi_cs_momentum_reversal_persistence
+    affects_indicator: cs_mom_6m_reversal
+    source_yaml: "study-research/eq_kr/industries/semiconductor/summary.yaml"
+    wire_target: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+
+  - industry: kr_auto
+    hook_id: auto_pbr_value_premium
+    affects_indicator: cs_pbr_z_24m
+    source_yaml: "study-research/eq_kr/industries/auto/summary.yaml"
+    wire_target: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+
+  - industry: kr_financial
+    hook_id: financial_nim_regime_momentum
+    affects_indicator: cs_mom_6m_rate_up
+    source_yaml: "study-research/eq_kr/industries/financial/summary.yaml"
+    wire_target: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    regime_dependency: rate_up         # rate_regime 전환 시 hook 비활성 필요
+
+  - industry: kr_consumer
+    hook_id: consumer_value_premium
+    affects_indicator: cs_per_z_24m
+    source_yaml: "study-research/eq_kr/industries/consumer/summary.yaml"
+    wire_target: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+
+  - industry: kr_bio
+    hook_id: bio_lowvol_clinical_risk
+    affects_indicator: cs_lowvol
+    source_yaml: "study-research/eq_kr/industries/bio/summary.yaml"
+    wire_target: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+
+  - industry: kr_telecom
+    hook_id: telecom_value_premium
+    affects_indicator: cs_pbr_z_24m
+    source_yaml: "study-research/eq_kr/industries/telecom/summary.yaml"
+    wire_target: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+
+# ── 블록6 COLLECTOR_PLAN ──
+collector_plan:
+
+  - gap: "PIT universe 멤버십 (시점별 섹터 편입/편출 + delisted 종목)"
+    source: "FDR KRX-DESC 현재 스냅샷만. KRX PIT 섹터분류(get_market_sector_classifications) 인증 필요."
+    priority: high
+    affects: all_industries
+    status: pending
+
+  - gap: "KR HY credit spread (L축 credit proxy 개선)"
+    source: "현 = US BAML HY OAS proxy(FRED 2023~만). 대안: FRED BAMLC0A4CBBB-BAMLC0A1CAAA(BBB-AAA). 또는 KR 회사채 BBB-CD91 spread."
+    priority: high
+    affects: [kr_battery, kr_semiconductor]
+    status: pending
+
+  - gap: "DART 분기 펀더멘털 시계열 (PBR/PER PIT 정밀화)"
+    source: "DART_API_KEY 보유. fnlttSinglAcntAll 종목당. rcept_dt PIT stamp."
+    priority: medium
+    affects: [kr_auto, kr_consumer, kr_telecom]
+    status: partial    # PBR/PER 구조 완성. EV-EBITDA·시점주식수 잔여.
+
+  - gap: "financial DART 금융재무 시계열 (은행 NIM·대손충당금·ROE)"
+    source: "DART finSttus(금융기관 전용 API). 현 = DART 금융재무 2023~ 제약."
+    priority: medium
+    affects: [kr_financial]
+    status: pending
+
+# ── 블록7 CODE_CHANGE_PLAN ──
+code_change_plan:
+
+  - id: CP-EKR-1
+    title: "FHC confidence_hook 배선 (kr 7산업)"
+    action: "study_register.wire_falsification() → 7개 hypothesis_id → FHCard 연결"
+    target_file: "stock/fhc_adapter.py (기존 10-sleeve wire 패턴 확장)"
+    priority: high
+    wire_pairs:
+      - {industry: kr_battery,      hook_id: battery_cs_momentum_persistence,        indicator: cs_mom_6m}
+      - {industry: kr_semiconductor, hook_id: semi_cs_momentum_reversal_persistence,  indicator: cs_mom_6m_reversal}
+      - {industry: kr_auto,         hook_id: auto_pbr_value_premium,                  indicator: cs_pbr_z_24m}
+      - {industry: kr_financial,    hook_id: financial_nim_regime_momentum,           indicator: cs_mom_6m_rate_up}
+      - {industry: kr_consumer,     hook_id: consumer_value_premium,                  indicator: cs_per_z_24m}
+      - {industry: kr_bio,          hook_id: bio_lowvol_clinical_risk,                indicator: cs_lowvol}
+      - {industry: kr_telecom,      hook_id: telecom_value_premium,                   indicator: cs_pbr_z_24m}
+
+  - id: CP-EKR-2
+    title: "derive_weights archetype·regime conditional 적용"
+    action: "weight_rules.regime_conditional + archetype 분기 → base_weight_range + regime multiplier 조립"
+    target_file: "core/brain (weight 조립 레이어)"
+    priority: high
+    notes:
+      - "financial = rate_regime conditional 분기 필수 (rate_up → range 상한, else 하한)"
+      - "auto/telecom = haircut IC range 직접 사용 (ic_haircut_range 입력)"
+      - "small_n_penalty 산업 = base_weight_range 추가 25% 보수 조정"
+
+  - id: CP-EKR-3
+    title: "RegimeGlasso L축 직교화 β 입력"
+    action: "relationships.L_axis_* → Σ_return partial-out (credit 1회 = battery+semi 중복 금지)"
+    target_file: "core/brain (RegimeGlasso Ω 추정 레이어)"
+    priority: medium
+
+  - id: CP-EKR-4
+    title: "PSD 게이트 검증 (7×7)"
+    action: "np.linalg.eigvalsh(Sigma_signal_7x7) min ≥ 0"
+    target_file: "study-research/eq_kr/ (검증 스크립트)"
+    priority: medium
+    code_snippet: |
+      eigvals = np.linalg.eigvalsh(Sigma_signal)
+      assert eigvals.min() >= -1e-9, f"PSD 위반: min_eigenval={eigvals.min():.6f}"
+      # Higham 투영 필요 시: from sklearn.utils import check_is_fitted; Sigma_psd = nearPD(Sigma_signal)

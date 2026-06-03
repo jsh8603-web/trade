@@ -1,0 +1,219 @@
+# study_session.yaml — eq_us supervisor 통합 v1 (Phase 7)
+# 입력: 3개 industry summary.yaml (us_cyclical/us_defensive/us_mega_tech)
+# 산출: L축 직교화 + PSD 게이트 + derive_weights 입력
+# ⛔ 점추정 prior 박제 금지. small-n rule(hedge 어휘, CI 범위, BY 보정).
+# supersedes: 없음 (Phase 7 신규 supervisor 레이어)
+
+scope: eq_us
+phase: 7
+as_of: "2026-06-04"
+source_cards:
+  - study-research/eq_us/industries/us_cyclical/summary.yaml
+  - study-research/eq_us/industries/us_defensive/summary.yaml
+  - study-research/eq_us/industries/us_mega_tech/summary.yaml
+
+# ── 블록1 LENS ──
+lens:
+  scope: "eq_us 3 sleeve supervisor 통합"
+  L_axis: [real_rate, hy_oas, vix]
+  L_axis_basis:
+    real_rate: "us_defensive(-0.171***, DFII10) primary. mega_tech(-0.030 비유의) = 직교."
+    hy_oas: "us_cyclical(-0.093***, FRED BAMLH0A0HYM2 2023~). defensive 비유의 → cyclical 전담."
+    vix: "mega_tech(-0.008**). cyclical(-0.003*). defensive 비유의 → mega_tech/cyclical 공유."
+    dollar: "전 sleeve 비유의 → eq_us L축 제외."
+  derive_weights_note: "w∝Θ_signal·IC, regime/archetype-conditional. Σ_signal ≠ Σ_return. 점추정 박제 금지."
+  cross_routing: "RegimeGlasso → Σ_return (L축 partial-out) / DY throttle / sector_relative_multiple(common-task 격하 보류)"
+  psd_gate: "3×3 공분산 행렬 PSD 필수. np.linalg.eigvalsh(Sigma_signal) 최소 고유값 ≥ 0."
+
+# ── 블록2 INDICATORS ──
+indicators:
+
+  - industry: us_cyclical
+    archetype: cyclical
+    primary_indicator: cs_per_z_24m
+    primary_family: value
+    ic_mean: -0.119                    # 방향: 음 = 저PER overweight (peak-EPS trap 인식)
+    ic_ci_95: null                     # summary.yaml 참조 (block-boot 유의, LOO sector 안정)
+    horizon: 24M_value
+    verdict: TENTATIVE
+    verdict_note: "block-boot 유의, BY 미생존 → TENTATIVE. hy_oas β -0.093***. sector LOO 안정. peak-EPS trap: 정점 저PER ≠ value premium."
+    L_axis_exposure:
+      hy_oas: {beta: -0.093, significant: true, p: "***"}
+      rate:   {beta: -0.039, significant: true, p: "*"}
+      vix:    {beta: -0.003, significant: true, p: "*"}
+
+  - industry: us_defensive
+    archetype: asset_stable
+    primary_indicator: cs_rev_1m      # confidence_hook: us_defensive_short_reversal
+    secondary_indicator: cs_lowvol
+    primary_family: reversal
+    ic_mean_rev_1m: -0.045            # NW + block-boot 둘 다 0 미포함
+    ic_mean_lowvol: 0.076
+    ic_ci_95: null                    # summary.yaml 참조 (PARTIAL)
+    horizon: 12M_mom
+    verdict: PARTIAL
+    verdict_note: "cs_rev_1m PARTIAL(NW+block-boot CI 0 미포함). cs_lowvol PARTIAL. real_rate β -0.171*** primary. 모멘텀 무효(동형)."
+    L_axis_exposure:
+      real_rate: {beta: -0.171, significant: true, p: "***"}
+
+  - industry: us_mega_tech
+    archetype: compounder
+    primary_indicator: cs_lowvol      # confidence_hook: us_mega_tech_quality_lowvol
+    primary_family: lowvol
+    ic_mean: 0.241                    # breadth-IR 2.56, CPCV 1.00
+    breadth_ir: 2.56
+    oos_ratio: 1.00
+    ic_ci_95: null                    # summary.yaml 참조 (BY 미생존 → PARTIAL)
+    horizon: 12M_mom
+    verdict: PARTIAL
+    verdict_note: "CPCV 1.00, breadth-IR 2.56. BY 미생존 = PARTIAL. PER 무신호(expensive_trap). VIX β -0.008** = L축 공유."
+    L_axis_exposure:
+      vix: {beta: -0.008, significant: true, p: "**"}
+
+# ── 블록3 RELATIONSHIPS ──
+relationships:
+
+  L_axis_real_rate:
+    node_a: real_rate_proxy            # DFII10 (US 10Y TIPS yield, FRED)
+    affects: [us_defensive]
+    beta_evidence:
+      us_defensive: {beta: -0.171, p: "***"}
+    mechanism: "실질금리 상승 → 방어주 배당 할인율 압박 → 상대 수익률 하락"
+    orthogonalization: "defensive 전담. mega_tech β 비유의 = 직교."
+
+  L_axis_hy_oas:
+    node_a: hy_oas_proxy               # BAMLH0A0HYM2 (FRED 2023~)
+    affects: [us_cyclical]
+    beta_evidence:
+      us_cyclical: {beta: -0.093, p: "***"}
+    mechanism: "HY spread 확대 = 신용 위험 상승 → 경기민감 섹터 약세"
+    orthogonalization: "cyclical 전담. defensive 비유의."
+    caveat: "FRED 2023-05~만 가용(BofA-FRED 라이센스). 대안: BBB-AAA spread(BAMLC0A4CBBB-BAMLC0A1CAAA)."
+
+  L_axis_vix:
+    node_a: vix_proxy                  # CBOE VIX
+    affects: [us_mega_tech, us_cyclical]
+    beta_evidence:
+      us_mega_tech: {beta: -0.008, p: "**"}
+      us_cyclical:  {beta: -0.003, p: "*"}
+    mechanism: "VIX 급등 = 기술주 밸류에이션 압박 + 경기민감 섹터 회피"
+    orthogonalization: "defensive 비유의 = 직교."
+
+  us_cross_sleeve:
+    cyclical_vs_defensive: "inverse regime 노출 (hy_oas vs real_rate)"
+    defensive_vs_mega_tech: "낮은 VIX 상관 (defensive VIX 비유의, mega_tech VIX 유의)"
+    cross_routing: "RegimeGlasso 3×3 Ω 추정 대상"
+
+# ── 블록4 WEIGHT_RULES ──
+weight_rules:
+
+  - industry: us_cyclical
+    base_weight_range: [0.08, 0.22]    # IC -0.119 방향. TENTATIVE → 중간.
+    archetype: cyclical
+    regime_modulate: true
+    hy_oas_sensitivity: high           # β -0.093*** → HY spread 확대 시 가중 감소
+    direction: "cs_per_z_24m 저PER overweight (24M horizon, peak-EPS trap 인식)"
+    ic_gate: {status: tentative, primary: cs_per_z_24m, by_survived: false}
+    derive_note: "TENTATIVE. hy_oas + rate + vix L축 conditional. peak-EPS: 정점 저PER ≠ value premium = regime-awareness 필수."
+
+  - industry: us_defensive
+    base_weight_range: [0.10, 0.28]    # PARTIAL dual-signal. 방어 역할 → 상한 여유.
+    archetype: asset_stable
+    regime_modulate: true
+    real_rate_sensitivity: high        # β -0.171*** → 실질금리 상승 시 가중 감소
+    direction: "cs_rev_1m 단기 reversal overweight + cs_lowvol 보완 (12M horizon)"
+    ic_gate: {status: pass_partial, primary: cs_rev_1m, secondary: cs_lowvol}
+    derive_note: "dual signal 병행. real_rate L축 conditional(금리 하락 국면 = 유리)."
+
+  - industry: us_mega_tech
+    base_weight_range: [0.12, 0.30]    # PARTIAL + strong signal(breadth-IR 2.56). compounder 상한 여유.
+    archetype: compounder
+    regime_modulate: false             # compounder = 경기 중립적 알파 추구
+    quality_filter: true               # PER expensive_trap → quality/lowvol 병행
+    direction: "cs_lowvol 저변동성 overweight (quality compounder, PER 무효)"
+    ic_gate: {status: pass_partial, primary: cs_lowvol, cpcv_oos: 1.00}
+    derive_note: "PER 무신호(expensive_trap) 확인. lowvol signal dominant. 비용 효율 대형주."
+
+# ── 블록5 CONFIDENCE_HOOKS ──
+confidence_hooks:
+
+  - industry: us_cyclical
+    hook_id: us_cyclical_per_value_premium
+    affects_indicator: cs_per_z_24m
+    source_yaml: "study-research/eq_us/industries/us_cyclical/summary.yaml"
+    wire_target: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    caveat: "TENTATIVE. BY 미생존. hy_oas regime 전환 시 hook 비활성화 정책 필요."
+
+  - industry: us_defensive
+    hook_id: us_defensive_short_reversal
+    affects_indicator: cs_rev_1m
+    source_yaml: "study-research/eq_us/industries/us_defensive/summary.yaml"
+    wire_target: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+
+  - industry: us_mega_tech
+    hook_id: us_mega_tech_quality_lowvol
+    affects_indicator: cs_lowvol
+    source_yaml: "study-research/eq_us/industries/us_mega_tech/summary.yaml"
+    wire_target: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+
+# ── 블록6 COLLECTOR_PLAN ──
+collector_plan:
+
+  - gap: "HY OAS 장기 시계열 (BAMLH0A0HYM2 2023~만 → 대안 proxy)"
+    source: "FRED BAMLH0A0HYM2 2023-05~만(BofA-FRED 라이센스 변경). 대안: BAMLC0A4CBBB-BAMLC0A1CAAA(BBB-AAA spread 2000~). 또는 NFCI/BAA10Y/AAA10Y/VIX3M proxy."
+    priority: high
+    affects: [us_cyclical]
+    status: pending
+
+  - gap: "PIT universe 멤버십 (S&P 500/Russell 편출입 + 생존편향)"
+    source: "현 = 현재 스냅샷만. CRSP/Compustat 편입/편출 이력 필요."
+    priority: high
+    affects: all_industries
+    status: pending
+
+  - gap: "sector_relative_multiple (common-task verdict 격하 반영)"
+    source: "us_cyclical yaml v4 보류 항목. PER 전 sleeve 횡단면 비교."
+    priority: medium
+    affects: [us_cyclical, us_defensive, us_mega_tech]
+    status: deferred
+
+# ── 블록7 CODE_CHANGE_PLAN ──
+code_change_plan:
+
+  - id: CP-EUS-1
+    title: "FHC confidence_hook 배선 (us 3 sleeve)"
+    action: "study_register.wire_falsification() → 3개 hypothesis_id → FHCard 연결"
+    target_file: "stock/fhc_adapter.py (기존 kr 산업 wire 패턴 동일 적용)"
+    priority: high
+    wire_pairs:
+      - {industry: us_cyclical,   hook_id: us_cyclical_per_value_premium, indicator: cs_per_z_24m}
+      - {industry: us_defensive,  hook_id: us_defensive_short_reversal,   indicator: cs_rev_1m}
+      - {industry: us_mega_tech,  hook_id: us_mega_tech_quality_lowvol,   indicator: cs_lowvol}
+
+  - id: CP-EUS-2
+    title: "derive_weights archetype·regime conditional 적용"
+    action: "weight_rules.regime_modulate + real_rate/hy_oas/vix L축 conditional multiplier 조립"
+    target_file: "core/brain (weight 조립 레이어)"
+    priority: high
+    notes:
+      - "cyclical = hy_oas + vix regime conditional"
+      - "defensive = real_rate conditional (금리 하락 국면 상한, 상승 국면 하한)"
+      - "mega_tech = compounder (regime 중립, regime_modulate: false)"
+
+  - id: CP-EUS-3
+    title: "RegimeGlasso 3×3 + 10×10 블록 합산"
+    action: "L_axis_* 직교화 + eq_kr 7×7 블록 대각으로 10×10 합산. off-diagonal = RegimeGlasso Ω."
+    target_file: "core/brain (RegimeGlasso Ω 추정)"
+    priority: medium
+
+  - id: CP-EUS-4
+    title: "PSD 게이트 (3×3 + 10×10)"
+    action: "np.linalg.eigvalsh() min ≥ 0"
+    priority: medium
+    code_snippet: |
+      # eq_us 3×3
+      eigvals_us = np.linalg.eigvalsh(Sigma_signal_us_3x3)
+      assert eigvals_us.min() >= -1e-9, f"PSD 위반 3x3: {eigvals_us.min():.6f}"
+      # 10×10 블록 합산 (eq_kr 7 + eq_us 3)
+      eigvals_10 = np.linalg.eigvalsh(Sigma_signal_10x10)
+      assert eigvals_10.min() >= -1e-9, f"PSD 위반 10x10: {eigvals_10.min():.6f}"
