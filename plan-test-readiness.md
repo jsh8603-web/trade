@@ -104,22 +104,44 @@ note: 기존 plan.md / progress-wire-impl.md 와 별개 — 수익률 테스트 
 
 > 목표: `backtest/engine.py` 시계열 루프가 **진짜 설계 경로**(사이징·게이트·judge)를 타게. LLM은 기본 no-op(a=1.0).
 
-### W1. 사이징 연결 (고정 95% 제거)
-- engine 루프에 `risk_sizing.size_portfolio` / `coin_sizing` 연결. 단일자산=1.0, 멀티=tail HRP 경로.
-- 경계: `execute_trade.py`·`coin_shadow` SACRED diff=0. off byte-identical.
+> ★W0 자문 확정 (2026-06-02, gemini-web + claude-web 수렴 + 코드 falsify 2건 통과).
+> 브리핑=`.consult-wire-w0-briefing.md`. falsify: ① `ledoit_wolf_weights` 합≈1 정규화(gross 미내장→이중적용 없음) ② production order-path(`portfolio_orchestrator.py:191` 주석) 미구현→REJECT skip 의미론을 백테스트가 선정의(go-live 일관성 유지).
+> **opt-in 토글 = naked boolean 금지**. 진입점 1회 hard-branch `if not use_risk_pipeline: return self._run_legacy(...)` + 현재 코드 verbatim 동결(회귀 oracle). 신규 bookkeeping이 off 경로 float 누산순서/dict 순회 건드리는 silent drift 차단.
 
-### W2. risk_gate 루프 내 호출
-- `RiskGate.check()`를 매 거래 시점 호출 → REJECTED면 hold. `GatedOrderRouter` 우회불가 경로 경유.
+### W1. 사이징 연결 (gross × weight 합성, 95% 제거)
+- **합성 한 줄로 통일**(2-트랙 코드 분기 X, n=1 특수케이스 자연 흡수):
+  ```
+  window  = rolling_returns(asset)        # 엔진 deque 신규 상태 (현재 없음 — 추가)
+  weights = size_portfolio(window)        # n=1→{a:1.0}, n>1→HRP. 무수정 호출
+  gross   = clip(target_vol / realized_vol(window), lo, hi)   # gross=엔진 책임
+  trade_value = capital * gross * weights[asset]   # ← capital*0.95 대체
+  ```
+- 측정("사이징 탔다"): `var(gross)>0` ∧ `gross≠0.95` ∧ gross가 `1/realized_vol` 추종.
+- 경계: `execute_trade.py`·`coin_shadow` SACRED diff=0. 부품(`size_portfolio`) 무수정. off byte-identical.
+
+### W2. risk_gate 루프 내 호출 (PortfolioState 회계객체)
+- `PortfolioState`(toggle off 시 미실행) 신설로 게이트 입력 산출: `nav=cash+Σ(qty·price)` / `daily_loss_pct`(prev_nav 1개) / `holding_days=bar_idx−entry_bar` / `ytd_realized_pnl_pct`(실현손익 누산) / `current_weight=MTM/nav` / `sector_weight`(단일주식≈current_weight, coin=0) / `proposed_size=gross·weight` / `avg_correlation=0.0`(단일자산 비활성=정상).
+- 매 buy/sell → `router.submit(order, via_gate=True, **gate_kwargs)` → `.approved`면 체결, 아니면 **skip + 거절사유(rule_id) 카운트**(거절률 높으면 finding). ⛔ 엔진이 cap 추정 재시도 금지(SACRED·drift).
 - 경계: risk_gate 규칙 상수 미변경(관측만 추가).
 
-### W3. judge() production 호출지점 연결 (결정론 no-op)
-- `core/assume/judge.py judge()`를 stock_track/coin_track 결정 경로에서 실호출.
-  qwen/bge attenuator 기본 a=1.0(no-op) → 결정론 L1/DCF 그대로. **천장 불변식 유지**(`final ≤ L1`).
-- 경계: 증폭 경로 신설 금지(= Layer 3, P3로 분리).
+### W3. judge() production 호출지점 연결 (공통 hook + fail-open)
+- **공통 hook은 매 bar 호출·카운트**(현 production call=0 대비 ≠0). 정책은 트랙별: stock_track=실 firm/sector/valuation 전달 / coin_track=firm·valuation 부재 → **명시적 bypass `a=1.0`**(hook 자체는 호출=live).
+- 결정론 단계 valuation/rag/qwen=None → fail-open `a=1.0` → `final=L1×1.0=L1`. **천장 불변식 `final≤L1` 항상 유지**(증폭 경로 신설 금지=P3).
 
-### W4. 다기간 시계열 통합테스트
-- 현재 단발·mock만 → 다기간(수십 bar) on/off byte-identical + 거래/사이즈/게이트 reject 검증.
+### W4. 통합테스트 + golden-master + verifier 7관문
+- **golden-master**: 변경 전 고정 seed+fixture로 현 엔진 출력(equity curve·trade log·per-bar fill·final NAV) 골든파일 캡처. off가 이걸 해시 동일 재현.
+- **verifier 게이트 = "실제로 돌아가는가" 실행검증** (코드 완성 판정 X):
+  - **G1** off=byte-identical: `hash(off)==hash(golden)`
+  - **G2** on≠off: position fraction 변동 ∨ ≥1 거절 ∨ size≠0.95 중 하나 이상 (같으면 배선 실패)
+  - **G3** sizing live: `size_portfolio`/gross 스칼라 ≥1회 호출(spy) ∧ `var(position_fraction)>0` ∧ `≠0.95`
+  - **G4** gate live: 모든 fill에 `submit(via_gate=True)` ∧ `via_gate=False→REJECTED` assert ∧ 조작 시나리오(daily_loss cap 돌파)로 거절경로 ≥1회 발화
+  - **G5** judge sensitivity(liveness falsifier·최중요): 호출수≠0 ∧ ∀bar `final≤L1` ∧ no-op 단계 `a==1.0∧final==L1`(엄격등호) ∧ 합성 valuation 주입 시 `a<1.0 ∧ final<L1`(죽은 stub 구별)
+  - **G6** no-leverage: `Σgross≤1`
+  - **G7** on 결정성: on 동일 seed 2회 해시 동일
 - 회귀: 도메인 전체 pass 유지.
+
+### 배선 순서
+W1 합성 → W2 PortfolioState+Router → W3 judge hook(동시 가능). 멀티에셋 포트폴리오-bar 트랙은 진단이 요구할 때까지 인터페이스 stub만.
 
 ---
 

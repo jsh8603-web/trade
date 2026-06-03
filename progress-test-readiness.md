@@ -7,6 +7,11 @@ plan: plan-test-readiness.md
 
 # Progress — 수익률 테스트 준비 마스터
 
+> ## §진입 스냅샷 (2026-06-02 clear 대비)
+> **★재개 = `handoff-tier1-signal-20260602.md` 1독 후 여기.** Tier1(M1~M5) **완료·커밋 f0d1880 v1.37.0**.
+> 순 코드변경=M1(물가 2D)만, M2~M5=측정·판정(코드0). 다음=**Tier2 W0**(배선 방식 자문)→W1~W4 배선→Test2a.
+> ⛔ go-live=사람 게이트. push 금지. Python=`/c/Users/jsh86/AppData/Local/Programs/Python/Python312/python.exe`.
+
 > plan = `plan-test-readiness.md`. 각 step = `model:` 또는 `wf:` 정확히 하나.
 > 자율 범위 = Tier1(M1~M5) + Tier2(P0~P5). ⛔ go-live = 사람 게이트.
 > ★2026-06-02 재구성: T1 자문 수렴 → 거시 신호 보강 = **Tier 1(최우선)**. 기존 P0~P5 = Tier 2 강등.
@@ -75,11 +80,16 @@ plan: plan-test-readiness.md
 
 ## Phase P1 — Test 2 선결 배선 (결정론, LLM no-op)
 
-- [ ] **W0** 배선 방식 자문 1R (결정→사이징→게이트 연결) — `model: opus`
-- [ ] **W1** engine 사이징 연결 (고정 95% 제거) — `wf: harness2` (회귀민감·코어 결정경로)
-- [ ] **W2** risk_gate 루프 내 호출 — `wf: harness2`
-- [ ] **W3** judge() production 호출지점 (결정론 no-op) — `wf: harness2`
-- [ ] **W4** 다기간 시계열 통합테스트 — `model: sonnet` (테스트 작성)
+- [x] **W0** 배선 방식 자문 — `model: opus` ✅ 완료 (2026-06-02, gemini-web + claude-web 수렴 + 코드 falsify 2건)
+  - 브리핑 `.consult-wire-w0-briefing.md`. 확정 설계 = plan §P1 W1~W4 보강분(gross×weight 합성·PortfolioState·공통 judge hook+fail-open·`_run_legacy` hard-branch+golden-master·verifier G1~G7)
+  - falsify: ① weight 합≈1(gross 미내장) ② production order-path 미구현→skip 의미론 백테스트 선정의
+  - 회귀: 자문+읽기전용 분석, 코드 미변경 → 직교
+- [x] **W1** engine 사이징 연결 (gross×weight 합성, 95% 제거) — `wf: harness2` ✅ commit `34f0e1e` (G1 byte-identical 7/7, mutation-kill)
+- [x] **W2** risk_gate 루프 내 호출 (PortfolioState+GatedOrderRouter) — `wf: harness2` ✅ commit `3db9162` (13/13, G4, NAV 2분리)
+- [x] **W3** judge() production 호출지점 (공통 hook+fail-open a=1.0) — `wf: harness2` ✅ commit `9a24eb1` (18/18, 천장 final≤L1, G5 sensitivity)
+- [x] **W4** golden-master + per-bar checksum + verifier G1~G7 — `wf: harness2` ✅ commit `9cf742c` (24/24 전체 PASS, 도메인 회귀 delta=0)
+  - ★harness2 phase1 완료(2026-06-02): 전 SO Verifier PASSED + O12 git_head 매칭. SR Pre-Review(C) ACCEPT 보강(mutation-kill·state-vector checksum·NAV 2분리) 전부 반영·검증. Sacred(execute_trade/부품 무수정/off byte-identical/judge 천장) 준수. push 금지.
+  - 부수: harness2 재사용성 버그 2종 근본 fix(teammate-spawn.sh — SACRED vaultvoice 잔재 / watchdog Bash 미실행+timeout). RC 시 promotion-log K.
 
 ## Phase P2 — Test 2a 실행 (결정론)
 

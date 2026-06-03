@@ -34,9 +34,22 @@
 
 **필수 기록 항목** (지표·관계 each): status / **reason**(theory_basis·audit verdict·통계 근거) / **research_ref**(validation-*.md·direction.md 링크, 근거 추적) / (cross·regime 추가) channel(cross=공유 factor / regime=국면별) + 실측값[CI, n].
 
-**갱신 의무 시점**: ① study yaml 작성·수정 ② cross/regime 검토(공정 P1) ③ audit verdict 확정(P2) ④ reject 가설 복귀(IC9). **각 시점에 ledger 갱신 안 하면 미완**.
+**갱신 의무 시점**: ① study yaml 작성·수정 ② cross/regime 검토(공정 P1) ③ audit verdict 확정(P2) ④ reject 가설 복귀(IC9) ⑤ **study 밖 신규 지표·신호 탐구 착수·진단(엔진 배선·백테스트·진단 세션·외부 자문 수렴 등) — 들여다본 후보를 즉시 candidate 행으로 등록, 결론(채택/보류/기각) 나면 status·reason·research_ref 확정**. **각 시점에 ledger 갱신 안 하면 미완**.
 
-**원칙**: 미채택이라도 "왜 뺐는지 + 언제 다시 볼지(보류 트리거)"를 반드시 기록 → 재탐구 0. provisional↔permanent 구분 근거 = decisions §14(R11 reject_class).
+**원칙**: 미채택이라도 "왜 뺐는지 + 언제 다시 볼지(보류 트리거)"를 반드시 기록 → 재탐구 0. ★**탐구 누적 (계속 기록)**: 새 지표·신호를 들여다본 순간(채택 전이라도) candidate 행으로 **즉시 박제** → 같은 탐구를 두 번 하지 않는다. 한 번 잰 실측값(rank-IC·hit rate·forward-return·β 등)은 reason·research_ref에 날짜와 함께 남겨, 다음 세션이 "이미 본 것"인지 ledger만 보고 판정 가능하게 한다. provisional↔permanent 구분 근거 = decisions §14(R11 reject_class).
+
+## 🪙 코인(crypto) 지표 6단계 검토 SOP (regime-conditional 자산 의무 — 고정 규칙)
+
+> crypto는 factor instability가 norm(AMH·시변 beta). 아래 6단계를 **모든 코인 지표 채택·기각 판정에 의무 적용**. SSOT=[plan-coin-indicator-review.md](./plan-coin-indicator-review.md), 측정표준=[regime-conditional-measurement-framework.md](./study-research/_wire/regime-conditional-measurement-framework.md).
+
+1. **S1 논문 ground** — 메커니즘·시대성·regime 의존을 학술 문헌으로 정초(subagent 3계층 저장).
+2. **S2 실측 가설** — 4게이트(G1 ex-ante regime / G2 multiple-testing Bonferroni / G3 walk-forward OOS / G4 Newey-West HAC). full-sample 아닌 regime-conditional 1차 단위.
+3. **S3 외부검토** — gemini-web + claude-web **병렬 필수**(CIO 페르소나, 코드어 0). 데이터 맞아 보여도 생략 금지(confirmation-bias).
+4. **S4 외부검토 재검증** — 자문이 제시한 falsification을 다른 데이터로 직접 측정(cross-asset/leave-episode/horizon/placebo). 자문 ≠ 정답.
+5. **S5 역공격 수렴** — 가장 엄격한 반증을 던져 살아남거나 외부+내 논리가 한 점 수렴 시 verdict 도출. 미수렴=candidate+졸업게이트.
+6. **S6 15축 audit 최종검증** — 독립 subagent raw 재현(AUDIT-GUIDE 12~15축). **hard-fail 0 확인 후에만 status 확정·ledger 박제**. audit이 over-claim/drift 잡으면 정정 후 재audit.
+
+**불변식**: ⛔ S3 자문 1회 없이 rejected_permanent 금지(deprecation-evidence). ⛔ S6 audit hard-fail 0 전 adopted 확정 금지. ⛔ "전기간 불일치"는 rejected_permanent 사유 아님(crypto instability=norm, 영구폐기는 이론·데이터 무결성 결함만). 거시 신호는 sizing alpha 아닌 throttle overlay로만(n 작으면 BL view 격리).
 
 ---
 

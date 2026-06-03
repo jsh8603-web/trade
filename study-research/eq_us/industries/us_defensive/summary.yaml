@@ -163,7 +163,7 @@ valuation_cross_sectional:
       within_period: 0.47
       avg_universe_n: 25.8
       source_id: "raw-v3/validation-valuation-v3.json:indicators.per_z__24M_value"
-      verdict: "INSUFFICIENT signal — PER value premium 방향(음)만 약, NW+boot CI 0 포함 비유의(p=0.68), BY 미생존. 한국 consumer/telecom 강 value premium 미재현."
+      verdict: "INSUFFICIENT signal — PER value premium 방향(음)만 약, NW+boot CI 0 포함 비유의(p=0.68), BY 미생존. 한국 consumer/telecom value premium 방향 미재현. ★★[frame §M.12] 24M overlap eff_indep_N = 173/24 ≈ 7.2 = degenerate(월간 샘플링 23/24 겹침). 어차피 비유의라 verdict 영향 X — 방향만, magnitude+significance overlap inflation 라벨."
     - id: cs_pbr_z_24m
       signal: "PBR cross-sectional z (저PBR=value)"
       horizon: 24M_value
@@ -174,7 +174,7 @@ valuation_cross_sectional:
       n_effective: 173
       avg_universe_n: 25.9
       source_id: "raw-v3/validation-valuation-v3.json:indicators.pbr_z__24M_value"
-      verdict: "INSUFFICIENT signal — ★부호 역방향(저PBR→저forward, value premium 반대 = 방어주 저PBR value trap 가능). 비유의(p=0.37). BY 미생존."
+      verdict: "INSUFFICIENT signal — ★부호 역방향(저PBR→저forward, value premium 반대 = 방어주 저PBR value trap 가능). 비유의(p=0.37). BY 미생존. ★★[frame §M.12] 24M overlap eff_indep_N ≈ 7.2 = degenerate = 방향만(어차피 역방향·비유의, verdict 영향 X)."
   multiple_testing: "8 테스트(2 신호×4 horizon) BY factor 2.72. raw_p_min=0.366(pbr_z__24M). ★BY 생존 0 = 전 valuation 비유의."
   verdict: >
     valuation 횡단면 메커니즘 = 작동(EDGAR PIT, avgN 26, cov 5150). 단 us_defensive 내 IC = 약·비유의
