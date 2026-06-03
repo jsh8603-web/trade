@@ -35,7 +35,7 @@ lens:
 indicators_passed:
   - id: cs_rev_1m
     layer: 3
-    family: reversal           # ★단기 reversal (asset_stable, 가장 robust)
+    family: reversal           # ★단기 reversal (asset_stable, 가장 안정적)
     horizon: 3M
     ic_mean: -0.045
     ic_ci_95: [-0.081, -0.014]  # ★block-bootstrap(block=6M, autocorr 보정). NW CI [-0.077,-0.012] 정합. 둘 다 0 배제.
@@ -208,7 +208,7 @@ horizon_verdict:
   forward_alpha_present: true        # ★rev_1m forward alpha 유의(단기 reversal). vol_60 TENTATIVE.
   note: >
     ★asset_stable horizon: momentum(mom_6/mom_12_1) 무효(한국 consumer/telecom 동형) + rev_1m 단기 reversal 유의(-0.045)
-    + vol_60 저변동성 프리미엄 방향 robust(NW 비유의). = 방어주 = valuation·저변동성·reversal 이 신호, momentum 아님.
+    + vol_60 저변동성 프리미엄 방향 안정적(NW 비유의). = 방어주 = valuation·저변동성·reversal 이 신호, momentum 아님.
     real_rate 듀레이션 민감(채권 대용)이 dominant 공통인자. valuation(PER value) = EDGAR §10.
 
 # ── net-cost (US 비대칭 없음) ──
@@ -224,7 +224,7 @@ hard_fail_self_check:
     status: PASS
     note: >
       합성 0%. ★합성 P0 재검증(§1.7-D) 수행: v1 `_deprecated_lens-...-synthetic.txt` = 격리 폐기 확인.
-      현 데이터 = 실데이터 입증(sector_etf_close.csv 2000~ 실거래일, SHY/SOXX/TLT 2000 미상장 NaN = 역사 정확).
+      현 데이터 = 실데이터(합성 아님 — sector_etf_close.csv 2000~ 실거래일, SHY/SOXX/TLT 2000 미상장 NaN = 역사 정확).
       yfinance 48종 OHLCV(2010~, 4125일) + FRED 14 CSV(DGS10/DFII10/HY OAS/DXY/VIX 실시리즈). raw-v3/*.py 재현.
   C_traceability: {status: PASS, note: "모든 yaml 수치 = raw-v3/validation-metrics-v3.json + validation-cross-v3.json key 매핑. valuation = §10 EDGAR 후."}
   D_pit:
@@ -255,5 +255,5 @@ verdict_note: >
   저변동성 프리미엄(vol_60 +0.076 TENTATIVE) + ★real_rate 듀레이션 민감(채권 대용, t=-4.1 강, H2 TSY 정합). utilities sub-sector 중 듀레이션 최대.
   ★valuation 횡단면 = EDGAR PIT 메커니즘 작동(cov 5150, avgN 26) but IC 약·비유의(PER value premium 방향만 약, PBR 역방향) = 한국 consumer/telecom
   강 value premium 미재현 = battery valuation 약 패턴 동일(cf. us_cyclical PER 작동 = sleeve 별 상이). ★dominant 신호 = rev_1m reversal + real_rate 듀레이션.
-  ★합성 P0 재검증(§1.7-D) 통과 = v1 synthetic 격리, 현 데이터 실데이터 입증. ★IID→block bootstrap 교체(§1.4). n=183개월(한국 대비 장기).
+  ★합성 P0 재검증(§1.7-D) 통과 = v1 synthetic 격리, 현 데이터 = 실데이터(합성 아님). ★IID→block bootstrap 교체(§1.4). n=183개월(한국 대비 장기).
   archetype asset_stable 지지 = momentum 무효 + reversal·저변동성·rate 듀레이션 신호(valuation 보조 약).

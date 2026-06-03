@@ -13,7 +13,7 @@ archetype_attestation:
   secondary: asset_stable     # soft: 보험/금융지주 배당 (prob~0.3)
   basis: >
     spread_driven = NIM·credit spread regime 민감. ★검증: regime-conditional 모멘텀이 rate_up 국면
-    +0.102 / rate_down -0.054 = 금리(NIM) regime 의존 강 입증 → spread_driven 지지(tentative, n small).
+    +0.102 / rate_down -0.054 = 금리(NIM) regime 의존 방향 시사 → spread_driven 지지(tentative, n=21 small).
 as_of: "2026-05-31"
 
 # ── 블록1 LENS (정성) ──
@@ -114,7 +114,7 @@ cross:
   directional_spillover: []
   structural_linkage:
     - supplier_or_customer: null
-      verdict: "customer-supplier momentum = financial 부적합(upstream 정의 불명확). skip(battery=null 동일 패턴). 금융은 macro(금리/credit) regime 의존이 supply-chain 보다 dominant."
+      verdict: "customer-supplier momentum = financial 부적합(upstream 정의 불분명). skip(battery=null 동일 패턴). 금융은 macro(금리/credit) regime 의존이 supply-chain 보다 dominant."
   # ⛔ sector-rotation clock = myth(Molchanov 2024).
 
 # ── ★valuation 횡단면 (§M.7, DART 재구성 — 데이터 제약) ──
@@ -142,7 +142,7 @@ valuation_cross_sectional:
       n_effective: 7        # ★INSUFFICIENT (small-n rule: n<10 단정 금지)
       avg_universe_n: 15.0
       source_id: "raw-v3/validation-valuation-v3.json:indicators.per_z__24M_value"
-      verdict: "★INSUFFICIENT — n=7(DART 2023~ 제약). t=21.2 는 small-n 허수(within=0, CPCV=nan). 단정 금지. 금융 PER = 보험 일회성손익 왜곡 가능. ★★[frame §M.12] 24M eff_indep_N = 7/24 ≈ 0.3 = ★전 산업 최악 degenerate(독립표본 < 1). t=21.2 완전 무의미."
+      verdict: "★INSUFFICIENT — n=7(DART 2023~ 제약). t=21.2 는 small-n 허수(within=0, CPCV=nan). 단정 금지. 금융 PER = 보험 일회성손익 왜곡 가능. ★★[frame §M.12] 24M eff_indep_N = 7/24 ≈ 0.3 = ★전 산업 최악 degenerate(독립표본 < 1). t=21.2 완전 무의미. ★avgN=15<20 = magnitude haircut 무의미(애초 INSUFFICIENT, 점추정 박제 금지)."
   multiple_testing: "8 테스트 BY factor 2.72. per_z__24M(n=7) 만 형식상 생존하나 INSUFFICIENT 격하 → 실질 생존 0."
   verdict: >
     valuation 횡단면 메커니즘 작동(PBR avgN 29). 단 ★DART 금융재무 2023~ 제약으로 forward IC n 부족 →
@@ -188,7 +188,7 @@ hard_fail_self_check:
 # ── verdict (small-n rule) ── ★regime-conditional 중심
 verdict_label: TENTATIVE   # ★전체 = TENTATIVE (regime-conditional 발견은 의미있으나 n small + valuation 데이터 제약)
 verdict_detail:
-  cs_mom_6m_rate_up: "★TENTATIVE DIRECTIONAL (regime-conditional 핵심) — rate_up 모멘텀 IC +0.102 vs pooled -0.051. ★[#21] interaction t 통계근거 O(regression p=0.049 + Welch t=2.65 p=0.012 둘 다 유의) = 'rate_up only 양' claim 입증, NIM 가설 정합. 단 n=21<30 + interaction borderline + block-boot CI 0포함 = magnitude hedge, live 제외. = 동적가중 정당화 증거."
+  cs_mom_6m_rate_up: "★TENTATIVE DIRECTIONAL (regime-conditional 핵심) — rate_up 모멘텀 IC +0.102 vs pooled -0.051. ★[#21] interaction t 통계근거 O(regression p=0.049 + Welch t=2.65 p=0.012 둘 다 유의) = 'rate_up only 양' claim 지지, NIM 가설 정합. 단 n=21<30 + interaction borderline + block-boot CI 0포함 = magnitude hedge, live 제외. = 동적가중 정당화 정황."
   cs_mom_unconditional: "비유의 (BY 생존 0, mom_6→12M IC -0.006). ★battery(CONFIRMED +0.086) 정반대 = 산업별 신호 상이 = 동적가중 근거."
   valuation_pbr: "TENTATIVE DIRECTIONAL (저PBR value 방향, 비유의, n=19 데이터 제약)"
   valuation_per: "★INSUFFICIENT (n=7, DART 금융재무 2023~ 제약. t=21.2 허수)"

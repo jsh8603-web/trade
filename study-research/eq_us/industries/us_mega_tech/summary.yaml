@@ -48,7 +48,7 @@ indicators_passed:
     notes: |
       cross-sectional 60d 변동성 z → 12M forward = ★양(저변동성→고forward = quality 프리미엄).
       ★compounder 해석: 저변동 = AAPL/MSFT 안정 mega-cap(복리), 고변동 = AMD/투기적 → 안정성이 outperform.
-      NW+block-boot CI 둘 다 0 배제, CPCV 1.00, within 0.73, leave-episode 생존(ex-peak +0.196). vol_60→6M 도 IC +0.171(within 0.91 더 robust).
+      NW+block-boot CI 둘 다 0 배제, CPCV 1.00, within 0.73, leave-episode 생존(ex-peak +0.196). vol_60→6M 도 IC +0.171(within 0.91 더 안정적).
       ★BY 미생존(n=11 basket, raw_p 0.0024 < but BY 임계). ★n=11 small-n: magnitude는 breadth-IR(2.56) 병기, 점추정 단정 회피.
   - id: cs_mom_6m_weak
     layer: 3
@@ -145,7 +145,7 @@ valuation_cross_sectional:
   pit_note: "EDGAR filed date 이후만(lookahead 회피, 한국 DART rcept_dt 대응)."
   archetype_note: >
     ★compounder=expensive_trap: ★PER 무신호(per_z 3/6/12M ≈0 = 고PER 정상, value premium 없음) = core/structure/archetype.py
-    compounder 정의 입증(저PER value 아님). PBR 약 value 방향(음, 비유의). capex(H6) 약 음. ★§M.12: 24M_value = eff_N≈4.7 degenerate(방향만).
+    compounder 정의 지지(저PER value 아님). PBR 약 value 방향(음, 비유의). capex(H6) 약 음. ★§M.12: 24M_value = eff_N≈4.7 degenerate(방향만).
   indicators:
     - id: cs_pbr_z_12m
       signal: "PBR cross-sectional z (저PBR=value)"
@@ -163,7 +163,7 @@ valuation_cross_sectional:
       signal: "PER cross-sectional z (고PER=expensive)"
       horizon: "3M/6M/12M"
       ic_mean: "≈0 (3M -0.001/6M +0.026/12M +0.013)"
-      verdict: "★INSUFFICIENT/expensive-trap 정합 — PER 무신호 = 고PER 정상(compounder value premium 없음). core archetype 입증."
+      verdict: "★INSUFFICIENT/expensive-trap 정합 — PER 무신호 = 고PER 정상(compounder value premium 없음). core archetype 지지."
     - id: cs_capex_z_h6
       signal: "capex/equity intensity z (H6 AI capex)"
       horizon: "3M/6M/12M"
@@ -179,7 +179,7 @@ valuation_cross_sectional:
 robustness_checks:
   - indicator_id: cs_lowvol           # primary
     leave_episode: pass              # ex-peak +0.196 (full +0.241), 생존
-    within_period: pass              # 0.73 (6M=0.91 더 robust)
+    within_period: pass              # 0.73 (6M=0.91 더 안정적)
     partial_corr_ratio: null         # RegimeGlasso 단계
     net_sharpe_ratio: null           # |IC| 0.241 >> 2bps/월(mega-cap 초저비용) → net 보존 강
     forward_vs_contemp: "forward present (저변동성 quality 유의)"
@@ -191,7 +191,7 @@ robustness_checks:
 
 # ── horizon_verdict ──
 horizon_verdict:
-  best_horizon: "12M (vol_60 저변동성 quality 유의) + 6M(within 0.91 robust)"
+  best_horizon: "12M (vol_60 저변동성 quality 유의) + 6M(within 0.91 안정적)"
   forward_alpha_present: true        # ★vol_60 forward alpha 유의(quality). momentum 약 양.
   note: >
     ★compounder horizon: vol_60 저변동성 quality(+0.241, 12M 유의) dominant + momentum 약 양(growth persistence, 비유의).
@@ -228,11 +228,11 @@ verdict_detail:
     within 0.73(6M 0.91), eff_N 10.2(Validated). ★BY 미생존(n=11 basket) + ★magnitude breadth-IR 2.56 병기(50-70% haircut §M.12).
   cs_mom_6m__1M: "TENTATIVE — momentum 약 양(growth persistence, t=1.56 비유의). battery 양 momentum 동방향 약."
   valuation_cross_sectional: >
-    ★PER 무신호(expensive_trap 정합, 고PER 정상) = compounder archetype 입증. PBR 약 value(비유의), capex 약. 24M degenerate. value premium 없음.
+    ★PER 무신호(expensive_trap 정합, 고PER 정상) = compounder archetype 지지. PBR 약 value(비유의), capex 약. 24M degenerate. value premium 없음.
   reflexivity_monitor: "★H9: 현재 정점 아님(intra-corr 0.45<0.70, breadth +0.08 양). cap-down 미발동. supervisor throttle 입력 대기."
   common_factor: "★VIX β 강 음(t=-4.0 mag7 = 고베타 risk-on). real_rate 듀레이션 약(ai_semi -0.245 약만). n=36 small."
 verdict_note: >
   sleeve 전체 = PARTIAL. ★핵심 발견 = ★vol_60 저변동성 quality(+0.241 dominant, 안정 mega-cap 복리) + momentum 약 양(growth persistence) +
-  ★PER 무신호(expensive_trap 정합 = 고PER 정상, value premium 없음 = compounder archetype 입증) + VIX β 강(고베타 risk-on).
+  ★PER 무신호(expensive_trap 정합 = 고PER 정상, value premium 없음 = compounder archetype 지지) + VIX β 강(고베타 risk-on).
   ★n=11 basket small-n = magnitude breadth-IR 병기 + 50-70% haircut(§M.12). 24M_value eff_N degenerate 라벨. reflexivity(H9) = supervisor throttle 입력(현 정점 아님).
   archetype compounder 지지 = quality·성장 신호(value 아님). ★5 archetype 전수 완성: cyclical(반도체 reversal/auto PBR) / asset_stable(consumer/telecom/us_defensive value·reversal) / spread_driven(financial NIM) / event_driven(bio 변동성) / ★compounder(us_mega_tech quality·expensive-trap).

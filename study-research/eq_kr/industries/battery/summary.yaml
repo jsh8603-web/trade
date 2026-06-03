@@ -1,6 +1,6 @@
 # summary.yaml — battery(2차전지) 산업 v3 (frame v3 §M exposure card 계약)
 # ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge 어휘, BY 보정, LOO/block-boot).
-# supersedes: v2 (robustness/cross/horizon 필드 부재). 산출 범위 = §M.7 exposure card (측정 전용).
+# supersedes: v2 (robustness_checks/cross/horizon 필드 부재). 산출 범위 = §M.7 exposure card (측정 전용).
 # raw 재현: raw-v3/{collect.py, measure.py, measure_cross.py, exposure_card.py}
 
 industry: kr_battery          # eq_kr 12산업 中 Tier 2 (2차전지)
@@ -195,7 +195,7 @@ robustness_checks:
     eff_n_tier: Tentative            # n=71 months (50-100 = Tentative). 종목 breadth 26 보완.
   - indicator_id: cs_mom_6m_6Mfwd
     leave_episode: pass
-    within_period: fail              # 0.71 (2022/2025 음 flip) — 6M horizon less robust
+    within_period: fail              # 0.71 (2022/2025 음 flip) — 6M horizon 덜 안정적
     eff_n_tier: Tentative
     forward_vs_contemp: "forward present (weaker)"
   - indicator_id: cs_rev_1m_12Mfwd

@@ -40,8 +40,9 @@ indicators_passed:
     family: value
     horizon: 24M_value        # ★cyclical primary = PBR (PER 은 peak-EPS 무효)
     ic_mean: -0.463           # 저PBR value premium 강. ★단 n=14 협소 magnitude 과대.
+    magnitude_haircut: "★[frame §M.12] n=14<20 cross-sectional Spearman = 협소 artifact. 50-70% haircut(EB/James-Stein shrinkage): 점추정 ρ=-0.463 → posterior -0.12~-0.20 권역. ⛔ -0.46 literal 인용 금지. breadth-adjusted IR = IC·√(breadth 14 × eff_indep_N 2.5) → 보수 = supervisor collector_plan."
     ic_ci_95: [-0.336, -0.108]  # block-boot(12M). 0 배제. magnitude 신뢰 X(small-universe).
-    t_nw: -17.59              # ★허수 경계 — n=14 극단화
+    t_nw: -17.59              # ★허수 경계 — n=14 극단화 (haircut 후 posterior -0.12~-0.20)
     n_effective: 61
     avg_universe_n: 14.3
     oos_ratio: 1.00
@@ -50,7 +51,7 @@ indicators_passed:
     source_id: "raw-v3/validation-valuation-v3.json:indicators.pbr_z__24M_value"
     notes: |
       저PBR cross-sectional z → 24M forward. ★자동차 진짜 신호(가격 momentum 무효 대체). value premium
-      방향 robust(LOO 17종 전부 음, within 100%, BY 생존). ★magnitude(-0.46 t=-17.6) = n=14 협소 과대 = hedge.
+      방향 안정적(LOO 17종 전부 음, within 100%, BY 생존). ★magnitude(-0.46 t=-17.6) = n=14 협소 과대 = hedge.
       ★PBR 만 작동(PER peak-EPS 무신호) = cyclical archetype 정합.
       ★★[frame §M.12 정정] 24M overlap eff_indep_N = 61/24 ≈ 2.5 = degenerate. t=-17.6 = small-universe(17종)
       × 24M overlap **이중 inflation**(역설: t 최대=증거 최약). ⛔ magnitude+significance 둘 다 보류, ★방향만.
@@ -175,7 +176,7 @@ valuation_cross_sectional:
   pit_note: "재무 = rcept_dt(공시일) 이후만(lookahead 회피). ★현대차 2019 FY rcept 2022-02(정정공시 지연 outlier, PIT 자동처리)."
   cyclical_finding: >
     ★PER 횡단면 무신호(per 3M/6M/12M IC=0.003/0.004/-0.007) = peak-EPS trap(정점 EPS↑→PER↓ 왜곡)
-    데이터 입증. PBR(자본 기반) value premium 강 = archetype.py cyclical 'primary=P/B, trap=peak-EPS' 정확.
+    데이터 지지. PBR(자본 기반) value premium 방향 강 = archetype.py cyclical 'primary=P/B, trap=peak-EPS' 정합(magnitude n=14 hedge).
   indicators:
     - id: cs_pbr_z
       signal: "PBR cross-sectional z (저PBR=value, cyclical primary)"
@@ -185,7 +186,7 @@ valuation_cross_sectional:
         - {horizon: 12M, ic: -0.216, t_nw: -2.76, p: 0.007, n: 73, ci_block: [-0.336, -0.108], within: 0.71}
         - {horizon: 24M_value, ic: -0.463, t_nw: -17.59, p: 0.000, n: 61, within: 1.00, loo_robust: true}
       avg_universe_n: 14.3
-      verdict: "★PBR value premium 방향 강(전 horizon 음, BY 4 생존, LOO robust 17종 [-0.537,-0.395], within 높음). ★단 magnitude(-0.46 t=-17.6) = n=14 협소 과대 = small-n hedge."
+      verdict: "★PBR value premium 방향 강(전 horizon 음, BY 4 생존, LOO 안정적 17종 [-0.537,-0.395], within 높음). ★단 magnitude(-0.46 t=-17.6) = n=14 협소 과대 = small-n hedge."
     - id: cs_per_z
       signal: "PER cross-sectional z (★peak-EPS trap 무신호)"
       horizon_results:
@@ -194,9 +195,9 @@ valuation_cross_sectional:
       verdict: "★INSUFFICIENT/무신호 — PER 횡단면 IC ≈ 0. cyclical peak-EPS trap 으로 PER 무효 = EV/EBITDA 대체 필요."
   multiple_testing: "8 테스트 BY factor 2.72. ★BY 4개 생존(pbr 24M/12M/6M/3M, per 전부 미생존). PER 무신호=peak-EPS. ★n=14 협소 magnitude hedge."
   verdict: >
-    ★auto = cyclical valuation 진짜 신호. PBR value premium 방향 강(BY 4 생존, LOO robust, within 100%@24M) =
+    ★auto = cyclical valuation 진짜 신호. PBR value premium 방향 강(BY 4 생존, LOO 안정적, within 100%@24M) =
     ★가격 momentum 무효를 valuation 이 대체(kr-semi 예고 적중). ★PER = peak-EPS trap 무신호(IC≈0) =
-    archetype.py cyclical 정의 데이터 입증. ★단 universe 17종 협소 → PBR magnitude 과대(small-universe).
+    archetype.py cyclical 정의 데이터 지지. ★단 universe 17종 협소 → PBR magnitude 과대(small-universe).
     방향 신뢰/magnitude hedge. EV/EBITDA 대체 권고(collector_plan high).
 
 # ── robustness_checks (측정 17종 통과 기록, 지표별) ──
@@ -214,11 +215,11 @@ robustness_checks:
 
 # ── horizon_verdict (forward alpha falsifier) ──
 horizon_verdict:
-  best_horizon: "★24M_value (PBR 장기 value, within 100%) — 가격 momentum 무효, valuation 이 진짜 신호"
-  forward_alpha_present: true        # ★PBR value premium forward alpha = present(가격 momentum 은 부재, valuation 으로 확정)
+  best_horizon: "★[frame §M.12 primary 재배치] 3M/6M/12M (PBR value, eff_N 높음·NW 유의·BY 생존) = primary 근거. 24M_value = ★보조(eff_N≈2.5 degenerate, 방향만). 가격 momentum 무효, valuation 이 진짜 신호."
+  forward_alpha_present: true        # ★PBR value premium forward alpha = present(가격 momentum 은 부재, valuation 방향으로 잠정)
   note: >
     ★자동차 가격 momentum/reversal = 전 horizon 비유의(BY 생존 0). ★단 valuation(PBR) value premium forward
-    present 강(BY 4 생존, LOO robust) = 가격신호 무효를 valuation 이 대체(kr-semi 예고 적중). ★PER peak-EPS 무신호.
+    present 강(BY 4 생존, LOO 안정적) = 가격신호 무효를 valuation 이 대체(kr-semi 예고 적중). ★PER peak-EPS 무신호.
     cyclical archetype: PBR value + peak-EPS trap. universe 17종 협소 = PBR magnitude 과대 한계.
 
 # ── net-cost (KR 비대칭) ──
@@ -226,7 +227,7 @@ net_cost:
   model: "spread/2 + commission + STT_sell(0.20%, 매도측만) — §M.4 비대칭"
   roundtrip_bps: 33.0
   monthly_cost_bps: 16.5
-  note: "가격신호 비유의라 net Sharpe 무의미. valuation·regime 신호 확정 후 재평가. sqrt impact = supervisor."
+  note: "가격신호 비유의라 net Sharpe 무의미. valuation·regime 신호 측정 보강 후 재평가. sqrt impact = supervisor."
 
 # ── Hard-fail 4 (B C D I) self-check ──
 hard_fail_self_check:
@@ -252,7 +253,7 @@ verdict_detail:
   cs_mom_6m__6M: "TENTATIVE (IC -0.062, t=-1.18 비유의, within 0.57)"
   price_signals_overall: "★전 16 가격신호 비유의(BY 생존 0) = 자동차 가격 momentum/reversal 무효 = horizon forward alpha 부재"
   primary_evidence: "★[frame §M.12] primary 증거 = 3M/6M/12M(eff_indep_N 높음). 24M_value = ★보조(eff_N≈2.5 degenerate). auto t=-17.6 = small-universe × 24M overlap 이중 inflation = 방향만."
-  cs_pbr_z_24m: "★PARTIAL→hedge (자동차 진짜 신호) — PBR value premium 방향 robust(LOO 17종, within 100%). ★단 24M eff_N≈2.5 degenerate + n=14 협소 = magnitude+significance 둘 다 inflation(t=-17.6 허수). ★방향만, 단정 불가. 가격 momentum 무효 대체."
+  cs_pbr_z_24m: "★PARTIAL→hedge (자동차 진짜 신호) — PBR value premium 방향 안정적(LOO 17종, within 100%). ★단 24M eff_N≈2.5 degenerate + n=14 협소 = magnitude+significance 둘 다 inflation(t=-17.6 허수). ★방향만, 단정 불가. 가격 momentum 무효 대체."
   cs_per_z: "★PER 무신호(IC≈0) — ★peak-EPS trap = earnings cycle 진폭(흑자도 정점 EPS↑→저PER 왜곡), ⛔시총 인과 금지. E/P 대체 권고. 미국 us_cyclical PER○ = consistent-with(시장·시총 의존, 재측정 아님)."
   customer_momentum: "REJECTED as alpha (CARZ/SLX contemporaneous 동조 유의 lag0 +0.22, but forward 부재)"
   common_factor: "전부 비유의 (credit/oil 약 음 방향성만, t<1.6) = 자동차 idiosyncratic (반도체 credit 강과 대조)"
