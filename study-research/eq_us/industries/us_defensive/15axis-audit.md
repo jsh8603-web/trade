@@ -1,3 +1,7 @@
+<!-- author: equity study subagent (1단계 산출, 2026-06-04) -->
+<!-- auditor: harness2 Worker (독립 cross-audit, author != auditor, 2026-06-04) -->
+<!-- audit_date: 2026-06-04 -->
+
 # 15axis-audit.md — us_defensive sleeve §M v3 (frame v3 §E, A~P 15축)
 
 > 독립 감사: yaml↔raw 재현·hard-fail 0. raw 재현 = `raw-v3/*.py`. 한국 7산업 미러.
@@ -41,4 +45,31 @@
 - ★**핵심 검증 가치**: momentum 무효 = **asset_stable 정합**(한국 consumer/telecom 동형 = 양식 일반성 입증). 단기 reversal + 저변동성 + real_rate 듀레이션(채권 대용, t=-4.1)이 방어주 신호. ★합성 P0 재검증(§1.7-D) 통과 + IID→block-boot 교체 = 데이터 무결성 + 통계 엄밀성 의무 이행.
 - archetype asset_stable 사후편향 검사(M.5): valid_from 2010 사전선언, declared_at 명시 = ex-post hazard 회피.
 - ★valuation EDGAR(§10) 박제 완료: 메커니즘 작동(PBR cov 5150/PER 5108, avgN 26) but IC 약·비유의(per_z value 방향만 약, pbr_z 역방향 value trap). BY 미생존 = 한국 consumer/telecom 강 value premium 미재현 = battery valuation 약 패턴 동일. cf. us_cyclical PER 작동 = ★sleeve 별 valuation IC 상이(동적가중 정당화).
-- ★pilot 결론: 한국 asset_stable(consumer/telecom) → 미국 us_defensive = momentum 무효 동형 입증(가격신호 양식 cross-market 일반성) but valuation IC 는 sleeve 별 상이(미국 defensive 약, us_cyclical 강). dominant 신호 = rev_1m reversal + real_rate 듀레이션.
+- ★pilot 결론: 한국 asset_stable(consumer/telecom) → 미국 us_defensive = momentum 무효 동형(가격신호 양식 cross-market 일반성) but valuation IC 는 sleeve 별 상이(미국 defensive 약, us_cyclical 강). dominant 신호 = rev_1m reversal + real_rate 듀레이션.
+
+---
+
+## ★독립 cross-audit (auditor = harness2 Worker, author ≠ auditor, 2026-06-04)
+
+> SR #4: raw-v3/validation-metrics-v3.json raw 수치 독립 재독·대조. B/D/I/§M.12 4항.
+
+### B축 (실데이터 coverage+n) — 독립 재독
+- raw json 직접 read: rev_1m__3M ic_mean=-0.04482 / n_months=193 / t_nw=-2.695 (raw L350-358). = summary "IC -0.045 t-2.70 n193" ★1:1 일치. cs_lowvol(vol_60) raw 확인. ★합성 0% (실거래 OHLCV).
+- **B 재판정: PASS** (raw 일치, n=193 장기 명시).
+
+### D축 (PIT) — 독립 재독
+- 가격 forward=shift(-h). valuation = EDGAR filed date(#15 후, 현 §10 일부 placeholder = collector_plan 명시). real_rate/HY OAS = FRED ex-ante. ★IID→block bootstrap 교체(small-n §1.4, raw ci95_block_boot 존재 L295-298) = 자기상관 보정 확인.
+- **D 재판정: PASS** (forward shift + block-boot 보정).
+
+### I축 (생존편향) — 독립 재독
+- summary I = PARTIAL("현 yfinance 대형주 스냅샷=생존 종목, 상폐/M&A 누락"). collector_plan high. = 정직 격하.
+- **I 재판정: PARTIAL** (생존편향 정직 격하, author 동의).
+
+### §M.12 정합 — 독립 재독
+- raw `multiple_testing`: `survivors_BY: []` / raw_p_min=0.00766 / key="rev_1m__3M"(raw L1098-1100). = ★BY 생존 0 raw 확인. ★단 raw_p_min source = **비-degenerate 3M**(primary) = us_cyclical(degen 24M source)와 다름.
+- ★us_defensive verdict = PARTIAL CONFIRMED 유지 정당: primary cs_rev_1m 가 ★비-degenerate(3M) + NW+boot+CPCV 통과(n=193). 24M_value(valuation per_z/pbr_z)는 INSUFFICIENT(비유의)라 verdict 무관 = Phase 1 degenerate 라벨 추가(eff_N≈7.2)도 verdict 무영향. → ★reversal 불요(us_cyclical/consumer 와 구조적 차이 = primary 가 비-24M·비유의 24M).
+- **§M.12 재판정: 정합** — 24M degenerate 라벨 보완 완료, verdict 무영향 확인.
+
+### cross-audit verdict
+- **hard-fail 0 재확인** (B/D PASS, I PARTIAL). status = **PARTIAL CONFIRMED** (author 판정 raw 동의 — primary 비-degen 3M reversal NW 유의·BY 미생존 hedge).
+- gap 보고: valuation §10 EDGAR 일부 placeholder = collector_plan high 등록 확인(미산출 = 정직 명시, 위조 아님).

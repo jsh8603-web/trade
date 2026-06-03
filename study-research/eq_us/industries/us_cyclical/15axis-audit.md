@@ -1,3 +1,7 @@
+<!-- author: equity study subagent (1단계 산출, 2026-06-04) -->
+<!-- auditor: harness2 Worker (독립 cross-audit, author != auditor, 2026-06-04) -->
+<!-- audit_date: 2026-06-04 -->
+
 # 15axis-audit.md — us_cyclical sleeve §M v3 (frame v3 §E, A~P 15축)
 
 > 독립 감사: yaml↔raw 재현·hard-fail 0 확인. raw 재현 = `raw-v3/*.py`. ★미국 1단계(EDGAR/yfinance/FRED). 한국 산업 미러.
@@ -38,4 +42,32 @@
 - 코어 4축 위반 0. 조건부 J/K/L/M/O/P PASS, N=N/A.
 - **status = PARTIAL** — ★미국 1단계 EDGAR/yfinance/FRED 파이프라인 작동 검증 완료. ★PER value premium 작동(block-boot 유의, LOO sector robust) = ★한국 auto/반도체(PER✗ peak-EPS)와 **반대** = peak-EPS trap 시장·시총 의존성. vol 프리미엄. HY OAS β 강(2023~ 한정 hedge). dollar β 비유의(R2 Bruno-Shin 정합). BY borderline.
 - archetype cyclical 사후편향 검사(M.5): valid_from 2015 사전선언, declared_at 명시. PER value(peak-EPS 약) = 미국 대형 cyclical 정합.
-- ★**한국 vs 미국 cyclical 대조 발견**: 한국 auto = PER✗(중형 earnings 변동) / 미국 cyclical = PER○(대형 earnings 안정). = §M 양식이 시장·시총별 archetype metric 적합도 차이를 데이터로 포착. ★supervisor 가설("한국 auto PER✗ 재현") 데이터 반증 = over-claim 회피·정직성 입증. 미국 sleeve batch(us_defensive/us_mega_tech) 진입 가능.
+- ★**한국 vs 미국 cyclical 대조 발견**: 한국 auto = PER✗(중형 earnings 변동) / 미국 cyclical = PER○ 방향(대형 earnings 안정). = §M 양식이 시장·시총별 archetype metric 적합도 차이를 데이터로 포착. 미국 sleeve batch(us_defensive/us_mega_tech) 진입 가능.
+
+---
+
+## ★독립 cross-audit (auditor = harness2 Worker, author ≠ auditor, 2026-06-04)
+
+> SR Pre-Review #4: author 가 쓴 summary.yaml 이 아니라 **raw-v3/validation-metrics-v3.json 의 raw 수치를 독립 재독·대조**(재계산 흔적 명시). B/D/I/§M.12 정합 4항 재검증.
+
+### B축 (실데이터 coverage 일자+n) — 독립 재독
+- raw json 직접 read: per_z__24M_value ic_mean=-0.119 / n_months=113 / avg_universe_n=35.1 (raw L396-411). per_z__3M ic=-0.0622 / n=134 / t_nw=-2.47 / p=0.0147 (raw L336-339). = summary.yaml 수치와 ★1:1 일치(위조·silent default 0).
+- hy_oas: raw `dollar_beta_H4._meta.n=36`, note "★hy_oas 2023~ 한정"(raw L454-457). = summary "n=36 month 2023~ hedge" 일치. ★coverage 일자(2023-05~ 37mo) silent 처리 없음 = 정직.
+- **B 재판정: PASS** (raw 재독 일치, coverage 일자+n 명시).
+
+### D축 (PIT filing date forward-shift) — 독립 재독
+- summary: "valuation = EDGAR filing acceptance date(filed) 이후만". raw measure.py 파이프라인 = EDGAR filed date PIT (collect.py companyconcept XBRL). 가격 forward=shift(-h). ★재무 신규 fetch·재실행 안 함(기존 산출 audit). = lookahead 회피 구조 확인.
+- **D 재판정: PASS** (filed-date PIT, forward shift).
+
+### I축 (생존편향 명시) — 독립 재독
+- summary I = PARTIAL ("현 ETF holdings 큐레이션 = 생존 종목, 상폐/구성변경 누락"). = 정직 격하. collector_plan high(Sharadar/S&P historical) 등록 확인. ★over-claim 아님.
+- **I 재판정: PARTIAL** (생존편향 정직 격하 — author 판정 재확인, gap 동의).
+
+### §M.12 정합 — 독립 재독 (★reversal 근거 raw 검증)
+- raw `multiple_testing`: m=20 / `survivors_BY: []` / raw_p_min=0.0068 / raw_p_min_key="per_z__24M_value" (raw L414-419). = ★BY 생존 0 raw 확인. 게다가 raw_p_min(0.0068) source = **degenerate 24M** = ghost-finding 위험 raw 입증.
+- 비-degen horizon raw 재독: 3M p=0.0147(유의, 단 BY 미생존) / 6M p=0.0757(비유의) / 12M p=0.0941(비유의) (raw L339/359/379). = ★24M degenerate strip 후 NW 유의 horizon = 3M 1개(BY 미생존). → Phase 1 PARTIAL→TENTATIVE 강등 = raw 수치로 독립 재확인(author summary 의존 아님, raw json 직접 대조).
+- **§M.12 재판정: 정합** — 24M degenerate 라벨 + primary 3M 재배치 + TENTATIVE 강등 모두 raw 근거. peak-EPS 부호반대 특이점(전이불가) = round-N.md 별도 판정 확인.
+
+### cross-audit verdict
+- **hard-fail 0 재확인** (B/D PASS, I PARTIAL=정직 격하). status = ★**TENTATIVE** (author 의 PARTIAL → Phase 1 강등, raw BY=0 근거 auditor 독립 동의).
+- gap 보고: 없음. author 판정 + Phase 1 강등 = raw 정합. ★auditor 독립 의견 = reversal 정당(SR #2/#5 ghost-finding 방지 raw 입증).

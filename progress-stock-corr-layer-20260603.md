@@ -112,4 +112,6 @@ trigger_to_resume: "본 파일 §현재상태 첫 미체크 step 부터"
 
 > [ckpt-202606031130:btn-Codlearn] **재진입 커밋 완료 + Phase7 진입 준비**. pytest 63✅(assume S1/S3/INV-12), 8커밋(assume core/equity 10sleeve/study docs/phase2). Phase7=supervisor 통합(eq_kr 7산업+eq_us 3sleeve study_session.yaml+L축직교화+PSD). SSOT=[handoff-codlearn-reentry-20260603.md](./handoff-codlearn-reentry-20260603.md). 다음=Phase7 작성→승인게이트. push금지.
 
+> [ckpt-202606031400:btn-Codlearn] **10개 summary.yaml 전부 읽기 완료 + Phase7 handoff 작성**. (1)마지막결정: 10개 industry summary.yaml 정독 완료(kr 7산업+us 3sleeve, btn-button 2877ea0 §M.12 정정 반영). L축 직교화 분석 완료(eq_kr={credit,dollar,vix,rate_regime}/eq_us={real_rate,hy_oas,vix}). (2)다음의도: [handoff-phase7-yaml-20260603.md](./handoff-phase7-yaml-20260603.md) 참조 → study-research/eq_kr/study_session.yaml + study-research/eq_us/study_session.yaml 7블록 작성 → 승인게이트. (3)동기화: handoff-phase7-yaml-20260603.md(10개 산업 요약표+L축분석+yaml구조가이드+PSD게이트) + progress-stock-corr-layer-20260603.md. push금지.
+
 (append-only)
