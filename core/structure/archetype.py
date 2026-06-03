@@ -185,7 +185,7 @@ def card_class(archetype: str) -> type[_ArchetypeBase]:
 # ---------------------------------------------------------------------------
 
 DEFAULT_SECTOR_ARCHETYPE = {
-    # equity
+    # equity (generic v1)
     "semiconductor": "cyclical",
     "chemicals": "cyclical",
     "steel": "cyclical",
@@ -196,6 +196,20 @@ DEFAULT_SECTOR_ARCHETYPE = {
     "utilities": "asset_stable",
     "telecom": "asset_stable",
     "software_compounder": "compounder",
+    # equity KR (stock.md eq_kr 12산업 — 1차 가설 배정, 산업 study 가 검증·정정.
+    #  ★frame v3 §M.5: valid_from PIT 사전선언 + soft/probabilistic 배정은 카드 레지스트리로 확장.
+    #  현 dict 는 ex-ante 정적 fallback 일 뿐 — archetype transition 은 valid_from 카드로만 시변 박제)
+    "kr_semiconductor": "cyclical",   # 반도체 (T1, DRAM 사이클)
+    "kr_auto": "cyclical",            # 자동차 (경기민감)
+    "kr_battery": "cyclical",         # 2차전지 (capex/리튬 사이클)
+    "kr_bio": "event_driven",         # 바이오 (임상·승인 binary)
+    "kr_consumer": "asset_stable",    # 소비재 (방어·안정, 일부 compounder = study 분기)
+    "kr_financial": "spread_driven",  # 금융 (NIM·credit spread)
+    "kr_telecom": "asset_stable",     # 통신 (배당·금리민감)
+    # equity US (stock.md eq_us — ★배정단위 = Mag7 basket/macro-sleeve, GICS 11 아님)
+    "us_mega_tech": "compounder",     # T0 = Mag7 + AVGO/ORCL/AMD (대형 테크 복리, expensive_trap)
+    "us_cyclical": "cyclical",        # SOXX/XLB/XLI/XLE (경기민감 sleeve)
+    "us_defensive": "asset_stable",   # XLP/XLU/XLV/XLC (방어 sleeve)
     # commodity (BB-5)
     "energy_crude": "commodity_carry",
     "energy_gas": "seasonal",

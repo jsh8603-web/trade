@@ -236,6 +236,81 @@ class StudyRegister:
     def emit_ic_outcome(self, hypothesis_id: str, scores, returns, **kw) -> str:
         return self.flags.emit_from_ic(hypothesis_id, scores, returns, **kw)
 
+    # --- ★결선(wire): falsification cycle = 학습→주입→score IC→DUAL→청산 + dead-hook emit ---
+    def wire_falsification(self, study_id: str, learner, *, belief: dict,
+                           returns, regime_id: str, uc=None,
+                           baseline_ic: float = 0.05, ic_sd: float = 0.02,
+                           omega_prev=None, as_of=None, epoch: int = 0) -> Optional[dict]:
+        """run_weight_cycle(닫힌 production 함수)을 호출해 학습 score IC 를 falsification 으로 흘리고,
+        그 합성 score IC 를 study 의 confidence_hooks(dead-hook)로 emit 한다.
+
+        지금까지 train_weight_cards(카드 생성)와 run_weight_cycle(falsification)이 production 에서
+        한 번도 안 만나, hy_oas_risk_regime / real_rate_duration_penalty 등 hook 의 score IC 실측이
+        confidence 로 누적되지 않고 prior 에 동결돼 있었다(macro/study_session.yaml §4.5 dead-hook).
+        이 메서드가 그 결선이다 — learner(train_weight_cards 산출)를 받아:
+          ① run_weight_cycle → route_lifecycle (PRIMARY→RETIRE / SECONDARY→re-fit / KEEP)
+          ② 그 ic_series 를 study 의 weight_rules indicator_id 에 연결된 hook 으로 emit_ic_outcome
+             → flag_router 의 Beta 신뢰도 누적 = dead-hook 활성(confidence 가 IC 추종).
+
+        ⛔ opt-in(INV_R15_WEIGHTS) off 면 즉시 None(production 경로 미개통, byte-identical 무회귀).
+        ⛔ 합성 패널 금지 — learner 는 호출자(scripts/wire_study_falsification)가 실 FRED panel 로
+           fit 한 것만 받는다. learner.fit 미선행(_X None) 이면 RuntimeError(호출자 책임).
+
+        learner = GlassoWeightLearner(실 panel 로 fit). returns = 패널 행별 forward return(IC 산출).
+        belief = {regime_id: 확신도}(거시상황). uc 미주입 시 새 UpdateController 생성.
+        반환: {decision, primary_kill, ic_last, emitted}(emit 된 hook→flag dict) 또는 None(opt-in off).
+        """
+        if not is_r15_enabled():
+            return None
+        s = self.sessions.get(study_id)
+        if s is None:
+            return None
+        from core.assume.weight_cycle import run_weight_cycle
+        from core.assume.update_controller import UpdateController
+        from core.assume.dag import AssumptionDAG
+
+        reg = self.reg
+        if reg is None:
+            from core.assume.registry import AssumptionRegistry
+            reg = AssumptionRegistry()
+        if uc is None:
+            uc = UpdateController(reg, validator=None, dag=AssumptionDAG(reg))
+
+        # series 순서 = weight_rules indicator (build_card 와 동일 dedup 순서) — learner 패널과 정합.
+        rules = [wr for wr in s.weight_rules if wr.indicator_id]
+        order: list = []
+        for wr in rules:
+            if wr.indicator_id not in order:
+                order.append(wr.indicator_id)
+        series = tuple(order)
+        scope = (s.asset_scope[0] if s.asset_scope else study_id) or study_id
+
+        # ① 닫힌 production 함수 1회전: 학습→기준화→주입→score IC→DUAL→lifecycle(청산/재적합)
+        res = run_weight_cycle(
+            learner, belief=belief, returns=returns, z_now=learner._X[-1],
+            forward_returns=returns, registry=reg, uc=uc,
+            domain=_domain_of(scope), scope=_scope_of(scope), series_ids=series,
+            regime_id=regime_id, baseline_ic=baseline_ic, ic_sd=ic_sd,
+            omega_prev=omega_prev, as_of=as_of, epoch=epoch)
+
+        # ② ★dead-hook 활성: 합성 score IC 시계열을 study hook 으로 emit → flag_router 신뢰도 누적.
+        #    hook→indicator 연결(_hook_indicator)이 series 에 닿는 hook 만 emit(graceful). scores=합성
+        #    score 패널, returns=forward return — flag_router 가 rank_ic+e-CUSUM 으로 confirm/reject 판정.
+        from core.assume.weight_cycle import score_series_from_panel
+        scores = score_series_from_panel(res.card, learner._X)
+        emitted: dict = {}
+        for hook in s.confidence_hooks:
+            ind = self._hook_indicator(hook, s)
+            if ind in series:                                # 이 study 의 학습 series 에 닿는 hook 만
+                emitted[hook.hypothesis_id] = self.emit_ic_outcome(
+                    hook.hypothesis_id, scores, returns,
+                    baseline_ic=baseline_ic, sd=ic_sd)
+        return {"decision": res.decision.action.value,
+                "primary_kill": res.falsification.primary_kill,
+                "secondary_refit": res.falsification.secondary_refit,
+                "ic_last": float(res.ic_series[-1]) if res.ic_series else 0.0,
+                "card_id": res.card.id, "emitted": emitted}
+
     # --- 진단 ---
     def status(self) -> dict:
         from core.study.indicator_ledger import build_indicator_ledger, ledger_summary
@@ -358,7 +433,38 @@ if __name__ == "__main__":
     os.environ[_ENV_R15] = "1"
     print("6) ★U3 corr_prior facade OK: macro=belief차단 no-op / micro직접=flag반영(대비) / 매핑 / opt-in off 무회귀")
 
+    # 7) ★결선(wire_falsification): run_weight_cycle 닫힘 + dead-hook(score IC) emit
+    #    ⛔ 여기 패널은 self-test 로직 검증용 합성(weight_cycle/flag_router self-test 와 동형 패턴).
+    #    실 FRED 패널 end-to-end 입증은 scripts/wire_study_falsification.py(production runner) 담당.
+    from core.assume.weight_cycle import GlassoWeightLearner
+    Pn = 2                                                    # macro self-test = hy_oas, y10_2 2지표
+    rng7 = np.random.default_rng(70)
+    Xw = rng7.normal(size=(60, Pn))
+    regw = np.array([0] * 30 + [1] * 30)
+    retw = Xw[:, 0] * 0.5 + rng7.normal(0, 0.5, 60)          # 지표0 예측력
+    learner = GlassoWeightLearner(lam_floor=0.05).fit(Xw, regw)
+
+    # opt-in OFF → None (production 경로 미개통, byte-identical 무회귀)
+    os.environ.pop(_ENV_R15, None)
+    assert sr2.wire_falsification("macro", learner, belief={0: 0.7, 1: 0.3},
+                                  returns=retw, regime_id="recession") is None
+    # opt-in ON → run_weight_cycle 1회전 + dead-hook emit. fresh registry(case 2 의 weight.macro.base
+    # 와 id 충돌 회피 — 결선은 호출자가 준 registry 에 카드 등록).
+    os.environ[_ENV_R15] = "1"
+    from core.assume.registry import AssumptionRegistry as _AR7
+    sr7 = StudyRegister(assumption_registry=_AR7())
+    sr7.register(macro)
+    out = sr7.wire_falsification("macro", learner, belief={0: 0.7, 1: 0.3},
+                                 returns=retw, regime_id="recession", as_of="2026-05-01")
+    assert out is not None and out["decision"] in ("keep", "retire", "transition")
+    # hy_oas hook 이 hy_oas indicator 에 닿아 emit 됨(dead-hook 활성 — flag 신뢰도 누적 발생)
+    assert "hy_risk" in out["emitted"], out["emitted"]
+    assert out["emitted"]["hy_risk"] in ("confirm", "reject", "neutral")
+    print(f"7) ★결선 wire_falsification OK: opt-in off=None(무회귀) / on → "
+          f"decision={out['decision']} dead-hook emit={out['emitted']} (IC 실측이 flag 로 흐름)")
+
     os.environ.pop(_ENV_R15, None)
     os.environ.pop("INV_STUDY_LENS", None)
     print("\nstudy_register self-test PASS "
-          "(opt-in OFF 무회귀 + ON 카드/registry/judge wiring + ★flag→동적가중치 production + 검증거부)")
+          "(opt-in OFF 무회귀 + ON 카드/registry/judge wiring + ★flag→동적가중치 production + 검증거부 "
+          "+ ★결선 wire_falsification: run_weight_cycle 닫힘 + dead-hook emit)")
