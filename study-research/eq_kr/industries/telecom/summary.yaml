@@ -98,7 +98,7 @@ confidence_hooks:
 # ── 블록6 COLLECTOR_PLAN ──
 collector_plan_industry:
   - missing: "★telecom universe 확장 (n=13 협소 = cross-sectional 한계)"
-    source: "통신서비스 3종 = 본질적 협소(SKT/KT/LGU+). 장비 포함해도 14종. ★대안: 통신서비스 = 시계열 분석(cross-sectional 부적합) / 장비 = 5G capex cycle 별 측정"
+    source: "통신서비스 3종 = 구조적 협소(SKT/KT/LGU+). 장비 포함해도 14종. ★대안: 통신서비스 = 시계열 분석(cross-sectional 부적합) / 장비 = 5G capex cycle 별 측정"
     priority: high   # ★universe 협소 = 본 산업 핵심 제약
   - missing: "배당수익률 시계열 (asset_stable primary 보완 — PER 보다 배당 직접)"
     source: "DART 배당 공시 + 주가"

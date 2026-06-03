@@ -237,7 +237,7 @@ hard_fail_self_check:
 # ── verdict (small-n rule) ──
 verdict_label: PARTIAL  # ★전체 산업 = PARTIAL CONFIRMED
 verdict_detail:
-  cs_mom_6m__12M: "CONFIRMED (n=71≥30, t_NW=3.87 p<0.001, BY 생존, CPCV OOS hit 1.00, within-period 100%, leave-episode 생존, 유동성티어 robust). battery dominant 신호."
+  cs_mom_6m__12M: "CONFIRMED (n=71 months≥30, t_NW=3.87 p<0.001, BY 생존, CPCV OOS hit 1.00, within-period 100%, leave-episode 생존, 유동성티어 부호 일관). battery dominant 신호. ★단 avg_universe_n=26(<30) = magnitude 보수."
   cs_mom_6m__6M: "PARTIAL (within-period flip, BY 미생존)"
   cs_rev_1m__12M: "TENTATIVE (CI 하단 0 근접, BY 미생존)"
   valuation_cross_sectional: "★해소(DART 재구성) — 메커니즘 작동(PBR avgN 26/PER 20). per_z 24M value = TENTATIVE DIRECTIONAL(저PER value premium 약 prior, NW 비유의 p=0.17, BY 미생존) / pbr_z = INSUFFICIENT(무신호). battery 한정 valuation IC 약."
@@ -246,4 +246,4 @@ verdict_detail:
 verdict_note: >
   산업 전체 = PARTIAL. momentum(cs_mom_6m) CONFIRMED = dominant. valuation 횡단면 결함 = 해소(산출 구조 완성)
   하나 battery 내 valuation IC 는 약·비유의(per value premium 방향성만). ★pilot 결론: cross-sectional 메커니즘
-  (momentum + valuation 양쪽) 작동 입증. valuation IC 유효성은 산업별 상이 가능 → 6산업 batch 가 일반화 검증.
+  (momentum + valuation 양쪽) 작동(파이프라인 산출 정상). valuation IC 유효성은 산업별 상이 가능 → 6산업 batch 가 일반화 검증.
