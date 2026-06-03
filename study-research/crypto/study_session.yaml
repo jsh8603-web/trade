@@ -1,6 +1,6 @@
 study_id: crypto
 asset_scope: [coin]
-as_of: "2026-06-01"  # ★cycle2 12축 audit verdict 반영 (H11/H9). 본체 indicators/relationships = cycle1 v2 채택분 불변.
+as_of: "2026-06-02"  # ★cycle2 12축 audit + 단기 기술 트랙 + ★최종 트랙 설계 확정(2026-06-02, 자문 R1 수렴 gemini+claude + net-cost 데이터검증): 단기 트랙=BTC momentum 단일 carrier+kimchi throttle(breadth/거시/funding/온체인 측정후 정리). lens report_relations 단기 항목 3건. 거시 본체 indicators/relationships/weight_rules = 불변(별 트랙). weight 0 유지(코드배선=go-live 게이트).
 
 # ============================================================================
 # 메타 — 2-3 실데이터 검증 후 v2 yaml. v1 은 raw/study_session.v1.yaml.deprecated.
@@ -73,6 +73,9 @@ lens:
     - "BTC ETF (post-2024) net flow → 5d cum > 0 인 경우 fwd_30d > 0 hit rate = 56.7% (n=374, binomial p=0.006). digital-gold 채택 가설 1차 검증, but CI 포함. 1.5~2yr probation observe-only prior 유지"
     - "FGI×halving 20 cell: raw IC 모두 음 (-0.065 ~ -0.653) = mean-revert 방향성 일관(약 prior). ★단 effective_n(자기상관 보정) *전 16 cell <30* (raw N≥30 claim 무효, audit B축) + Bonferroni α/16=0.0031 per-cell p(eff_n 기반) 생존 = 0 cell → 개별 cell 통계 비유의(tentative). conditioning 후 신호 = 방향성 힌트만, magnitude 점추정 불가"
     - "거시 transmission: M2↑→stablecoin demand↑→BTC. real_rate↑→ 위험자산 멀티 압박 (post-2020 채널, 2024 ETF 부분 디커플)"
+    - "★[단기 기술 트랙, fwd 5~20d, 2026-06-02 실측+15축 audit ab64711 verdict=부분/hard-fail 0] coin-core 매수점수(FGI공포+RSI과매도+SMA20 하향이탈 = mean-reversion 합성, calculate_buy_score SACRED 부품 호출만) forecasting rank-IC BTC fwd10d = −0.108 (p=0.003, n=771, Bonferroni α/9=0.0056 통과 유의; ★단 non-overlap thin n<40 비유의 p=0.356). BTC 단기 momentum 우세 → '쌀 때 사기'가 떨어지는 칼날 = 역방향. trend-gate 부활가설(B안) 검증: MA50_up subset −0.10→~0 무해화만(양전환 실패), MA200_up 정반대 더 음(−0.20~−0.29). → mean-rev 코어 폐기(ledger coin_core_buyscore=rejected_provisional). 부활 트리거=external 핵심소스(뉴스/온체인) 포함 OR OOS 다국면."
+    - "★[단기 momentum, 자문 3R 수렴 gemini+claude 2026-06-02] TS momentum 채널위치(donch20) fwd10d BTC +0.144(p=0.0001, thin +0.19 p=0.097 marginal)·ETH 일관(tr30d +0.177). cross-sectional 20코인 winner−loser tr7d→fwd10d thin t=+1.69(full t=4.2=overlap 신기루 t/√10≈1.33, survivorship+Upbit long-only caveat). vol-targeting collinear(donch와 corr 0.85)·realized vol BTC+/ETH− 부호불일치(directional 아님)·volprice_corr +0.13~0.16(thin 유의, momentum 변형 ρ0.51). ★Track A 코어=TS momentum 채널위치 단일 carrier(default=null·3-kill[e-process/down-regime IC<0/net-cost decile≤0]). Track C=cross-sectional(게이트=non-overlap 유의+long-only-as-executed survivorship 보정+2022 OOS). vol=포지션 sizing 레이어(risk parity, ablation). ★메타결론=단기 가격기술 공간 momentum 1차원, 추가 독립차원은 microstructure(funding/basis/OI)·온체인·거시. adopted 승격 전 J/K/I/G 게이트 의무(현 candidate, weight 0)."
+    - "★[최종 트랙 설계, 자문 R1 수렴 gemini+claude + net-cost 데이터검증 2026-06-02] §9.4 measured 전종(거시유동성 M2/real/dxy·funding 게이트형·breadth·온체인 active addr) 후 net-cost+2022 OOS 검증 결과: **코인 단기 트랙 = BTC momentum(donch20) 단일 carrier + kimchi throttle 보조**로 확정. (1) BTC momentum net Sharpe 1.39~1.52(보존 73~78%), 2022 OOS net −37.6%이나 Buy&Hold −63.5% 대비 26%p 방어=비파국적 → 자문 gate 통과. ★핵심가치=directional alpha보다 drawdown 방어(MDD −50% vs BH −74%). (2) kimchi throttle(rolling180 top decile→노출×0.5)=risk-adjusted 소폭개선(2023+ Sharpe 1.43→1.52, MDD↓)=throttle 역할만(directional sleeve 아님). kimchi↔breadth 독립(corr −0.206·부분IC유지). (3) breadth rotation=net Sharpe 0.39 ≪ BTC보유 1.13=net-cost 탈락(실행불가). (4) 거시유동성 6-24M=forward 재현실패·funding 게이트형=무알파·온체인 무료=무신호. ★family-wise FDR(N≈200+, 기대FD≈10>survivor 3): momentum만 학술 TSMOM prior+economic robustness 면제. driver-level kill=kimchi 구조~0(자본통제 완화) 시 트랙 정지 pre-register. 유료 온체인(SOPR/netflow)=후순위. 코드배선=go-live 사람게이트. raw=.consult-cointrack-R1-*, .p2-netcost-result.json."
   regime_reading: >
     FGI 5단계 × halving phase 4단계 conditioning 으로 가설별 부호 달라짐.
     ★실측 정정(audit C축 label 강·약 뒤바뀜 + 점추정 박제 교정): extreme_fear post_6_18m raw IC=-0.653(eff_n 14.6) / extreme_greed post_6_18m=-0.065(eff_n 5.7) / extreme_fear post_18_24m=-0.487(eff_n 12.8). 이전 "markup IC-0.03 약 / distribution IC-0.51 강"은 extreme_fear↔extreme_greed 혼동 + 점추정 박제(철회). ★전 cell eff_n<30 + Bonferroni 후 생존 0 = 개별 cell 강·약 단정 불가(비유의). 방향(전 cell 음=mean-revert)만 약 prior 일관. funding extreme long = trend 지속(자문 cascade 기각, 별도 가설). belief b(t) primary = FGI 5-state soft membership, macro·halving = parametric multiplier(약 prior, magnitude 미박제).
@@ -84,6 +87,8 @@ lens:
     (d) 일별 funding rate (7363 obs 평균 +0.000108) = 평소 수준.
     ★fwd 30d 예상 시 marginal trend 우세 (post_6_18m +8.5% 평균), but MVRV<1.5 = mean-revert 신호 활성도 낮음.
     ⚠️ 본 추정은 블록5 confidence_hooks 가 OOS Rank-IC 로 갱신 — H1·H2 가설 부호 정정 사항이 추가 데이터로 재검증되면 lens 다시 갱신.
+    ★[단기 기술 트랙 2026-06-02] 별 트랙(fwd 5~20d): mean-rev 코어 폐기(rejected_provisional), momentum 채널위치 단일 carrier 후보(candidate, forward 검정 대기 default=null). 거시 fwd_30d 트랙(MVRV/funding/stablecoin/ETF/halving)과 타임프레임·메커니즘 분리. 상세 = report_relations 단기 항목 2건 + ledger crypto 섹션(coin_core_buyscore/coin_tsmom/coin_xs_momentum/coin_volprice_corr/coin_realized_vol).
+    ★[최종 확정 2026-06-02, 자문 R1+net-cost] 단기 트랙 = **BTC momentum 단일 carrier + kimchi throttle**(net Sharpe 1.42, drawdown 방어). breadth net-cost 탈락·거시유동성/funding/온체인 무알파로 신호 추가 0. 2-sleeve→1-sleeve 축소. 상세=report_relations 단기 3번째 항목 + handoff §10 + ledger(coin_global_liquidity_m2/coin_real_rate/coin_dxy_sensitivity/coin_micro_funding/coin_breadth_altseason/coin_active_addresses 전부 측정완료).
 
 # 블록2: INDICATORS (정량 지표 — 실수집 PIT 데이터 기반)
 # in_our_system: 우리 시스템 *기존* 코드 경로에 이미 있는가
@@ -99,7 +104,7 @@ indicators:
      source_or_collector: "Binance USDT-M BTCUSDT 8h funding (n=7363 2019-09~). 시스템 wire = coin_consensus_lens.CoinLensData.funding_rate (현재 라이브 snapshot 만, 시계열 수집 필요)",
      transform: level, vintage_policy: point_in_time, lag: 0}
   - {id: btc_price, family: momentum, is_core: false, in_our_system: true,
-     source_or_collector: "Binance BTCUSDT spot 1d klines (n=3209 2017-08~). 시스템 wire = scripts/collect_market_data.py (Upbit) — Binance global 와 분리 운영",
+     source_or_collector: "Binance BTCUSDT spot 1d klines (n=3209 2017-08~). 시스템 wire = scripts/collect_market_data.py (Upbit) — Binance global 와 분리 운영. ★[단기 momentum 측정 2026-06-02] TS momentum 채널위치(donch20) fwd10d BTC +0.144(p=0.0001)·ETH 일관 = 단기 트랙 Track A 코어 carrier 후보(candidate, weight 0, forward 검정 대기). 상세 lens report_relations 단기 항목.",
      transform: level, vintage_policy: point_in_time, lag: 0}
   - {id: stablecoin_total_supply, family: macro_driver, is_core: false, in_our_system: false,
      source_or_collector: "DefiLlama /stablecoincharts/all 무료 (n=3105 2017-11~). ★collector_plan 신규",

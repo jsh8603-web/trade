@@ -154,6 +154,7 @@ weight_rules:
 #   /regime_belief_calibration 등 나머지 hook 의 실측경로 여부는 별도 점검 대상.)
 confidence_hooks:
   - hypothesis_id: hy_oas_risk_regime
+    affects_indicator: credit_spread_hy_oas
     confirm_signal: "HY OAS 확대 시 방어 틸트가 OOS outcome 에서 수익방어(합성 score Rank-IC 양 유지)"
     reject_signal: "HY OAS 신호 score Rank-IC e-CUSUM 단측 붕괴(baseline 아래)"
     emit_where: "backtest engine SELL outcome + 라이브 judge 사후평가(L1 score vs forward return)"
@@ -163,6 +164,7 @@ confidence_hooks:
     action_threshold: "e-value ≥ 1/alpha → PRIMARY kill(retract live) / 안정 → adopt 강화"
     feeds_weight: "kill→derive_weights 에서 해당 series IC→0 / 안정→base_weight 유지·소폭 상향"
   - hypothesis_id: real_rate_duration_penalty
+    affects_indicator: real_rate_10y
     confirm_signal: "rate-up 국면 분류 시 고듀레이션 sleeve 페널티가 drawdown 방어(국면별 OOS IC)"
     reject_signal: "rate-up 페널티가 OOS 에서 음의 알파(과조정) → e-CUSUM 붕괴"
     emit_where: "backtest 국면조건부 outcome + regime 분류 confidence calibration"
@@ -193,6 +195,7 @@ confidence_hooks:
     action_threshold: "ECE>임계 → belief temperature 재보정 / calibrated → belief 그대로 Σ_eff 주입"
     feeds_weight: "보정된 belief → effective_precision(Σ_eff) → _belief_conditional_cov → sleeve 배분(과신 시 between-dispersion inflate=transition de-risk)"
   - hypothesis_id: curve_regime_transition
+    affects_indicator: yield_10y_2y
     confirm_signal: "10Y-2Y 역전→해소 전환이 Recovery 진입을 선행(12~18M lag) OOS 검증"
     reject_signal: "커브 신호 lag 가 불안정(국면 오분류) → score IC 붕괴"
     emit_where: "장기 backtest 국면전환 정합 + lag 민감도"

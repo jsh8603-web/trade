@@ -1,6 +1,6 @@
 # H3 Stablecoin net creation lead-lag -- 실데이터 검증
 
-as_of: 2026-05-30T14:40:41.893659+00:00
+as_of: 2026-06-02T12:15:18.091145+00:00
 stablecoin: DefiLlama total supply, n=3105, 2017-11-29 ~ 2026-05-30
 BTC klines: Binance daily, merged n=3105
 

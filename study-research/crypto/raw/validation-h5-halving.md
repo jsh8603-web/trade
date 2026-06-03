@@ -1,6 +1,6 @@
 # H5 Halving phase regime — 실데이터 검증
 
-as_of: 2026-05-30T14:40:44.552962+00:00
+as_of: 2026-06-02T12:15:21.371350+00:00
 ★N=4 사실상 검정 불가 명시 (PlanB S2F OOS 붕괴 교보재). standalone IC 산출 금지.
 본 검증 = phase 별 conditioning 변수로서 H1 (MVRV) IC 안정성 확인만.
 

@@ -1,6 +1,6 @@
 # H1 MVRV mean-revert — 실데이터 검증
 
-as_of: 2026-06-02T01:59:25.424838+00:00
+as_of: 2026-06-02T12:14:03.999529+00:00
 data: CoinMetrics CapMVRVCur (2010-07-18 ~ 2026-05-29, n=5795)
 price: CoinMetrics PriceUSD/ReferenceRateUSD
 FGI merge: alternative.me (2018-02-01 ~ 2026-05-30)

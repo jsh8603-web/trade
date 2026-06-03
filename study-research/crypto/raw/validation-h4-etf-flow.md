@@ -1,6 +1,6 @@
 # H4 ETF net flow probation — 실데이터 검증
 
-as_of: 2026-05-30T14:39:37.371865+00:00
+as_of: 2026-06-02T12:15:20.129950+00:00
 data: Farside Investors daily ETF flow (musd)
   n=613, 2024-01-11 ~ 2026-05-29
   total cumulative inflow = +55,714.1 M USD
