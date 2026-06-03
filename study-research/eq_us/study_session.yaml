@@ -177,6 +177,42 @@ collector_plan:
     affects: [us_cyclical, us_defensive, us_mega_tech]
     status: deferred
 
+  # ── ★frame §M.12 line 325 의무: 측정축 4축 일괄 하강 (eq_kr 미러). ⛔통합 시 미하강 = 누락 = 감사 대상 ──
+  - gap: breadth_adjusted_IR
+    desc: "IR = IC·√(breadth). ★us_mega_tech n=11 basket = 핵심 적용(breadth-IR 2.56 사전 병기). frame §M.12 결론 2. ⛔점추정 박제 금지"
+    source: "기존 raw-v3 IC + avg_universe_n + eff_indep_N 재계산만(신규 fetch 0)"
+    priority: high
+    affects: [us_mega_tech, us_cyclical, us_defensive]
+    status: pending
+
+  - gap: size_orthogonal_PBR
+    desc: "value premium 이 size factor 노출 아닌지 직교화(⛔시총 인과 금지, frame §M.12). us_cyclical PER 방향 prior 의 size 혼동 점검"
+    source: "기존 PBR/PER z + 시총 분위 직교 회귀(재계산)"
+    priority: high
+    affects: [us_cyclical, us_defensive, us_mega_tech]
+    status: pending
+
+  - gap: IC_term_structure_monotonicity
+    desc: "premium 이면 horizon 단조, artifact 면 들쭉. ★us_cyclical PER 3M유의/6M·12M비유의 = 비단조 = degenerate 검증축(frame §M.12)"
+    source: "기존 horizon_results 단조성 점검(재독)"
+    priority: high
+    affects: [us_cyclical, us_defensive, us_mega_tech]
+    status: pending
+
+  - gap: negative_EPS_book_logging
+    desc: "음수 EPS·음수 book 처리 규칙 명시 로깅(cyclical 적자기 PER NaN / mega_tech 고PER expensive 처리 투명화, frame §M.12)"
+    source: "기존 measure.py NaN 분기 로깅만 추가(코드 미실행)"
+    priority: high
+    affects: [us_cyclical, us_mega_tech, us_defensive]
+    status: pending
+
+  - gap: net_of_cost
+    desc: "US long-short turnover + commission(★US STT 없음 = 한국 대비 저비용). mega_tech 최고유동성 / cyclical·defensive sector ETF 유동성. frame §M.12 결론 5"
+    source: "기존 net_cost 모델(spread/2 + commission, US 대칭) 확장"
+    priority: high
+    affects: [us_cyclical, us_defensive, us_mega_tech]
+    status: pending
+
 # ── 블록7 CODE_CHANGE_PLAN ──
 code_change_plan:
 
