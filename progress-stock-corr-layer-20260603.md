@@ -110,4 +110,6 @@ trigger_to_resume: "본 파일 §현재상태 첫 미체크 step 부터"
 > 2. **다음 의도**: (a) frame v3(`study-research/frame-v3-draft-...md`) §0 뼈대=archetype.py + §I archetype 매핑 보강 명시 (b) archetype.py DEFAULT_SECTOR_ARCHETYPE 10key→GICS11/한국12 전수+valid_from 보강 = 코드변경 사용자 승인 회수 → WireSmith(idle standby) dispatch (c) derive_weights 보강=1/N baseline ablation + n<50 LOO (d) frame v3 자문 3R → 검증 방향.
 > 3. **동기화 필요**: handoff-stock-industry-v3-20260603.md(재개 SSOT) + WireSmith teammate(`inv-wire` 팀) idle standby 유지 중.
 
+> [ckpt-202606031130:btn-Codlearn] **재진입 커밋 완료 + Phase7 진입 준비**. pytest 63✅(assume S1/S3/INV-12), 8커밋(assume core/equity 10sleeve/study docs/phase2). Phase7=supervisor 통합(eq_kr 7산업+eq_us 3sleeve study_session.yaml+L축직교화+PSD). SSOT=[handoff-codlearn-reentry-20260603.md](./handoff-codlearn-reentry-20260603.md). 다음=Phase7 작성→승인게이트. push금지.
+
 (append-only)
