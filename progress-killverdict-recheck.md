@@ -50,6 +50,11 @@
 - **M2 breadth** (.p2-breadth-monthly.py 기존): 월간 net보존 90% Sharpe+0.76 / 틸트+0.96 MDD−51% — 단 BTC보유+1.13 MDD−48% 미달. 자문: 2023-09~ 강세 단일국면이라 standalone 비교 무의미. **판정: INSUFFICIENT(단일국면, overlay 가치 판정불가) — 약세 OOS 확보 시 재평가**. 死 유지 근거 약화(벤치마크 오류 자문 인정).
 
 ## Working Notes
+> [ckpt-202606040XXX:btn-Inv] ★macro_vol_transfer Markov ex-ante 레짐 정식화 시도→실패 박제 (승격 관문 닫음)
+- **측정**(.p2-m4-voltransfer-markov.py): VIX 2-state Markov **3방식 전부 degenerate·수렴실패**(level mean-switch 단일regime붕괴 / AR(1) steady-state 구성불가 / diff-VIX switching-var sigma2→0+MLE실패) — VIX persistence 과다로 깨끗한 2-regime 부재. VIX 분위수 threshold(lag-1 ex-ante) split = stress-조건화 가설 **반증**(Bonf α/2=0.025): E3(2022+) VIX≤70pct **LOW(calm) β+0.371 p0.0001 n957** vs HIGH(stress) β−0.022 p0.87 死 / VIX>80pct LOW +0.320 vs HIGH −0.066 p0.65. E3 전체 +0.270 p0.002(ckpt 재현)은 **전적으로 calm-VIX 구간서 발생**.
+- **함의**: throttle(stress-contagion) 메커니즘 ↔ 실측 drift(empirical-claim §1.3) — 신호는 calm-VIX 평상시 VIX 한계상승의 fwd-vol 선행이고 극단 stress서 소멸 → throttle 로 쓰면 가장 필요한 stress 구간서 무작동. **ex-ante Markov/분위수 레짐 경로 닫힘**. candidate 유지(structural-prior tier, bw=0 throttle-only). 승격 잔여 = CME OI/기관보유(데이터게이트) 또는 2022+ 시대전환 구조 인정뿐.
+- ledger(coin_macro_vol_transfer 행) 박제 완료. push·go-live 미접촉.
+
 > [ckpt-202606030820:btn-Inv] 
 - **마지막 결정**: babyplace 위임 4종 STEP 2-6 완료=신규 adopted 0. gpr_vol=rejected_provisional(★corr(GPR,VIX)=+0.074 거의직교=흡수아님 별채널이나 predictive 약→기각, 흡수게이트 무의미) / stablecoin_exchange_inflow=candidate(무료 일봉 부재=데이터게이트 park, CM 1d 미지원·intraday만) / xs_size=candidate(소형 롱테일 universe 부재 park) / epu=rejected_provisional(전부 비유의). → ★**macro_vol_transfer는 VIX-only 확정**(GPR 별채널이나 약신호라 carrier 추가 0).
 - **다음 의도**: macro_vol_transfer 승격 잔여 = ex-ante 관측레짐(Markov coupling-state, BTC-SPX corr는 return동조라 부적합) + full DVOL 2021+ 페이지네이션. babyplace 후보 전부 park/reject라 main 측 신규 알파 추가 경로 소진. directional=BTC momentum 단독 확정(문헌 일치). 
