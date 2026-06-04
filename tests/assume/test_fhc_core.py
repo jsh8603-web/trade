@@ -232,3 +232,53 @@ def test_fdr_multiplicity_control():
         transition(ci, sti, mediator_state=MediatorState.HOLDS, fdr_firewall=None)
         n_fixed += (sti.state == FHCStateEnum.CONFIRMED)
     assert n_fdr <= n_fixed                                # FDR multiplicity 억제
+
+
+# --- core 정교화: chatter backoff 통합(reject_recovery 재사용) + episode-LOO (2026-06-04) ---
+def test_chatter_backoff_revive_cooldown():
+    """revived→vacated record_kill → cooldown 중 부활 보류 → 경과 후 부활(flapping 차단, §14.8a)."""
+    from core.assume.reject_recovery import ChatterBackoff
+    cb = ChatterBackoff(base_cooldown=4, max_cooldown=256)
+    c = _card(card_id="fhc.chat", revival_cap=5)
+    st = _confirm(c)
+    transition(c, st, mediator_state=MediatorState.FAILS, chatter_backoff=cb, now_tick=1)  # confirmed→vacated(record_kill 안함)
+    transition(c, st, mediator_state=MediatorState.HOLDS, chatter_backoff=cb, now_tick=2)  # revived #1(cooldown 없음)
+    assert st.state == FHCStateEnum.REVIVED and st.revival_count == 1
+    transition(c, st, mediator_state=MediatorState.FAILS, chatter_backoff=cb, now_tick=3)  # revived→vacated record_kill(until=3+4=7)
+    transition(c, st, mediator_state=MediatorState.HOLDS, chatter_backoff=cb, now_tick=5)  # cooldown 중(5<7) → 보류
+    assert st.state == FHCStateEnum.VACATED and st.revival_count == 1
+    transition(c, st, mediator_state=MediatorState.HOLDS, chatter_backoff=cb, now_tick=7)  # 경과(7≥7) → 부활 #2
+    assert st.state == FHCStateEnum.REVIVED and st.revival_count == 2
+
+
+def test_chatter_backoff_none_byte_identical():
+    """chatter_backoff=None → 즉시 부활(기존 동작 보존, INV-11)."""
+    c = _card()
+    st = _confirm(c)
+    transition(c, st, mediator_state=MediatorState.FAILS)
+    transition(c, st, mediator_state=MediatorState.HOLDS)
+    assert st.state == FHCStateEnum.REVIVED and st.revival_count == 1
+
+
+def _loo_state():
+    """약신호 60틱(e 를 threshold 직전까지) + 강 outlier 1틱(threshold 위로). 단일 episode 의존 케이스."""
+    st = FHCState("fhc.loo.x")
+    for _ in range(60):
+        update_outcome(st, 0.5, mediator_holds=True)
+    update_outcome(st, 3.0, mediator_holds=True)
+    return st
+
+
+def test_episode_loo_value_property():
+    st = _loo_state()
+    assert st.e_value >= 20.0 > st.e_value_loo            # 단일 outlier 제거 시 confirm 임계 붕괴
+
+
+def test_episode_loo_robust_gate():
+    c = _card(card_id="fhc.loo", confirm_thr=20.0)
+    st_off = _loo_state()
+    transition(c, st_off, mediator_state=MediatorState.HOLDS)                        # robust off(기본)
+    assert st_off.state == FHCStateEnum.CONFIRMED
+    st_on = _loo_state()
+    transition(c, st_on, mediator_state=MediatorState.HOLDS, require_loo_robust=True)  # robust on
+    assert st_on.state == FHCStateEnum.MINTED            # LOO 후 미달 → confirm 보류(minted 잔류)

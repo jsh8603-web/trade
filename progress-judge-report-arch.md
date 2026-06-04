@@ -33,11 +33,22 @@ plan: plan-judge-report-arch.md
 - 잔여: substrate on(멀티에셋 macro view+regime) 주입 variant = RegimeGlasso 공유라 button 연결 후. coin baseline은 확보.
 
 ## Working Notes
+> [ckpt-202606040XXX:btn-Inv core 정교화 2건 완료(67 passed) — chatter backoff 통합 + episode-LOO]
+> ★**완료(검증됨)**: 핸드오프 §5 미서명 "core 정교화 잔여"(btn-Inv 단독 가능) **2건 집행** → `tests/assume/ 67 passed`(기존 63 + 신규 4). **(1) ChatterBackoff 통합**: `transition`에 `chatter_backoff`(reject_recovery.ChatterBackoff 재사용)+`now_tick` opt-in 주입. revived→vacated 시 `record_kill`(지수 cooldown) → vacated→revived 직전 `can_retry` 게이트 → flapping noise 추격 차단(§14.8a). revival_cap(hard limit)과 보완(cap 전 시간 간격↑). **(2) episode-LOO**: `_DirectionalE`에 `_log_factors`+`e_value_loo`(양 기여 최대 단일 tick 제거) → `FHCState.e_value_loo` 노출 + `transition(require_loo_robust=True)` 게이트(단일 outlier episode 제거 후 e≥thr 요구, empirical-claim §1.2 n<30). 검증 e=24.3≥20>LOO=18.7.
+> ★**INV-11 byte-identical 입증**: 신규 3 param 전부 None/False fallback → 기존 63 passed 불변 + `test_chatter_backoff_none_byte_identical` 명시 케이스. additive·호출처 0·결정론/risk_gate 무수정 유지. fhc.py self-test 12/12 PASS.
+> ★**다음**: ② 코인 Markov ex-ante(별 트랙, macro_vol_transfer 승격 관문) / ③ 커밋 정리. S2/S4/S5 = button 합류+go-live 선결(불변).
+>
+> [ckpt-202606032210:btn-Inv INV-12 회귀 편입 완결(63 passed) + 트랙 상태 확정]
+> ★**완료(검증됨)**: 직전 ckpt "남은 단 1 step = pytest 63 passed" **실행 완료** → `tests/assume/ 63 passed in 3.00s`(58 + fhc_fdr 5). INV-12 회귀 편입 **완결**. 자산무관 core 3모듈(`fhc.py` S1 / `bonus_channel.py` S3 / `fhc_fdr.py` INV-12) = 빌드+회귀 전부 닫힘, additive·호출처 0(go-live 시 소비)·결정론/risk_gate 무수정.
+> ★**다음 재개점 = button(주식 S6) 회신 대기**: S2 mediator(state-space=button RegimeGlasso 공유)·S4 능동루프·S5 리서치 = button 합류 + go-live 게이트 선결로 단독 진행 불가. btn-Inv 단독 가능 잔여 = 코인 Markov ex-ante(별 트랙) 또는 core 정교화(reject_recovery 트리거 통합·_DirectionalE 정밀화).
+> ★**자문 누락 점검(이 ckpt)**: plan §1(D1~D11=C1~C12 매핑)·§2(INV-1..16=C13)·§3(S0~S6=C14) 전부 `.consult-judge-report-RESULTS.md` 포인터 보유. ★빠졌던 것=**C9 "결정론이 못 푸는 6유형"**(①regime-break 구조모델 무효 ②value-trap 판별 ③cross-source 합성 ④신규 가설 생성 ⑤이산 이벤트 ⑥instrument 선택)=S4 능동루프 7-step 존재이유 → plan §3 S4에 포인터 박음. C16 최종변환 한문장 = 핸드오프 자문종합 반영.
+> ★**별 트랙(같은 세션)**: 코인 `coin_ssr_oscillator` ledger status drift 정정(candidate→rejected_provisional, 본문·progress 결론과 정합). 코인 신규지표 라운드(M4 5종+babyplace 4종) ledger 박제 완결 재확인. **압축내성 핸드오프 = `handoff-judge-fhc-arch-20260603.md`**(자기완결 6섹션).
+
 > [ckpt-202606032130:btn-Inv INV-12 FDR firewall wire 완료·검증]
 > ★**완료(자율, 검증됨)**: INV-12 alpha-wealth FDR firewall = `core/assume/fhc_fdr.py`(FDRFirewall·_layer_of·per-layer ELOND·test_confirm[카드당1회+pre-filter+layer고정분할]) + `fhc.py` transition(`fdr_firewall=None` param + minted 분기 `confirm_e_ok` 교체, None=고정임계 byte-identical fallback). **self-test 6/6 PASS**(firewall None fallback·pre-filter budget절약·강e confirm·INV-12 layer격리 macro/basket·double-spend 캐시·multiplicity 통제 FDR0≤고정20).
 > ★**자산무관 core 3모듈 완결**: fhc.py(S1)+bonus_channel.py(S3)+fhc_fdr.py(INV-12). 전부 additive·호출처 0(go-live 시 소비)·결정론/risk_gate 무수정.
 > (1) 마지막 결정: INV-12 옵션 주입 방식(기존 고정임계 fallback 보존). _DirectionalE 단측 e-process 유지. ELOND 재사용(eprocess_backbone).
-> (2) 다음 의도(재개점): **(a) 회귀 confirm ✅완료**(pytest tests/assume **58 passed**, INV-11 보존). **(b) polish 진행중** = `test_fhc_core.py`에 `from core.assume.fhc_fdr import FDRFirewall` import **추가됨**(미사용=valid, 58 passed 유지). **append ✅완료**(fhc_fdr pytest 5개: test_fdr_none_fallback/prefilter_no_budget/layer_isolation/double_spend_cache/multiplicity_control + `_state_e` helper. 깨진 lambda 1블록 수정 완료). ★**남은 단 1 step(다음 세션 첫 행동)** = `python -m pytest tests/assume/ -q` 실행해 **63 passed** 확인(현 58 + fhc_fdr 5). 통과 시 INV-12 회귀편입 완결. 그 다음 S2/S4/S5 = button RegimeGlasso 합류+go-live 게이트 선결(SACRED, 야간 진행 불가).
+> (2) 다음 의도(재개점): **(a) 회귀 confirm ✅완료**(pytest tests/assume **58 passed**, INV-11 보존). **(b) polish 진행중** = `test_fhc_core.py`에 `from core.assume.fhc_fdr import FDRFirewall` import **추가됨**(미사용=valid, 58 passed 유지). **append ✅완료**(fhc_fdr pytest 5개: test_fdr_none_fallback/prefilter_no_budget/layer_isolation/double_spend_cache/multiplicity_control + `_state_e` helper. 깨진 lambda 1블록 수정 완료). ★**남은 단 1 step(다음 세션 첫 행동)** = `python -m pytest tests/assume/ -q` 실행해 **63 passed** 확인(현 58 + fhc_fdr 5). 통과 시 INV-12 회귀편입 완결. **STATUS**: resolved (2026-06-03, 63 passed in 3.00s 확인 — 후속 ckpt-202606032210 흡수). 그 다음 S2/S4/S5 = button RegimeGlasso 합류+go-live 게이트 선결(SACRED, 야간 진행 불가).
 > (3) 동기화 필요: button=core API(fhc/bonus_channel/fhc_fdr) 어댑트 통지함. go-live·push 미접촉. plan-test-readiness P3/P5 흡수. commit 미실행(push 금지).
 
 > [ckpt-202606032055:btn-Inv INV-12 FDR firewall wire 진행중(재개점)]

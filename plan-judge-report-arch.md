@@ -44,6 +44,7 @@ consult: .consult-judge-report-RESULTS.md
   - **S3a** breaker(regime-primary)+recall path(IOC ladder)+fail-closed 선배선 [chaos/fault-injection 통과 필수]. `wf: harness2`
   - **S3b** bonus emission(L1+bonus≤C, e-value monotone map, 시간감쇠). `wf: harness2`
 - **S4 능동 애널리스트 루프** — 7-step(저신뢰 트리거→summon gate→scoped PIT 검색→falsifiable claim→Opus pre-mint audit→probationary mint→write-back). `wf: harness2`
+  - ★존재이유 = **C9 결정론이 못 푸는 6유형**(RESULTS C9): ①regime-break로 구조모델 자체 무효 ②value-trap 판별(일시 dislocation vs 영구 impairment) ③cross-source 합성 ④신규 가설 생성 ⑤스케줄된 이산 이벤트 ⑥instrument 선택. 이 6유형 = LLM 카드발권이 결정론보다 우위인 유일 영역(나머지는 결정론 코어가 처리).
 - **S5 리서치 통합** — 2-stage(매일 카드발권 LLM + RAG 하이브리드 daily batch/event-driven, PIT 스탬프). VaultVoice BGE/LanceDB 재사용. `wf: harness2`
 - **S6 [button 세션]** 종목 바스켓 — 룰코어 top-N×지표편차 스크린 + 딥모델 비교선택 + 메타카드. KIS equity. `→ button`
 

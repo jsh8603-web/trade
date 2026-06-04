@@ -140,18 +140,33 @@ class _DirectionalE:
         self.lam = lam
         self.clip = clip
         self._log_e = 0.0
+        self._log_factors: list = []     # episode-LOO 용 per-tick log(factor)(empirical-claim §1.2 n<30)
         self.n = 0
 
     def update(self, x: float) -> float:
         xc = max(-self.clip, min(self.clip, float(x)))
         factor = max(1e-9, 1.0 + self.lam * self.sign * xc)
-        self._log_e += math.log(factor)
+        lf = math.log(factor)
+        self._log_e += lf
+        self._log_factors.append(lf)
         self.n += 1
         return math.exp(self._log_e)
 
     @property
     def e_value(self) -> float:
         return math.exp(self._log_e)
+
+    @property
+    def e_value_loo(self) -> float:
+        """episode-LOO e-value = 양의 기여 최대 단일 tick 1개 제거 후 e-value(최악 케이스).
+        ★small-n(n<30) 카드 confirm 이 단일 outlier episode 에 의존하는지 노출(empirical-claim §1.2
+        LOO robustness). 양 기여 없으면(전부 ≤0) 원 e-value 반환(제거해도 안 낮아짐)."""
+        if not self._log_factors:
+            return self.e_value
+        max_pos = max(self._log_factors)
+        if max_pos <= 0.0:
+            return self.e_value
+        return math.exp(self._log_e - max_pos)
 
 
 # ===========================================================================
@@ -183,6 +198,11 @@ class FHCState:
     @property
     def e_value(self) -> float:
         return float(self._e_confirm.e_value)
+
+    @property
+    def e_value_loo(self) -> float:
+        """confirm e-process 의 episode-LOO e-value(단일 outlier episode 제거 후). empirical-claim §1.2."""
+        return float(self._e_confirm.e_value_loo)
 
     @property
     def e_reject(self) -> float:
@@ -253,7 +273,9 @@ def bonus_from_evalue(card: FHCard, state: FHCState) -> float:
 # ===========================================================================
 def transition(card: FHCard, state: FHCState, *,
                mediator_state: Optional[MediatorState] = None,
-               graduation_decision=None, fdr_firewall=None) -> FHCState:
+               graduation_decision=None, fdr_firewall=None,
+               chatter_backoff=None, now_tick: Optional[int] = None,
+               require_loo_robust: bool = False) -> FHCState:
     """5-state 전이 1회. mediator_state 주입(eval_mediator 산출). graduation_decision optional(5-AND).
 
     전이(RESULTS C13 lifecycle):
@@ -265,6 +287,13 @@ def transition(card: FHCard, state: FHCState, *,
       vacated→revived   : fails→holds AND 미기각 AND revival_count<cap
       vacated→rejected  : revival_count≥cap(retire) / holds AND e_reject≥thr
     ⛔ rejected = absorbing(un-reject 불가, 부활=새 card_id).
+
+    ★opt-in 정교화(미주입 시 byte-identical, INV-11):
+      - chatter_backoff(reject_recovery.ChatterBackoff) + now_tick: revived→vacated 시 record_kill →
+        vacated→revived 직전 can_retry 게이트(지수 cooldown). flapping noise 추격 차단(§14.8a).
+        revival_cap(hard limit)과 보완 — cap 전 시간 간격을 벌림. None = 즉시 부활(기존).
+      - require_loo_robust: minted→confirmed e-게이트에 episode-LOO 부착(empirical-claim §1.2 n<30).
+        단일 outlier episode 제거 후에도 e≥thr 이어야 confirm. False(기본) = byte-identical.
     """
     if mediator_state is not None:
         state.mediator_state = mediator_state
@@ -288,6 +317,10 @@ def transition(card: FHCard, state: FHCState, *,
         confirm_e_ok = (fdr_firewall.test_confirm(card, e_conf)
                         if fdr_firewall is not None
                         else e_conf >= card.confirm_e_threshold)
+        # ★episode-LOO robustness(opt-in): 단일 outlier episode 제거 후에도 confirm 임계 생존 요구.
+        #   small-n 카드가 한 episode 에 업혀 confirm 박제되는 것 차단(empirical-claim §1.2). 미주입 byte-identical.
+        if confirm_e_ok and require_loo_robust:
+            confirm_e_ok = state.e_value_loo >= card.confirm_e_threshold
         if holds and e_rej >= card.reject_e_threshold:
             _go(FHCStateEnum.REJECTED, f"minted→reject (adverse e={e_rej:.1f})")
         elif (holds and confirm_e_ok
@@ -302,6 +335,10 @@ def transition(card: FHCard, state: FHCState, *,
             _go(FHCStateEnum.REJECTED, f"{s.value}→reject (adverse e={e_rej:.1f}, clawback)")
             state.realized_bonus = 0.0
         elif fails:
+            # ★revived→vacated = 부활 후 재이탈 = chatter 사이클 → backoff record_kill(다음 부활 cooldown↑).
+            #   confirmed→vacated(첫 suspend)는 chatter 아님 → 미기록.
+            if s == FHCStateEnum.REVIVED and chatter_backoff is not None and now_tick is not None:
+                chatter_backoff.record_kill(card.card_id, now_tick)
             _go(FHCStateEnum.VACATED, "holds→fails (보너스 suspend, 반증 아님)")
             state.realized_bonus = 0.0
         else:                                   # holds 유지 → 보너스 갱신
@@ -314,6 +351,9 @@ def transition(card: FHCard, state: FHCState, *,
         elif holds and e_rej < card.reject_e_threshold:
             if state.revival_count >= card.revival_cap:
                 _go(FHCStateEnum.REJECTED, f"revival_cap({card.revival_cap}) 도달 → retire")
+            elif (chatter_backoff is not None and now_tick is not None
+                  and not chatter_backoff.can_retry(card.card_id, now_tick)):
+                pass        # ★cooldown 중 → 부활 보류(vacated 잔류, flapping noise 추격 차단). 무전이.
             else:
                 state.revival_count += 1
                 _go(FHCStateEnum.REVIVED, f"vacated→revived #{state.revival_count}")
@@ -428,5 +468,43 @@ if __name__ == "__main__":
     assert st6.e_value == e0 and st6.holds_ticks == 0, (st6.e_value, e0)
     print("10) previsible no-bet OK: fails 30틱 → e 불변(holds_ticks=0)")
 
+    # 11) ★chatter backoff 통합(reject_recovery 재사용): revived→vacated record_kill → cooldown 중 부활 보류
+    from core.assume.reject_recovery import ChatterBackoff
+    cb = ChatterBackoff(base_cooldown=4, max_cooldown=256)
+    c7 = _mk(card_id="fhc.chat", revival_cap=5)
+    st7 = FHCState(c7.card_id)
+    for _ in range(60):
+        update_outcome(st7, 1.2, mediator_holds=True)
+    transition(c7, st7, mediator_state=MediatorState.HOLDS, chatter_backoff=cb, now_tick=0)   # confirmed
+    assert st7.state == FHCStateEnum.CONFIRMED
+    transition(c7, st7, mediator_state=MediatorState.FAILS, chatter_backoff=cb, now_tick=1)   # confirmed→vacated(record_kill 안함)
+    transition(c7, st7, mediator_state=MediatorState.HOLDS, chatter_backoff=cb, now_tick=2)   # revived #1(cooldown 없음)
+    assert st7.state == FHCStateEnum.REVIVED and st7.revival_count == 1, (st7.state, st7.revival_count)
+    transition(c7, st7, mediator_state=MediatorState.FAILS, chatter_backoff=cb, now_tick=3)   # revived→vacated: record_kill(until=3+4=7)
+    transition(c7, st7, mediator_state=MediatorState.HOLDS, chatter_backoff=cb, now_tick=5)   # cooldown 중(5<7) → 부활 보류
+    assert st7.state == FHCStateEnum.VACATED and st7.revival_count == 1, (st7.state, st7.revival_count)
+    transition(c7, st7, mediator_state=MediatorState.HOLDS, chatter_backoff=cb, now_tick=7)   # 경과(7≥7) → 부활 #2
+    assert st7.state == FHCStateEnum.REVIVED and st7.revival_count == 2, (st7.state, st7.revival_count)
+    print("11) ★chatter backoff 통합 OK: revived→vacated record_kill → cooldown 중 부활 보류 → 경과 후 부활 #2")
+
+    # 12) ★episode-LOO robustness(empirical-claim §1.2): 단일 outlier episode 에 업힌 confirm 차단
+    c8 = _mk(card_id="fhc.loo", confirm_e_threshold=20.0)
+    def _loo_state():
+        st = FHCState("fhc.loo.x")
+        for _ in range(60):
+            update_outcome(st, 0.5, mediator_holds=True)   # 약신호 다수(e 를 threshold 직전까지)
+        update_outcome(st, 3.0, mediator_holds=True)        # 강 outlier 1개(threshold 위로 밀어 올림)
+        return st
+    st8 = _loo_state()
+    e_full, e_loo = st8.e_value, st8.e_value_loo
+    assert e_full >= 20.0 > e_loo, (e_full, e_loo)          # full 통과, 단일 episode 제거 시 붕괴
+    transition(c8, st8, mediator_state=MediatorState.HOLDS)                          # robust off(기본)
+    assert st8.state == FHCStateEnum.CONFIRMED, st8.state
+    st8b = _loo_state()
+    transition(c8, st8b, mediator_state=MediatorState.HOLDS, require_loo_robust=True)  # robust on
+    assert st8b.state == FHCStateEnum.MINTED, st8b.state    # LOO 후 미달 → confirm 보류(minted 잔류)
+    print(f"12) ★episode-LOO OK: e={e_full:.1f}≥20>LOO={e_loo:.1f} / robust=off confirm, on 보류(단일 episode 의존 차단)")
+
     print("\nfhc self-test PASS (2-leg mediator/outcome · 5-state · INV minted-dormant/absorbing/"
-          "revival-cap/fail-closed-bonus · previsible no-bet · 기존 e-process 재사용)")
+          "revival-cap/fail-closed-bonus · previsible no-bet · chatter-backoff 통합 · episode-LOO robustness · "
+          "기존 e-process 재사용)")
