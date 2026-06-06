@@ -23,6 +23,12 @@ from core.assume.info_delta_gate import RateCapState
 logger = logging.getLogger(__name__)
 
 _ENV_ACTIVE_LOOP_SHADOW = "ACTIVE_LOOP_SHADOW"
+_ENV_MACRO_ENRICH = "MACRO_ENRICH"
+_ENV_MACRO_CONSENSUS = "MACRO_CONSENSUS"
+
+
+def _env_on(name: str) -> bool:
+    return str(os.environ.get(name, "")).strip().lower() in ("1", "true", "on", "yes")
 
 
 def is_active_loop_shadow_enabled() -> bool:
@@ -31,8 +37,45 @@ def is_active_loop_shadow_enabled() -> bool:
     on 이어도 카드는 probationary(자본0) → 배분 무영향. go-live arming(사람 게이트)과 별개.
     study_register.is_r15_enabled 동일 패턴(1/true/on/yes).
     """
-    return str(os.environ.get(_ENV_ACTIVE_LOOP_SHADOW, "")).strip().lower() in (
-        "1", "true", "on", "yes")
+    return _env_on(_ENV_ACTIVE_LOOP_SHADOW)
+
+
+def is_macro_enrich_enabled() -> bool:
+    """macro_reasoning.enrich(거시 LLM 추론) wire opt-in. off=미호출(byte-identical, baseline 유지).
+
+    ★on 이면 LLM stance 가 macro_view 에 주입돼 regime_to_weights BL View 로 배분 이동
+      = 결정론 baseline 자체를 LLM 이 수정(FHC bonus 와 다른 리스크 프로파일, 사용자 명시 후 활성).
+    """
+    return _env_on(_ENV_MACRO_ENRICH)
+
+
+def is_macro_consensus_enabled() -> bool:
+    """consensus(고-스테이크스 LLM 합의) wire opt-in. off=미호출(byte-identical).
+
+    ★on 이면 고-스테이크스 배분 변경을 LLM 이 검토 → down-only de-risk(보수화만, 증폭 불가).
+    """
+    return _env_on(_ENV_MACRO_CONSENSUS)
+
+
+def build_macro_reasoning_node(*, use_claude: bool = True, report_store=None,
+                               correction_memory=None):
+    """macro_reasoning.MacroReasoningNode 실배선 — trigger 시 LLM 거시추론(stance) enrich.
+
+    use_claude=True → ClaudeProvider(OAuth) 어댑터 주입. 실패/off → llm None → enrich abstain(baseline).
+    report_store = research_ingest(RAG) 주입 시 PIT 리포트 컨텍스트 소비.
+    """
+    from core.brain.macro_reasoning import MacroReasoningNode
+    llm = None
+    if use_claude:
+        try:
+            from core.brain.llm_provider import ClaudeProvider
+            llm = GenerateToComplete(ClaudeProvider())
+            logger.info("MacroReasoningNode LLM 실배선: Claude(OAuth)")
+        except Exception as e:
+            logger.warning("MacroReasoningNode llm 배선 실패 → abstain: %s", e)
+            llm = None
+    return MacroReasoningNode(llm=llm, report_store=report_store,
+                             correction_memory=correction_memory)
 
 
 class GenerateToComplete:

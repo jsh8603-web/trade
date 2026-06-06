@@ -52,6 +52,7 @@ class CoinTrackWithMacro(CoinTrack):
         self._fhc_loop = None        # (B) FHC shadow 발권 루프 lazy 캐시(rate_cap 상태 유지)
         self._fhc_ingest = None      # (RAG) research_ingest lazy(발권 report_store=RAG stage-2 연결)
         self._fhc_cards = []         # (C) 발권 카드 누적 [(FHCard, FHCState)] → allocate bonus wire
+        self._macro_node = None      # (enrich) MacroReasoningNode lazy(거시 LLM stance 주입)
 
     def collect_market_state(self, as_of=None) -> MarketState:
         """기존 CoinTrack.collect_market_state + macro 레이어 주입.
@@ -91,6 +92,16 @@ class CoinTrackWithMacro(CoinTrack):
                     returns_panel = None
                     macro_view = None
                     sleeve_regime_ids = None
+                # ★거시 LLM enrich (env MACRO_ENRICH off=byte-identical) — trigger 시 LLM stance
+                #   주입 → regime_to_weights BL View 로 배분 이동(결정론 baseline 자체 수정). 고신뢰=baseline.
+                if macro_view is not None:
+                    from core.assume.loop_factory import is_macro_enrich_enabled
+                    if is_macro_enrich_enabled():
+                        try:
+                            macro_view = self._run_macro_enrich(macro_view)
+                        except Exception as exc:
+                            logger.warning("macro enrich 실패 → baseline 유지: %s", exc)
+
                 macro_result = self._macro_orch.allocate(
                     macro_view=macro_view, returns_history=returns_panel,
                     sleeve_regime_ids=sleeve_regime_ids, as_of=as_of,
@@ -114,6 +125,31 @@ class CoinTrackWithMacro(CoinTrack):
                 logger.warning("macro 레이어 주입 실패 → 기존 경로 유지: %s", exc)
 
         return state
+
+    def _run_macro_enrich(self, macro_view):
+        """거시 LLM enrich — 저신뢰/caution trigger 시 LLM stance 주입, 고신뢰=baseline(결정론 충분).
+
+        ★결정론 baseline 수정 경로: trigger 발동 시 LLM 이 stance(슬리브 tilt)를 macro_view 에 주입,
+        regime_to_weights 가 이를 BL View 로 소비 → 배분 이동. confidence 낮으면 stance 자동 축소(C2).
+        trigger 없으면(고신뢰 + caution 없음) baseline 그대로(LLM 미호출, 비용 0). 실패→baseline graceful.
+        """
+        from core.brain.macro_reasoning import MacroTrigger
+        from core.brain.macro_schema import Bloc
+
+        usd = macro_view.regime(Bloc.USD)
+        conf = getattr(usd, "confidence_now", 1.0) if usd is not None else 1.0
+        caution = bool(getattr(macro_view, "caution_flags", []))
+        if conf >= 0.5 and not caution:
+            return macro_view   # 고신뢰 + caution 없음 = trigger 없음(결정론 baseline)
+
+        if self._macro_node is None:
+            from core.assume.loop_factory import build_macro_reasoning_node
+            self._macro_node = build_macro_reasoning_node(
+                use_claude=True, report_store=self._fhc_ingest)
+        trig = MacroTrigger(
+            reason=("low_confidence" if conf < 0.5 else "report_divergence"),
+            detail={"confidence": conf, "caution": caution})
+        return self._macro_node.enrich(macro_view, trig)
 
     def _run_fhc_shadow(self, macro_view, as_of, state) -> None:
         """(B) FHC 능동 발권 루프 shadow 1사이클 — env ACTIVE_LOOP_SHADOW on 일 때만 호출.

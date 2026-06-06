@@ -96,6 +96,7 @@ class PortfolioOrchestrator:
         self._risk_gate = risk_gate
         self._fx_rate = fx_rate_krw_usd
         self._consensus_enabled = consensus_enabled
+        self._consensus_node = None        # consensus LLM 노드 lazy(env MACRO_CONSENSUS)
 
         # 이전 슬리브 비중 (Drift Monitor 기준)
         self._prev_weights: Dict[str, float] = {}
@@ -229,7 +230,49 @@ class PortfolioOrchestrator:
             except Exception as exc:
                 logger.warning("FHC bonus wire 실패 → L1 배분 유지: %s", exc)
 
+        # ★consensus (env MACRO_CONSENSUS off=byte-identical) — 고-스테이크스 배분 변경을 LLM 이
+        #   검토 → down-only de-risk(prior 후퇴만, 증폭 불가). 실주문은 별도(GatedOrderRouter go-live).
+        cnode = self._get_consensus_node()
+        if cnode is not None:
+            try:
+                w = result.get("weights", {})
+                prior = result.get("prior", {}) or w
+                prev = self._prev_weights or {}
+                alloc_change = (max((abs(w.get(k, 0.0) - prev.get(k, 0.0)) for k in w), default=0.0)
+                                if prev else 0.0)
+                regime_now = ""
+                if macro_view is not None:
+                    from core.brain.macro_schema import Bloc
+                    _u = macro_view.regime(Bloc.USD)
+                    regime_now = _u.regime_now.value if _u is not None else ""
+                if is_high_stakes(regime_changed=bool(macro_abstain),
+                                  allocation_change_pct=alloc_change):
+                    rev = cnode.review(weights=w, prior=prior, regime_now=regime_now,
+                                       trigger_detail={"alloc_change": round(alloc_change, 4)})
+                    dr = rev.get("de_risk", 0.0)
+                    if dr > 0:
+                        from core.brain.consensus_node import apply_consensus_derisk
+                        result["weights"] = apply_consensus_derisk(w, prior, dr)
+                        result.setdefault("caution", []).append("consensus_derisk")
+                    result["consensus"] = rev
+            except Exception as exc:
+                logger.warning("consensus 검토 실패 → 배분 유지: %s", exc)
+
         return result
+
+    def _get_consensus_node(self):
+        """consensus LLM 노드 lazy — env MACRO_CONSENSUS off=None(byte-identical, 미호출)."""
+        from core.assume.loop_factory import is_macro_consensus_enabled
+        if not is_macro_consensus_enabled():
+            return None
+        if self._consensus_node is None:
+            try:
+                from core.brain.consensus_node import build_consensus_node
+                self._consensus_node = build_consensus_node(use_claude=True)
+            except Exception as exc:
+                logger.warning("consensus_node 배선 실패 → 미적용: %s", exc)
+                return None
+        return self._consensus_node
 
     def _apply_fhc_bonus(self, weights, card_states, *, breaker_tripped: bool = False):
         """(C) bonus_channel.size_with_bonus 로 L1 위 bonus tilt → 합=1 재정규화.
