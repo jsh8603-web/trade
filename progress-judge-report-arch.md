@@ -33,6 +33,12 @@ plan: plan-judge-report-arch.md
 - 잔여: substrate on(멀티에셋 macro view+regime) 주입 variant = RegimeGlasso 공유라 button 연결 후. coin baseline은 확보.
 
 ## Working Notes
+> [ckpt-202606061600:btn-Inv ★실 Claude OAuth 발권 실연결 검증 + temperature 버그 픽스]
+> ★**완료**: 사용자 "A(ollama) 이미 깔려있고 / B 전역 클로드 oath 키 사용" → B(Claude OAuth) 배선. ★A 재확인=11434 무응답+설치경로 미발견(서버 미가동, graceful abstain). ★B=`~/.claude/.credentials.json` claudeAiOauth.accessToken(sk-ant-oat01, len108) + `llm_provider.ClaudeProvider`(이미 구현, deep tier, urllib 직접 HTTP /v1/messages OAuth Bearer) + anthropic SDK 0.104.1.
+> (1) **loop_factory use_claude 추가**(commit f443527): build_active_loop(use_claude=True)→ClaudeProvider→GenerateToComplete 어댑터. 우선순위 use_claude>use_local_llm.
+> (2) **★temperature deprecated 버그 픽스**(llm_provider.py): claude-opus-4-7/sonnet-4/haiku-4=temperature 파라미터 deprecated(HTTP 400 invalid_request)→신형 4.x payload 생략(모델 기본)·구형만 주입. ★진단=실 LIVE 발권서 400 본문 "`temperature` is deprecated for this model" 확인. 픽스 후 **400→429**(Too Many Requests) 진행=인증·요청형식·서버 도달 정상=★실 Claude OAuth 실연결 검증 완료. LIVE 카드 출력만 메인 세션(이 Opus) 동일 OAuth 한도 경합으로 보류(코드 결함 아님, 한가할 때 통과). 회귀 tests/assume 118 passed.
+> (3) **다음 의도**: 발권 LIVE 카드 출력=메인 idle 시 background 재시도 통과 확인. production wire(coin_track_macro opt-in shadow)는 실 LLM 한도 안정 후. ⛔실자금 flip(DRY_RUN=false)·push=사람 게이트(autopilot-run-scope). 발권=자본0 probationary 불변. long-mode on2.
+>
 > [ckpt-202606061500:btn-Inv S5 ingest + S4 발권 실연결 팩토리 ✅ — 거시 FHC 파이프라인 e2e shadow(118 passed)]
 > ★**완료**: "이 세션 plan progress 자율주행 다해" + "고 라이브 실연결도 다해" → 거시 FHC 파이프라인 shadow **e2e 닫음**(발권 실연결까지). 누적 9 커밋(d00fe0f S2 / 7f6e945 S4직교성 / 729e48f S5정보델타 / 536b1b4 게이트테스트 / cd77af9 계약수렴 / c2142d7 S4능동루프 / 85d4ab4 S5 ingest / ed89979 발권실연결팩토리).
 > (1) **S5 stage-1 ingest** `core/assume/research_ingest.py`: 소형 LLM 요약→임베딩(brain.embedder)→중복판정(info_delta novelty)→bitemporal PIT(release/ingestion)→store.upsert/shadow. ingest→retrieve→active_loop 발권으로 RAG 파이프라인 닫힘. test 7.
