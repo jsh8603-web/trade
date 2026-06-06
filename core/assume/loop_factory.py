@@ -220,6 +220,115 @@ def build_research_ingest(
     )
 
 
+# ── S6 종목 universe 실연결 (stock.admission 안정 API 소비) ──────────────────
+def stock_admission_universe_fn(
+    *,
+    whitelist=None,
+    fetch_krx_universe: bool = False,
+    as_of=None,
+    market: str = "KRX-MARCAP",
+    use_krx_status: bool = False,
+    krx_status_provider=None,
+    tier2_allowlist=None,
+):
+    """stock.admission 실연결 in_universe_fn(ticker)->bool — 거시→종목 stock 안정 API 단방향 소비.
+
+    ★universe 정책(admission.LLM_EXPANSION 정합): LLM 임의 확장 차단 = config 화이트리스트만 SSOT.
+      - whitelist(set) = universe SSOT(button/supervisor 조립분 주입). 1차 게이트(미포함=거부).
+      - whitelist None + fetch_krx_universe → KrxUniverseProvider.get_universe() 실조회로 채움(FDR).
+      - 둘 다 없으면 fail-closed(빈 universe = 전부 거부, 보수적 = LLM 임의 발권 차단).
+    admission.check_admission 2차 적격성(tier=CORE_ALLOWED 현물 / region ticker 추론 / KRX 제재).
+      use_krx_status → KrxStatusProvider 실조회(KR 제재 상태), 부재 시 None(무제재 가정).
+    실패=fail-closed(False). ⛔stock/ 무수정 — 안정 API import 만(button 작업 파일 미접촉).
+    """
+    _wl = set(whitelist) if whitelist else None
+    if _wl is None and fetch_krx_universe:
+        try:
+            from stock.data.krx_universe import KrxUniverseProvider
+            _wl = set(KrxUniverseProvider().get_universe(as_of=as_of, market=market))
+            logger.info("stock universe 실조회: %d 종목(%s)", len(_wl), market)
+        except Exception as e:
+            logger.warning("KRX universe 실조회 실패 → fail-closed(빈 universe): %s", e)
+            _wl = set()
+    if _wl is None:
+        _wl = set()
+
+    _status = krx_status_provider
+    if use_krx_status and _status is None:
+        try:
+            from stock.data.krx_universe import KrxStatusProvider
+            _status = KrxStatusProvider()
+        except Exception as e:
+            logger.warning("KrxStatusProvider 생성 실패 → 무제재 가정: %s", e)
+            _status = None
+
+    def _fn(ticker) -> bool:
+        try:
+            t = str(ticker)
+            if t not in _wl:                       # 1차 universe SSOT 게이트(LLM 임의 확장 차단)
+                return False
+            from stock.admission import check_admission
+            from stock.contracts import ProductTier
+            region = "KR" if (t.isdigit() and len(t) == 6) else "US"
+            krx = None
+            if _status is not None and region == "KR":
+                try:
+                    krx = _status.get_status_snapshot(t, as_of=as_of)
+                except Exception:
+                    krx = None
+            res = check_admission(t, ProductTier.CORE_ALLOWED, region,
+                                  krx_status=krx, tier2_allowlist=tier2_allowlist)
+            return bool(res.admit)                 # 2차 적격성(제재·tier)
+        except Exception:
+            return False                           # fail-closed
+    return _fn
+
+
+# ── S6 종목 소식 → 카드 발권 오케스트레이터 실배선 ─────────────────────────
+def build_security_news_loop(
+    *,
+    use_claude: bool = True,
+    use_haiku: bool = True,
+    use_bge: bool = True,
+    in_universe_fn=None,
+    universe=None,
+    use_stock_admission: bool = False,
+    whitelist=None,
+    fetch_krx_universe: bool = False,
+    use_krx_status: bool = False,
+    as_of=None,
+    store=None,
+    novelty_min: float = 0.15,
+    rate_cap: Optional[RateCapState] = None,
+    require_health: bool = True,
+):
+    """S6 SecurityNewsCardLoop 실배선 (종목 뉴스/증권 리포트 → probationary 카드 발권).
+
+    ingest = build_research_ingest(haiku 요약 + BGE 임베딩) / active_loop = build_active_loop(claude).
+    in_universe_fn = button stock/ 스크린 통과분 콜백(주입식). universe(set[str]) 주면 자동 래핑.
+    ★실 universe·실 종목뉴스소스 = button 합류 게이트(handoff §5.2) — 거시 세션 단독은 더미 universe e2e.
+    use_* 전부 off → ingest embedder None / active_loop llm None → 전부 abstain(byte-identical, 발권 0).
+    in_universe_fn/universe 둘 다 None → 모두 후보 풀(보수적, 즉시 발권 0).
+    """
+    from core.assume.security_news_loop import SecurityNewsCardLoop
+
+    ingest = build_research_ingest(
+        use_haiku=use_haiku, use_bge=use_bge, store=store,
+        novelty_min=novelty_min, require_health=require_health)
+    al = build_active_loop(use_claude=use_claude, rate_cap=rate_cap)
+
+    fn = in_universe_fn
+    if fn is None and use_stock_admission:
+        # ★실연결: stock.admission 안정 API(거시→종목 단방향). whitelist 또는 KRX 실조회 universe.
+        fn = stock_admission_universe_fn(
+            whitelist=whitelist, fetch_krx_universe=fetch_krx_universe,
+            use_krx_status=use_krx_status, as_of=as_of)
+    elif fn is None and universe is not None:
+        _u = set(universe)
+        fn = lambda t: t in _u   # noqa: E731 (button universe set → 콜백 래핑)
+    return SecurityNewsCardLoop(ingest=ingest, active_loop=al, in_universe_fn=fn)
+
+
 if __name__ == "__main__":
     from core.brain.macro_schema import Bloc, MacroView, RegimeEstimate, RegimeLabel, ViewStatus
 

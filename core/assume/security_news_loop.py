@@ -111,6 +111,22 @@ class SecurityNewsCardLoop:
         # 3) 발권(scope=ticker)
         return self._mint_for(ticker, release_ts)
 
+    def on_news_batch(self, items) -> list:
+        """뉴스 다건 처리 — [{ticker, raw_text, release_ts, source?}] → [NewsResult].
+
+        collect_news / 증권 리포트 어댑터가 변환한 items 소비. ticker 추출/매핑은 호출자(button)
+        책임(거시 세션은 범용 batch). 각 건 on_news 로 중복필터+유니버스 게이트 통과 시만 발권.
+        """
+        out = []
+        for it in items:
+            try:
+                out.append(self.on_news(
+                    it["ticker"], it["raw_text"], it["release_ts"],
+                    source=it.get("source", "")))
+            except Exception as exc:
+                logger.warning("on_news_batch 항목 실패 → skip: %s", exc)
+        return out
+
     def promote_candidates(self, max_slots: int = 3) -> list:
         """스크린 주기 호출 — 후보 풀에서 유니버스 진입분을 max_slots 까지 발권 승격."""
         if self.in_universe_fn is None:
