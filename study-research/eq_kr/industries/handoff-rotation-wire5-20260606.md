@@ -1,7 +1,7 @@
 ---
 name: handoff-rotation-wire5-20260606
 description: 한국 12산업 rotation WIRE5 변별력 해소 완료(자문 3R+audit PASS+보완). 압축 후 이 파일로 재개. 다음=README 갱신.
-next-action: "README.md 갱신(현 세션 WIRE5 이해+작업분, 사용자 지시 '코드화 다끝나고'). + git working tree R15 production 변경(WIRE5 무관) 확인. 첫 행동=README.md rotation/WIRE5 섹션 추가 위치 grep 후 작성"
+next-action: "한국주식 rotation/selection 완료·종료(커밋 1c589ac/8332bbf/affc49d). 재개 시 통합단계 의제=(f)종목별 수급 study(약신호 직교 레버, 최우선)/financial 은행분리/EB 계층베이즈/selection 코드 정식화. teammate semi-analyst(반도체 conditional IC 별 plan) KILL금지 유지. §7 selection 자문 판정 참조"
 type: project
 tags: [domain/eq-kr, type/handoff, topic/wire5-rotation-변별력, tier/study]
 date: 2026-06-06
@@ -36,8 +36,8 @@ consult: .consult-kr-rotation-variability-RESULTS.md
 - plan/progress: `plan-wire5-rotation-20260606.md` + `progress-wire5-rotation-20260606.md`(ckpt-202606060900)
 
 ## §5. 미해결·실패 (삽질 위험)
-1. **★README 갱신 미착수** = 유일 잔여(사용자 명시 마지막 task). rotation/WIRE5 섹션을 README.md에 추가.
-2. **git working tree R15 production 변경**: core/stock_track.py(+28)+value_trigger.py(+15) = WIRE5 무관 별개작업(5/30 stock-corr), 커밋 안됨 → 사용자 확인 필요(WIRE5 책임 아님).
+1. ✅ README 갱신 완료 (커밋 8332bbf, study-research 연구트랙 섹션 + 디렉토리맵).
+2. ✅ git R15 = 별도 커밋 완료 (1c589ac, stock value_stock 실연결+xs-selection gate1 bypass, WIRE5 무관 명시).
 3. **이연(통합단계, yaml 정합)**: 곱 결합 W_i×v_{j|i}(go-live 인접) / hierarchical FDR(yaml §4 통합단계 명시). 현 단계 미구현 정상.
 4. 전수표 wire5-yaml-code-mapping.md ⚠️3은 보완 완료(bio defensive복귀/refining·financial sub-gating/C12 EB) — 표 본문은 보완 전 상태라 다음 세션 시 "보완 완료(yaml §보완_적용 참조)" 인지.
 
@@ -46,3 +46,12 @@ consult: .consult-kr-rotation-variability-RESULTS.md
 - 보완 3종(audit 후): C12 EB(부호보존) + bio defensive복귀(별도sleeve 32% 과대) + refining/financial sub-gating(|z|≥1 발현시만).
 - audit PASS(hard-fail0): C11 이중처벌방지+double-count 직교(net~0)+OOS IR≈0 over-claim없음 핵심통과. minor2=C12(보완완료)/git R15(별개).
 - 사용자 박제: "0.5% 거부, 변별력+즉시발동 불변" / "무비판 자문수용 금지(코드의도 고려 본인 판단+시뮬 검증)" / "줄자는 capsule이 업종별 맞는걸로 측정(SSOT)" / "산업내 변별력 낮은건 타당(small market 한계)" / KILL금지 teammate.
+
+## §7. 3층 selection 약신호 후속 자문 + 검증 (2026-06-06, 한국주식 종료 시점)
+- **자문 1R** (gemini+claude 병렬, `.consult-kr-within-industry-weak-signal-RESULTS.md`): 산업 내 종목 selection 약신호 6질문(a~f).
+- **본인 검증** (`_rotation/verify_weak_signal_severity.py/.json`): EB 3방식(부호보존|IC| / zero-mean / noise-floor) ρ 비교.
+- **★핵심 판정**: (1) "변별력 올려라"=**2층 rotation** active share(정상 10.1%), **3층 selection ρ**는 capsule IC 신뢰도 측정=다른 layer. (2) C12 EB 대평균 끌림=**자문 spec 충실=결함 아님**(약신호 부풀림은 미예견 부작용). (3) ★EB v3 계층베이즈 적용 후 robust 中=**반도체/철강/aitech 3곳**(ρ0.26~0.34 전부 BY생존, 약신호 부풀림 제거 후에도 보존). 약신호 9곳=small market+과점 한계, 산업중립.
+- **★타당한 방향 실행 결과**: ✅ battery primary(inv_ratio TENTATIVE→cs_mom_6m, IC-never-as-selector) ✅ EB v3 계층베이즈(C12 대평균→정밀도-가중 0-shrink, telecom 0.16→0.07 부풀림 제거+中3 보존) / ⛔ **(f) 종목별 수급=KRX API 차단 DATA-GATE**(pykrx 순매수/공매도 빈응답, FDR 시세만 → 별 study, KRX 복구/KIS·DART 경로 선행) / ⏸ (b) financial 은행분리·grade cut→convex 연속수축·cross-industry pooled = 통합단계 잔여.
+- **레저 박제**: `_rotation/candidate-ledger.md` §🧩 3층 selection 섹션 + enum 3행(memory/observe-only/pointer).
+- **OBSERVE**: promotion-log `eb-자문산물-버그오판` (변별력=2층/EB=3층 layer 혼동으로 spec을 "심각 버그" 오판, 정정).
+- **커밋**: 1c589ac(stock 배선) / 8332bbf(study+WIRE5) / affc49d(selection 자문+검증) / 7c6f861(타당한 방향 실행: EB v3 계층베이즈+battery primary).
