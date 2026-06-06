@@ -33,6 +33,14 @@ plan: plan-judge-report-arch.md
 - 잔여: substrate on(멀티에셋 macro view+regime) 주입 variant = RegimeGlasso 공유라 button 연결 후. coin baseline은 확보.
 
 ## Working Notes
+> [ckpt-202606070030:btn-Inv ★OAuth 429 오진 정정 + 근본fix — 동시호출 아니라 코드문제]
+> ★**오진 정정**(E94 위반): 직전 "429=메인 동일 OAuth 키 동시호출 rate 경합" 단정이 **틀림**. 사용자 반증(DA도 동일 OAuth 동시사용 무문제, "메인이 키 직접 테스트해봐") → 직접 호출 격리테스트: Bearer만→429 / +anthropic-beta oauth-2025-04-20→429 / **+oauth-beta+"You are Claude Code" system→OK**. 429=Claude Code OAuth 토큰 정책(oauth-beta 헤더 + Claude Code system 필수, opus는 system 추가텍스트 시 429 위장거부) 누락 **코드문제**.
+> - **fix**(`7ce667d` v1.39.0): llm_provider.py ClaudeProvider에 `anthropic-beta: oauth-2025-04-20` 헤더 + `system=_CLAUDE_CODE_SYSTEM`. 발권/요약 지시는 user content(GenerateToComplete 합침). ★**메인 활성 중(동시 호출)에도 opus 발권·haiku 요약 LIVE 성공**=동시호출 완전 무관 입증.
+> - test_so5: temperature deprecated(4.x 생략/구형 주입) 반영 정정 + OAuth 정책 검증 추가(152 passed).
+> - 정정 박제: promotion-log ERROR(E94 자산화)+K엔트리 취소선 / README / .p2-fhc-live-mint.py 메시지. ★.p2 abstain은 429 아니라 audit reject(빈 falsification, LLM 응답품질)—LIVE 경로 작동.
+> - **방지책**(promotion-log): 외부 API 에러코드를 rate/quota/동시호출 인프라가설로 단정 전 최소요청 직접호출 + 헤더/파라미터 1개씩 격리테스트 의무. 동시 미사용 대조 없이 "동시호출" 단정 금지.
+> (1) **마지막 결정**: LLM 8종 전수 wire + OAuth 근본fix 완료. 메인 동시 호출에도 LIVE 작동(메인 멈춤 불요). (2) **다음**: ⛔실주문·push=사람 게이트. (3) **동기화**: v1.39.0 7ce667d. push 미실행.
+>
 > [ckpt-202606062330:btn-Inv ★LLM 파이프라인 전수(8종) wire 완료 — RAG 닫기 + enrich + consensus]
 > ★**완료**: 사용자 "LLM 들어가는 파이프라인 모두?" → 전수 점검 + 갭 해소 + "다 연결해" → enrich/consensus까지.
 > **LLM 8종 전부 wire+테스트**: ①발권(active_loop) ②pre-mint audit ③RAG요약(Haiku) ④RAG retrieve ⑤종목발권(security_news) ⑥bonus→weight ⑦enrich(거시LLM추론) ⑧consensus(고스테이크스).

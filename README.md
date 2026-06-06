@@ -154,7 +154,7 @@ FRED/ALFRED vintage 데이터의 경계(실제 호출은 `fredapi`, 본 모듈�
 - **(RAG) ingest→retrieve 닫힘**: `research_ingest.retrieve`(query 임베딩 cosine + PIT(release_ts≤as_of) + scope 필터)가 active_loop `report_store`로 연결 — 종목은 on_news 적재분이 발권 시 실제 retrieve(Haiku 요약 LLM이 발권 컨텍스트로 실연결).
 - **(enrich) 거시 LLM 추론**: `coin_track_macro._run_macro_enrich`(env `MACRO_ENRICH`) — 저신뢰/caution trigger 시 `macro_reasoning.enrich`가 LLM stance를 `macro_view`에 주입 → `regime_to_weights` BL View로 배분 이동. **★결정론 baseline 자체를 LLM이 수정**(FHC bonus와 다른 리스크 프로파일). 고신뢰=baseline(LLM 미호출), confidence 축소.
 - **(consensus) 고-스테이크스 합의**: `ConsensusNode`(env `MACRO_CONSENSUS`) — `is_high_stakes`(regime 전환·배분≥10%·누적≥25%) 감지 후 LLM 검토 → **down-only de-risk**(prior 후퇴만, `de_risk` clip[0,1]로 증폭 봉인). attenuation-only 철학 정합.
-- **LLM/임베딩 LIVE**: Claude OAuth(`~/.claude/.credentials.json`, opus-4.x 발권/추론 / Haiku 4.5 요약) + DaService BGE-m3(127.0.0.1:8787). 메인 세션과 동일 OAuth 키(동시 호출 시 429 → backoff 5/15/45s retry).
+- **LLM/임베딩 LIVE**: Claude OAuth(`~/.claude/.credentials.json`, opus-4.x 발권/추론 / Haiku 4.5 요약) + DaService BGE-m3(127.0.0.1:8787). ★OAuth 토큰 정책: `anthropic-beta: oauth-2025-04-20` 헤더 + system이 `"You are Claude Code..."` 필수(누락 시 429 위장거부, opus는 system 추가텍스트 금지 → 지시는 user content). 메인 세션과 **동일 키 동시 호출 무관**(실측: 메인 활성 중 LIVE 성공).
 
 #### FHC 레이어 안전 경계 (불변식)
 - **shadow / 자본0**: 발권 카드는 `probationary`(bonus_cap=0). LLM이 실제 호출돼 카드를 발권·채점해도 go-live arming(사람 게이트) 전엔 배분 미투입.
