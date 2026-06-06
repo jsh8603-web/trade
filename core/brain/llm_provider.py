@@ -237,13 +237,16 @@ class ClaudeProvider(LLMProvider):
 
         token = self._get_token()
         # OAuth token → Authorization: Bearer (anthropic SDK 는 x-api-key 로 덮어써서 직접 HTTP 사용)
-        # B3 결정성: temperature payload 실주입 — 미주입 시 Anthropic 기본 1.0(비결정) → RouteResult 기록과 불일치
         payload = {
             "model": self._model,
             "max_tokens": kwargs.get("max_tokens", 1024),
-            "temperature": float(kwargs.get("temperature", LLM_TEMPERATURE)),
             "messages": [{"role": "user", "content": prompt}],
         }
+        # B3 결정성: temperature 실주입. 단 신형 4.x(opus-4/sonnet-4 등)는 temperature deprecated
+        # → 400 invalid_request. 신모델은 생략(모델 기본), 구형만 주입(하위호환).
+        _temp = kwargs.get("temperature", LLM_TEMPERATURE)
+        if _temp is not None and not any(m in self._model for m in ("opus-4", "sonnet-4", "haiku-4")):
+            payload["temperature"] = float(_temp)
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
             "https://api.anthropic.com/v1/messages",

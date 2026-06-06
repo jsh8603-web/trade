@@ -68,6 +68,7 @@ def ollama_health(base_url: str = "http://localhost:11434") -> bool:
 def build_active_loop(
     *,
     use_local_llm: bool = False,
+    use_claude: bool = False,
     report_store=None,
     rate_cap: Optional[RateCapState] = None,
     write_back=None,
@@ -76,12 +77,22 @@ def build_active_loop(
 ) -> ActiveAnalystLoop:
     """발권 실연결 ActiveAnalystLoop 빌드.
 
-    use_local_llm=False(기본) → llm None → 전부 abstain(byte-identical, 발권 0).
-    use_local_llm=True → OllamaQwenProvider 어댑터 주입(require_health 시 서버 가동 확인 후).
-      서버 미가동이면 llm None 유지(graceful abstain, 예외 X).
+    기본(둘 다 False) → llm None → 전부 abstain(byte-identical, 발권 0).
+    use_claude=True → ClaudeProvider(deep tier, ~/.claude/.credentials.json OAuth) 어댑터 주입.
+      credentials 부재/SDK 오류 → graceful abstain(예외 X). ★사용자 명시 시만(비용·OAuth 한도).
+    use_local_llm=True → OllamaQwenProvider 어댑터(require_health 시 서버 가동 확인 후, 미가동 graceful).
+    우선순위: use_claude > use_local_llm(둘 다 True 면 Claude).
     """
     llm = None
-    if use_local_llm:
+    if use_claude:
+        try:
+            from core.brain.llm_provider import ClaudeProvider
+            llm = GenerateToComplete(ClaudeProvider())
+            logger.info("active_loop LLM 실배선: Claude(OAuth deep)")
+        except Exception as e:
+            logger.warning("ClaudeProvider 배선 실패 → abstain: %s", e)
+            llm = None
+    elif use_local_llm:
         if (not require_health) or ollama_health():
             try:
                 from core.brain.llm_provider import OllamaQwenProvider
