@@ -69,6 +69,9 @@ class StockTrack(AssetTrack):
         _valuation_override: ValuationResult | None = None,
         _fundamentals_override: list[Fundamentals] | None = None,
         _quote_override: MarketQuote | None = None,
+        _sector_ev_ebitda_override: "list[float] | None" = None,
+        _bypass_gate1_override: bool = False,
+        _heavy_agent_fail_reason_override: str | None = None,
         _weight_card_override: Any = None,
         _indicator_z_override: dict | None = None,
         _regime_pi_override: dict | None = None,
@@ -86,6 +89,13 @@ class StockTrack(AssetTrack):
         self._valuation_override = _valuation_override
         self._fundamentals_override = _fundamentals_override or []
         self._quote_override = _quote_override
+        # ★WIRE 배선(갭A): override 미주입 시 fundamentals+quote 로 value_stock 실연결.
+        #   sector_ev_ebitda = 섹터 비교 멀티플(measure.py 패널). 미주입=종목 자기역사 fallback.
+        self._sector_ev_ebitda = _sector_ev_ebitda_override
+        # ★WIRE 배선(갭B): cross-sectional selection 경로는 가격 −10% 게이트(coin dip-buy 혈통)를
+        #   면제하고 stage-2 trap veto 만 적용. default False=byte-identical(단일종목 dip-buy 경로 유지).
+        self._bypass_gate1 = _bypass_gate1_override
+        self._heavy_agent_fail_reason = _heavy_agent_fail_reason_override
         # ★R15 가중학습: 평가지표 동적 가중 카드 + 지표 신호. 주입 시 generate_candidate 의
         # buy sizing 에 다중지표 합성 S_L1 을 반영(자문 §1.4 L1 결정론, pre-agent). 미주입=무회귀.
         # weight_card = WeightAssumptionCard(registry 학습 카드 또는 prior). indicator_z =
@@ -171,11 +181,21 @@ class StockTrack(AssetTrack):
         ticker = state.raw_market_data.get("ticker", self.ticker) or "UNKNOWN"
         price_change_pct: Optional[float] = state.raw_market_data.get("price_change_pct")
 
-        # valuation 결과 (override 또는 stub)
+        # valuation 결과 (override 우선 → fundamentals+quote 있으면 value_stock 실연결 → 없으면 abstain)
+        # ★WIRE 배선(갭A): _valuation_override 미주입이라도 PIT fundamentals + quote 가 있으면
+        #   stock.valuation.value_stock 로 내재가치 밴드 실산출(과거 stub abstain 경로 대체).
+        #   override 주입 경로·데이터 전무 경로는 byte-identical(둘 다 없을 때만 fallback 발동).
         valuation = self._valuation_override
+        if valuation is None and self._fundamentals_override and self._quote_override:
+            from stock.valuation import value_stock  # noqa: PLC0415
+            valuation = value_stock(
+                self._fundamentals_override,
+                self._quote_override,
+                sector_ev_ebitda=self._sector_ev_ebitda,
+            )
         if valuation is None:
-            # Phase 4 이전: 가치평가 미연결 → abstain
-            logger.warning("StockTrack: valuation 미연결 → abstain (Phase 4 KIS wire 후 실연결)")
+            # 데이터 전무(fundamentals/quote 미주입) → abstain
+            logger.warning("StockTrack: valuation 미연결 → abstain (fundamentals+quote 주입 시 실연결)")
             return _make_decision_dict(
                 decision="hold",
                 confidence=0.0,
@@ -194,6 +214,8 @@ class StockTrack(AssetTrack):
             prev_intrinsic_value=None,
             context={"ticker": ticker},
             mode=self.mode,
+            bypass_gate1=self._bypass_gate1,
+            heavy_agent_fail_reason=self._heavy_agent_fail_reason,
         )
 
         # verdict → Decision 호환 변환

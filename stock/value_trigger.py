@@ -178,6 +178,7 @@ def run_value_trigger(
     mode: RunMode = RunMode.FORWARD,
     thresholds: Gate1Thresholds = Gate1Thresholds(),
     heavy_agent_fail_reason: Optional[str] = None,
+    bypass_gate1: bool = False,
 ) -> ValueTriggerResult:
     """2단 게이트 실행. risk_gate 가 소비하는 후보 신호를 반환.
 
@@ -185,6 +186,14 @@ def run_value_trigger(
       "quality"  = 품질붕괴(모델 이상·컨텍스트 부족) → 즉시 abstain 정답.
       "resource" = 자원 부족(429·예산 초과·타임아웃) → 재시도/예약 대상(Phase6 retry).
       None/미전달 = 사유 불명(silent abstain 금지, 경고 로그).
+
+    bypass_gate1 (cross-sectional selection 경로, default False=byte-identical):
+      cross_sectional_selection 이 universe 횡단면 cheapness 로 종목을 이미 선별한 경우,
+      1차 게이트의 "가격 −10% 급락 AND" 조건(coin 단일종목 dip-buy 혈통)을 면제하고
+      stage-2 value-trap veto 만 적용한다. 근거 = 외부 자문 2R 수렴(2026-06-04):
+      −10% 게이트는 cross-sectional value-rank 픽을 전멸(횡보·상승 중 싼 종목 REJECT)시키며,
+      −10% 의 유일한 정당한 잔여물(falling-knife/trap 우려)은 이미 stage-2 가 소유.
+      ⛔ default False → 기존 단일종목 호출 경로 byte-identical (회귀 0).
     """
     """2단 게이트 실행. risk_gate 가 소비하는 후보 신호를 반환.
 
@@ -201,7 +210,11 @@ def run_value_trigger(
     context = context or {}
 
     # --- 1차 게이트 ---
-    g1_pass, g1_reason = passes_gate1(valuation, price_change_pct, prev_intrinsic_value, thresholds)
+    if bypass_gate1:
+        # cross-sectional selection 경로: −10% 타이밍 게이트(coin dip-buy 혈통) 면제, stage-2 trap veto 만.
+        g1_pass, g1_reason = True, "bypass_gate1: cross-sectional selection 경로 (stage-2 trap veto only)"
+    else:
+        g1_pass, g1_reason = passes_gate1(valuation, price_change_pct, prev_intrinsic_value, thresholds)
     if not g1_pass:
         return ValueTriggerResult(
             ticker=valuation.ticker,
