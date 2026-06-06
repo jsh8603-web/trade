@@ -1,0 +1,593 @@
+{
+  "meta": {
+    "method": "산업 패널 시계열 (frame M2) — 정유사 동일가중 월수익 vs cycle driver lag-corr",
+    "rationale": "★cross-sectional IC 불가(정유 strict 2종) → 산업 시계열 측정으로 frame §0 답.",
+    "panel": {
+      "refining_strict2": [
+        "096770",
+        "010950"
+      ],
+      "refining_core5": [
+        "096770",
+        "010950",
+        "002960",
+        "014530"
+      ],
+      "gas_util": [
+        "036460",
+        "004690",
+        "0001A0",
+        "117580",
+        "003480"
+      ]
+    },
+    "drivers": [
+      "blended_crack",
+      "gasoline_crack",
+      "diesel_crack",
+      "brent",
+      "oil_yoy",
+      "refinery_ip",
+      "natgas"
+    ],
+    "horizons_days": {
+      "y_5d": 5,
+      "y_20d": 20,
+      "y_60d": 60
+    },
+    "ip_pub_lag": 2,
+    "gf_contract": "measure_timeseries.py 헤더 7항 준용 (wild-cluster + block-boot + eff-N)"
+  },
+  "contemporaneous": {
+    "blended_crack": {
+      "label": "blended_crack",
+      "n": 88,
+      "n_eff": 72.5,
+      "spearman_rho": 0.1356,
+      "p_parametric": 0.2079,
+      "t_nw_asymptotic": 1.2,
+      "wild_cluster_p": 0.2199,
+      "ci95_block_boot_prod": [
+        -0.00798,
+        0.03062
+      ],
+      "status": "powered"
+    },
+    "gasoline_crack": {
+      "label": "gasoline_crack",
+      "n": 88,
+      "n_eff": 61.4,
+      "spearman_rho": 0.1957,
+      "p_parametric": 0.0676,
+      "t_nw_asymptotic": 1.68,
+      "wild_cluster_p": 0.072,
+      "ci95_block_boot_prod": [
+        -0.00343,
+        0.03644
+      ],
+      "status": "powered"
+    },
+    "diesel_crack": {
+      "label": "diesel_crack",
+      "n": 88,
+      "n_eff": 75.3,
+      "spearman_rho": 0.1014,
+      "p_parametric": 0.3473,
+      "t_nw_asymptotic": 0.85,
+      "wild_cluster_p": 0.3983,
+      "ci95_block_boot_prod": [
+        -0.01056,
+        0.02801
+      ],
+      "status": "powered"
+    },
+    "brent": {
+      "label": "brent",
+      "n": 88,
+      "n_eff": 82.9,
+      "spearman_rho": 0.4068,
+      "p_parametric": 0.0001,
+      "t_nw_asymptotic": 3.52,
+      "wild_cluster_p": 0.0025,
+      "ci95_block_boot_prod": [
+        0.01462,
+        0.05191
+      ],
+      "status": "powered"
+    },
+    "oil_yoy": {
+      "label": "oil_yoy",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.0194,
+      "p_parametric": 0.8579,
+      "t_nw_asymptotic": -0.2,
+      "wild_cluster_p": 0.8681,
+      "ci95_block_boot_prod": [
+        -0.01618,
+        0.0145
+      ],
+      "status": "powered"
+    },
+    "refinery_ip": {
+      "label": "refinery_ip",
+      "n": 88,
+      "n_eff": 68.9,
+      "spearman_rho": 0.026,
+      "p_parametric": 0.81,
+      "t_nw_asymptotic": 0.23,
+      "wild_cluster_p": 0.8176,
+      "ci95_block_boot_prod": [
+        -0.01509,
+        0.02245
+      ],
+      "status": "powered"
+    },
+    "natgas": {
+      "label": "natgas",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": 0.1557,
+      "p_parametric": 0.1474,
+      "t_nw_asymptotic": 1.55,
+      "wild_cluster_p": 0.1579,
+      "ci95_block_boot_prod": [
+        -0.00201,
+        0.03021
+      ],
+      "status": "powered"
+    },
+    "d_blended_crack": {
+      "label": "d_blended_crack",
+      "n": 88,
+      "n_eff": 72.5,
+      "spearman_rho": 0.1356,
+      "p_parametric": 0.2079,
+      "t_nw_asymptotic": 1.2,
+      "wild_cluster_p": 0.2199,
+      "ci95_block_boot_prod": [
+        -0.00798,
+        0.03062
+      ],
+      "status": "powered"
+    },
+    "d_gasoline_crack": {
+      "label": "d_gasoline_crack",
+      "n": 88,
+      "n_eff": 61.4,
+      "spearman_rho": 0.1957,
+      "p_parametric": 0.0676,
+      "t_nw_asymptotic": 1.68,
+      "wild_cluster_p": 0.072,
+      "ci95_block_boot_prod": [
+        -0.00343,
+        0.03644
+      ],
+      "status": "powered"
+    },
+    "d_diesel_crack": {
+      "label": "d_diesel_crack",
+      "n": 88,
+      "n_eff": 75.3,
+      "spearman_rho": 0.1014,
+      "p_parametric": 0.3473,
+      "t_nw_asymptotic": 0.85,
+      "wild_cluster_p": 0.3983,
+      "ci95_block_boot_prod": [
+        -0.01056,
+        0.02801
+      ],
+      "status": "powered"
+    },
+    "d_brent": {
+      "label": "d_brent",
+      "n": 88,
+      "n_eff": 82.9,
+      "spearman_rho": 0.4068,
+      "p_parametric": 0.0001,
+      "t_nw_asymptotic": 3.52,
+      "wild_cluster_p": 0.0025,
+      "ci95_block_boot_prod": [
+        0.01462,
+        0.05191
+      ],
+      "status": "powered"
+    },
+    "d_refinery_ip": {
+      "label": "d_refinery_ip",
+      "n": 88,
+      "n_eff": 68.9,
+      "spearman_rho": 0.026,
+      "p_parametric": 0.81,
+      "t_nw_asymptotic": 0.23,
+      "wild_cluster_p": 0.8176,
+      "ci95_block_boot_prod": [
+        -0.01509,
+        0.02245
+      ],
+      "status": "powered"
+    },
+    "d_natgas": {
+      "label": "d_natgas",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": 0.1557,
+      "p_parametric": 0.1474,
+      "t_nw_asymptotic": 1.55,
+      "wild_cluster_p": 0.1579,
+      "ci95_block_boot_prod": [
+        -0.00201,
+        0.03021
+      ],
+      "status": "powered"
+    }
+  },
+  "forward": {
+    "fwd_1m": {
+      "blended_crack": {
+        "label": "blended_crack__fwd_1m",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.0806,
+        "p_parametric": 0.4555,
+        "t_nw_asymptotic": -0.78,
+        "wild_cluster_p": 0.4838,
+        "ci95_block_boot_prod": [
+          -0.02119,
+          0.01147
+        ],
+        "status": "powered"
+      },
+      "diesel_crack": {
+        "label": "diesel_crack__fwd_1m",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.0577,
+        "p_parametric": 0.5935,
+        "t_nw_asymptotic": -0.57,
+        "wild_cluster_p": 0.6027,
+        "ci95_block_boot_prod": [
+          -0.01966,
+          0.01268
+        ],
+        "status": "powered"
+      },
+      "brent": {
+        "label": "brent__fwd_1m",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.1875,
+        "p_parametric": 0.0803,
+        "t_nw_asymptotic": -1.77,
+        "wild_cluster_p": 0.1189,
+        "ci95_block_boot_prod": [
+          -0.032,
+          0.00292
+        ],
+        "status": "powered"
+      },
+      "oil_yoy": {
+        "label": "oil_yoy__fwd_1m",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.123,
+        "p_parametric": 0.2536,
+        "t_nw_asymptotic": -1.22,
+        "wild_cluster_p": 0.3128,
+        "ci95_block_boot_prod": [
+          -0.02539,
+          0.00676
+        ],
+        "status": "powered"
+      },
+      "refinery_ip": {
+        "label": "refinery_ip__fwd_1m",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.1412,
+        "p_parametric": 0.1893,
+        "t_nw_asymptotic": -1.43,
+        "wild_cluster_p": 0.1889,
+        "ci95_block_boot_prod": [
+          -0.02845,
+          0.00373
+        ],
+        "status": "powered"
+      },
+      "d_blended_crack": {
+        "label": "d_blended_crack__fwd_1m",
+        "n": 88,
+        "n_eff": 83.4,
+        "spearman_rho": 0.0398,
+        "p_parametric": 0.7125,
+        "t_nw_asymptotic": 0.38,
+        "wild_cluster_p": 0.7111,
+        "ci95_block_boot_prod": [
+          -0.01259,
+          0.02278
+        ],
+        "status": "powered"
+      },
+      "d_brent": {
+        "label": "d_brent__fwd_1m",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.0712,
+        "p_parametric": 0.5098,
+        "t_nw_asymptotic": -0.63,
+        "wild_cluster_p": 0.5282,
+        "ci95_block_boot_prod": [
+          -0.02295,
+          0.0123
+        ],
+        "status": "powered"
+      }
+    },
+    "fwd_3m": {
+      "blended_crack": {
+        "label": "blended_crack__fwd_3m",
+        "n": 86,
+        "n_eff": 34.8,
+        "spearman_rho": -0.1816,
+        "p_parametric": 0.0942,
+        "t_nw_asymptotic": -1.11,
+        "wild_cluster_p": 0.1089,
+        "ci95_block_boot_prod": [
+          -0.04329,
+          0.00747
+        ],
+        "status": "powered"
+      },
+      "diesel_crack": {
+        "label": "diesel_crack__fwd_3m",
+        "n": 86,
+        "n_eff": 28.6,
+        "spearman_rho": -0.2143,
+        "p_parametric": 0.0475,
+        "t_nw_asymptotic": -1.39,
+        "wild_cluster_p": 0.0425,
+        "ci95_block_boot_prod": [
+          -0.04242,
+          0.00467
+        ],
+        "status": "powered"
+      },
+      "brent": {
+        "label": "brent__fwd_3m",
+        "n": 86,
+        "n_eff": 36.4,
+        "spearman_rho": -0.368,
+        "p_parametric": 0.0005,
+        "t_nw_asymptotic": -2.41,
+        "wild_cluster_p": 0.0015,
+        "ci95_block_boot_prod": [
+          -0.05677,
+          -0.00889
+        ],
+        "status": "powered"
+      },
+      "oil_yoy": {
+        "label": "oil_yoy__fwd_3m",
+        "n": 86,
+        "n_eff": 48.6,
+        "spearman_rho": -0.3087,
+        "p_parametric": 0.0038,
+        "t_nw_asymptotic": -2.31,
+        "wild_cluster_p": 0.0025,
+        "ci95_block_boot_prod": [
+          -0.04895,
+          -0.00371
+        ],
+        "status": "powered"
+      },
+      "refinery_ip": {
+        "label": "refinery_ip__fwd_3m",
+        "n": 86,
+        "n_eff": 34.6,
+        "spearman_rho": -0.3145,
+        "p_parametric": 0.0032,
+        "t_nw_asymptotic": -1.97,
+        "wild_cluster_p": 0.0055,
+        "ci95_block_boot_prod": [
+          -0.05062,
+          0.0
+        ],
+        "status": "powered"
+      },
+      "d_blended_crack": {
+        "label": "d_blended_crack__fwd_3m",
+        "n": 86,
+        "n_eff": 86.0,
+        "spearman_rho": 0.0346,
+        "p_parametric": 0.7517,
+        "t_nw_asymptotic": 0.34,
+        "wild_cluster_p": 0.7316,
+        "ci95_block_boot_prod": [
+          -0.0146,
+          0.01881
+        ],
+        "status": "powered"
+      },
+      "d_brent": {
+        "label": "d_brent__fwd_3m",
+        "n": 86,
+        "n_eff": 86.0,
+        "spearman_rho": -0.0489,
+        "p_parametric": 0.6551,
+        "t_nw_asymptotic": -0.51,
+        "wild_cluster_p": 0.6642,
+        "ci95_block_boot_prod": [
+          -0.02032,
+          0.01242
+        ],
+        "status": "powered"
+      }
+    }
+  },
+  "regime_conditional": {
+    "macro_regime=Overheat": {
+      "label": "blended_crack_contemp__macro_regime=Overheat",
+      "n": 10,
+      "n_eff": 10.0,
+      "spearman_rho": 0.4424,
+      "p_parametric": 0.2004,
+      "t_nw_asymptotic": 1.41,
+      "wild_cluster_p": 0.2049,
+      "ci95_block_boot_prod": [
+        -0.011,
+        0.10102
+      ],
+      "status": "INSUFFICIENT(n<12)"
+    },
+    "macro_regime=Recovery": {
+      "label": "blended_crack_contemp__macro_regime=Recovery",
+      "n": 26,
+      "n_eff": 17.8,
+      "spearman_rho": 0.0243,
+      "p_parametric": 0.9063,
+      "t_nw_asymptotic": 0.13,
+      "wild_cluster_p": 0.8981,
+      "ci95_block_boot_prod": [
+        -0.03636,
+        0.03824
+      ],
+      "status": "powered"
+    },
+    "macro_regime=Reflation": {
+      "label": "blended_crack_contemp__macro_regime=Reflation",
+      "n": 22,
+      "n_eff": 21.9,
+      "spearman_rho": -0.1101,
+      "p_parametric": 0.6257,
+      "t_nw_asymptotic": -0.48,
+      "wild_cluster_p": 0.6472,
+      "ci95_block_boot_prod": [
+        -0.04452,
+        0.02435
+      ],
+      "status": "underpowered"
+    },
+    "macro_regime=Slowdown": {
+      "label": "blended_crack_contemp__macro_regime=Slowdown",
+      "n": 30,
+      "n_eff": 30.0,
+      "spearman_rho": 0.2645,
+      "p_parametric": 0.1578,
+      "t_nw_asymptotic": 1.48,
+      "wild_cluster_p": 0.1679,
+      "ci95_block_boot_prod": [
+        -0.00778,
+        0.05211
+      ],
+      "status": "powered"
+    },
+    "krw_regime=KRW_neutral": {
+      "label": "blended_crack_contemp__krw_regime=KRW_neutral",
+      "n": 40,
+      "n_eff": 35.3,
+      "spearman_rho": 0.0088,
+      "p_parametric": 0.9569,
+      "t_nw_asymptotic": 0.06,
+      "wild_cluster_p": 0.952,
+      "ci95_block_boot_prod": [
+        -0.02941,
+        0.02885
+      ],
+      "status": "powered"
+    },
+    "krw_regime=KRW_strong": {
+      "label": "blended_crack_contemp__krw_regime=KRW_strong",
+      "n": 10,
+      "n_eff": 8.7,
+      "spearman_rho": 0.1273,
+      "p_parametric": 0.7261,
+      "t_nw_asymptotic": 0.47,
+      "wild_cluster_p": 0.6802,
+      "ci95_block_boot_prod": [
+        -0.043,
+        0.069
+      ],
+      "status": "INSUFFICIENT(n<12)"
+    },
+    "krw_regime=KRW_weak": {
+      "label": "blended_crack_contemp__krw_regime=KRW_weak",
+      "n": 38,
+      "n_eff": 38.0,
+      "spearman_rho": 0.2306,
+      "p_parametric": 0.1637,
+      "t_nw_asymptotic": 1.52,
+      "wild_cluster_p": 0.1659,
+      "ci95_block_boot_prod": [
+        -0.00516,
+        0.04552
+      ],
+      "status": "powered"
+    },
+    "flow_regime=flow_neutral": {
+      "label": "blended_crack_contemp__flow_regime=flow_neutral",
+      "n": 48,
+      "n_eff": 29.7,
+      "spearman_rho": 0.0164,
+      "p_parametric": 0.912,
+      "t_nw_asymptotic": 0.1,
+      "wild_cluster_p": 0.8956,
+      "ci95_block_boot_prod": [
+        -0.02657,
+        0.02901
+      ],
+      "status": "powered"
+    },
+    "flow_regime=flow_sell": {
+      "label": "blended_crack_contemp__flow_regime=flow_sell",
+      "n": 22,
+      "n_eff": 22.0,
+      "spearman_rho": 0.1045,
+      "p_parametric": 0.6436,
+      "t_nw_asymptotic": 0.49,
+      "wild_cluster_p": 0.6437,
+      "ci95_block_boot_prod": [
+        -0.02789,
+        0.04874
+      ],
+      "status": "underpowered"
+    },
+    "flow_regime=flow_strong_buy": {
+      "label": "blended_crack_contemp__flow_regime=flow_strong_buy",
+      "n": 18,
+      "n_eff": 18.0,
+      "spearman_rho": 0.5439,
+      "p_parametric": 0.0196,
+      "t_nw_asymptotic": 2.71,
+      "wild_cluster_p": 0.0195,
+      "ci95_block_boot_prod": [
+        0.01354,
+        0.08094
+      ],
+      "status": "underpowered"
+    }
+  },
+  "panels": {
+    "refining_strict2": {
+      "n_months": 88,
+      "ret_mean_monthly": 0.0054,
+      "ret_vol_monthly": 0.1125
+    },
+    "refining_core5": {
+      "n_months": 88,
+      "ret_mean_monthly": 0.0053,
+      "ret_vol_monthly": 0.0706
+    },
+    "gas_util": {
+      "n_months": 88,
+      "ret_mean_monthly": 0.0095,
+      "ret_vol_monthly": 0.0938
+    }
+  },
+  "fdr_family_timeseries": {
+    "m": 6,
+    "by_factor": 2.45,
+    "survivors_BY": [],
+    "raw_p_min": 0.1659,
+    "raw_p_min_key": "blended_crack__krw_regime=KRW_weak"
+  }
+}

@@ -1,0 +1,182 @@
+# rotation-study_session.yaml — S7 통합 rotation 배선 (cross-industry rotation 최종)
+# ⛔ 점추정 prior 박제 금지 — 분포 + CI + gate. small-n hedge(전 신호 underpowered = magnitude tentative).
+# ⛔ go-live·실주문·WIRE5 push 미접촉 (monitor-only weight 0, 사람게이트 D1~D5).
+# ★입력 = 12산업 rotation-signals.md(각 analyst 이론→통계 verdict) + S6 residual-PCA sleeve(k=2) + 자문 RESULTS B~F.
+# raw 재현 = measure_integration.py(residual N_eff+clustering+좀비마스킹) + measure_pca_sleeve.py(D1~D7).
+
+scope: eq_kr_rotation_integration
+layer: 2_dynamic_rotation_tilt          # 1층 자산배분 / 2층 sleeve(static RP + ★동적 rotation tilt) / 3층 종목 selection
+unit: industry_eq_weight_panel          # strict universe (refining=strict2 교체, 좀비 마스킹)
+as_of: "2026-05-29"
+integrated_at: "2026-06-06"
+panel_window: "2019-01 ~ 2026-05 (88~89 월)"
+go_live: 미접촉                          # ★실주문·push = 사람게이트 (D1~D5)
+
+# ════════════════════════════════════════════════════════════════════
+# §1. 2층 rotation × 3층 selection 배선식 (자문 D, double-count 회피)
+# ════════════════════════════════════════════════════════════════════
+combination_formula:
+  capital_weight: "w_j = W_i(rotation L2) × v_{j|i}(종목 selection L3, Σ_j v=1)"   # ★곱 = fund-of-sleeves
+  double_count_회피:
+    rule: "★L3 selection 신호 = 산업 내 macro-neutral demean → 산업 자체 KRW/flow beta 제거. macro exposure 전부 L2 소유, L3=idiosyncratic selection alpha만"
+    L축_1회계상: "★telecom tradeable '외국인flow' = 전산업 공통 인자 = 2층 sleeve 배분에서 1회 계산 → telecom 고유 rotation 중복 계상 ⛔금지. telecom 진짜 고유 = semi_ppi(반도체 cycle 방어) 한정"
+    cli_chg_분리: "cli_chg(경기선행) = MACRO 공통(12산업 거의 동일, N_eff≈1) = ★1층 자산배분 성분(시장 timing). 산업 rotation 차등 아님 → L2 rotation tilt 에서 제외"
+  검증: "조립 후 portfolio net common-factor(KRW/flow/export) exposure 산출 → 의도 L2 tilt 대조. 실현 KRW beta > 의도면 L3서 neutralize. attribution: r_p−r_base ≈ ΣΔW_i·r_i(L2) + ΣW_i·intra(L3) + interaction(L3 macro-neutral → 작음=double-count 없음 증명)"
+
+# ════════════════════════════════════════════════════════════════════
+# §2. sleeve 구조 (S6 residual-PCA k=2 확정 + sub-singleton gating)
+# ════════════════════════════════════════════════════════════════════
+sleeve_structure:
+  source: "measure_pca_sleeve.py D1~D7. ★residual PC1 분산 50.4% + k*(parallel)=1 = 깨끗 분리 약함 → 보수 k=2"
+  k_star: {parallel_analysis: 1, marchenko_pastur: 1, note: "noise선 넘는 PC=1개 = 한국 공통인자(외국인flow) 지배 극심"}
+  sleeves:
+    - {id: export_cyclical, members: [semiconductor, auto, financial, battery, chemical, refining, shipbuilding, steel, consumer], label: "수출 cyclical (외국인flow+글로벌 수요 동조)", pc: PC1}
+    - {id: defensive_it, members: [bio, telecom, aitech], label: "방어·IT (공통인자 노출 약, idiosyncratic)", pc: PC2}
+    # ★financial/consumer = validation D3 varimax PC1 블록 포함(잔여 flow 노출). 단 hierarchical clustering k=4 = {financial,consumer} 내수금융 = sub-cluster 후보(S7+ 재검, 현 k=2서는 export_cyclical 소속)
+  bio_singleton: "★bio = residual 상관 전산업 <0.27 + PC2 방어 블록 = singleton 격리 (임상 idiosyncratic). 별도 sleeve 또는 PC2 내 독립"
+  sub_singleton_gating: "★refining/shipbuilding = export sleeve 묶임(strict2도 flow 잔여 noise) → sleeve 멤버지만 ★고유 cycle 신호 발현 시만 독립 tilt, 평소 sleeve risk-parity (자문 idiosyncratic 보존 + 데이터 묶임 타협)"
+  caveat: "★k=4(clustering) PC2+ noise선 미달 = spurious 위험 → sleeve 잘게 쪼개기보다 k=2 + sub-gating. S6 subsample 안정성 0.755(spurious 아님)"
+
+# ════════════════════════════════════════════════════════════════════
+# §3. 12산업 rotation tradeable verdict (이론→통계, 각 analyst 취합)
+# ⛔ 점추정 박제 금지 = rho range + OOS + wc_p + tier
+# ════════════════════════════════════════════════════════════════════
+industry_rotation_tradeable:
+  # ── STRONG (산업 고유 cycle 직접신호 + 이론 부호 사전확약 + OOS 견고) ──
+  - {industry: chemical, sleeve: export_cyclical, tier: STRONG, signal: spread_china_naphtha_margin, rho_strict: 0.427, rho_full: 0.539, wc_p: 0.001, oos: "부호+mag 유지", 이론: "중국 demand−원가 margin", note: "★STRONG 단일(spread). ⛔mom_3_residualized 보조 폐기(G-C 재audit hard-fail): usdkrw+brent만 resid·시장KOSPI momentum 누락 → 외부시장 resid 시 IC 0.385→0.02 붕괴(corr 0.829)=market×beta 재포장. strict NCC 6종 +0.427(full +0.539=inflation, audit minor3)"}
+  - {industry: steel, sleeve: export_cyclical, tier: STRONG, signal: iron_ore_d3, rho: 0.348, wc_p: 0.0025, oos: "부호유지", 이론: "철광석 3M=중국 수요 cycle proxy(조강 55%)", note: "★보조보강 결과=단일 dominant: 후보 전수(mom_3/china_fxi/slx) iron_ore 통제 후 incremental t<1.1=중복(독립예측력0) → 단일 driver 정직 유지(억지발굴 금지). Bonferroni 간발 생존, leave-episode 생존, universe strict 23종 오염0"}
+  - {industry: battery, sleeve: export_cyclical, tier: STRONG, signal: lithium_yoy, rho: 0.285, wc_p: 0.01, oos: "강화(+0.36~0.46)", 이론: "리튬=EV 수요 cycle (multi-source LIT/ALB/REMX/NIO 6신호)", note: "strict +0.285≈v2, 오염 없음"}
+  - {industry: auto, sleeve: export_cyclical, tier: STRONG, signal: global_auto_d3, rho: 0.261, wc_p: 0.025, oos: "강화", 이론: "글로벌 신차=수출차 업황", note: "★primary=global_auto(사전등록). iron_ore=tentative post-hoc(사전등록 격상 금지, audit minor4)"}
+  # ── tradeable≥2 / 채택 (이론+통계, underpowered) ──
+  - {industry: aitech, sleeve: defensive_it, tier: tradeable, signals: [game_espo, rate_10y, global_sw, cloud], 이론: "IT/성장 + 금리 duration", oos: "유지"}
+  - {industry: telecom, sleeve: defensive_it, tier: tradeable, signal: semi_ppi_yoy, sign: 음, 이론: "반도체 cycle 약→통신 방어 counter-cyclical", note: "★외국인flow=L축 1회계상(중복 차감), telecom 고유=semi_ppi 한정"}
+  - {industry: bio, sleeve: defensive_it, tier: tradeable, signals: [rate_overlay, bio_global], 이론: "US금리 duration + 글로벌바이오 상대", oos: "유지", note: "singleton 격리"}
+  - {industry: consumer, sleeve: export_cyclical, tier: tradeable, signals: [csi_spend_3m_mom, mom_6_reversal_industry, mom_6_reversal_cosmetics, hk_tourism_mom], primary: mom_6_reversal_cosmetics, 이론: "내수 소비심리(CSI)→소비재 OW + 방어 reversal + 관광 리오프닝", oos: "강화", note: "★재발굴(후보14, G-C 재audit 반영). ★mom_6 reversal=진짜 consumer-specific(외부시장 resid 후 cosmetics -0.425 강화=primary 승격). CSI d3 +0.325=★tentative(theory-family m=12 한정 BY 생존, m=68 single 미생존+Bonferroni 미통과=underpowered, yoy 부호반대 d3채택은 사후 '기저효과' mild). 관광 +0.254 TENTATIVE. ⚠️C축: rotation-signals.md residual/LOY 수치 추적불가(robustness 코드 미산출)=수치 삭제 or 코드추가 필요(consumer-analyst 이연). 소매판매 yoy=DATA-GATE"}
+  - {industry: semiconductor, sleeve: export_cyclical, tier: tradeable, signals: [cli_chg, export], 이론: "SOXX 선행 + 수출", note: "종목선택(capsule)이 primary, rotation 보조"}
+  - {industry: refining, sleeve: export_cyclical, tier: tradeable_weak, signals: [유가_mean_rev, 배당_income_trap], sign: 음, 이론: "고유가 peak-out UW + 배당 정점 cyclical income trap", note: "★crack=가스오염 폐기(strict2 무신호). peak-out 2신호 conservative cap. sub-singleton gating"}
+  - {industry: financial, sleeve: export_cyclical, tier: tradeable_weak, signal: credit_spread_d6, sign: 음, rho: -0.250, wc_p: 0.0155, oos: "약화(-0.05) underpowered", 이론: "신용위험 확대→금융 상대 UW(대손)", note: "★비대칭: term_spread NIM=시장timing 채택불가 / credit_spread 대손=금융 고유. non-ovlp -0.212/leave-year 전부음/placebo 0.013 robust. gated overlay default 0"}
+  # ── monitor-only (tradeable 0) ──
+  # ── monitor-only (tradeable 0) — ★자문 3R 수렴 반영(.consult-kr-shipbuilding-rotation-RESULTS.md) ──
+  - industry: shipbuilding
+    sleeve: export_cyclical
+    tier: monitor_only
+    active_view_bp: 0
+    risk_model_note: "★factor exposure는 B·Λ·Bᵀ 공분산에 유지 — idio active view만 0 (weight 0 ≠ 위험모형 제외, 자문 R3). 미명시 시 다음 세션 sleeve 상관 과소평가 오독"
+    verdict:                              # ★복합 라벨 frozen (자문 3R, REJECTED≠INSUFFICIENT 분리)
+      trailing_fundamental: REJECTED      # oil+/tanker+/China− 후행펀더멘털 = 검정력O 반증(주가 6-12M 선행 = forward를 trailing realized에 회귀=항등식)
+      overall: INSUFFICIENT               # 전체 timing 신호 부재 = N≈1(88월=1 슈퍼사이클) 검정력 부족 = "못 잰 것"≠"없는 것"
+      contrarian: LIVE_UNPROVEN           # 운임·유가 고점→조선 UW 역신호 = OOS 음이나 forking-path 미해소(N≈1=OOS는 같은 사이클 꼬리)
+      rationale_anchor: "KR/CN/JP newbuild = N≈1 + 횡단면(공통 글로벌 발주 사이클 = pseudo-replication). 독립 N은 타 capital-cycle sleeve 필요"
+      sealed: {round: R3, date: "2026-06-06"}
+    anti_harking_seal:                    # ★contrarian 박제(삭제=HARKing 탐지능력 제거). bare label=함정 → 3필드 contamination boundary
+      hypothesis: "운임·유가 momentum 고점 = 발주 사이클 정점 → 조선 forward 수익 음(contrarian UW)"
+      discovery_sample: "2019-01~2026-05 (88월) = 본 측정 = ★오염 구간, 확인 테스트 void"
+      valid_test_set: "disjoint: post-2026-05 OOS forward OR {offshore/semiconductor/aviation} cross-asset 독립 사이클"
+      promotion_rule: "valid_test_set 사전등록 테스트만 승격 허용. in-sample re-look = void"
+    monitor:                              # ★monitor = trade 아닌 사전등록 confirmation test 발화
+      statistic: ecusum_relstrength_3yards   # 조선3사 KOSPI 대비 상대강도(자문 1순위) + 구리/금
+      derisk_gate: {ref: copper_gold, direction: down_only}   # ★리스크 축소 전용(active view 뒷문 재유입 차단). 구리금=regime-confirmation(alpha 아님, 조선 equity front-run 근거)
+      cusum_running_state: "미초기화 (monitor 미가동 = WIRE/후속 단계, 가동 시 S_pos/S_neg/last_obs append-only)"
+      fdr_track: "LORD++ 등록 의무 — weight 0이어도 e-CUSUM 반복관찰=online-FDR 예산 등록, 미등록 시 12산업 트랙 FDR 누수"
+    reopen_trigger:
+      condition: "S_pos > h AND supply_discipline_regime active"
+      h: "미정 (WIRE 시 calibrate)"
+      on_fire: "→ candidate_view (NOT weight). valid_test_set 사전등록 테스트로 라우팅 (절대 곧장 weight 금지)"
+    deferred:                             # ★별도 후속과제(한국 rotation 트랙과 분리), revisit anchor로 침묵사 방지
+      task: cross_asset_capital_cycle_replication
+      sleeves: [offshore_drilling, semiconductor_capex, commercial_aviation]
+      regime_def: "3yr capex/D&A z 임계하향 + Herfindahl 상승 = supply-discipline regime (사전등록 가설)"
+      power_note: "★N=4 sign-test 4/4도 p≈0.0625 경계 = 목표는 증명 아닌 N1→N3-4 directional 이동. 한중일 조선 합산=pseudo-rep 금지"
+      revisit_by: "cross-asset 후속과제 착수 시 또는 다음 rotation vintage 갱신 시"
+    note: "★BDI=선종불일치(벌크 vs 한국 LNG/컨테이너/VLCC). 신조선가=유료+후행. 슈퍼사이클 정점 de-risk 참고만"
+
+# ════════════════════════════════════════════════════════════════════
+# §4. hierarchical sleeve-gatekeeping FDR (자문 E, flat BY 금지)
+# ════════════════════════════════════════════════════════════════════
+fdr_design:
+  rule: "★flat BY(12×K) = power 학살(N_eff~3.5인데 12K 평탄보정). 2단계 hierarchical:"
+  step1_sleeve_level: "sleeve-level FDR (2 sleeve × K, 고power) 먼저 test"
+  step2_within_sleeve: "통과 sleeve 만 within-sleeve local FDR (Yekutieli 2008 conditional)"
+  program_dsr: "★program-level DSR/PSR = 12산업 × 신호 × regime축 전체 시도 config forking-path → 단일 deflated SR = 'rotation 프로그램 켤지' conviction gate (per-sleeve FDR 와 별개)"
+  현단계: "sleeve 미확정 단계 = sleeve 구조 제안(k=2) + FDR 설계. 실제 sleeve-gatekeeping 적용 = supervisor 통합 yaml(본 yaml 입력)"
+  ⛔: "현 단일 BY 측정값(각 산업 미생존)은 hierarchical 미적용 = power 과소 = magnitude tentative 주 원인. hierarchical 적용 시 survivor 증가 가능(supervisor)"
+
+# ════════════════════════════════════════════════════════════════════
+# §5. gated 설계 (자문 C, over-trade 차단)
+# ════════════════════════════════════════════════════════════════════
+gated_design:
+  base: "sleeve-level residual risk-parity (각 sleeve 등위험, bio singleton 도 한 sleeve몫 risk budget=자연 floor). 등위험≠등weight"
+  tilt: "★additive-on-active-share + clip 병행 (multiplicative ⛔금지=low-base singleton refining서 gate 열려도 tilt≈0 구조함정). per-name clip(Δmax) + active-share budget(Σ|Δw|≤τ, τ≈20-40%)"
+  over_trade_3중:
+    - "① hysteresis no-trade band (|s_new−s_cur|>band 일 때만 rebalance)"
+    - "② persistence (regime k개월 지속 or EWMA)"
+    - "③ ★cost-aware gate (기대 tilt benefit > turnover cost, KR STT 0.2% 비대칭 매도측). 소형시장 sector-timing = cost gate 가 주 필터"
+  kappa: "κ(공격성) = program DSR × N_eff(3.5, floor=3 cap) × live-OOS falsification(Rank-IC e-CUSUM reject 시 κ→0 decaying). 약신호 sleeve κ→0 default"
+  tilt_capacity: "standalone IC/Sharpe 신뢰도 (★base weight 비례 금지). 약신호=conservative cap"
+  monitor_only: "shipbuilding = default weight 0 (rotation tilt 0). financial=credit_spread gated overlay(default 0, 신용 spread 확대 국면만 UW tilt)"
+  net_cost: {roundtrip_bps: 23.0, monthly_cost_bps: 11.5, note: "turnover 0.5/월, rotation=sleeve-level(종목선택보다 낮음). |IC| 0.25~0.43 vs cost → cost-aware 필수. sqrt impact=통합 후"}
+
+# ════════════════════════════════════════════════════════════════════
+# §6. N_eff (false breadth 정량, 자문 B)
+# ════════════════════════════════════════════════════════════════════
+n_eff:
+  raw: {value: 3.01, ci95: [2.45, 3.92]}
+  residual: {value: 3.52, ci95: [2.79, 4.53]}     # 공통인자 제거 후 participation ratio
+  pc1_var: {raw: 0.555, residual: 0.504}
+  mean_pairwise: {raw: 0.504, residual: 0.446}
+  verdict: "★residual N_eff ≈ 3.5 = 자문 '진짜 독립차원 ~3-4' 입증. 12산업 개별 rotation=false breadth. ★동시 active tilt 수=floor(3.5)=3 cap. bet sizing=N_eff scale(n=12 아님)"
+  zombie_masking: "★audit minor1: 좀비(obs_ratio<0.5 OR nonzero<0.3) 마스킹 후 N_eff 거의 불변(3.49→3.52) = robust"
+
+# ════════════════════════════════════════════════════════════════════
+# §7. audit minor 4건 반영 (G-C PASS, non-blocking)
+# ════════════════════════════════════════════════════════════════════
+audit_minor_적용:
+  - "minor1 좀비 마스킹: measure_integration mask_zombies. N_eff 불변=robust"
+  - "minor2 semi_ppi 단위근(ADF 0.556): yoy=12M diff 차분 적용 + residualize 공통인자로만 = spurious 제한. caveat"
+  - "minor3 chemical: full +0.539 → strict NCC +0.427 병기 채택(inflation 회피)"
+  - "minor4 auto iron_ore: tentative + post-hoc 명시(사전등록 격상 금지). primary=global_auto"
+
+# ════════════════════════════════════════════════════════════════════
+# §8. 정직단서 (small-n rule)
+# ════════════════════════════════════════════════════════════════════
+honest_caveats:
+  - "★전 rotation 신호 underpowered(t_obs<2.802, 단일 BY 미생존) = magnitude tentative, 부호·방향만. hierarchical FDR 적용 시 survivor 증가 가능(supervisor)"
+  - "★S6 residual-PCA k*=1 = sleeve 깨끗 분리 약함(공통인자 지배 극심) → k=2 보수 + sub-gating. k=4 spurious 위험"
+  - "proxy 한계: 산업 cycle = yfinance US-listed ETF/futures(글로벌 proxy, KR 직접 아님). China PMI/신조선가/리튬현물 직접=유료/부재(collector_plan)"
+  - "I_survivor: 산업 패널=생존 종목 eq-weight(좀비 마스킹 후). delisted 누락=잔존(capsule 공통 한계)"
+  - "★WIRE5 배선·sizing·실제 sleeve-gatekeeping FDR 적용 = supervisor 통합단계. go-live·실주문 = 사람게이트(D1~D5) 미접촉"
+
+# ── collector_plan (이연 아님 = 무료 부재 명시) ──
+collector_plan:
+  - {missing: "산업 고유 cycle KR 직접(China PMI/신조선가 Clarkson/리튬 현물/싱가포르 GRM)", source: "유료 or API 부재 → yfinance 글로벌 proxy 대체", priority: medium}
+  - {missing: "telecom ARPU/5G(dividend-carry tilt)", source: "MSIT 무료 API 부재 + DART 배당", priority: medium}
+  - {missing: "PIT shares (valuation-band/시총 정밀)", source: "DART stockTotqySttus 시점별", priority: low}
+
+# ════════════════════════════════════════════════════════════════════
+# §9. WIRE5 코드화 결과 (2026-06-06, 자문 3R 변별력 반영) — 코드 산출 SSOT
+# ════════════════════════════════════════════════════════════════════
+wire5_results:
+  source: "_sleeve_rotation_kr.py(2층 변별력) + within_industry_residual_kr.py(3층 selection) + .consult-kr-rotation-variability-RESULTS.md(자문 3R)"
+  production_untouched: "core/stock import 0 = byte-identical. go-live·실주문 = 사람게이트(D1~D5) 미접촉"
+  사용자_요구_불변: "0.5% 거부, 뚜렷한 변별력 + 즉시발동 (미국 selection 수준)"
+  # ── 2층 산업 간 rotation (fork v2, 변별력 해소) ──
+  layer2_rotation:
+    설계: "신호 expanding z + cross-sectional demean(C1, ★expanding z 선행=신호 스케일 이질 보정) / base sleeve-RP×within-EW(C2) / tilt κ_i 연속수축×s_rot×z clip±5%p additive(C4/C6) / active 컨트롤러 cap15%·band8~12%(C7) / N_eff cap(개수3) 폐기→risk budget(C5) / 즉시발동 robust gate(block-boot 부호안정+mag floor)"
+    결과: "active share mean 10.1%(band 8~12% 중앙), max 15.0%(=cap 정확, hysteresis 후 재적용으로 천장 보존), 비중 13배 차등(cyclical 최소 ~1.6%/telecom 13.7~21.6%), κ통과 4산업(chemical/steel/refining/telecom IC≥0.29) 비대칭 고밀도. double-count 직교 ✓(net 공통인자~0). OOS IR=-0.07(tentative·underpowered §8 — 변별력≠alpha, 자문 C7. cost+cap fix 반영값, audit 보고 -0.18은 cap fix 前)"
+    ★yaml_§6_변경: "rotation κ에서 N_eff 제거(=§6 동시active≤3 cap 폐기) → active-share 컨트롤러로 risk budget 흡수. N_eff는 3층 selection ρ에만 1회(자문 C11 이중처벌 방지). FLAM 정합(N_eff=breadth=selection 항)"
+  # ── 3층 산업 내 selection (capsule IC SSOT 메타분석) ──
+  layer3_selection:
+    원칙: "★줄자=capsule analyst 업종별 측정 IC가 SSOT. W_i(rotation)·v_{j|i}(selection) 독립 베팅(C9). selection 低=L2 자르기 아니라 v 산업중립 수축(C10). 소수종목=공통원인 N_eff,i 한번만(C11)"
+    selection_등급: "中(BY생존,분산충분): 반도체 ρ0.36/철강 ρ0.29/aitech ρ0.28 / 低: 배터리 0.21·소비재·금융·바이오·자동차·화학 0.12·통신·조선 / 불가: 정유(2종 과점). ★within EB 반영 재실측(2026-06-06)"
+    ★줄자오류_입증: "v1 book-to-price 단일잣대→배터리 IC-0.013/금융0. v2 맞는줄자→배터리 모멘텀+재고 +0.112/금융 은행pbr -0.161 회복. IC≠실효: 화학 IC강(-0.142 BY생존)이나 N_eff 4.4 과점→ρ0.12"
+    변별력_판정: "★부분충분 = 반도체/철강/aitech 3곳만 종목선택 실효(ρ 0.30~0.36, 高 0.45+ 없음). 나머지 9곳=한국 small market+과점+소표본으로 약→산업중립 바스켓+rotation 독립. 변별력 주력=2층 rotation"
+  caveat: "전 신호 underpowered(yaml §8) magnitude tentative. capsule IC horizon 제각각(y_12m/y_60d/conditional)=절대비교 한계, 상대신뢰·과점구조 비교용. active 천장 15%(breadth 3.5 FLAM)=30%급 변별력 통계 불가(자문 C7)"
+  # ── 보완 (2026-06-06 steel-audit PASS 후, minor 2 + 전수표 ⚠️3 반영) ──
+  보완_적용:
+    - "C12 산업간 EB shrinkage(audit minor1): within v2 = w_eb=N_eff/(N_eff+n0) breadth 가중 |IC| 대평균 끌림(부호 보존). small-n(chemical N_eff4.4) magnitude 과대 보정. battery +부호 유지"
+    - "bio singleton(전수표 ⚠️): 별도 sleeve=3-sleeve RP서 base 32% 과대 부작용 → defensive_it 멤버 유지. cross-sectional tilt가 bio 자기신호 독립 처리(silo 무관)=격리 충족"
+    - "refining/financial sub-gating(전수표 ⚠️, yaml §2/§5): SUB_GATED={refining,financial}+SUB_THRESH=1.0. 신호 발현(|z_cs|≥1) 시만 독립 tilt, 평소 base 유지(refining [0.006,0.085])"
+    - "git working tree R15 production 변경(audit minor2)=WIRE5 무관 별개작업(5/30 stock-corr), 커밋 안됨 확인 권고"
+    - "active cap hysteresis 후 재적용(steel-audit new#1): hysteresis renorm이 cap 0.15 깸→active max 0.156 초과. _sleeve L223後 dev/AS 재계산+cap 재적용 1줄→max=0.150 정확(천장 불변 보존). 재실행 검증 active mean 11.4→10.1%"
+    - "이연(통합단계): 곱 결합 W_i×v_{j|i}(go-live 인접) / hierarchical FDR(yaml §4 자체 통합단계 명시)"
+  audit_verdict: "steel-audit 2차 PASS(hard-fail 0, 보완필수 0). C1~C13 전부 반영(C12 EB 포함), 표 🔧/⏸ 근거 정확, ⚠️3(bio_singleton/sub-gating/EB) 코드갱신 해소. non-blocking 권고 3건 반영=cap 재적용 fix+yaml §9 OOS -0.07 갱신+표 갱신. double-count 직교(~0)+OOS over-claim 없음 통과. gc-audit-wire5-20260606.md"

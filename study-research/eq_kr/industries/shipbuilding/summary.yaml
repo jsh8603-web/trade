@@ -1,0 +1,438 @@
+# summary.yaml — shipbuilding(조선) 산업 v3 (frame v3 §M exposure card 계약)
+# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge 어휘, BY 보정, LOO/block-boot).
+# 산출 범위 = §M.7 exposure card (측정 전용). semiconductor summary.yaml 미러.
+# raw 재현: raw-v3/{collect, measure_conditional, measure_valuation, measure_fundamentals_cycle, measure_cross, merge_fdr_family}.py
+
+industry: kr_shipbuilding     # eq_kr 12산업 中 Tier 3 (조선)
+asset_scope: [equity.kr]
+archetype: cyclical           # ★orderbook(수주잔고) 기반 deep-cyclical (운임→수주→선가 cycle). 반도체(ASP)·battery(growth)와 다른 sub-type
+archetype_attestation:
+  valid_from: "2019-01-01"    # ★PIT 사전선언 (§M.5 ex-post 금지)
+  declared_at: "2026-06-05"
+  primary_metric: ev_ebitda   # cyclical primary. ★조선 = PBR 밴드 보조 (PER 적자/peak trap)
+  secondary: null
+  basis: >
+    ★조선 = deep-cyclical (orderbook 수주 cycle). 실측 검증: 산업 베타 지배(2022→2025 누적 5.09x 슈퍼사이클),
+    cross-sectional selection 신호 ★구조적 약(H9 입증). momentum 음(약 reversal)·저변동성 음(low-vol)이 cyclical 정합.
+    PER cross-sectional 무효(적자/peak trap, H3) = deep-cyclical 정합. universe 협소(16종) = breadth 부족.
+as_of: "2026-05-31"
+
+# ── 블록1 LENS (정성) ──
+lens:
+  pricing_principle: >
+    조선 = deep-cyclical. "싸다" = PBR 밴드 하단(저점 0.5x, 정점 1.5-2x). ★PER ✗ (적자기 분모 음 / 정점기 저PER 함정 =
+    Damodaran value trap, H3 실증). 주가가 실물지표(운임·수주)보다 ★선행 → 운임 lagged forward 예측력 약(H8 REJECTED).
+    ★핵심 = 산업 베타(슈퍼사이클 timing) 지배 → cross-sectional selection alpha 구조적 약(H9, Maritime Economics §cycle).
+  cycle_reading: >
+    2019-2026 = 불황(2019-21 저가수주 적자)→회복(2022 흑자전환)→슈퍼사이클(2023-25 고선가 수주 인식, LNG/친환경선).
+    적자 종목수: FY2021 7종/FY2022 6종 → FY2024 0종(전종목 흑자). = PER cross-sectional 시기별 무효 구간 多.
+    현 시점(2026-05) = 슈퍼사이클 정점 부근(선가 고점, 후판 원가 부담 cycle 후반 진입 가능).
+  estimation_note: >
+    2026-05 시점: universe 16종(시총≥1000억 ∧ ADV≥5억, ★floor 완화 — strict 3000억/30억 통과 9종뿐 = 협소 universe 대응).
+    조선 4대장(HD현대중공업/한화오션/삼성중공업/HD한국조선해양) + 엔진(한화엔진/HD현대마린엔진/STX엔진) + 기자재.
+    ★small breadth hedge: 반도체 85종/battery 29종 대비 구조적 breadth 부족 → magnitude 보수 cap + 단정 금지.
+
+# ── 블록2 INDICATORS (forward 횡단면 Rank-IC, horizon-tagged) ──
+# ★점추정 금지: ic_mean + ic_ci_95(block-boot ∧ NW) + n_effective + oos(walk-forward)
+# ★조선 = tradeable 신호 ★약 (BY 생존 0, 대부분 OOS 반전/CI 0포함). vol_60(저변동성)만 OOS 부호유지.
+indicators_passed:
+  - id: cs_lowvol_60d
+    layer: 3                  # 가격 cycle proxy (cross-sectional 저변동성)
+    family: low_volatility    # ★부호 음 = 저변동(낮은 vol_z) 종목 forward 高 (low-vol anomaly, bio 동형)
+    horizon: 20d
+    ic_mean: -0.0568
+    ic_ci_95: [-0.129, 0.0202]  # ★block-bootstrap(block=3,B=2000) — ★0 포함(상단 +0.02) = 비유의 경계
+    ic_se_nw: 0.0395
+    t_nw: -1.44
+    n_effective: 81
+    wild_cluster_p: 0.1284     # ★BY/Bonferroni 미생존, wc_p>0.05
+    oos_sign_hold: true        # ★walk-forward IS -0.065 → OOS -0.049 부호유지 (유일 OOS 생존 신호)
+    liquidity_tier: "strict 9종 IC -0.078 (wc_p=0.096) > 전체 16종 -0.057 = microcap artifact 아님 (대형주서 강)"
+    avg_universe_n: 13.5
+    source_id: "raw-v3/validation-conditional-v3.json:conditional_ic_surface.vol_60.y_20d.unconditional"
+    notes: |
+      cross-sectional 60d 변동성 z-score → 20d forward Rank-IC = ★음(저변동→고forward = low-vol anomaly).
+      ★유일하게 walk-forward OOS 부호유지(IS -0.065→OOS -0.049) + Reflation regime IS -0.197→OOS -0.091 부호유지 +
+      strict tier(고유동성 9종)서 더 강(-0.078) = microcap artifact 아님. ★단 BY/Bonferroni 미생존(wc_p 0.128) +
+      block-boot CI 0 포함(+0.02) = 방향 prior 만, magnitude 비유의. = TENTATIVE DIRECTIONAL.
+
+# ── 블록3 RELATIONSHIPS (partial-corr) — RegimeGlasso 통합 단계 입력 ──
+relationships_passed:
+  - {node_a: cs_lowvol_60d, node_b: ship_fwd_20d, lag_months: 0, corr: -0.0568,
+     corr_ci_95: [-0.129, 0.0202], conditioning_set: [], n: 81,
+     source_id: "raw-v3/validation-conditional-v3.json:conditional_ic_surface.vol_60.y_20d.unconditional",
+     note: "★corr = cross-sectional IC(unconditional, 음=low-vol). CI 0 포함(비유의 경계). partial-corr = 통합 RegimeGlasso 단계."}
+
+# ── 블록4 WEIGHT_RULES — derive_weights(w∝Θ_signal·IC) 입력 (range, 점추정 금지) ──
+weight_rule_candidates:
+  - indicator_id: cs_lowvol_60d
+    base_weight_range: [-0.06, 0.0]   # ★음 IC=low-vol → 저변동 종목 overweight. ★CI 0 포함 = 상한 0(monitor-only 경계)
+    modulate_by: [archetype, regime, cycle_phase]
+    direction: >
+      ★cross-sectional 60d 변동성 z 하위(저변동) 종목 overweight, 상위 underweight (low-vol anomaly, peer-relative).
+      long-only-implementable = 저 vol_z 종목 top-quantile overweight vs benchmark. ★단 방향만(magnitude 비유의).
+    granularity: cross_sectional       # ★universe-relative z
+    gate_status: {n: pass, se: fail, power: pass, fdr: fail, oos: pass}  # ★se FAIL(CI 0포함) + fdr FAIL = monitor-only 경계
+    confidence: low                    # ★TENTATIVE DIRECTIONAL (방향 OOS 생존하나 CI 0포함 + BY 미생존)
+    source_ids: ["raw-v3/validation-conditional-v3.json:conditional_ic_surface.vol_60.y_20d.unconditional"]
+    hedge_note: >
+      ★조선 = tradeable 신호 ★약. vol_60(저변동)만 OOS 부호유지(방향 prior) but CI 0 포함 + BY 미생존 = magnitude 비유의.
+      supervisor 가 monitor-only OR 최소 weight + Σ_signal hedge. ★G-G v2 = PASS-conditional 최약(또는 FAIL 경계, supervisor 판정).
+
+# ── 블록5 CONFIDENCE_HOOKS — ★affects_indicator 필수 (비우면 결선 dead) ──
+confidence_hooks:
+  - hypothesis_id: ship_cs_lowvol_persistence
+    affects_indicator: cs_lowvol_60d   # ★★필수 — indicators_passed.id 와 매칭
+    affects_edge: [cs_lowvol_60d, ship_fwd_20d]
+    confirm_signal: "live 횡단면 저변동성 종목 20d forward rank > 고변동 유지 (rolling 12M, low-vol 지속)"
+    reject_signal: "Rank-IC e-CUSUM 부호 반전 붕괴 (IC 음→양 = low-vol 소멸, 슈퍼사이클 momentum 전환)"
+    emit_where: "panel-score-IC 축 (backtest SELL 아님)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "derive_weights 재적합 → cross-sectional low-vol base_weight 변동 (부호 음 유지 조건)"
+    action_threshold: "e-value > 1/alpha=20 → retract(live 차단) / 회복 = score_ic_recovery_eprocess"
+
+# ── 블록6 COLLECTOR_PLAN ──
+collector_plan_industry:
+  - missing: "글로벌 신조선 수주(Clarkson) + 신조선가 지수(Newbuilding Price Index) + 운임(SCFI/CCFI/BDI)"
+    source: "Clarkson Research(유료) / SCFI 상하이항운교역소(유료). 현 = BDRY/유가/BOAT ETF proxy(forward 비유의 REJECTED)"
+    priority: high   # ★조선 cycle 핵심 = timing 변수 (cross-sectional 아닌 regime conditioning). 직접지표 부재
+  - missing: "후판(steel plate) 가격 (조선 원가 cycle, 사이클 후반 마진 압박 신호)"
+    source: "POSCO 후판 가격 공시 / 한국철강협회. yfinance 부재"
+    priority: medium
+  - missing: "EV-EBITDA (cyclical primary_metric, 부채/현금 = DART BS 추가 계정) + 시점별 발행주식수(시총 PIT)"
+    source: "DART fnlttSinglAcntAll(부채총계/현금성자산) + stockTotqySttus. 현 = FDR 현재주식수 근사"
+    priority: high
+  - missing: "PIT universe 멤버십 (시점별 섹터 편입/편출 + delisted 종목)"
+    source: "FDR KRX-DESC = 현재 스냅샷만. ★조선 = 신규상장 多(대한조선 2024/현대힘스 2024/티엠씨 2025/HD현대중공업 2021 재상장)"
+    priority: high   # ★생존편향 + look-back gap (16종 中 4종 부분이력)
+  - missing: "KR HY credit spread (공통인자 credit β KR-local)"
+    source: "현 = US BAML HY OAS proxy(FRED). KR 회사채 spread = 금융투자협회/한국신용평가 유료"
+    priority: low    # 조선 credit β 비유의(t=-0.33)라 우선순위 낮음
+
+# ════════════════════════════════════════════════════════════════════
+# ── ★★CONDITIONAL IC SURFACE (dispatch 원의도 본체, S2) ──
+# IC(지표, regime, horizon) = "어느 국면에 어느 지표가 forward return 예측하나".
+# 측정: raw-v3/measure_conditional.py (G-F 7항 헤더 선언) → validation-conditional-v3.json
+# regime: Macro(FRED CLI amplitude-adj 4) × KRW(DEXKOUS yoy 3) × flow(ECOS 외국인순매수 28d z 3)
+# ════════════════════════════════════════════════════════════════════
+conditional_ic_surface:
+  cell_collapse: >
+    ★36셀 full(Macro4×KRW3×flow3) N>=24 cell = 0개(실측, 최대 N=18) → INSUFFICIENT.
+    측정 = 단일축(Macro 4 / KRW 3 / flow 3 각각) conditional IC + family_2 interaction.
+  fdr_family:
+    m_naive: 87
+    m_eff_signal: 3.0         # ★Li-Ji M_eff (가격4신호 상관보정). naive 6신호 → 유효 ~3
+    by_survivors: []          # ★naive m=87 BY 보정 후 0 (raw_p_min=0.065 = 전부 비유의)
+    bonferroni_note: "Bonferroni α/87=0.00057 로도 0건. raw_p_min=0.065(mom_6 y_5d uncond) = ★전 신호 비유의."
+    note: "★조선 = unconditional·conditional 전부 BY/Bonferroni 미생존. M_eff 통합 = supervisor."
+  key_findings:
+    - finding: "★vol_60(저변동성) = 유일 OOS 생존 신호 (low-vol anomaly)"
+      cells:
+        - {signal: vol_60, horizon: y_20d, regime: unconditional, ic: -0.0568, wc_p: 0.1284, n: 81, status: powered, ci95: [-0.129, 0.0202]}
+        - {signal: vol_60, horizon: y_20d, regime: "macro=Reflation", ic: -0.1546, wc_p: 0.03, n: 20, status: underpowered}
+        - {signal: vol_60, horizon: y_20d, regime: "flow=flow_neutral", ic: -0.0884, wc_p: 0.088, n: 43, status: powered}
+      mechanism: "deep-cyclical 저변동 종목 forward 우위(low-vol anomaly). Reflation/flow_neutral서 증폭. ★단 BY 미생존."
+    - finding: "★momentum = OOS 소멸 (cyclical reversal 약)"
+      cells:
+        - {signal: mom_6, horizon: y_20d, ic: -0.0416, wc_p: 0.2874, n: 81, oos: "IS -0.073 → OOS -0.008 소멸"}
+      mechanism: "momentum 음(약 reversal, cyclical 정합 방향) but OOS 거의 0 = 슈퍼사이클 구간 momentum 전환. battery(양)와 반대."
+    - finding: "★valuation(pbr/per) = OOS 반전 또는 degenerate artifact"
+      cells:
+        - {signal: pbr_z, horizon: y_20d, ic: -0.0119, oos: "IS -0.038 → OOS +0.016 ★반전"}
+        - {signal: per_z, horizon: 24M_value, ic: 0.2041, t_nw: 4.47, avg_universe_n: 6.9, note: "★BY 생존했으나 artifact (아래 critique_validation)"}
+      mechanism: "PER 적자/peak trap(H3) + 24M degenerate + 흑자7종 small-universe = artifact. PBR OOS 반전."
+  # ── ★★family_2 interaction (G-B 의무, rejected 박제 前 = frame A-5) ──
+  family_2_interaction:
+    method: "pooled panel: ret_rank ~ sig_rank + sig_rank×KRW_weak_dummy, month-clustered SE (자유도 보존)"
+    results:
+      - {signal: mom_6, horizon: y_20d, b_main: -0.0746, t_main: -1.37, b_interaction: 0.0846, t_interaction: 1.14, n_months: 81, verdict: "interaction 비유의"}
+      - {signal: mom_12_1, horizon: y_20d, b_main: -0.0348, t_main: -0.56, b_interaction: 0.0147, t_interaction: 0.18, n_months: 81, verdict: "interaction 비유의"}
+      - {signal: rev_1m, horizon: y_20d, b_main: -0.0412, t_main: -1.00, b_interaction: 0.0093, t_interaction: 0.14, n_months: 81, verdict: "interaction 비유의"}
+      - {signal: vol_60, horizon: y_20d, b_main: -0.0813, t_main: -1.75, b_interaction: 0.0641, t_interaction: 0.87, n_months: 81, verdict: "interaction 비유의"}
+    interpretation: >
+      ★조선 = KRW_weak family_2 interaction 전부 비유의 (반도체와 차이 — 반도체는 mom_6/rev_1m t=-2.95/-2.33 유의).
+      = "국면 따라 신호 효과 갈림"(A-5)이 ★조선엔 미입증. sign-flip 28건 있으나 interaction term 정식 측정 = 전부 비유의.
+      ★G-B "약함" 단정 前 family_2 검정 의무 이행 → family_2도 비유의 = 신호 본질 약(방법 결함 아님 = H9 산업베타 지배).
+  gb_status:
+    trigger_check: "★BY 생존 0/87 AND raw_p_min(0.065) > 2×BY_thresh = ★G-B 트리거 충족"
+    verdict: >
+      ★G-B 트리거 충족 (BY 0 + 약신호). ★단 family_2 interaction 검정 의무 이행 = 전부 비유의 +
+      Gemini 리서치(H9 산업베타 지배) = "방법 결함 아닌 신호 본질 구조적 약" 강한 근거. → team-lead G-B 자문 발동 여부 판정 보고.
+      ⛔ 단정 회피 = "신호 약함" 대신 "tradeable 약(vol_60 방향 prior만, BY 미생존) + 산업베타 지배 = cross-sectional 구조적 약(H9 학술 정합)".
+  # ── ★비판검토 실측 (S6 방어) ──
+  critique_validation:
+    - critique: "per_z 24M IC +0.204(t=4.47, BY 생존) = 진짜 신호인가?"
+      test: "walk-forward OOS(6M/12M/24M) + within-period + avgN + 24M overlap eff_N"
+      result: "per_z 6M IS-0.132→OOS+0.086 ★반전 / 12M IS-0.120→OOS+0.140 ★반전 / 24M 부호유지(양). avgN=6.9(흑자7종). within-period 2020-21 적자전환기 IC +0.16~+0.33"
+      verdict: >
+        ★artifact 확정 = (a) 6M/12M OOS 부호반전(불안정) (b) avgN 6.9 = 흑자 7종 한정 small-universe inflation
+        (c) 24M overlap eff_indep_N=61/24≈2.5 degenerate(frame §M.12) (d) 적자→흑자 전환+슈퍼사이클 구간 표본 지배.
+        = ★BY 생존했으나 tradeable 자격 X (frame §M.12 격하 의무). per_z 양 IC = "적자기 PER무효 종목 흑자전환 후 급등" 착시.
+    - critique: "vol_60 low-vol = microcap artifact 아닌가? (협소 universe)"
+      test: "유동성-티어 IC (strict 9종 vs 전체 16종) + cap 점검"
+      result: "strict tier(고유동성 9종) IC -0.078(wc_p=0.096) > 전체 16종 -0.057 = ★대형주서 더 강"
+      verdict: "★microcap artifact 아님(대형주서 강). 단 BY 미생존 = 방향 prior만(magnitude 비유의)."
+    - critique: "H9: 산업 베타 지배 → cross-sectional selection 구조적 약?"
+      test: "조선 산업 eq-weight 누적수익(슈퍼사이클) + cross-sectional IC 강도 + 전 신호 BY 생존"
+      result: "산업 누적 2022→2025 5.09x(슈퍼사이클) + cross-sectional 전 신호 BY 생존 0 + 종목 상관 高"
+      verdict: "★입증 = 산업 베타(timing) 지배 → cross-sectional alpha 구조적 약. Gemini 리서치(Maritime Economics)·실측 정합. = 신호 본질 약(방법 결함 아님)."
+  # ── ★S5 역공격 (최강 반증 직접 투척 → 수렴) ──
+  adversarial_s5:
+    target: "vol_60 low-vol (유일 OOS 생존 신호)"
+    attacks:
+      - {attack: "단일 슈퍼사이클 episode(2023-25) 종속?", test: "walk-forward IS(2019-22)/OOS(2023-26)", result: "IS -0.065 → OOS -0.049 부호+magnitude 유지", verdict: "부분 기각(OOS 생존)"}
+      - {attack: "microcap 협소 universe artifact?", test: "strict tier 9종", result: "strict -0.078 > 전체 -0.057(대형주 강)", verdict: "기각(artifact 아님)"}
+      - {attack: "★magnitude 유의한가?", test: "block-boot CI + wild-cluster p", result: "CI [-0.129, +0.020] ★0 포함 / wc_p 0.128 > 0.05", verdict: "★magnitude 비유의 = 방향 prior만(TENTATIVE)"}
+    convergence: >
+      ★vol_60 = 방향(low-vol) OOS 생존 + microcap 아님 = 방향 prior 견고. ★단 magnitude 비유의(CI 0포함+BY 미생존) =
+      TENTATIVE DIRECTIONAL. = 조선 cross-sectional 신호의 ★구조적 약함(H9) 정합. S5 수렴 = "방향 있으나 약".
+
+# ── ★신규 cycle 지표 (재고/CAPEX/R&D, ★이연 금지 = 측정완료) ──
+# ★★capex 부호 prior 재검토 (team-lead capex 일반화 = 조선 orderbook 특수성)
+fundamentals_cycle:
+  source: "DART dart_extended.parquet (16종 371rows, coverage inv 92%/ppe 100%/intangible 84%). PIT rcept_dt."
+  measured: "★사용자 박제 '이연 금지' 이행 — 불확실해도 지금 측정 + verdict 박제."
+  capex_generalization_verdict:  # ★team-lead 핵심 관심사
+    question: "자동차/반도체 capex_ratio 음 prior(asset growth anomaly, structural_high)가 조선에 적용되나?"
+    조선_특수성: "조선 = orderbook(수주잔고) 기반 → asset growth 가 (a)과잉투자 음 (b)수주확대 양 = ★two-sided (one-sided 단정 금지)"
+    result: "capex_ratio uncond IC +0.0034(wc_p=0.91 비유의) / ppe_yoy uncond IC -0.029(wc_p=0.37 비유의, 약한 음=일반론 방향)"
+    verdict: >
+      ★조선 capex_ratio = ★무신호 (IC≈0, 비유의). 자동차/반도체의 음 prior asset growth anomaly 가 조선엔 ★약하게도 미발현.
+      ppe_yoy 만 약한 음(일반론 방향) but 비유의. = ★capex 일반화 가설은 조선에 ★미적용 (two-sided 였던 게 데이터로 "무신호" 판정).
+      메커니즘: 조선 산업 베타 지배(H9) + 슈퍼사이클 구간 = capex 부호효과가 산업 timing 에 압도됨. ★one-sided 단정 회피한 게 정답.
+  indicators:
+    - {id: capex_ratio, family: asset_growth, prior: "two-sided(음약+양가능)", ic_y20d: 0.0034, wc_p_y20d: 0.91, verdict: "INSUFFICIENT(무신호, capex 일반화 ★조선 미적용)"}
+    - {id: ppe_yoy, family: asset_growth, prior: "two-sided", ic_y20d: -0.029, wc_p_y20d: 0.37, verdict: "INSUFFICIENT(약한 음=asset growth 일반론 방향이나 비유의)"}
+    - {id: inv_ratio, family: inventory, prior: "two-sided(양가능:재공품)", ic_y20d: 0.0142, wc_p_y20d: 0.67, verdict: "INSUFFICIENT(약한 양=재공품 가설 방향이나 비유의)"}
+    - {id: inv_yoy, family: inventory, prior: "two-sided", ic_y20d: 0.0121, wc_p_y20d: 0.75, verdict: "INSUFFICIENT(비유의)"}
+    - {id: rnd_ratio, family: rnd, prior: "양(친환경선기술)", ic_y20d: -0.013, wc_p_y20d: 0.74, verdict: "INSUFFICIENT(비유의, prior 양과 약하게 반대)"}
+  verdict: >
+    ★신규지표 전부 비유의(BY 미생존, m=78 survivors=0). capex_ratio 무신호 = ★capex 일반화 가설 조선 미적용(two-sided→무신호).
+    = 정직 박제(over-claim 0). 사용자 "이연 금지" 이행. 조선 = 펀더멘털 cross-sectional 신호도 ★약(산업베타 지배 H9).
+  fdr_family_merged:  # ★team-lead 순서3: 단일 FDR family 합산
+    m_total: 165
+    composition: "conditional 87 + fundamentals 78"
+    survivors_BY: 0
+    raw_p_min: 0.0015
+    raw_p_min_keys: "ppe_yoy y_5d KRW_neutral"
+    note: "★전 신호 BY 미생존. garden-of-forking-paths 차단 정확 작동. M_eff 통합보정=supervisor."
+  data_gate:
+    종목레벨_외국인flow: "★DATA-GATE(deferral 아님) — KRX 종목별 차단. 시장레벨 ECOS flow는 측정완료."
+
+# ── ★cross (분석 단위 간 상관) — §M.3 3소비자 라우팅 (산업=보고만) ──
+cross:
+  common_factor_exposure:
+    - {factor: VIX, beta: -0.0145, beta_ci_95: [-0.0288, -0.0003], contemporaneous: true,
+       source_id: "raw-v3/validation-cross-v3.json:common_factor_exposure.VIX",
+       note: "★조선 = VIX 고베타(risk-off 시 약세, t=-2.00 유의). H7 입증. 유일한 유의 공통인자. n=35 small."}
+    - {factor: dollar, beta: -1.3317, beta_ci_95: [-3.7128, 1.0495], contemporaneous: true,
+       note: "약한 음 방향성(t=-1.10 비유의, CI 넓음). H1 수출주 환율(원화약세→outperform) 가설 = 약/비유의."}
+    - {factor: oil, beta: 0.1307, beta_ci_95: [-0.2442, 0.5056], contemporaneous: true, note: "비유의(t=+0.68). 약한 양(해양플랜트/탱커 수요 방향)"}
+    - {factor: rate, beta: 0.0140, beta_ci_95: [-0.098, 0.1261], contemporaneous: true, note: "비유의"}
+    - {factor: credit, beta: -0.0209, beta_ci_95: [-0.1438, 0.102], contemporaneous: true, note: "비유의(t=-0.33). US HY proxy(KR HY 부재) n=35 small"}
+  directional_spillover: []   # §M.3: DY connectedness = supervisor 통합, I-O centrality = optional 최하위
+  structural_linkage:
+    - supplier_or_customer: global_shipping_freight_cycle   # BDRY(벌크운임)/유가/BOAT(글로벌조선해운)
+      io_weight: null            # BEA I-O = US, KR I-O 부재 → 정성 supply-chain
+      lagged_return_signal: -0.103  # 최강 lag (oil lag1 corr, 비유의)
+      p_value: 0.084
+      source_id: "raw-v3/validation-cross-v3.json:customer_supplier_momentum"
+      verdict: >
+        ★REJECTED as alpha — BDRY/유가/BOAT 전 lag(0-3) 비유의(p>0.08). ★조선 = 주가가 운임·수주보다 ★선행(H8 메커니즘) →
+        운임 lagged forward 예측력 부재(§D falsifier 작동). 동조성분은 RegimeGlasso Ω 흡수. ★직접 수주(Clarkson)/SCFI = collector_plan.
+  # ⛔ sector-rotation business-cycle clock = 학술 myth(Molchanov 2024). 운임 momentum rotation 만 tentative.
+
+# ── ★valuation 횡단면 (§M.7 — DART 재구성) ──
+valuation_cross_sectional:
+  data_source: "raw-v3/validation-valuation-v3.json (DART fnlttSinglAcntAll 356 rows/16종 + pykrx 가격). PBR 1108 cells / PER 716 cells."
+  mechanism_works:
+    pbr: false    # ★PBR OOS 부호반전 (전 horizon IS 음→OOS 양) = 슈퍼사이클 구간 value 역전
+    per: false    # ★PER 양 IC = artifact (적자/peak trap, H3) — BY 생존했으나 degenerate
+  pit_note: "재무 = rcept_dt(공시일) 이후만(lookahead 회피). FY 보고지연 median 108-120일. DART CFS→OFS fallback."
+  archetype_caveat: >
+    ★조선 deep-cyclical valuation = ★cross-sectional 무효: (a) PER 양 IC = 적자/peak trap artifact(avgN 6.9 흑자한정 +
+    24M degenerate) (b) PBR OOS 부호반전(IS value premium → OOS 역전, 슈퍼사이클 구간). = Damodaran value trap(H3) 실증 +
+    산업베타 지배(H9). ★PBR 밴드(시계열 timing)는 유효할 수 있으나 cross-sectional selection = 무효.
+  indicators:
+    - id: per_z_24m_ARTIFACT
+      signal: per_z
+      horizon: 24M_value
+      ic_mean: 0.2041
+      t_nw: 4.47
+      n_months: 61
+      p_value_nw: 0.0001
+      avg_universe_n: 6.9          # ★흑자 7종 한정
+      by_survived: true            # ★BY 생존했으나 artifact (격하 의무)
+      verdict: ARTIFACT
+      note: "★BY 생존했으나 ★artifact 격하 (frame §M.12): 6M/12M OOS 부호반전 + avgN 6.9 small-universe + 24M overlap eff_N 2.5 degenerate + 적자→흑자 전환 표본 지배. tradeable 자격 X."
+    - id: pbr_z_24m
+      signal: pbr_z
+      horizon: 24M_value
+      ic_mean: -0.0447
+      t_nw: -0.39
+      n_months: 61
+      avg_universe_n: 12.4
+      by_survived: false
+      note: "★PBR cross-sectional 비유의(t=-0.39) + OOS 부호반전. value premium 방향 불안정(슈퍼사이클 역전). cross-sectional selection 무효."
+  verdict: >
+    ★조선 valuation cross-sectional = ★무효 (PER artifact + PBR OOS 반전). Damodaran value trap(H3) + 산업베타(H9) 실증.
+    ★PBR 밴드 timing(시계열) = 별도 측정완료(아래 sector_timing) = ★약/불안정(부활 실패). ev_ebitda = collector_plan high.
+
+# ════════════════════════════════════════════════════════════════════
+# ── ★섹터 timing 부활 측정 (team-lead 지시 2026-06-05, frame M2 시계열) ──
+# cross-sectional 종목선택 아님 = "조선 산업 PBR 밴드 저밴드→비중↑, 고밴드→↓" (정유 유가 mean-reversion 동형)
+# 측정: raw-v3/measure_sector_timing.py → validation-sector-timing-v3.json
+# ════════════════════════════════════════════════════════════════════
+sector_timing:
+  method: "산업 합산 PBR(Σ시총/Σ자본, PIT rcept_dt) rolling36M z-score → 산업 eq-weight forward return. cross-sectional 아닌 시계열 timing."
+  pbr_band: "PBR 범위 0.58x(2020 불황)~5.34x. 현재(2026-05) 4.36x = ★역사밴드 크게 초과(슈퍼사이클 정점). PBR_z 현재 +1.19(밴드 상단)."
+  signal_test: "저밴드(낮은 PBR_z)→고 forward = IC 음(mean-reversion 가설). horizon 1M/3M/6M/12M."
+  results:
+    - {horizon: 1M, ic: -0.0985, wc_p: 0.4863, n: 67, n_eff: 10.0, ci95: [-0.206, 0.178], oos: "IS -0.488→OOS -0.026 부호유지(소멸)"}
+    - {horizon: 3M, ic: -0.0285, wc_p: 0.7876, n: 65, n_eff: 9.6, ci95: [-0.287, 0.445], oos: "IS -0.662→OOS -0.024 부호유지(소멸)"}
+    - {horizon: 6M, ic: 0.0875, wc_p: 0.1524, n: 62, n_eff: 9.5, oos: "IS -0.850→OOS +0.249 ★부호반전"}
+    - {horizon: 12M, ic: 0.3734, wc_p: 0.0005, n: 56, n_eff: 11.3, ci95: [0.003, 0.729], oos: "IS -0.582→OOS +0.412 ★부호반전", note: "★BY 생존(m=18)했으나 artifact"}
+  fdr_family:
+    m: 18
+    survivors_BY: ["pbr_band__12M__uncond", "pbr_band__12M__flow_neutral", "pbr_band__12M__KRW_weak"]
+    raw_p_min: 0.0005
+    note: "★12M BY 생존 3건 = ★artifact (walk-forward 부호반전). per_z 24M 동일 패턴(BY생존≠tradeable)."
+  verdict: >
+    ★PBR 밴드 timing = ★부활 실패 (측정했으나 약/불안정). (1) 12M IC +0.373 BY 생존했으나 ★artifact:
+    walk-forward IS 음(-0.582 mean-reversion 정상방향)→OOS 양(+0.412) = ★슈퍼사이클 trend 가 mean-reversion 뒤집음
+    (2024-06 PBR_z +1.88 高밴드 → 12M_fwd +104.6% = 高PBR서 폭등). (2) 1M/3M = OOS 부호유지(음=mean-reversion)하나
+    IS 극단(-0.49/-0.66, n=27 small)→OOS 거의 0(-0.026/-0.024) = 소멸. (3) n_eff 10(PBR_z 강한 persistence) = 통계력 약.
+    ★결론 = 조선 섹터 timing 도 cross-sectional 처럼 ★약. mean-reversion 가설이 2023-26 슈퍼사이클 구간에서 반전.
+    = ★섹터 timing sleeve 격상 ★불가 (종목선택 0 + 섹터 timing 도 불안정). 현재 PBR 4.36x 역사밴드 초과 = mean-reversion 신호로는
+    "고평가"이나 trend 는 상승 = 신호 충돌. ★정직 박제: 측정했으나 약(deferral 아님). 슈퍼사이클 종료 후 OOS = 미래 보너스.
+  sector_timing_gg_v2: >
+    ★G-G v2 = PBR 밴드 timing tradeable 자격 ★X (12M artifact + 1M/3M 소멸). = 조선 종목선택 0 + 섹터 timing 도 약
+    → ★PASS-conditional 최약~FAIL 유지(team-lead 판정 정합). 섹터 timing sleeve 격상 불가. monitor-only(슈퍼사이클 정점 경계 = de-risk 참고용).
+
+# ════════════════════════════════════════════════════════════════════
+# ── ★업종 rotation 신호 (team-lead 지시 2026-06-05, 신조선가 proxy 재탐색) ──
+# rotation = 종목선택 아닌 "어느 국면 → 조선 업종 OW/UW". rotation-analyst v2 = 조선 REJECTED.
+# 측정: raw-v3/measure_rotation_ship.py → validation-rotation-ship-v2.json. 상세 = rotation-signals.md
+# ════════════════════════════════════════════════════════════════════
+rotation:
+  method: "cycle proxy(t) → 조선 업종 eq-weight forward return(t+h) timing IC. ≥8 후보(team-lead). 신조선가 직접=무료부재."
+  theory_bdi_unfit: >
+    ★BDI(baltic_dry) 부적합 (v2 REJECTED + Gemini): ① 선종 불일치(결정적) — BDI=벌크선(철광석/석탄), 한국 조선=LNG/ULCS컨테이너/VLCC탱커.
+    ② 운임=해운사 수익(조선 수주 아님) ③ 18M+ lag ④ 주가가 운임 선행. → 한국 조선 맞는 운임 = SCFI/탱커/LNG(유료).
+  theory_newbuild_price: >
+    ★신조선가(Clarksons) = 진짜 driver이나 ★주가가 6-12M 선행(하나증권 최광식) = ★후행지표 = rotation 선행신호 부적합 +
+    무료 부재(유료). 수주잔고 = 동행/후행(부적합). 후판가 = 이중성(원가-/수요+). ★해운사 주가 = 이론상 선행 proxy(고객 발주여력).
+  candidates_tested: 11   # ★≥8 (team-lead): tanker/container/boat/steel_plate(HRC)/lng + usdkrw/oil/steel_etf(SLX)/iron_ore/baltic_bdry(BDI)/china(FXI)
+  signals_measured: 44    # 11 proxy × 2변환(yoy/d3) × 2horizon(20d/60d)
+  results:
+    # 강신호(|IC|>0.25)는 전부 ★부호확약 반증 (주가 선행) — 사후부호 = forking-path
+    - {proxy: oil_wti, var: yoy, h: y_60d, ic: -0.4419, wc_p: 0.0025, prior: "+", match: false, status: underpowered, note: "유가 高→조선 forward 하락(반증, 주가선행)"}
+    - {proxy: china_proxy, var: yoy, h: y_60d, ic: 0.3903, wc_p: 0.003, prior: "-", match: false, status: "INSUFFICIENT(n_eff 5.6)", note: "중국 高→조선 양(반증). 점유경쟁 가설 미성립"}
+    - {proxy: tanker_basket, var: d3, h: y_60d, ic: -0.3284, wc_p: 0.001, prior: "+", match: false, status: underpowered, oos: "IS -0.28→OOS -0.40 부호유지", note: "탱커 高→조선 하락(반증, 운임고점=발주정점→선반영후 되돌림)"}
+    - {proxy: steel_etf, var: yoy, h: y_60d, ic: -0.2714, wc_p: 0.0545, prior: two-sided, status: underpowered}
+    - {proxy: iron_ore, var: yoy, h: y_60d, ic: -0.2622, prior: two-sided, status: underpowered}
+    # 부호확약 일치(match)+OOS유지 = container 뿐인데 극도로 약
+    - {proxy: container_basket, var: d3, h: y_60d, ic: 0.0874, wc_p: 0.3133, prior: "+", match: true, status: "underpowered(t_mde 0.34)", note: "유일 match+OOS유지 but 극약 = tradeable 부적격"}
+    - {proxy: usdkrw, var: d3, h: y_20d, ic: 0.0949, prior: "+", match: true, status: "underpowered(OOS flip)", note: "H1 수출주 환율 약"}
+    - {proxy: baltic_bdry, var: yoy, h: y_60d, ic: -0.1110, prior: "+", match: false, status: underpowered, note: "★BDI 선종불일치(v2 REJECTED 재현)"}
+  fdr_family: {m_powered: 0, survivors_BY: 0, note: "전 신호 underpowered(t_mde<2.802). FDR powered cell 0."}
+  verdict: >
+    ★rotation tradeable = ★0 (11 후보 44신호 전수 측정, v2 REJECTED 유지). (1) 강신호(oil -0.44/china +0.39/tanker -0.33)는
+    전부 ★부호확약 반증(주가 선행=운임·유가·해운 高→조선 forward 하락) (2) 부호확약 일치 = container(+0.087)뿐인데 t_mde 0.34 극약
+    (3) 전 신호 underpowered + FDR powered 0. ★사유 = "주가 선행성"(조선 주가가 운임·신조선가 6-12M 선행 → 후행 fundamental
+    cycle 신호 무효, 하나증권 최광식/NH 2023) + BDI 선종불일치 + 신조선가 직접지표 무료부재. ★data mining 아닌 이론 정합 REJECTED.
+  tradeable_gg_v2: >
+    ★rotation tradeable 0 = 사용자 "최소 2개" 미달 = ★구조적 빈약 사유 박제(team-lead 허용). 무리한 발굴(강신호 사후부호전환)=
+    data mining 회피. ★조선 종합 = 종목선택 0 + 섹터 PBR timing 약 + rotation 0 = ★구조적 약 확정(H9 산업베타 + H10 주가선행).
+    monitor-only(tanker/유가 momentum 高 = 슈퍼사이클 정점 de-risk 참고, tradeable 아님). 신조선가/SCFI 직접지표 = collector_plan high.
+
+# ── robustness_checks (측정 17종 통과 기록, 지표별) ──
+robustness_checks:
+  - indicator_id: cs_lowvol_60d        # 유일 tradeable 후보
+    leave_episode: null              # (협소 universe, 통합단계)
+    within_period: partial           # 연도별 부호 일관 ~70% (대체로 음)
+    partial_corr_ratio: null         # 통합 RegimeGlasso 단계
+    net_sharpe_ratio: null           # |IC| 0.057 marginal vs 16.5bps/월
+    forward_vs_contemp: "forward present (음=low-vol, OOS 부호유지)"  # ★forward IC 유효(방향)
+    family_neutralized_ic: null      # FF5/KR-factor = 통합 단계
+    eff_n_tier: Tentative            # n=81 month but CI 0 포함
+    liquidity_tier: "strict 9종 -0.078 > 전체 16종 -0.057 (대형주 강, microcap 아님)"
+    multiple_testing_gate: fail      # ★BY/Bonferroni 미생존
+    se_gate: fail                    # ★block-boot CI 0 포함
+
+# ── horizon_verdict (forward alpha falsifier) ──
+horizon_verdict:
+  best_horizon: "20d (저변동성 → 20d forward, low-vol anomaly)"
+  forward_alpha_present: "tentative"   # ★방향 OOS 생존하나 magnitude 비유의
+  note: >
+    ★조선 cross-sectional forward alpha = ★약 (vol_60 방향만 OOS 생존, BY 미생존 + CI 0포함).
+    momentum OOS 소멸 / valuation OOS 반전·artifact / capex 무신호 / supply-chain REJECTED.
+    = ★산업 베타(슈퍼사이클 timing) 지배 → cross-sectional selection 구조적 약(H9). ★PBR 밴드 timing 은 별개 유효 가능.
+
+# ── net-cost (KR 비대칭) ──
+net_cost:
+  model: "spread/2 + commission + STT_sell(0.20%, 매도측만) — §M.4 비대칭"
+  roundtrip_bps: 33.0
+  monthly_cost_bps: 16.5   # turnover 0.5/월 가정
+  note: "|IC| 0.057 (breadth 13.5종, ★협소) marginal vs 16.5bps/월. ★low-vol turnover 낮음(저변동 안정) but breadth 부족으로 IR 약. net 보존 marginal/약."
+
+# ── Hard-fail 4 (B C D I) self-check ──
+hard_fail_self_check:
+  B_real_data: {status: PASS, note: "합성 0%. pykrx OHLCV 16종(1818일) + yfinance(BDRY/oil/BOAT/VIX/dollar) + DART 재무 + FDR. raw-v3/*.py 재현."}
+  C_traceability: {status: PASS, note: "모든 yaml 수치 = raw-v3/validation-*.json key 매핑. vol_60 IC -0.057=conditional.vol_60.y_20d / VIX β -0.0145=cross."}
+  D_pit:
+    status: PASS
+    note: >
+      가격신호 = PIT-safe(forward shift). valuation = DART rcept_dt(공시일) 이후만(lookahead·restatement 회피, FY 보고지연 median 108-120일 실측).
+      Macro regime = OECD CLI 발표지연 CLI_PUB_LAG=2 적용. KRW/flow 일별 실시간.
+  I_survivor_bias:
+    status: PARTIAL
+    note: >
+      ★universe = FDR 현재 스냅샷(생존 종목만). ★조선 = 신규상장 多(HD현대중공업 2021 재상장/대한조선 2024/현대힘스 2024/티엠씨 2025 =
+      16종 中 4종 부분이력) = look-back gap 큼. delisted/M&A 누락. PIT 멤버십 = collector_plan high. ★정직 격하(over-claim 아님).
+
+# ── verdict (small-n rule) ──
+verdict_label: PARTIAL_WEAK  # ★전체 산업 = PARTIAL(약) / G-G v2 = PASS-conditional 최약 또는 FAIL 경계
+verdict_detail:
+  cs_lowvol_60d: >
+    ★TENTATIVE DIRECTIONAL (n=81, IC -0.057, OOS 부호유지(IS -0.065→OOS -0.049), strict tier 강(-0.078), Reflation regime 증폭).
+    ★단 block-boot CI [-0.129, +0.020] = ★0 포함 + BY/Bonferroni 미생존(wc_p 0.128) = magnitude 비유의 = 방향 prior만.
+  momentum: "INSUFFICIENT (OOS 소멸 -0.073→-0.008). cyclical reversal 방향이나 슈퍼사이클 구간 전환."
+  valuation_per: "★ARTIFACT (per_z 24M +0.204 BY 생존했으나 6M/12M OOS 반전 + avgN 6.9 + 24M degenerate). tradeable X."
+  valuation_pbr: "INSUFFICIENT (cross-sectional 비유의 + OOS 반전). ★PBR 밴드 timing 은 별개 유효 가능(cross-sectional 무효)."
+  capex_ratio: "★INSUFFICIENT(무신호). capex 일반화 가설 ★조선 미적용 (two-sided→무신호, asset growth anomaly 약하게도 미발현)."
+  common_factor: "VIX 고베타 유의(t=-2.00, H7 입증) / dollar 약 음(수출주 환율 가설 약) / 나머지 비유의."
+  customer_momentum: "REJECTED (운임/유가/조선ETF lagged forward 전부 비유의. 주가가 운임 선행 H8)."
+verdict_note: >
+  ★조선 산업 전체 = PARTIAL_WEAK. ★핵심 = cross-sectional selection 신호 ★구조적 약(H9 = 산업 베타 슈퍼사이클 timing 지배,
+  Maritime Economics·실측 5.09x 정합). 전 신호 BY/Bonferroni 미생존(통합 m=165 survivors=0). vol_60(저변동성)만 OOS 부호유지
+  (방향 prior, BY 미생존 + CI 0포함 = magnitude 비유의). per_z 24M BY 생존 = artifact 격하. capex 일반화 = ★조선 미적용(무신호).
+  ★G-B 트리거 충족 → team-lead 자문 발동 판정 보고. ★단 family_2 검정 의무 이행(비유의) + Gemini 리서치(산업베타 지배) =
+  "방법 결함 아닌 신호 본질 구조적 약" 근거. ★PBR 밴드 timing(시계열) = cross-sectional 과 별개로 유효 가능(collector_plan).
+
+# ── ★S2 conditional 차원 verdict (dispatch 원의도 본체, ★walk-forward OOS 확정) ──
+verdict_conditional:
+  status: "★conditional 약 (BY 미생존, family_2 비유의) — vol_60 방향만 OOS 생존"
+  핵심: >
+    ★조선 = unconditional·conditional 모두 약. (a) vol_60(저변동): OOS 부호유지하나 BY 미생존+CI 0포함.
+    (b) family_2 interaction: KRW_weak 전부 비유의(반도체와 차이 — 반도체는 mom_6 t=-2.95 유의).
+    (c) 산업 베타 지배(H9) = cross-sectional selection 구조적 약.
+  walk_forward_oos:
+    vol_60: {is_ic: -0.0645, is_n: 42, oos_ic: -0.0485, oos_n: 39, verdict: "✅부호유지(유일 OOS 생존, magnitude 약화)"}
+    mom_6: {is_ic: -0.0725, is_n: 42, oos_ic: -0.0084, oos_n: 39, verdict: "부호유지하나 OOS 소멸"}
+    pbr_z: {is_ic: -0.0382, is_n: 42, oos_ic: 0.0163, oos_n: 39, verdict: "★부호반전(artifact)"}
+    per_z_24m: {is_ic: 0.2116, is_n: 44, oos_ic: 0.1846, oos_n: 17, verdict: "★24M만 부호유지(6M/12M 반전=degenerate artifact)"}
+    결론: >
+      ★vol_60(저변동)만 OOS 부호유지 = 유일 방향 생존. momentum OOS 소멸, valuation OOS 반전/artifact.
+      = conditional 차원도 ★약. 미래 데이터 불필요한 현 walk-forward 검증 완료.
+  verdict_확정:
+    cs_lowvol_60d: "★TENTATIVE DIRECTIONAL — OOS 부호유지(방향)하나 BY 미생존 + CI 0포함(magnitude 비유의)"
+    momentum: "INSUFFICIENT — OOS 소멸"
+    valuation: "INSUFFICIENT/ARTIFACT — OOS 반전 또는 degenerate"
+    capex: "INSUFFICIENT — 무신호 (capex 일반화 조선 미적용)"
+  gb_판정: >
+    ★G-B 트리거 충족(BY 0 + 약신호). family_2 검정 의무 이행=비유의 + Gemini 리서치(산업베타 지배 H9) =
+    "방법 결함 아닌 신호 본질 구조적 약" 근거. → team-lead G-B 자문 발동 여부 판정(supervisor). ⛔ 단정 회피 = "구조적 약(H9)".
+  정직단서: >
+    ★universe 협소(16종, breadth 부족) + 산업베타 지배(슈퍼사이클) = cross-sectional 구조적 약. vol_60 방향 prior만.
+    per_z BY 생존 artifact 격하. capex 일반화 조선 미적용(무신호). 종목레벨 외국인flow 이연(KRX 차단). ★PBR 밴드 timing = 별개 유효 가능.

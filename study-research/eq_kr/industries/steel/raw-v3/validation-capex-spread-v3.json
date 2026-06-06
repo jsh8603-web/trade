@@ -1,0 +1,22 @@
+{
+  "test": "capex_ratio 종목 selection vs 섹터 timing 분해 (team-lead prior 정정 검증 2026-06-05)",
+  "trigger": "화학 capex REJECTED(NCC 동시증설=섹터 timing) → 철강 cross-sectional spread 검증 의무",
+  "cross_sectional_spread": {
+    "cs_std_mean": 0.1205,
+    "cs_mean": 0.3793,
+    "CV": 0.318,
+    "capex_range_2026": [
+      0.157,
+      0.61
+    ],
+    "judgment": "CV=0.32 >0.3 = 종목 분산 충분 (고로/가공/강관 자산집약도 상이)"
+  },
+  "variance_decomposition": {
+    "between_time_sector_cycle_var": 0.00062,
+    "within_time_cross_sectional_var": 0.01455,
+    "ratio_within": 0.959,
+    "judgment": "ratio 0.96 >> 0.5 = ★종목 selection 압도적 우세 (섹터 동시 timing 누수 아님). 화학 NCC 동시증설과 근본적으로 다름"
+  },
+  "verdict": "★철강 capex_ratio = genuine 종목 selection anomaly (섹터 timing 누수 기각). 화학(REJECTED)과 달리 종목 cross-sectional spread 충분. team-lead one-sided 음 단정 회피 지시 = 데이터 판정 결과 음 selection 유효(단정 아닌 검증 기반).",
+  "caveat": "★단 small-universe(23종) magnitude hedge + 통합 BY 미생존 유지. selection 메커니즘은 입증, magnitude는 tentative."
+}

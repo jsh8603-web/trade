@@ -1,0 +1,119 @@
+{
+  "meta": {
+    "panel": [
+      "096770",
+      "010950"
+    ],
+    "purpose": "A-3 cross(빈[] 금지) + placebo + family_2"
+  },
+  "common_factor_exposure": [
+    {
+      "factor": "oil_brent",
+      "beta": 0.2325,
+      "beta_ci_95": [
+        0.1044,
+        0.3606
+      ],
+      "t": 3.56,
+      "n": 88,
+      "contemporaneous": true
+    },
+    {
+      "factor": "crack_blended",
+      "beta": 0.0036,
+      "beta_ci_95": [
+        0.0003,
+        0.0069
+      ],
+      "t": 2.16,
+      "n": 88,
+      "contemporaneous": true
+    },
+    {
+      "factor": "usdkrw",
+      "beta": -1.4319,
+      "beta_ci_95": [
+        -2.2916,
+        -0.5721
+      ],
+      "t": -3.26,
+      "n": 88,
+      "contemporaneous": true
+    },
+    {
+      "factor": "natgas",
+      "beta": 0.0553,
+      "beta_ci_95": [
+        -0.042,
+        0.1527
+      ],
+      "t": 1.11,
+      "n": 88,
+      "contemporaneous": true
+    }
+  ],
+  "directional_spillover": [
+    {
+      "candidate": "oil_brent_level",
+      "contemp_rho": -0.0756,
+      "forward_1m_rho": -0.1875,
+      "n": 88,
+      "note": "선행신호 후보 (산업=보고, DY 정식분해=supervisor 통합)"
+    },
+    {
+      "candidate": "blended_crack",
+      "contemp_rho": 0.017,
+      "forward_1m_rho": -0.0806,
+      "n": 88,
+      "note": "선행신호 후보 (산업=보고, DY 정식분해=supervisor 통합)"
+    },
+    {
+      "candidate": "refinery_ip",
+      "contemp_rho": -0.1506,
+      "forward_1m_rho": -0.1412,
+      "n": 88,
+      "note": "선행신호 후보 (산업=보고, DY 정식분해=supervisor 통합)"
+    }
+  ],
+  "structural_linkage": [
+    {
+      "supplier": "글로벌 원유시장(Brent/Dubai) + 싱가포르 GRM",
+      "note": "정유 upstream = 원유(투입)/제품 spread. lead-lag = 유가 동시 동조 강(β), forward 평균회귀. customer(석유화학·항공 등)는 chemical/별 산업 scope.",
+      "verdict": "유가 동시 β 강(+) but forward alpha 부재(mean-reversion) = RegimeGlasso Ω 흡수 대상(동조성분)."
+    }
+  ],
+  "placebo": {
+    "random_series": {
+      "rho": 0.1652,
+      "p": 0.1284,
+      "n": 86,
+      "expect": "비유의 (placebo 통과 = 측정 파이프 정상)"
+    }
+  },
+  "family_2_interaction": {
+    "macro_regime=Slowdown": {
+      "b_main": -0.0508,
+      "t_main": -3.16,
+      "b_inter": 0.0899,
+      "t_inter": 2.23,
+      "n": 86,
+      "verdict": "interaction 유의"
+    },
+    "krw_regime=KRW_weak": {
+      "b_main": -0.0483,
+      "t_main": -2.19,
+      "b_inter": 0.0196,
+      "t_inter": 0.65,
+      "n": 86,
+      "verdict": "interaction 비유의"
+    },
+    "flow_regime=flow_strong_buy": {
+      "b_main": -0.0356,
+      "t_main": -2.12,
+      "b_inter": -0.0146,
+      "t_inter": -0.36,
+      "n": 86,
+      "verdict": "interaction 비유의"
+    }
+  }
+}

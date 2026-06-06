@@ -1,0 +1,193 @@
+{
+  "meta": {
+    "panel": [
+      "096770",
+      "010950"
+    ],
+    "n_months": 88,
+    "has_statsmodels": true,
+    "purpose": "forward 음(-) 신호 spurious(level-on-level) vs 진짜 mean-reversion 검증"
+  },
+  "adf": {
+    "brent_level": {
+      "adf_stat": -2.296,
+      "p_value": 0.1732,
+      "I_class": "I(1) 의심(비정상)"
+    },
+    "oil_yoy": {
+      "adf_stat": -2.88,
+      "p_value": 0.0477,
+      "I_class": "I(0) stationary"
+    },
+    "refinery_ip": {
+      "adf_stat": -4.785,
+      "p_value": 0.0001,
+      "I_class": "I(0) stationary"
+    },
+    "blended_crack": {
+      "adf_stat": -3.095,
+      "p_value": 0.0269,
+      "I_class": "I(0) stationary"
+    },
+    "refining_fwd3_ret": {
+      "adf_stat": -3.222,
+      "p_value": 0.0187,
+      "I_class": "I(0) stationary"
+    },
+    "refining_monthly_ret": {
+      "adf_stat": -11.42,
+      "p_value": 0.0,
+      "I_class": "I(0) stationary"
+    },
+    "d_brent": {
+      "adf_stat": -8.362,
+      "p_value": 0.0,
+      "I_class": "I(0) stationary"
+    }
+  },
+  "forward_fullsample": {
+    "brent_level": {
+      "label": "brent_level__fwd3",
+      "n": 86,
+      "n_eff": 26.5,
+      "spearman_rho": -0.368,
+      "p_parametric": 0.0005,
+      "t_naive": -3.63,
+      "t_eff_corrected": -1.96
+    },
+    "oil_yoy": {
+      "label": "oil_yoy__fwd3",
+      "n": 86,
+      "n_eff": 26.5,
+      "spearman_rho": -0.3087,
+      "p_parametric": 0.0038,
+      "t_naive": -2.97,
+      "t_eff_corrected": -1.61
+    },
+    "refinery_ip": {
+      "label": "refinery_ip__fwd3",
+      "n": 86,
+      "n_eff": 26.5,
+      "spearman_rho": -0.3145,
+      "p_parametric": 0.0032,
+      "t_naive": -3.04,
+      "t_eff_corrected": -1.64
+    },
+    "blended_crack_level": {
+      "label": "blended_crack_level__fwd3",
+      "n": 86,
+      "n_eff": 26.5,
+      "spearman_rho": -0.1816,
+      "p_parametric": 0.0942,
+      "t_naive": -1.69,
+      "t_eff_corrected": -0.91
+    },
+    "diesel_crack_level": {
+      "label": "diesel_crack_level__fwd3",
+      "n": 86,
+      "n_eff": 26.5,
+      "spearman_rho": -0.2143,
+      "p_parametric": 0.0475,
+      "t_naive": -2.01,
+      "t_eff_corrected": -1.09
+    },
+    "d_brent": {
+      "label": "d_brent__fwd3",
+      "n": 86,
+      "n_eff": 26.5,
+      "spearman_rho": -0.0489,
+      "p_parametric": 0.6551,
+      "t_naive": -0.45,
+      "t_eff_corrected": -0.24
+    },
+    "d_blended_crack": {
+      "label": "d_blended_crack__fwd3",
+      "n": 86,
+      "n_eff": 26.5,
+      "spearman_rho": 0.0346,
+      "p_parametric": 0.7517,
+      "t_naive": 0.32,
+      "t_eff_corrected": 0.17
+    }
+  },
+  "walk_forward_oos": {
+    "brent_level": {
+      "is_rho": -0.3887,
+      "is_n": 48,
+      "oos_rho": -0.6039,
+      "oos_n": 38,
+      "sign_hold": true
+    },
+    "oil_yoy": {
+      "is_rho": -0.3151,
+      "is_n": 48,
+      "oos_rho": -0.233,
+      "oos_n": 38,
+      "sign_hold": true
+    },
+    "refinery_ip": {
+      "is_rho": -0.4302,
+      "is_n": 48,
+      "oos_rho": 0.0787,
+      "oos_n": 38,
+      "sign_hold": false
+    },
+    "blended_crack_level": {
+      "is_rho": -0.231,
+      "is_n": 48,
+      "oos_rho": -0.0982,
+      "oos_n": 38,
+      "sign_hold": true
+    },
+    "diesel_crack_level": {
+      "is_rho": -0.388,
+      "is_n": 48,
+      "oos_rho": -0.141,
+      "oos_n": 38,
+      "sign_hold": true
+    }
+  },
+  "leave_episode": {
+    "brent_level": {
+      "full_rho": -0.368,
+      "full_n": 86,
+      "leave_covid_ukraine_rho": -0.2508,
+      "leave_n": 63,
+      "survive": true
+    },
+    "oil_yoy": {
+      "full_rho": -0.3087,
+      "full_n": 86,
+      "leave_covid_ukraine_rho": -0.1543,
+      "leave_n": 63,
+      "survive": true
+    },
+    "refinery_ip": {
+      "full_rho": -0.3145,
+      "full_n": 86,
+      "leave_covid_ukraine_rho": -0.3211,
+      "leave_n": 63,
+      "survive": true
+    }
+  },
+  "contemp_vs_forward": {
+    "brent": {
+      "contemp_rho": 0.4068,
+      "forward_rho": -0.0489,
+      "sign_flip": true,
+      "interpretation": "rebound/mean-reversion artifact 의심 (동시≠예측 부호)"
+    },
+    "oil_yoy": {
+      "contemp_rho": -0.0194,
+      "forward_rho": -0.3087,
+      "sign_flip": false,
+      "interpretation": "부호 일관"
+    },
+    "refinery_ip": {
+      "contemp_rho": 0.026,
+      "forward_rho": 0.0884,
+      "sign_flip": false,
+      "interpretation": "부호 일관"
+    }
+  }
+}

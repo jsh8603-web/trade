@@ -1,0 +1,47 @@
+{
+  "note": "★단일 FDR family 통합 합산 (가격/valuation conditional + 신규 펀더멘털 cycle). garden-of-forking-paths 차단.",
+  "family_composition": {
+    "conditional_powered": 90,
+    "fundamentals_powered": 78,
+    "total": 168
+  },
+  "merged_by_fdr": {
+    "m_total": 168,
+    "by_factor": 5.704,
+    "q": 0.1,
+    "bonferroni_alpha": 0.000298,
+    "survivors_BY": [
+      "COND::pbr_z__y_60d__unconditional",
+      "COND::pbr_z__y_60d__macro_regime=Slowdown",
+      "FUND::capex_ratio__y_20d__macro_regime=Recovery",
+      "FUND::capex_ratio__y_60d__macro_regime=Recovery",
+      "FUND::capex_ratio__y_60d__krw_regime=KRW_neutral"
+    ],
+    "n_survivors": 5,
+    "raw_p_min": 0.0005,
+    "raw_p_min_key": "COND::pbr_z__y_60d__unconditional",
+    "top5": [
+      [
+        "COND::pbr_z__y_60d__unconditional",
+        0.0005
+      ],
+      [
+        "COND::pbr_z__y_60d__macro_regime=Slowdown",
+        0.0005
+      ],
+      [
+        "FUND::capex_ratio__y_20d__macro_regime=Recovery",
+        0.0005
+      ],
+      [
+        "FUND::capex_ratio__y_60d__macro_regime=Recovery",
+        0.0005
+      ],
+      [
+        "FUND::capex_ratio__y_60d__krw_regime=KRW_neutral",
+        0.0005
+      ]
+    ]
+  },
+  "m_eff_caveat": "naive m_total 박제. M_eff 통합보정(신호상관) = supervisor 통합단계(M.7)."
+}

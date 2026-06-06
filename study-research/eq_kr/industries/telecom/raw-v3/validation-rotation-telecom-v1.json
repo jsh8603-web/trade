@@ -1,0 +1,613 @@
+{
+  "meta": {
+    "method": "통신 업종 rotation (sector OW/UW timing) — 종목선택 아님. service 3사 동일가중 패널.",
+    "panel": [
+      "017670",
+      "030200",
+      "032640"
+    ],
+    "panel_note": "SKT/KT/LGU+ strict 화이트리스트",
+    "theory_framework": "통신 = defensive 고배당 bond-proxy. (1) defensive counter-cyclical(semi_ppi/cli 음) (2) 배당 duration(금리 음) (3) dividend-carry momentum(양, 검증).",
+    "horizons_months": {
+      "y_20d": 1,
+      "y_60d": 3
+    },
+    "t_breakeven": 2.802,
+    "ref_1차": "_rotation/validation-rotation-v1.json telecom mom_12_1 y_60d +0.284 + semi_ppi_yoy -0.334"
+  },
+  "panel_stats": {
+    "n_months": 88
+  },
+  "signals": {
+    "y_20d": {
+      "semi_ppi_yoy": {
+        "label": "semi_ppi_yoy__y_20d",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.1278,
+        "p_parametric": 0.2353,
+        "t_nw": -1.26,
+        "t_power_mde": 1.2,
+        "well_powered": false,
+        "wild_cluster_p": 0.2174,
+        "ci95_block_boot_prod": [
+          -0.02768,
+          0.0052
+        ],
+        "status": "powered",
+        "prior_sign": "음(-)",
+        "theory": "defensive counter-cyclical: 반도체/경기 cycle↑→자금 cyclical 이탈→통신 UW",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 40,
+          "rho_is": -0.1739,
+          "rho_oos": -0.2199,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "cli_chg": {
+        "label": "cli_chg__y_20d",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": 0.1686,
+        "p_parametric": 0.1164,
+        "t_nw": 1.67,
+        "t_power_mde": 1.58,
+        "well_powered": false,
+        "wild_cluster_p": 0.1349,
+        "ci95_block_boot_prod": [
+          -0.00215,
+          0.03135
+        ],
+        "status": "powered",
+        "prior_sign": "음(-)",
+        "theory": "경기선행 개선→통신(defensive) UW (semi_ppi와 동형 risk-on)",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 40,
+          "rho_is": 0.1336,
+          "rho_oos": 0.003,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "kr_rate10y": {
+        "label": "kr_rate10y__y_20d",
+        "n": 88,
+        "n_eff": 80.7,
+        "spearman_rho": 0.1816,
+        "p_parametric": 0.0904,
+        "t_nw": 1.83,
+        "t_power_mde": 1.63,
+        "well_powered": false,
+        "wild_cluster_p": 0.0655,
+        "ci95_block_boot_prod": [
+          -0.0,
+          0.03268
+        ],
+        "status": "powered",
+        "prior_sign": "음(-)",
+        "theory": "배당 duration: 금리↑→bond-proxy 디레이팅→통신 UW",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 40,
+          "rho_is": 0.2904,
+          "rho_oos": 0.1039,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "d_kr_rate10y": {
+        "label": "d_kr_rate10y__y_20d",
+        "n": 88,
+        "n_eff": 80.7,
+        "spearman_rho": 0.1816,
+        "p_parametric": 0.0904,
+        "t_nw": 1.83,
+        "t_power_mde": 1.63,
+        "well_powered": false,
+        "wild_cluster_p": 0.0655,
+        "ci95_block_boot_prod": [
+          -0.0,
+          0.03268
+        ],
+        "status": "powered",
+        "prior_sign": "음(-)",
+        "theory": "금리 Δ↑→통신 UW (duration)",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 40,
+          "rho_is": 0.2904,
+          "rho_oos": 0.1039,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "kr_curve": {
+        "label": "kr_curve__y_20d",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": 0.2371,
+        "p_parametric": 0.0262,
+        "t_nw": 2.59,
+        "t_power_mde": 2.22,
+        "well_powered": false,
+        "wild_cluster_p": 0.014,
+        "ci95_block_boot_prod": [
+          0.00509,
+          0.03504
+        ],
+        "status": "powered",
+        "prior_sign": "음(-)",
+        "theory": "커브 스티프닝(경기회복)→통신 UW",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 40,
+          "rho_is": 0.2926,
+          "rho_oos": 0.1619,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "foreign_flow": {
+        "label": "foreign_flow__y_20d",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.1894,
+        "p_parametric": 0.0772,
+        "t_nw": -1.85,
+        "t_power_mde": 1.78,
+        "well_powered": false,
+        "wild_cluster_p": 0.088,
+        "ci95_block_boot_prod": [
+          -0.03351,
+          -0.00012
+        ],
+        "status": "powered",
+        "prior_sign": "음(-)",
+        "theory": "외국인 순매수↑(risk-on)→통신(low-beta defensive) UW",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 40,
+          "rho_is": -0.126,
+          "rho_oos": -0.2507,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "usdkrw_yoy": {
+        "label": "usdkrw_yoy__y_20d",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.1498,
+        "p_parametric": 0.1635,
+        "t_nw": -1.4,
+        "t_power_mde": 1.41,
+        "well_powered": false,
+        "wild_cluster_p": 0.1689,
+        "ci95_block_boot_prod": [
+          -0.03028,
+          0.00401
+        ],
+        "status": "powered",
+        "prior_sign": "양(+)",
+        "theory": "원화약세(risk-off)→방어주 통신 OW (방향 약 prior)",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 40,
+          "rho_is": -0.1602,
+          "rho_oos": -0.0977,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "d_usdkrw": {
+        "label": "d_usdkrw__y_20d",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": 0.0953,
+        "p_parametric": 0.3771,
+        "t_nw": 1.0,
+        "t_power_mde": 0.89,
+        "well_powered": false,
+        "wild_cluster_p": 0.3718,
+        "ci95_block_boot_prod": [
+          -0.00769,
+          0.02237
+        ],
+        "status": "powered",
+        "prior_sign": "양(+)",
+        "theory": "원화약세 동시→통신 상대강세 (약)",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 40,
+          "rho_is": 0.068,
+          "rho_oos": 0.1139,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "mom_12_1": {
+        "label": "mom_12_1__y_20d",
+        "n": 76,
+        "n_eff": 76.0,
+        "spearman_rho": 0.0419,
+        "p_parametric": 0.719,
+        "t_nw": 0.42,
+        "t_power_mde": 0.37,
+        "well_powered": false,
+        "wild_cluster_p": 0.6987,
+        "ci95_block_boot_prod": [
+          -0.01256,
+          0.01889
+        ],
+        "status": "powered",
+        "prior_sign": "양(+)",
+        "theory": "dividend-carry persistence: 고배당 defensive carry 누적→momentum (★검증 필요)",
+        "walk_forward_oos": {
+          "is_n": 36,
+          "oos_n": 40,
+          "rho_is": 0.0358,
+          "rho_oos": -0.0143,
+          "eligible": false,
+          "verdict": "OOS flip"
+        }
+      },
+      "mom_6": {
+        "label": "mom_6__y_20d",
+        "n": 82,
+        "n_eff": 82.0,
+        "spearman_rho": -0.0181,
+        "p_parametric": 0.8719,
+        "t_nw": -0.16,
+        "t_power_mde": 0.16,
+        "well_powered": false,
+        "wild_cluster_p": 0.8816,
+        "ci95_block_boot_prod": [
+          -0.01789,
+          0.0166
+        ],
+        "status": "powered",
+        "prior_sign": "양(+)",
+        "theory": "6M momentum (carry, 약)",
+        "walk_forward_oos": {
+          "is_n": 42,
+          "oos_n": 40,
+          "rho_is": -0.0323,
+          "rho_oos": -0.0295,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      }
+    },
+    "y_60d": {
+      "semi_ppi_yoy": {
+        "label": "semi_ppi_yoy__y_60d",
+        "n": 86,
+        "n_eff": 24.5,
+        "spearman_rho": -0.261,
+        "p_parametric": 0.0152,
+        "t_nw": -1.51,
+        "t_power_mde": 1.29,
+        "well_powered": false,
+        "wild_cluster_p": 0.0265,
+        "ci95_block_boot_prod": [
+          -0.0515,
+          0.00132
+        ],
+        "status": "powered",
+        "prior_sign": "음(-)",
+        "theory": "defensive counter-cyclical: 반도체/경기 cycle↑→자금 cyclical 이탈→통신 UW",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 38,
+          "rho_is": -0.3939,
+          "rho_oos": -0.3691,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "cli_chg": {
+        "label": "cli_chg__y_60d",
+        "n": 86,
+        "n_eff": 29.7,
+        "spearman_rho": 0.4329,
+        "p_parametric": 0.0,
+        "t_nw": 2.77,
+        "t_power_mde": 2.36,
+        "well_powered": false,
+        "wild_cluster_p": 0.0005,
+        "ci95_block_boot_prod": [
+          0.01132,
+          0.06008
+        ],
+        "status": "powered",
+        "prior_sign": "음(-)",
+        "theory": "경기선행 개선→통신(defensive) UW (semi_ppi와 동형 risk-on)",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 38,
+          "rho_is": 0.4091,
+          "rho_oos": 0.1207,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "kr_rate10y": {
+        "label": "kr_rate10y__y_60d",
+        "n": 86,
+        "n_eff": 63.9,
+        "spearman_rho": 0.1171,
+        "p_parametric": 0.2829,
+        "t_nw": 0.97,
+        "t_power_mde": 0.94,
+        "well_powered": false,
+        "wild_cluster_p": 0.2989,
+        "ci95_block_boot_prod": [
+          -0.01098,
+          0.02894
+        ],
+        "status": "powered",
+        "prior_sign": "음(-)",
+        "theory": "배당 duration: 금리↑→bond-proxy 디레이팅→통신 UW",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 38,
+          "rho_is": 0.1002,
+          "rho_oos": 0.1488,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "d_kr_rate10y": {
+        "label": "d_kr_rate10y__y_60d",
+        "n": 86,
+        "n_eff": 63.9,
+        "spearman_rho": 0.1171,
+        "p_parametric": 0.2829,
+        "t_nw": 0.97,
+        "t_power_mde": 0.94,
+        "well_powered": false,
+        "wild_cluster_p": 0.2989,
+        "ci95_block_boot_prod": [
+          -0.01098,
+          0.02894
+        ],
+        "status": "powered",
+        "prior_sign": "음(-)",
+        "theory": "금리 Δ↑→통신 UW (duration)",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 38,
+          "rho_is": 0.1002,
+          "rho_oos": 0.1488,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "kr_curve": {
+        "label": "kr_curve__y_60d",
+        "n": 86,
+        "n_eff": 86.0,
+        "spearman_rho": 0.2007,
+        "p_parametric": 0.0639,
+        "t_nw": 2.06,
+        "t_power_mde": 1.86,
+        "well_powered": false,
+        "wild_cluster_p": 0.065,
+        "ci95_block_boot_prod": [
+          0.00099,
+          0.03234
+        ],
+        "status": "powered",
+        "prior_sign": "음(-)",
+        "theory": "커브 스티프닝(경기회복)→통신 UW",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 38,
+          "rho_is": 0.2491,
+          "rho_oos": 0.1279,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "foreign_flow": {
+        "label": "foreign_flow__y_60d",
+        "n": 86,
+        "n_eff": 81.3,
+        "spearman_rho": -0.3964,
+        "p_parametric": 0.0002,
+        "t_nw": -3.72,
+        "t_power_mde": 3.58,
+        "well_powered": true,
+        "wild_cluster_p": 0.001,
+        "ci95_block_boot_prod": [
+          -0.05072,
+          -0.01476
+        ],
+        "status": "powered",
+        "prior_sign": "음(-)",
+        "theory": "외국인 순매수↑(risk-on)→통신(low-beta defensive) UW",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 38,
+          "rho_is": -0.4057,
+          "rho_oos": -0.3141,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "usdkrw_yoy": {
+        "label": "usdkrw_yoy__y_60d",
+        "n": 86,
+        "n_eff": 34.4,
+        "spearman_rho": -0.3048,
+        "p_parametric": 0.0043,
+        "t_nw": -1.94,
+        "t_power_mde": 1.79,
+        "well_powered": false,
+        "wild_cluster_p": 0.008,
+        "ci95_block_boot_prod": [
+          -0.05055,
+          -0.00227
+        ],
+        "status": "powered",
+        "prior_sign": "양(+)",
+        "theory": "원화약세(risk-off)→방어주 통신 OW (방향 약 prior)",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 38,
+          "rho_is": -0.3802,
+          "rho_oos": -0.0246,
+          "eligible": true,
+          "verdict": "OOS 부호유지"
+        }
+      },
+      "d_usdkrw": {
+        "label": "d_usdkrw__y_60d",
+        "n": 86,
+        "n_eff": 86.0,
+        "spearman_rho": -0.0733,
+        "p_parametric": 0.5026,
+        "t_nw": -0.7,
+        "t_power_mde": 0.68,
+        "well_powered": false,
+        "wild_cluster_p": 0.4908,
+        "ci95_block_boot_prod": [
+          -0.02258,
+          0.01193
+        ],
+        "status": "powered",
+        "prior_sign": "양(+)",
+        "theory": "원화약세 동시→통신 상대강세 (약)",
+        "walk_forward_oos": {
+          "is_n": 48,
+          "oos_n": 38,
+          "rho_is": 0.0373,
+          "rho_oos": -0.2113,
+          "eligible": false,
+          "verdict": "OOS flip"
+        }
+      },
+      "mom_12_1": {
+        "label": "mom_12_1__y_60d",
+        "n": 74,
+        "n_eff": 49.2,
+        "spearman_rho": 0.0628,
+        "p_parametric": 0.5948,
+        "t_nw": 0.57,
+        "t_power_mde": 0.44,
+        "well_powered": false,
+        "wild_cluster_p": 0.5287,
+        "ci95_block_boot_prod": [
+          -0.0141,
+          0.02257
+        ],
+        "status": "powered",
+        "prior_sign": "양(+)",
+        "theory": "dividend-carry persistence: 고배당 defensive carry 누적→momentum (★검증 필요)",
+        "walk_forward_oos": {
+          "is_n": 36,
+          "oos_n": 38,
+          "rho_is": -0.0247,
+          "rho_oos": 0.0106,
+          "eligible": false,
+          "verdict": "OOS flip"
+        }
+      },
+      "mom_6": {
+        "label": "mom_6__y_60d",
+        "n": 80,
+        "n_eff": 54.6,
+        "spearman_rho": 0.0723,
+        "p_parametric": 0.524,
+        "t_nw": 0.59,
+        "t_power_mde": 0.53,
+        "well_powered": false,
+        "wild_cluster_p": 0.4723,
+        "ci95_block_boot_prod": [
+          -0.01444,
+          0.02492
+        ],
+        "status": "powered",
+        "prior_sign": "양(+)",
+        "theory": "6M momentum (carry, 약)",
+        "walk_forward_oos": {
+          "is_n": 42,
+          "oos_n": 38,
+          "rho_is": 0.0905,
+          "rho_oos": -0.2019,
+          "eligible": false,
+          "verdict": "OOS flip"
+        }
+      }
+    }
+  },
+  "fdr_single_family": {
+    "m": 20,
+    "by_factor": 3.598,
+    "survivors_BY": [
+      "cli_chg__y_60d",
+      "foreign_flow__y_60d"
+    ],
+    "raw_p_min": 0.0005,
+    "raw_p_min_key": "cli_chg__y_60d"
+  },
+  "mom_theory_verification": {
+    "question": "mom_12_1 +0.284 = dividend-carry 독립신호 vs 공통인자(semi_ppi/flow/rate) 재포장?",
+    "mom_var_explained_by_theory_drivers_r2": 0.069,
+    "raw_mom_60d_rho": 0.0628,
+    "resid_mom_60d_rho": -0.0687,
+    "shrink_pct": -9.4,
+    "raw_mom_oos": {
+      "is_n": 36,
+      "oos_n": 38,
+      "rho_is": -0.0247,
+      "rho_oos": 0.0106,
+      "eligible": false,
+      "verdict": "OOS flip"
+    },
+    "resid_mom_oos": {
+      "is_n": 36,
+      "oos_n": 38,
+      "rho_is": -0.0994,
+      "rho_oos": -0.0629,
+      "eligible": true,
+      "verdict": "OOS 부호유지"
+    },
+    "verdict": "★data-mining 채택불가 — strict service 3사 패널서 mom_12_1 60d = +0.063(wc_p=0.53, OOS flip). 1차 +0.284는 ★패널구성 artifact(broad telecom 패널, equipment 혼입 추정). dividend-carry persistence 이론 = service sector서 미입증. theory R²=0.07(공통인자 설명 약)이나 raw 자체가 비유의+OOS flip = 신호 부재. ⛔채택불가."
+  },
+  "robustness": {
+    "foreign_flow_60d": {
+      "full": -0.3964,
+      "leave_episode": -0.3904,
+      "partial_ctrl_semi": -0.3893,
+      "verdict": "★robust — leave-episode 불변(NOT episode-driven) + semi 통제 후 독립 -0.39. well-powered(t_pow 3.58). 이론(risk-on flow→defensive telecom UW) 정합."
+    },
+    "semi_ppi_60d": {
+      "full": -0.261,
+      "leave_episode": -0.1596,
+      "partial_ctrl_flow": -0.2079,
+      "verdict": "moderate — leave-episode 약화(부분 episode-driven) + flow 통제 후 -0.21 잔존. 이론(defensive counter-cyclical) 정합 but flow보다 약."
+    },
+    "composite_semi_flow_60d": {
+      "rho": -0.3588,
+      "verdict": "risk-on defensive UW composite (semi+flow z 평균). 둘 다 부분 독립(partial 잔존)."
+    },
+    "driver_intercorr": {
+      "semi_vs_cli": -0.31,
+      "flow_vs_cli": -0.3,
+      "semi_vs_flow": 0.22,
+      "note": "cli_chg는 risk-on 지표(semi/flow)와 음상관 → cli_chg + 부호는 prior(음)와 반대지만 risk-on 음상관 통해 defensive 정합. 단 사전확약 위배 = exploratory."
+    }
+  },
+  "signal_sign_audit": {
+    "foreign_flow": "음 prior 정합 ✅ (risk-on flow→defensive UW). 채택.",
+    "semi_ppi": "음 prior 정합 ✅ (defensive counter-cyclical). 채택(moderate).",
+    "cli_chg": "★양 = prior(음) 위배. cli_chg가 risk-on 지표와 음상관(-0.31)이라 defensive 정합이나 사전확약 위배 = exploratory(채택보류, HARKing 회피).",
+    "usdkrw_yoy": "★음 = prior(양) 위배. 원화약세→통신 음 = 방어주 prior와 반대(원화약세=수출 risk-on 국면 통신 UW 가능). exploratory.",
+    "kr_rate10y_duration": "양 = prior(음, duration) 위배 + 비유의 = 미확인(15axis 본측정과 동일 INCONCLUSIVE).",
+    "mom_12_1": "★data-mining = 비유의+OOS flip(service 패널). 채택불가."
+  }
+}

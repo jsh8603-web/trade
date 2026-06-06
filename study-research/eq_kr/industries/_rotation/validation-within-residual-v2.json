@@ -1,0 +1,155 @@
+{
+  "meta": {
+    "purpose": "산업 내 종목 selection 잔차 메타분석 (capsule IC SSOT + N_eff)",
+    "★사용자_통찰": "줄자는 capsule analyst가 업종별 맞는 걸로 이미 측정(IC SSOT). v1 book-to-price 통일=실수 정정.",
+    "capsule_ic_source": "각 summary.yaml + validation-*.json (Explore 2026-06-06)",
+    "n_eff": "prices.parquet idio 분산 PR(실측, 과점 자동감지)",
+    "n0": 13.63,
+    "ic0": 0.141,
+    "원칙": "C10 selection 低 산업=v 산업중립 수축(L2 rotation 독립 유지). C11 N_eff 한번만(이중처벌 방지)"
+  },
+  "per_industry": {
+    "aitech": {
+      "signal": "cs_pbr_z_y12m",
+      "ic": -0.183,
+      "by": true,
+      "caveat": "size 위장 아님(t=-3.51)",
+      "n_eff": 15.54,
+      "n_codes": 26,
+      "ic_pp": -0.1574,
+      "w_eb": 0.533,
+      "rho_i": 0.281,
+      "selection_등급": "中"
+    },
+    "steel": {
+      "signal": "cs_mom_12_1_reversal_y12m",
+      "ic": -0.181,
+      "by": true,
+      "caveat": "small-universe breadth-adj IR -0.81",
+      "n_eff": 16.39,
+      "n_codes": 23,
+      "ic_pp": -0.157,
+      "w_eb": 0.546,
+      "rho_i": 0.288,
+      "selection_등급": "中"
+    },
+    "chemical": {
+      "signal": "cs_vol_60_y60d",
+      "ic": -0.142,
+      "by": true,
+      "caveat": "n=17 small-n",
+      "n_eff": 4.4,
+      "n_codes": 17,
+      "ic_pp": -0.1316,
+      "w_eb": 0.244,
+      "rho_i": 0.118,
+      "selection_등급": "低"
+    },
+    "consumer": {
+      "signal": "cs_per_z(3M primary)",
+      "ic": -0.141,
+      "by": false,
+      "caveat": "24M degenerate, 3M primary, single-episode 의존",
+      "n_eff": 9.59,
+      "n_codes": 28,
+      "ic_pp": -0.1335,
+      "w_eb": 0.413,
+      "rho_i": 0.161,
+      "selection_등급": "低"
+    },
+    "auto": {
+      "signal": "cs_capex_ratio_y60d",
+      "ic": -0.117,
+      "by": false,
+      "caveat": "OOS robust(FDR 생존), pbr 병행",
+      "n_eff": 7.32,
+      "n_codes": 17,
+      "ic_pp": -0.1243,
+      "w_eb": 0.349,
+      "rho_i": 0.131,
+      "selection_등급": "低"
+    },
+    "semiconductor": {
+      "signal": "cs_pbr_z_24m",
+      "ic": -0.114,
+      "by": true,
+      "caveat": "BY 생존 유일(m=8)",
+      "n_eff": 53.06,
+      "n_codes": 85,
+      "ic_pp": -0.1169,
+      "w_eb": 0.796,
+      "rho_i": 0.361,
+      "selection_등급": "中"
+    },
+    "battery": {
+      "signal": "inv_ratio/mom_6 (+부호!)",
+      "ic": 0.112,
+      "by": false,
+      "caveat": "★성장주=momentum continuation/재고확대, value(-)와 정반대",
+      "n_eff": 19.27,
+      "n_codes": 29,
+      "ic_pp": 0.1187,
+      "w_eb": 0.586,
+      "rho_i": 0.214,
+      "selection_등급": "低"
+    },
+    "telecom": {
+      "signal": "equipment_pbr (size-neut)",
+      "ic": -0.053,
+      "by": true,
+      "caveat": "raw -0.167은 size 위장, size-neutral -0.053이 정직",
+      "n_eff": 8.12,
+      "n_codes": 14,
+      "ic_pp": -0.1001,
+      "w_eb": 0.373,
+      "rho_i": 0.155,
+      "selection_등급": "低"
+    },
+    "financial": {
+      "signal": "bank_pbr_z (sub만)",
+      "ic": -0.161,
+      "by": false,
+      "caveat": "★sub-sector cancel=은행만, 통합 selection LIMITED",
+      "n_eff": 18.51,
+      "n_codes": 34,
+      "ic_pp": -0.1471,
+      "w_eb": 0.576,
+      "rho_i": 0.147,
+      "selection_등급": "低"
+    },
+    "bio": {
+      "signal": "flow_sell conditional",
+      "ic": -0.149,
+      "by": false,
+      "caveat": "conditional underpowered, 임상 idio",
+      "n_eff": 17.44,
+      "n_codes": 38,
+      "ic_pp": -0.1399,
+      "w_eb": 0.561,
+      "rho_i": 0.14,
+      "selection_등급": "低"
+    },
+    "shipbuilding": {
+      "signal": "cs_lowvol_60d",
+      "ic": -0.057,
+      "by": false,
+      "caveat": "CI 0 포함 marginal, 3사 슈퍼사이클 동조",
+      "n_eff": 11.72,
+      "n_codes": 16,
+      "ic_pp": -0.0953,
+      "w_eb": 0.462,
+      "rho_i": 0.093,
+      "selection_등급": "低"
+    },
+    "refining": {
+      "signal": "종목선택 불가",
+      "ic": null,
+      "by": false,
+      "caveat": "★2종 과점(SK이노/S-Oil)=cross-sectional 불가, 산업 timing만",
+      "n_eff": 7.56,
+      "n_codes": 11,
+      "rho_i": 0.0,
+      "selection_등급": "불가(종목선택 X)"
+    }
+  }
+}

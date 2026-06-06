@@ -1,0 +1,142 @@
+{
+  "common_factor_exposure": {
+    "VIX": {
+      "beta": -0.0062,
+      "se": 0.0055,
+      "t": -1.13,
+      "ci95": [
+        -0.017,
+        0.0046
+      ],
+      "contemporaneous": true
+    },
+    "dollar": {
+      "beta": -1.3812,
+      "se": 0.828,
+      "t": -1.67,
+      "ci95": [
+        -3.0041,
+        0.2416
+      ],
+      "contemporaneous": true
+    },
+    "oil": {
+      "beta": 0.2318,
+      "se": 0.1107,
+      "t": 2.09,
+      "ci95": [
+        0.0147,
+        0.4488
+      ],
+      "contemporaneous": true
+    },
+    "rate": {
+      "beta": 0.0121,
+      "se": 0.0513,
+      "t": 0.24,
+      "ci95": [
+        -0.0885,
+        0.1127
+      ],
+      "contemporaneous": true
+    },
+    "credit": {
+      "beta": -0.0598,
+      "se": 0.0284,
+      "t": -2.11,
+      "ci95": [
+        -0.1153,
+        -0.0042
+      ],
+      "contemporaneous": true
+    },
+    "_meta": {
+      "n": 35,
+      "r2": 0.288,
+      "note": "HAC(maxlags=3). credit=US HY OAS proxy(KR HY 부재). contemporaneous risk 노출."
+    }
+  },
+  "customer_supplier_momentum": {
+    "slx_global_steel_cycle": {
+      "lag0": {
+        "corr": 0.112,
+        "p": 0.306,
+        "n": 85
+      },
+      "lag1": {
+        "corr": 0.081,
+        "p": 0.462,
+        "n": 84
+      },
+      "lag2": {
+        "corr": 0.08,
+        "p": 0.474,
+        "n": 83
+      },
+      "lag3": {
+        "corr": 0.151,
+        "p": 0.175,
+        "n": 82
+      }
+    },
+    "vale_iron_ore_major": {
+      "lag0": {
+        "corr": 0.101,
+        "p": 0.36,
+        "n": 85
+      },
+      "lag1": {
+        "corr": 0.126,
+        "p": 0.253,
+        "n": 84
+      },
+      "lag2": {
+        "corr": 0.118,
+        "p": 0.289,
+        "n": 83
+      },
+      "lag3": {
+        "corr": 0.077,
+        "p": 0.489,
+        "n": 82
+      }
+    },
+    "_note": "global steel cycle(SLX)/iron ore(VALE) lagged 3M momentum → 한국 철강 forward 1M. alpha 후보 = 측정 17종 검증 후 IC→weight. 동조성분은 RegimeGlasso Ω 자동흡수(이중라우팅 X)."
+  },
+  "pit_reporting_delay": {
+    "available": true,
+    "annual_report_delay": [
+      {
+        "year": 2021,
+        "n": 9,
+        "median_delay_days": 120,
+        "max_delay_days": 120
+      },
+      {
+        "year": 2022,
+        "n": 23,
+        "median_delay_days": 108,
+        "max_delay_days": 119
+      },
+      {
+        "year": 2023,
+        "n": 20,
+        "median_delay_days": 114,
+        "max_delay_days": 118
+      },
+      {
+        "year": 2024,
+        "n": 8,
+        "median_delay_days": 120,
+        "max_delay_days": 120
+      },
+      {
+        "year": 2025,
+        "n": 3,
+        "median_delay_days": 120,
+        "max_delay_days": 120
+      }
+    ],
+    "note": "사업보고서 제출 median delay ~85-120일(FY-end 후). PIT: 펀더멘털 신호는 rcept_dt 이후만 사용 의무. 본 v3 가격신호는 PIT-safe(보고지연 무관)."
+  }
+}

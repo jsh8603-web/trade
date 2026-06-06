@@ -1,0 +1,2104 @@
+{
+  "meta": {
+    "source": "DART dart_extended.parquet (재고/유형/무형자산 PIT rcept_dt)",
+    "priors": {
+      "inv_ratio": "음",
+      "inv_yoy": "음",
+      "capex_ratio": "음",
+      "ppe_yoy": "음",
+      "rnd_ratio": "양"
+    },
+    "horizons": {
+      "y_5d": 5,
+      "y_20d": 20,
+      "y_60d": 60
+    },
+    "regime_axes": "Macro4 × KRW3 × flow3 (measure_conditional 동일, 단일 FDR family 합산용)",
+    "note": "신규 cycle 지표(★이연 금지). 분기→월말 PIT forward-fill. G-F wild-cluster. 같은 conditional 양식(regime×horizon)."
+  },
+  "indicators": {
+    "inv_ratio": {
+      "prior_부호": "음",
+      "panel_cells": 1469,
+      "horizons": {
+        "y_5d": {
+          "unconditional": {
+            "n": 84,
+            "ic_mean": -0.0214,
+            "t_nw_asymptotic": -0.69,
+            "wild_cluster_p": 0.5162,
+            "ci95_block_boot": [
+              -0.0803,
+              0.0439
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": -0.0775,
+            "t_nw_asymptotic": -1.35,
+            "wild_cluster_p": 0.2699,
+            "ci95_block_boot": [
+              -0.1862,
+              0.0031
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 26,
+            "ic_mean": 0.0207,
+            "t_nw_asymptotic": 0.38,
+            "wild_cluster_p": 0.7621,
+            "ci95_block_boot": [
+              -0.081,
+              0.1193
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Reflation": {
+            "n": 21,
+            "ic_mean": -0.0342,
+            "t_nw_asymptotic": -0.43,
+            "wild_cluster_p": 0.6427,
+            "ci95_block_boot": [
+              -0.1945,
+              0.1311
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 27,
+            "ic_mean": -0.0312,
+            "t_nw_asymptotic": -0.64,
+            "wild_cluster_p": 0.5707,
+            "ci95_block_boot": [
+              -0.1151,
+              0.0703
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 39,
+            "ic_mean": 0.0331,
+            "t_nw_asymptotic": 0.81,
+            "wild_cluster_p": 0.5437,
+            "ci95_block_boot": [
+              -0.0433,
+              0.1164
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": -0.0845,
+            "t_nw_asymptotic": -0.64,
+            "wild_cluster_p": 0.4963,
+            "ci95_block_boot": [
+              -0.2874,
+              0.2147
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 35,
+            "ic_mean": -0.0641,
+            "t_nw_asymptotic": -1.66,
+            "wild_cluster_p": 0.1249,
+            "ci95_block_boot": [
+              -0.1397,
+              0.017
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 45,
+            "ic_mean": -0.0407,
+            "t_nw_asymptotic": -0.94,
+            "wild_cluster_p": 0.3568,
+            "ci95_block_boot": [
+              -0.1222,
+              0.0464
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 21,
+            "ic_mean": 0.0179,
+            "t_nw_asymptotic": 0.38,
+            "wild_cluster_p": 0.7811,
+            "ci95_block_boot": [
+              -0.0736,
+              0.1132
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 18,
+            "ic_mean": -0.0189,
+            "t_nw_asymptotic": -0.24,
+            "wild_cluster_p": 0.8141,
+            "ci95_block_boot": [
+              -0.1713,
+              0.1364
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": -0.036,
+            "is_n": 44,
+            "oos_ic": -0.0053,
+            "oos_n": 40,
+            "sign_hold": true,
+            "verdict": "OOS 부호유지"
+          }
+        },
+        "y_20d": {
+          "unconditional": {
+            "n": 83,
+            "ic_mean": -0.0081,
+            "t_nw_asymptotic": -0.25,
+            "wild_cluster_p": 0.8036,
+            "ci95_block_boot": [
+              -0.07,
+              0.0614
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": 0.0005,
+            "t_nw_asymptotic": 0.01,
+            "wild_cluster_p": 0.994,
+            "ci95_block_boot": [
+              -0.1865,
+              0.0937
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 26,
+            "ic_mean": -0.0185,
+            "t_nw_asymptotic": -0.37,
+            "wild_cluster_p": 0.7546,
+            "ci95_block_boot": [
+              -0.1122,
+              0.0794
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Reflation": {
+            "n": 20,
+            "ic_mean": -0.0479,
+            "t_nw_asymptotic": -0.71,
+            "wild_cluster_p": 0.4623,
+            "ci95_block_boot": [
+              -0.19,
+              0.0814
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 27,
+            "ic_mean": 0.0281,
+            "t_nw_asymptotic": 0.5,
+            "wild_cluster_p": 0.6747,
+            "ci95_block_boot": [
+              -0.0795,
+              0.1454
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 38,
+            "ic_mean": -0.0046,
+            "t_nw_asymptotic": -0.1,
+            "wild_cluster_p": 0.92,
+            "ci95_block_boot": [
+              -0.0872,
+              0.0879
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": -0.0082,
+            "t_nw_asymptotic": -0.12,
+            "wild_cluster_p": 0.9025,
+            "ci95_block_boot": [
+              -0.095,
+              0.1285
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 35,
+            "ic_mean": -0.0119,
+            "t_nw_asymptotic": -0.23,
+            "wild_cluster_p": 0.8256,
+            "ci95_block_boot": [
+              -0.1155,
+              0.0983
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 44,
+            "ic_mean": 0.0214,
+            "t_nw_asymptotic": 0.48,
+            "wild_cluster_p": 0.6362,
+            "ci95_block_boot": [
+              -0.0675,
+              0.1091
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 21,
+            "ic_mean": -0.0183,
+            "t_nw_asymptotic": -0.36,
+            "wild_cluster_p": 0.7531,
+            "ci95_block_boot": [
+              -0.0966,
+              0.1028
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 18,
+            "ic_mean": -0.0684,
+            "t_nw_asymptotic": -0.97,
+            "wild_cluster_p": 0.4163,
+            "ci95_block_boot": [
+              -0.1937,
+              0.0738
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": -0.0344,
+            "is_n": 44,
+            "oos_ic": 0.0214,
+            "oos_n": 39,
+            "sign_hold": false,
+            "verdict": "OOS 부호반전(artifact)"
+          }
+        },
+        "y_60d": {
+          "unconditional": {
+            "n": 82,
+            "ic_mean": 0.0469,
+            "t_nw_asymptotic": 1.06,
+            "wild_cluster_p": 0.1849,
+            "ci95_block_boot": [
+              -0.0432,
+              0.1374
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": 0.0696,
+            "t_nw_asymptotic": 0.52,
+            "wild_cluster_p": 0.4813,
+            "ci95_block_boot": [
+              -0.1907,
+              0.2973
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 26,
+            "ic_mean": 0.0614,
+            "t_nw_asymptotic": 1.0,
+            "wild_cluster_p": 0.2354,
+            "ci95_block_boot": [
+              -0.042,
+              0.2038
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Reflation": {
+            "n": 19,
+            "ic_mean": -0.0283,
+            "t_nw_asymptotic": -0.35,
+            "wild_cluster_p": 0.7516,
+            "ci95_block_boot": [
+              -0.233,
+              0.1512
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 27,
+            "ic_mean": 0.0775,
+            "t_nw_asymptotic": 0.88,
+            "wild_cluster_p": 0.2379,
+            "ci95_block_boot": [
+              -0.1219,
+              0.2185
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 37,
+            "ic_mean": 0.0513,
+            "t_nw_asymptotic": 0.81,
+            "wild_cluster_p": 0.3243,
+            "ci95_block_boot": [
+              -0.0634,
+              0.176
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": 0.0454,
+            "t_nw_asymptotic": 1.17,
+            "wild_cluster_p": 0.3093,
+            "ci95_block_boot": [
+              -0.0098,
+              0.1122
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 35,
+            "ic_mean": 0.0427,
+            "t_nw_asymptotic": 0.71,
+            "wild_cluster_p": 0.4703,
+            "ci95_block_boot": [
+              -0.0814,
+              0.1548
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 44,
+            "ic_mean": 0.0459,
+            "t_nw_asymptotic": 1.02,
+            "wild_cluster_p": 0.3108,
+            "ci95_block_boot": [
+              -0.0469,
+              0.1166
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 20,
+            "ic_mean": 0.1925,
+            "t_nw_asymptotic": 2.41,
+            "wild_cluster_p": 0.0065,
+            "ci95_block_boot": [
+              0.0621,
+              0.3687
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 18,
+            "ic_mean": -0.1124,
+            "t_nw_asymptotic": -1.4,
+            "wild_cluster_p": 0.1589,
+            "ci95_block_boot": [
+              -0.2097,
+              0.0587
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": 0.003,
+            "is_n": 44,
+            "oos_ic": 0.0978,
+            "oos_n": 38,
+            "sign_hold": true,
+            "verdict": "OOS 부호유지"
+          }
+        }
+      }
+    },
+    "inv_yoy": {
+      "prior_부호": "음",
+      "panel_cells": 1141,
+      "horizons": {
+        "y_5d": {
+          "unconditional": {
+            "n": 69,
+            "ic_mean": -0.0179,
+            "t_nw_asymptotic": -0.57,
+            "wild_cluster_p": 0.5622,
+            "ci95_block_boot": [
+              -0.0766,
+              0.0426
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": 0.0975,
+            "t_nw_asymptotic": 1.78,
+            "wild_cluster_p": 0.1744,
+            "ci95_block_boot": [
+              0.0124,
+              0.2154
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 20,
+            "ic_mean": 0.0364,
+            "t_nw_asymptotic": 0.73,
+            "wild_cluster_p": 0.4078,
+            "ci95_block_boot": [
+              -0.0829,
+              0.1064
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Reflation": {
+            "n": 21,
+            "ic_mean": -0.0862,
+            "t_nw_asymptotic": -1.34,
+            "wild_cluster_p": 0.2134,
+            "ci95_block_boot": [
+              -0.2052,
+              0.0458
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 18,
+            "ic_mean": -0.0628,
+            "t_nw_asymptotic": -1.1,
+            "wild_cluster_p": 0.2644,
+            "ci95_block_boot": [
+              -0.1535,
+              0.048
+            ],
+            "status": "underpowered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 33,
+            "ic_mean": 0.0216,
+            "t_nw_asymptotic": 0.49,
+            "wild_cluster_p": 0.6312,
+            "ci95_block_boot": [
+              -0.0559,
+              0.1067
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": -0.1585,
+            "t_nw_asymptotic": -1.72,
+            "wild_cluster_p": 0.1419,
+            "ci95_block_boot": [
+              -0.3149,
+              0.0647
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 26,
+            "ic_mean": -0.014,
+            "t_nw_asymptotic": -0.35,
+            "wild_cluster_p": 0.7406,
+            "ci95_block_boot": [
+              -0.0882,
+              0.068
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 38,
+            "ic_mean": -0.0622,
+            "t_nw_asymptotic": -1.81,
+            "wild_cluster_p": 0.0745,
+            "ci95_block_boot": [
+              -0.1261,
+              0.0018
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 16,
+            "ic_mean": 0.064,
+            "t_nw_asymptotic": 0.78,
+            "wild_cluster_p": 0.4128,
+            "ci95_block_boot": [
+              -0.1106,
+              0.2088
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 15,
+            "ic_mean": 0.007,
+            "t_nw_asymptotic": 0.12,
+            "wild_cluster_p": 0.922,
+            "ci95_block_boot": [
+              -0.0915,
+              0.1258
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": -0.0118,
+            "is_n": 32,
+            "oos_ic": -0.0232,
+            "oos_n": 37,
+            "sign_hold": true,
+            "verdict": "OOS 부호유지"
+          }
+        },
+        "y_20d": {
+          "unconditional": {
+            "n": 68,
+            "ic_mean": -0.0023,
+            "t_nw_asymptotic": -0.06,
+            "wild_cluster_p": 0.95,
+            "ci95_block_boot": [
+              -0.0794,
+              0.08
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": 0.0104,
+            "t_nw_asymptotic": 0.11,
+            "wild_cluster_p": 0.907,
+            "ci95_block_boot": [
+              -0.1373,
+              0.1989
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 20,
+            "ic_mean": 0.0246,
+            "t_nw_asymptotic": 0.31,
+            "wild_cluster_p": 0.7721,
+            "ci95_block_boot": [
+              -0.1269,
+              0.1809
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Reflation": {
+            "n": 20,
+            "ic_mean": -0.0763,
+            "t_nw_asymptotic": -1.32,
+            "wild_cluster_p": 0.3023,
+            "ci95_block_boot": [
+              -0.1825,
+              0.0467
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 18,
+            "ic_mean": 0.0429,
+            "t_nw_asymptotic": 0.52,
+            "wild_cluster_p": 0.5802,
+            "ci95_block_boot": [
+              -0.1447,
+              0.1779
+            ],
+            "status": "underpowered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 32,
+            "ic_mean": 0.04,
+            "t_nw_asymptotic": 0.63,
+            "wild_cluster_p": 0.5327,
+            "ci95_block_boot": [
+              -0.082,
+              0.1736
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": -0.0923,
+            "t_nw_asymptotic": -1.99,
+            "wild_cluster_p": 0.2164,
+            "ci95_block_boot": [
+              -0.1427,
+              -0.0031
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 26,
+            "ic_mean": -0.0198,
+            "t_nw_asymptotic": -0.33,
+            "wild_cluster_p": 0.7451,
+            "ci95_block_boot": [
+              -0.1473,
+              0.0953
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 37,
+            "ic_mean": -0.0238,
+            "t_nw_asymptotic": -0.4,
+            "wild_cluster_p": 0.6722,
+            "ci95_block_boot": [
+              -0.1433,
+              0.0904
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 16,
+            "ic_mean": 0.1177,
+            "t_nw_asymptotic": 1.9,
+            "wild_cluster_p": 0.1014,
+            "ci95_block_boot": [
+              0.0058,
+              0.2589
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 15,
+            "ic_mean": -0.0774,
+            "t_nw_asymptotic": -1.09,
+            "wild_cluster_p": 0.3393,
+            "ci95_block_boot": [
+              -0.2137,
+              0.06
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": -0.0539,
+            "is_n": 32,
+            "oos_ic": 0.0435,
+            "oos_n": 36,
+            "sign_hold": false,
+            "verdict": "OOS 부호반전(artifact)"
+          }
+        },
+        "y_60d": {
+          "unconditional": {
+            "n": 67,
+            "ic_mean": 0.001,
+            "t_nw_asymptotic": 0.02,
+            "wild_cluster_p": 0.9815,
+            "ci95_block_boot": [
+              -0.0992,
+              0.0945
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": 0.0029,
+            "t_nw_asymptotic": 0.02,
+            "wild_cluster_p": 0.98,
+            "ci95_block_boot": [
+              -0.2731,
+              0.3392
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 20,
+            "ic_mean": 0.1318,
+            "t_nw_asymptotic": 2.1,
+            "wild_cluster_p": 0.026,
+            "ci95_block_boot": [
+              0.0138,
+              0.268
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Reflation": {
+            "n": 19,
+            "ic_mean": -0.1569,
+            "t_nw_asymptotic": -4.1,
+            "wild_cluster_p": 0.003,
+            "ci95_block_boot": [
+              -0.2448,
+              -0.1048
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 18,
+            "ic_mean": 0.0213,
+            "t_nw_asymptotic": 0.19,
+            "wild_cluster_p": 0.8216,
+            "ci95_block_boot": [
+              -0.2513,
+              0.1835
+            ],
+            "status": "underpowered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 31,
+            "ic_mean": 0.0735,
+            "t_nw_asymptotic": 1.03,
+            "wild_cluster_p": 0.1389,
+            "ci95_block_boot": [
+              -0.0545,
+              0.2148
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": -0.0913,
+            "t_nw_asymptotic": -1.99,
+            "wild_cluster_p": 0.0895,
+            "ci95_block_boot": [
+              -0.1696,
+              -0.0187
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 26,
+            "ic_mean": -0.0499,
+            "t_nw_asymptotic": -0.53,
+            "wild_cluster_p": 0.4993,
+            "ci95_block_boot": [
+              -0.242,
+              0.1271
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 37,
+            "ic_mean": -0.034,
+            "t_nw_asymptotic": -0.54,
+            "wild_cluster_p": 0.4958,
+            "ci95_block_boot": [
+              -0.1688,
+              0.091
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 15,
+            "ic_mean": 0.1013,
+            "t_nw_asymptotic": 0.9,
+            "wild_cluster_p": 0.2684,
+            "ci95_block_boot": [
+              -0.0723,
+              0.3474
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 15,
+            "ic_mean": -0.013,
+            "t_nw_asymptotic": -0.3,
+            "wild_cluster_p": 0.8471,
+            "ci95_block_boot": [
+              -0.0428,
+              0.0887
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": -0.0608,
+            "is_n": 32,
+            "oos_ic": 0.0575,
+            "oos_n": 35,
+            "sign_hold": false,
+            "verdict": "OOS 부호반전(artifact)"
+          }
+        }
+      }
+    },
+    "capex_ratio": {
+      "prior_부호": "음",
+      "panel_cells": 1799,
+      "horizons": {
+        "y_5d": {
+          "unconditional": {
+            "n": 84,
+            "ic_mean": -0.0316,
+            "t_nw_asymptotic": -1.47,
+            "wild_cluster_p": 0.1799,
+            "ci95_block_boot": [
+              -0.0757,
+              0.0099
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": -0.0031,
+            "t_nw_asymptotic": -0.07,
+            "wild_cluster_p": 0.9535,
+            "ci95_block_boot": [
+              -0.1108,
+              0.0534
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 26,
+            "ic_mean": -0.0555,
+            "t_nw_asymptotic": -1.85,
+            "wild_cluster_p": 0.1184,
+            "ci95_block_boot": [
+              -0.117,
+              0.0019
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Reflation": {
+            "n": 21,
+            "ic_mean": -0.0395,
+            "t_nw_asymptotic": -0.98,
+            "wild_cluster_p": 0.3953,
+            "ci95_block_boot": [
+              -0.1173,
+              0.0398
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 27,
+            "ic_mean": -0.0129,
+            "t_nw_asymptotic": -0.28,
+            "wild_cluster_p": 0.8021,
+            "ci95_block_boot": [
+              -0.1089,
+              0.0664
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 39,
+            "ic_mean": -0.0549,
+            "t_nw_asymptotic": -1.61,
+            "wild_cluster_p": 0.1314,
+            "ci95_block_boot": [
+              -0.1189,
+              0.0134
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": -0.007,
+            "t_nw_asymptotic": -0.16,
+            "wild_cluster_p": 0.91,
+            "ci95_block_boot": [
+              -0.0748,
+              0.0995
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 35,
+            "ic_mean": -0.0126,
+            "t_nw_asymptotic": -0.37,
+            "wild_cluster_p": 0.7056,
+            "ci95_block_boot": [
+              -0.0776,
+              0.0596
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 45,
+            "ic_mean": -0.0279,
+            "t_nw_asymptotic": -1.23,
+            "wild_cluster_p": 0.3303,
+            "ci95_block_boot": [
+              -0.0693,
+              0.0167
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 21,
+            "ic_mean": -0.0424,
+            "t_nw_asymptotic": -0.82,
+            "wild_cluster_p": 0.4423,
+            "ci95_block_boot": [
+              -0.1295,
+              0.0753
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 18,
+            "ic_mean": -0.0282,
+            "t_nw_asymptotic": -0.55,
+            "wild_cluster_p": 0.6132,
+            "ci95_block_boot": [
+              -0.1161,
+              0.0831
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": -0.0323,
+            "is_n": 44,
+            "oos_ic": -0.0308,
+            "oos_n": 40,
+            "sign_hold": true,
+            "verdict": "OOS 부호유지"
+          }
+        },
+        "y_20d": {
+          "unconditional": {
+            "n": 83,
+            "ic_mean": -0.0302,
+            "t_nw_asymptotic": -1.17,
+            "wild_cluster_p": 0.2609,
+            "ci95_block_boot": [
+              -0.0785,
+              0.0209
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": -0.0155,
+            "t_nw_asymptotic": -0.25,
+            "wild_cluster_p": 0.8806,
+            "ci95_block_boot": [
+              -0.1466,
+              0.0402
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 26,
+            "ic_mean": 0.0021,
+            "t_nw_asymptotic": 0.05,
+            "wild_cluster_p": 0.9695,
+            "ci95_block_boot": [
+              -0.0691,
+              0.0937
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Reflation": {
+            "n": 20,
+            "ic_mean": -0.0523,
+            "t_nw_asymptotic": -0.88,
+            "wild_cluster_p": 0.3173,
+            "ci95_block_boot": [
+              -0.1648,
+              0.079
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 27,
+            "ic_mean": -0.0504,
+            "t_nw_asymptotic": -1.21,
+            "wild_cluster_p": 0.2344,
+            "ci95_block_boot": [
+              -0.1396,
+              0.0291
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 38,
+            "ic_mean": -0.0324,
+            "t_nw_asymptotic": -0.89,
+            "wild_cluster_p": 0.3743,
+            "ci95_block_boot": [
+              -0.1009,
+              0.0438
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": 0.035,
+            "t_nw_asymptotic": 0.46,
+            "wild_cluster_p": 0.6632,
+            "ci95_block_boot": [
+              -0.1137,
+              0.1945
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 35,
+            "ic_mean": -0.0465,
+            "t_nw_asymptotic": -1.21,
+            "wild_cluster_p": 0.2689,
+            "ci95_block_boot": [
+              -0.1242,
+              0.0275
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 44,
+            "ic_mean": -0.0263,
+            "t_nw_asymptotic": -0.81,
+            "wild_cluster_p": 0.4723,
+            "ci95_block_boot": [
+              -0.0925,
+              0.0366
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 21,
+            "ic_mean": -0.0287,
+            "t_nw_asymptotic": -0.54,
+            "wild_cluster_p": 0.6287,
+            "ci95_block_boot": [
+              -0.1424,
+              0.071
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 18,
+            "ic_mean": -0.0416,
+            "t_nw_asymptotic": -0.72,
+            "wild_cluster_p": 0.4838,
+            "ci95_block_boot": [
+              -0.1462,
+              0.0852
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": -0.0452,
+            "is_n": 44,
+            "oos_ic": -0.0133,
+            "oos_n": 39,
+            "sign_hold": true,
+            "verdict": "OOS 부호유지"
+          }
+        },
+        "y_60d": {
+          "unconditional": {
+            "n": 82,
+            "ic_mean": -0.0839,
+            "t_nw_asymptotic": -2.61,
+            "wild_cluster_p": 0.0005,
+            "ci95_block_boot": [
+              -0.1435,
+              -0.0259
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": -0.035,
+            "t_nw_asymptotic": -0.39,
+            "wild_cluster_p": 0.6717,
+            "ci95_block_boot": [
+              -0.2152,
+              0.0937
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 26,
+            "ic_mean": -0.0652,
+            "t_nw_asymptotic": -1.32,
+            "wild_cluster_p": 0.0735,
+            "ci95_block_boot": [
+              -0.1491,
+              0.0283
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Reflation": {
+            "n": 19,
+            "ic_mean": -0.1182,
+            "t_nw_asymptotic": -2.02,
+            "wild_cluster_p": 0.012,
+            "ci95_block_boot": [
+              -0.2284,
+              -0.016
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 27,
+            "ic_mean": -0.0959,
+            "t_nw_asymptotic": -1.5,
+            "wild_cluster_p": 0.026,
+            "ci95_block_boot": [
+              -0.202,
+              0.0261
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 37,
+            "ic_mean": -0.111,
+            "t_nw_asymptotic": -3.11,
+            "wild_cluster_p": 0.001,
+            "ci95_block_boot": [
+              -0.1793,
+              -0.0418
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": -0.1088,
+            "t_nw_asymptotic": -2.12,
+            "wild_cluster_p": 0.0935,
+            "ci95_block_boot": [
+              -0.2222,
+              0.0277
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 35,
+            "ic_mean": -0.0482,
+            "t_nw_asymptotic": -1.02,
+            "wild_cluster_p": 0.1754,
+            "ci95_block_boot": [
+              -0.1284,
+              0.0495
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 44,
+            "ic_mean": -0.0706,
+            "t_nw_asymptotic": -1.69,
+            "wild_cluster_p": 0.0265,
+            "ci95_block_boot": [
+              -0.1499,
+              0.0076
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 20,
+            "ic_mean": -0.0598,
+            "t_nw_asymptotic": -1.23,
+            "wild_cluster_p": 0.1969,
+            "ci95_block_boot": [
+              -0.1444,
+              0.0488
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 18,
+            "ic_mean": -0.1432,
+            "t_nw_asymptotic": -3.75,
+            "wild_cluster_p": 0.0025,
+            "ci95_block_boot": [
+              -0.2225,
+              -0.0569
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": -0.1109,
+            "is_n": 44,
+            "oos_ic": -0.0526,
+            "oos_n": 38,
+            "sign_hold": true,
+            "verdict": "OOS 부호유지"
+          }
+        }
+      }
+    },
+    "ppe_yoy": {
+      "prior_부호": "음",
+      "panel_cells": 1506,
+      "horizons": {
+        "y_5d": {
+          "unconditional": {
+            "n": 72,
+            "ic_mean": -0.0005,
+            "t_nw_asymptotic": -0.02,
+            "wild_cluster_p": 0.9835,
+            "ci95_block_boot": [
+              -0.0502,
+              0.05
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": 0.0015,
+            "t_nw_asymptotic": 0.02,
+            "wild_cluster_p": 0.9845,
+            "ci95_block_boot": [
+              -0.0557,
+              0.1447
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 23,
+            "ic_mean": 0.003,
+            "t_nw_asymptotic": 0.08,
+            "wild_cluster_p": 0.9385,
+            "ci95_block_boot": [
+              -0.0789,
+              0.079
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Reflation": {
+            "n": 21,
+            "ic_mean": 0.0151,
+            "t_nw_asymptotic": 0.34,
+            "wild_cluster_p": 0.7346,
+            "ci95_block_boot": [
+              -0.0688,
+              0.1021
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 18,
+            "ic_mean": -0.0243,
+            "t_nw_asymptotic": -0.46,
+            "wild_cluster_p": 0.7081,
+            "ci95_block_boot": [
+              -0.1298,
+              0.0818
+            ],
+            "status": "underpowered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 35,
+            "ic_mean": 0.0107,
+            "t_nw_asymptotic": 0.27,
+            "wild_cluster_p": 0.8041,
+            "ci95_block_boot": [
+              -0.0694,
+              0.094
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": 0.0204,
+            "t_nw_asymptotic": 0.52,
+            "wild_cluster_p": 0.6762,
+            "ci95_block_boot": [
+              -0.0577,
+              0.0689
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 27,
+            "ic_mean": -0.0228,
+            "t_nw_asymptotic": -0.6,
+            "wild_cluster_p": 0.5757,
+            "ci95_block_boot": [
+              -0.1001,
+              0.0469
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 39,
+            "ic_mean": -0.0048,
+            "t_nw_asymptotic": -0.18,
+            "wild_cluster_p": 0.8846,
+            "ci95_block_boot": [
+              -0.0536,
+              0.0492
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 16,
+            "ic_mean": 0.0893,
+            "t_nw_asymptotic": 1.87,
+            "wild_cluster_p": 0.1184,
+            "ci95_block_boot": [
+              -0.006,
+              0.1861
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 17,
+            "ic_mean": -0.0753,
+            "t_nw_asymptotic": -1.31,
+            "wild_cluster_p": 0.2689,
+            "ci95_block_boot": [
+              -0.1925,
+              0.0435
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": -0.0152,
+            "is_n": 32,
+            "oos_ic": 0.0112,
+            "oos_n": 40,
+            "sign_hold": false,
+            "verdict": "OOS 부호반전(artifact)"
+          }
+        },
+        "y_20d": {
+          "unconditional": {
+            "n": 71,
+            "ic_mean": -0.0065,
+            "t_nw_asymptotic": -0.24,
+            "wild_cluster_p": 0.8196,
+            "ci95_block_boot": [
+              -0.0619,
+              0.0445
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": 0.048,
+            "t_nw_asymptotic": 1.06,
+            "wild_cluster_p": 0.3538,
+            "ci95_block_boot": [
+              -0.0011,
+              0.1606
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 23,
+            "ic_mean": -0.0124,
+            "t_nw_asymptotic": -0.24,
+            "wild_cluster_p": 0.8036,
+            "ci95_block_boot": [
+              -0.1065,
+              0.0902
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Reflation": {
+            "n": 20,
+            "ic_mean": -0.0187,
+            "t_nw_asymptotic": -0.34,
+            "wild_cluster_p": 0.7156,
+            "ci95_block_boot": [
+              -0.1338,
+              0.083
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 18,
+            "ic_mean": -0.0156,
+            "t_nw_asymptotic": -0.34,
+            "wild_cluster_p": 0.7726,
+            "ci95_block_boot": [
+              -0.1036,
+              0.0721
+            ],
+            "status": "underpowered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 34,
+            "ic_mean": -0.0202,
+            "t_nw_asymptotic": -0.46,
+            "wild_cluster_p": 0.6382,
+            "ci95_block_boot": [
+              -0.1087,
+              0.0699
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": 0.0008,
+            "t_nw_asymptotic": 0.01,
+            "wild_cluster_p": 0.9915,
+            "ci95_block_boot": [
+              -0.1561,
+              0.0855
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 27,
+            "ic_mean": 0.0081,
+            "t_nw_asymptotic": 0.24,
+            "wild_cluster_p": 0.8181,
+            "ci95_block_boot": [
+              -0.0538,
+              0.072
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 38,
+            "ic_mean": -0.0032,
+            "t_nw_asymptotic": -0.1,
+            "wild_cluster_p": 0.9305,
+            "ci95_block_boot": [
+              -0.0695,
+              0.0513
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 16,
+            "ic_mean": 0.0444,
+            "t_nw_asymptotic": 0.78,
+            "wild_cluster_p": 0.4953,
+            "ci95_block_boot": [
+              -0.0691,
+              0.1599
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 17,
+            "ic_mean": -0.0618,
+            "t_nw_asymptotic": -1.25,
+            "wild_cluster_p": 0.2564,
+            "ci95_block_boot": [
+              -0.1584,
+              0.0364
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": 0.0116,
+            "is_n": 32,
+            "oos_ic": -0.0213,
+            "oos_n": 39,
+            "sign_hold": false,
+            "verdict": "OOS 부호반전(artifact)"
+          }
+        },
+        "y_60d": {
+          "unconditional": {
+            "n": 70,
+            "ic_mean": 0.0059,
+            "t_nw_asymptotic": 0.16,
+            "wild_cluster_p": 0.8241,
+            "ci95_block_boot": [
+              -0.0663,
+              0.0717
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": 0.0889,
+            "t_nw_asymptotic": 0.99,
+            "wild_cluster_p": 0.1899,
+            "ci95_block_boot": [
+              -0.0486,
+              0.2629
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 23,
+            "ic_mean": 0.0337,
+            "t_nw_asymptotic": 0.41,
+            "wild_cluster_p": 0.5702,
+            "ci95_block_boot": [
+              -0.1086,
+              0.199
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Reflation": {
+            "n": 19,
+            "ic_mean": -0.0533,
+            "t_nw_asymptotic": -1.13,
+            "wild_cluster_p": 0.2389,
+            "ci95_block_boot": [
+              -0.1602,
+              0.0174
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 18,
+            "ic_mean": -0.0133,
+            "t_nw_asymptotic": -0.5,
+            "wild_cluster_p": 0.7121,
+            "ci95_block_boot": [
+              -0.0604,
+              0.05
+            ],
+            "status": "underpowered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 33,
+            "ic_mean": 0.0097,
+            "t_nw_asymptotic": 0.16,
+            "wild_cluster_p": 0.8301,
+            "ci95_block_boot": [
+              -0.1113,
+              0.1182
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": -0.035,
+            "t_nw_asymptotic": -0.87,
+            "wild_cluster_p": 0.3978,
+            "ci95_block_boot": [
+              -0.1054,
+              0.0278
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 27,
+            "ic_mean": 0.0163,
+            "t_nw_asymptotic": 0.4,
+            "wild_cluster_p": 0.6472,
+            "ci95_block_boot": [
+              -0.0534,
+              0.0803
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 38,
+            "ic_mean": 0.0534,
+            "t_nw_asymptotic": 1.4,
+            "wild_cluster_p": 0.0875,
+            "ci95_block_boot": [
+              -0.0248,
+              0.1238
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 15,
+            "ic_mean": -0.0136,
+            "t_nw_asymptotic": -0.27,
+            "wild_cluster_p": 0.7841,
+            "ci95_block_boot": [
+              -0.122,
+              0.0852
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 17,
+            "ic_mean": -0.0832,
+            "t_nw_asymptotic": -0.9,
+            "wild_cluster_p": 0.2054,
+            "ci95_block_boot": [
+              -0.2531,
+              0.1049
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": 0.0409,
+            "is_n": 32,
+            "oos_ic": -0.0236,
+            "oos_n": 38,
+            "sign_hold": false,
+            "verdict": "OOS 부호반전(artifact)"
+          }
+        }
+      }
+    },
+    "rnd_ratio": {
+      "prior_부호": "양",
+      "panel_cells": 1325,
+      "horizons": {
+        "y_5d": {
+          "unconditional": {
+            "n": 84,
+            "ic_mean": 0.0438,
+            "t_nw_asymptotic": 1.65,
+            "wild_cluster_p": 0.1279,
+            "ci95_block_boot": [
+              -0.0076,
+              0.0938
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": 0.1268,
+            "t_nw_asymptotic": 1.81,
+            "wild_cluster_p": 0.1819,
+            "ci95_block_boot": [
+              0.0176,
+              0.2925
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 26,
+            "ic_mean": 0.0115,
+            "t_nw_asymptotic": 0.22,
+            "wild_cluster_p": 0.8296,
+            "ci95_block_boot": [
+              -0.081,
+              0.1256
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Reflation": {
+            "n": 21,
+            "ic_mean": 0.0549,
+            "t_nw_asymptotic": 1.15,
+            "wild_cluster_p": 0.3523,
+            "ci95_block_boot": [
+              -0.0256,
+              0.1519
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 27,
+            "ic_mean": 0.0355,
+            "t_nw_asymptotic": 0.69,
+            "wild_cluster_p": 0.4713,
+            "ci95_block_boot": [
+              -0.0676,
+              0.1388
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 39,
+            "ic_mean": 0.0375,
+            "t_nw_asymptotic": 0.9,
+            "wild_cluster_p": 0.3833,
+            "ci95_block_boot": [
+              -0.0472,
+              0.1183
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": 0.0202,
+            "t_nw_asymptotic": 0.25,
+            "wild_cluster_p": 0.8601,
+            "ci95_block_boot": [
+              -0.1205,
+              0.1921
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 35,
+            "ic_mean": 0.0575,
+            "t_nw_asymptotic": 1.47,
+            "wild_cluster_p": 0.2089,
+            "ci95_block_boot": [
+              -0.0189,
+              0.1385
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 45,
+            "ic_mean": 0.0655,
+            "t_nw_asymptotic": 2.36,
+            "wild_cluster_p": 0.1,
+            "ci95_block_boot": [
+              0.0101,
+              0.1219
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 21,
+            "ic_mean": 0.0189,
+            "t_nw_asymptotic": 0.26,
+            "wild_cluster_p": 0.7601,
+            "ci95_block_boot": [
+              -0.1253,
+              0.1636
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 18,
+            "ic_mean": 0.0185,
+            "t_nw_asymptotic": 0.31,
+            "wild_cluster_p": 0.7486,
+            "ci95_block_boot": [
+              -0.0887,
+              0.133
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": 0.0601,
+            "is_n": 44,
+            "oos_ic": 0.0259,
+            "oos_n": 40,
+            "sign_hold": true,
+            "verdict": "OOS 부호유지"
+          }
+        },
+        "y_20d": {
+          "unconditional": {
+            "n": 83,
+            "ic_mean": 0.0249,
+            "t_nw_asymptotic": 0.83,
+            "wild_cluster_p": 0.3783,
+            "ci95_block_boot": [
+              -0.033,
+              0.0843
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": 0.0281,
+            "t_nw_asymptotic": 0.51,
+            "wild_cluster_p": 0.7716,
+            "ci95_block_boot": [
+              -0.0591,
+              0.1368
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 26,
+            "ic_mean": 0.0764,
+            "t_nw_asymptotic": 1.33,
+            "wild_cluster_p": 0.1639,
+            "ci95_block_boot": [
+              -0.0372,
+              0.1963
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Reflation": {
+            "n": 20,
+            "ic_mean": 0.035,
+            "t_nw_asymptotic": 0.8,
+            "wild_cluster_p": 0.4168,
+            "ci95_block_boot": [
+              -0.0415,
+              0.1329
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 27,
+            "ic_mean": -0.0333,
+            "t_nw_asymptotic": -0.55,
+            "wild_cluster_p": 0.5247,
+            "ci95_block_boot": [
+              -0.1466,
+              0.09
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 38,
+            "ic_mean": 0.0215,
+            "t_nw_asymptotic": 0.5,
+            "wild_cluster_p": 0.6257,
+            "ci95_block_boot": [
+              -0.0589,
+              0.1048
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": 0.0645,
+            "t_nw_asymptotic": 1.38,
+            "wild_cluster_p": 0.2869,
+            "ci95_block_boot": [
+              -0.035,
+              0.1545
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 35,
+            "ic_mean": 0.0173,
+            "t_nw_asymptotic": 0.41,
+            "wild_cluster_p": 0.7096,
+            "ci95_block_boot": [
+              -0.0672,
+              0.096
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 44,
+            "ic_mean": 0.0234,
+            "t_nw_asymptotic": 0.66,
+            "wild_cluster_p": 0.5742,
+            "ci95_block_boot": [
+              -0.0477,
+              0.094
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 21,
+            "ic_mean": 0.0213,
+            "t_nw_asymptotic": 0.41,
+            "wild_cluster_p": 0.6977,
+            "ci95_block_boot": [
+              -0.0675,
+              0.1301
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 18,
+            "ic_mean": 0.0328,
+            "t_nw_asymptotic": 0.58,
+            "wild_cluster_p": 0.5852,
+            "ci95_block_boot": [
+              -0.062,
+              0.152
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": 0.0599,
+            "is_n": 44,
+            "oos_ic": -0.0146,
+            "oos_n": 39,
+            "sign_hold": false,
+            "verdict": "OOS 부호반전(artifact)"
+          }
+        },
+        "y_60d": {
+          "unconditional": {
+            "n": 82,
+            "ic_mean": 0.0435,
+            "t_nw_asymptotic": 1.03,
+            "wild_cluster_p": 0.1529,
+            "ci95_block_boot": [
+              -0.0321,
+              0.1285
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Overheat": {
+            "n": 10,
+            "ic_mean": -0.0121,
+            "t_nw_asymptotic": -0.23,
+            "wild_cluster_p": 0.8431,
+            "ci95_block_boot": [
+              -0.1532,
+              0.0611
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "macro_regime=Recovery": {
+            "n": 26,
+            "ic_mean": 0.1517,
+            "t_nw_asymptotic": 1.87,
+            "wild_cluster_p": 0.0105,
+            "ci95_block_boot": [
+              0.0001,
+              0.2929
+            ],
+            "status": "powered"
+          },
+          "macro_regime=Reflation": {
+            "n": 19,
+            "ic_mean": 0.0186,
+            "t_nw_asymptotic": 0.34,
+            "wild_cluster_p": 0.6642,
+            "ci95_block_boot": [
+              -0.0659,
+              0.1298
+            ],
+            "status": "underpowered"
+          },
+          "macro_regime=Slowdown": {
+            "n": 27,
+            "ic_mean": -0.0226,
+            "t_nw_asymptotic": -0.31,
+            "wild_cluster_p": 0.6817,
+            "ci95_block_boot": [
+              -0.1561,
+              0.1239
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_neutral": {
+            "n": 37,
+            "ic_mean": 0.1089,
+            "t_nw_asymptotic": 1.82,
+            "wild_cluster_p": 0.0195,
+            "ci95_block_boot": [
+              -0.0002,
+              0.2323
+            ],
+            "status": "powered"
+          },
+          "krw_regime=KRW_strong": {
+            "n": 10,
+            "ic_mean": 0.0334,
+            "t_nw_asymptotic": 0.49,
+            "wild_cluster_p": 0.6212,
+            "ci95_block_boot": [
+              -0.1236,
+              0.1199
+            ],
+            "status": "INSUFFICIENT"
+          },
+          "krw_regime=KRW_weak": {
+            "n": 35,
+            "ic_mean": -0.0228,
+            "t_nw_asymptotic": -0.4,
+            "wild_cluster_p": 0.6162,
+            "ci95_block_boot": [
+              -0.1343,
+              0.0808
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_neutral": {
+            "n": 44,
+            "ic_mean": 0.0117,
+            "t_nw_asymptotic": 0.22,
+            "wild_cluster_p": 0.7661,
+            "ci95_block_boot": [
+              -0.0907,
+              0.1138
+            ],
+            "status": "powered"
+          },
+          "flow_regime=flow_sell": {
+            "n": 20,
+            "ic_mean": 0.032,
+            "t_nw_asymptotic": 0.39,
+            "wild_cluster_p": 0.6402,
+            "ci95_block_boot": [
+              -0.1125,
+              0.2096
+            ],
+            "status": "underpowered"
+          },
+          "flow_regime=flow_strong_buy": {
+            "n": 18,
+            "ic_mean": 0.134,
+            "t_nw_asymptotic": 3.04,
+            "wild_cluster_p": 0.008,
+            "ci95_block_boot": [
+              0.0516,
+              0.2375
+            ],
+            "status": "underpowered"
+          },
+          "walk_forward": {
+            "is_ic": 0.0715,
+            "is_n": 44,
+            "oos_ic": 0.0111,
+            "oos_n": 38,
+            "sign_hold": true,
+            "verdict": "OOS 부호유지"
+          }
+        }
+      }
+    }
+  },
+  "fdr_family_fundamentals_only": {
+    "m": 78,
+    "by_factor": 4.94,
+    "survivors_BY": [],
+    "raw_p_min": 0.0005,
+    "raw_p_min_key": "capex_ratio__y_60d__uncond"
+  },
+  "fdr_family_note": "★신규지표 powered cell = 별 산출. 통합 단일 FDR family(가격+valuation+신규) = supervisor 통합단계 합산(m_total = 105 + 신규 powered). 산업단계 = 각 family + 통합 m 박제.",
+  "fundamentals_pvals": {
+    "inv_ratio__y_5d__uncond": 0.5162,
+    "inv_ratio__y_5d__macro_regime=Recovery": 0.7621,
+    "inv_ratio__y_5d__macro_regime=Slowdown": 0.5707,
+    "inv_ratio__y_5d__krw_regime=KRW_neutral": 0.5437,
+    "inv_ratio__y_5d__krw_regime=KRW_weak": 0.1249,
+    "inv_ratio__y_5d__flow_regime=flow_neutral": 0.3568,
+    "inv_ratio__y_20d__uncond": 0.8036,
+    "inv_ratio__y_20d__macro_regime=Recovery": 0.7546,
+    "inv_ratio__y_20d__macro_regime=Slowdown": 0.6747,
+    "inv_ratio__y_20d__krw_regime=KRW_neutral": 0.92,
+    "inv_ratio__y_20d__krw_regime=KRW_weak": 0.8256,
+    "inv_ratio__y_20d__flow_regime=flow_neutral": 0.6362,
+    "inv_ratio__y_60d__uncond": 0.1849,
+    "inv_ratio__y_60d__macro_regime=Recovery": 0.2354,
+    "inv_ratio__y_60d__macro_regime=Slowdown": 0.2379,
+    "inv_ratio__y_60d__krw_regime=KRW_neutral": 0.3243,
+    "inv_ratio__y_60d__krw_regime=KRW_weak": 0.4703,
+    "inv_ratio__y_60d__flow_regime=flow_neutral": 0.3108,
+    "inv_yoy__y_5d__uncond": 0.5622,
+    "inv_yoy__y_5d__krw_regime=KRW_neutral": 0.6312,
+    "inv_yoy__y_5d__krw_regime=KRW_weak": 0.7406,
+    "inv_yoy__y_5d__flow_regime=flow_neutral": 0.0745,
+    "inv_yoy__y_20d__uncond": 0.95,
+    "inv_yoy__y_20d__krw_regime=KRW_neutral": 0.5327,
+    "inv_yoy__y_20d__krw_regime=KRW_weak": 0.7451,
+    "inv_yoy__y_20d__flow_regime=flow_neutral": 0.6722,
+    "inv_yoy__y_60d__uncond": 0.9815,
+    "inv_yoy__y_60d__krw_regime=KRW_neutral": 0.1389,
+    "inv_yoy__y_60d__krw_regime=KRW_weak": 0.4993,
+    "inv_yoy__y_60d__flow_regime=flow_neutral": 0.4958,
+    "capex_ratio__y_5d__uncond": 0.1799,
+    "capex_ratio__y_5d__macro_regime=Recovery": 0.1184,
+    "capex_ratio__y_5d__macro_regime=Slowdown": 0.8021,
+    "capex_ratio__y_5d__krw_regime=KRW_neutral": 0.1314,
+    "capex_ratio__y_5d__krw_regime=KRW_weak": 0.7056,
+    "capex_ratio__y_5d__flow_regime=flow_neutral": 0.3303,
+    "capex_ratio__y_20d__uncond": 0.2609,
+    "capex_ratio__y_20d__macro_regime=Recovery": 0.9695,
+    "capex_ratio__y_20d__macro_regime=Slowdown": 0.2344,
+    "capex_ratio__y_20d__krw_regime=KRW_neutral": 0.3743,
+    "capex_ratio__y_20d__krw_regime=KRW_weak": 0.2689,
+    "capex_ratio__y_20d__flow_regime=flow_neutral": 0.4723,
+    "capex_ratio__y_60d__uncond": 0.0005,
+    "capex_ratio__y_60d__macro_regime=Recovery": 0.0735,
+    "capex_ratio__y_60d__macro_regime=Slowdown": 0.026,
+    "capex_ratio__y_60d__krw_regime=KRW_neutral": 0.001,
+    "capex_ratio__y_60d__krw_regime=KRW_weak": 0.1754,
+    "capex_ratio__y_60d__flow_regime=flow_neutral": 0.0265,
+    "ppe_yoy__y_5d__uncond": 0.9835,
+    "ppe_yoy__y_5d__krw_regime=KRW_neutral": 0.8041,
+    "ppe_yoy__y_5d__krw_regime=KRW_weak": 0.5757,
+    "ppe_yoy__y_5d__flow_regime=flow_neutral": 0.8846,
+    "ppe_yoy__y_20d__uncond": 0.8196,
+    "ppe_yoy__y_20d__krw_regime=KRW_neutral": 0.6382,
+    "ppe_yoy__y_20d__krw_regime=KRW_weak": 0.8181,
+    "ppe_yoy__y_20d__flow_regime=flow_neutral": 0.9305,
+    "ppe_yoy__y_60d__uncond": 0.8241,
+    "ppe_yoy__y_60d__krw_regime=KRW_neutral": 0.8301,
+    "ppe_yoy__y_60d__krw_regime=KRW_weak": 0.6472,
+    "ppe_yoy__y_60d__flow_regime=flow_neutral": 0.0875,
+    "rnd_ratio__y_5d__uncond": 0.1279,
+    "rnd_ratio__y_5d__macro_regime=Recovery": 0.8296,
+    "rnd_ratio__y_5d__macro_regime=Slowdown": 0.4713,
+    "rnd_ratio__y_5d__krw_regime=KRW_neutral": 0.3833,
+    "rnd_ratio__y_5d__krw_regime=KRW_weak": 0.2089,
+    "rnd_ratio__y_5d__flow_regime=flow_neutral": 0.1,
+    "rnd_ratio__y_20d__uncond": 0.3783,
+    "rnd_ratio__y_20d__macro_regime=Recovery": 0.1639,
+    "rnd_ratio__y_20d__macro_regime=Slowdown": 0.5247,
+    "rnd_ratio__y_20d__krw_regime=KRW_neutral": 0.6257,
+    "rnd_ratio__y_20d__krw_regime=KRW_weak": 0.7096,
+    "rnd_ratio__y_20d__flow_regime=flow_neutral": 0.5742,
+    "rnd_ratio__y_60d__uncond": 0.1529,
+    "rnd_ratio__y_60d__macro_regime=Recovery": 0.0105,
+    "rnd_ratio__y_60d__macro_regime=Slowdown": 0.6817,
+    "rnd_ratio__y_60d__krw_regime=KRW_neutral": 0.0195,
+    "rnd_ratio__y_60d__krw_regime=KRW_weak": 0.6162,
+    "rnd_ratio__y_60d__flow_regime=flow_neutral": 0.7661
+  }
+}

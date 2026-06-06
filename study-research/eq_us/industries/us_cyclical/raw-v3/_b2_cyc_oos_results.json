@@ -1,0 +1,61 @@
+{
+  "meta": {
+    "split": "2022-01-01",
+    "H": 12,
+    "note": "split-sample 견고성(방향지속성). full-sample 부호 旣관측→pristine OOS 아님. reversal 안정성 진단."
+  },
+  "CYC-3": {
+    "spec": "op_prof(고)×asset_growth(저) incr",
+    "pred": 1,
+    "in_sample": {
+      "ic_mean": -0.0382,
+      "n": 84,
+      "n_eff": 41.1,
+      "t_nw": -2.0,
+      "fixed_b_cv": 2.17,
+      "fixed_b_sig": false,
+      "wild_p": 0.0624,
+      "sign": -1
+    },
+    "oos": {
+      "ic_mean": -0.0415,
+      "n": 41,
+      "n_eff": 21.6,
+      "t_nw": -1.95,
+      "fixed_b_cv": 2.36,
+      "fixed_b_sig": false,
+      "wild_p": 0.0835,
+      "sign": -1
+    },
+    "sign_persistent_in_to_oos": true,
+    "flip_sign_pred": -1,
+    "flip_consistent": true
+  },
+  "CYC-4": {
+    "spec": "ep_yield(고)×residual_mom incr",
+    "pred": 1,
+    "in_sample": {
+      "ic_mean": -0.0316,
+      "n": 48,
+      "n_eff": 23.7,
+      "t_nw": -1.21,
+      "fixed_b_cv": 2.31,
+      "fixed_b_sig": false,
+      "wild_p": 0.253,
+      "sign": -1
+    },
+    "oos": {
+      "ic_mean": -0.0663,
+      "n": 41,
+      "n_eff": 17.5,
+      "t_nw": -2.0,
+      "fixed_b_cv": 2.36,
+      "fixed_b_sig": false,
+      "wild_p": 0.0885,
+      "sign": -1
+    },
+    "sign_persistent_in_to_oos": true,
+    "flip_sign_pred": -1,
+    "flip_consistent": true
+  }
+}

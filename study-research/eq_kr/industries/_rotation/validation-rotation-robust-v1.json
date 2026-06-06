@@ -1,0 +1,430 @@
+{
+  "meta": {
+    "purpose": "rotation 후보 robustness (LOY + placebo + non-overlap + N_eff)",
+    "rotation_본체": "산업 고유 신호(rel_mom/산업 momentum). macro 공통(cli_chg/foreign_flow)=시장 timing 대조"
+  },
+  "cross_industry": {
+    "mean_pairwise_corr": 0.502,
+    "N_eff_eigen_entropy": 5.31,
+    "pc1_var_ratio": 0.553,
+    "note": "PC1 지배 = 외국인flow/USDKRW 공통인자. macro 신호는 12산업 거의 동일 = rotation 아닌 시장 timing."
+  },
+  "candidates": {
+    "refining__rel_mom_6": {
+      "type": "산업고유(rotation)",
+      "horizon_m": 3,
+      "rho_full": -0.36,
+      "n": 80,
+      "leave_one_year": {
+        "2019": -0.344,
+        "2020": -0.334,
+        "2021": -0.343,
+        "2022": -0.415,
+        "2023": -0.419,
+        "2024": -0.282,
+        "2025": -0.349,
+        "2026": -0.392
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        -0.419,
+        -0.282
+      ],
+      "placebo_p": 0.0015,
+      "nonoverlap": {
+        "rho_nonoverlap": -0.388,
+        "n_nonoverlap": 27
+      }
+    },
+    "refining__rel_mom_3": {
+      "type": "산업고유(rotation)",
+      "horizon_m": 3,
+      "rho_full": -0.244,
+      "n": 83,
+      "leave_one_year": {
+        "2019": -0.281,
+        "2020": -0.213,
+        "2021": -0.213,
+        "2022": -0.256,
+        "2023": -0.326,
+        "2024": -0.191,
+        "2025": -0.194,
+        "2026": -0.271
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        -0.326,
+        -0.191
+      ],
+      "placebo_p": 0.0235,
+      "nonoverlap": {
+        "rho_nonoverlap": -0.275,
+        "n_nonoverlap": 28
+      }
+    },
+    "consumer__rel_mom_6": {
+      "type": "산업고유(rotation)",
+      "horizon_m": 3,
+      "rho_full": -0.328,
+      "n": 80,
+      "leave_one_year": {
+        "2019": -0.335,
+        "2020": -0.329,
+        "2021": -0.419,
+        "2022": -0.35,
+        "2023": -0.298,
+        "2024": -0.27,
+        "2025": -0.317,
+        "2026": -0.323
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        -0.419,
+        -0.27
+      ],
+      "placebo_p": 0.0035,
+      "nonoverlap": {
+        "rho_nonoverlap": -0.333,
+        "n_nonoverlap": 27
+      }
+    },
+    "chemical__mom_3": {
+      "type": "산업고유(rotation)",
+      "horizon_m": 3,
+      "rho_full": 0.359,
+      "n": 83,
+      "leave_one_year": {
+        "2019": 0.355,
+        "2020": 0.256,
+        "2021": 0.408,
+        "2022": 0.414,
+        "2023": 0.41,
+        "2024": 0.357,
+        "2025": 0.262,
+        "2026": 0.35
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        0.256,
+        0.414
+      ],
+      "placebo_p": 0.0005,
+      "nonoverlap": {
+        "rho_nonoverlap": 0.45,
+        "n_nonoverlap": 28
+      }
+    },
+    "chemical__mom_6": {
+      "type": "산업고유(rotation)",
+      "horizon_m": 3,
+      "rho_full": 0.297,
+      "n": 80,
+      "leave_one_year": {
+        "2019": 0.293,
+        "2020": 0.246,
+        "2021": 0.33,
+        "2022": 0.32,
+        "2023": 0.338,
+        "2024": 0.278,
+        "2025": 0.258,
+        "2026": 0.278
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        0.246,
+        0.338
+      ],
+      "placebo_p": 0.0095,
+      "nonoverlap": {
+        "rho_nonoverlap": 0.406,
+        "n_nonoverlap": 27
+      }
+    },
+    "battery__mom_3": {
+      "type": "산업고유(rotation)",
+      "horizon_m": 3,
+      "rho_full": 0.277,
+      "n": 83,
+      "leave_one_year": {
+        "2019": 0.25,
+        "2020": 0.273,
+        "2021": 0.313,
+        "2022": 0.268,
+        "2023": 0.357,
+        "2024": 0.215,
+        "2025": 0.237,
+        "2026": 0.256
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        0.215,
+        0.357
+      ],
+      "placebo_p": 0.012,
+      "nonoverlap": {
+        "rho_nonoverlap": 0.146,
+        "n_nonoverlap": 28
+      }
+    },
+    "auto__mom_3": {
+      "type": "산업고유(rotation)",
+      "horizon_m": 3,
+      "rho_full": 0.238,
+      "n": 83,
+      "leave_one_year": {
+        "2019": 0.234,
+        "2020": 0.167,
+        "2021": 0.303,
+        "2022": 0.267,
+        "2023": 0.283,
+        "2024": 0.231,
+        "2025": 0.108,
+        "2026": 0.258
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        0.108,
+        0.303
+      ],
+      "placebo_p": 0.0315,
+      "nonoverlap": {
+        "rho_nonoverlap": 0.144,
+        "n_nonoverlap": 28
+      }
+    },
+    "telecom__mom_12_1": {
+      "type": "산업고유(rotation)",
+      "horizon_m": 3,
+      "rho_full": 0.284,
+      "n": 74,
+      "leave_one_year": {
+        "2019": 0.284,
+        "2020": 0.174,
+        "2021": 0.456,
+        "2022": 0.27,
+        "2023": 0.203,
+        "2024": 0.355,
+        "2025": 0.245,
+        "2026": 0.241
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        0.174,
+        0.456
+      ],
+      "placebo_p": 0.021,
+      "nonoverlap": {
+        "rho_nonoverlap": 0.122,
+        "n_nonoverlap": 25
+      }
+    },
+    "steel__mom_3": {
+      "type": "산업고유(rotation)",
+      "horizon_m": 3,
+      "rho_full": 0.211,
+      "n": 83,
+      "leave_one_year": {
+        "2019": 0.136,
+        "2020": 0.203,
+        "2021": 0.185,
+        "2022": 0.289,
+        "2023": 0.216,
+        "2024": 0.205,
+        "2025": 0.207,
+        "2026": 0.204
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        0.136,
+        0.289
+      ],
+      "placebo_p": 0.0635,
+      "nonoverlap": {
+        "rho_nonoverlap": 0.101,
+        "n_nonoverlap": 28
+      }
+    },
+    "financial__cli_chg": {
+      "type": "MACRO공통(시장timing)",
+      "horizon_m": 3,
+      "rho_full": 0.482,
+      "n": 86,
+      "leave_one_year": {
+        "2019": 0.451,
+        "2020": 0.436,
+        "2021": 0.484,
+        "2022": 0.528,
+        "2023": 0.451,
+        "2024": 0.482,
+        "2025": 0.442,
+        "2026": 0.507
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        0.436,
+        0.528
+      ],
+      "placebo_p": 0.0005,
+      "nonoverlap": {
+        "rho_nonoverlap": 0.565,
+        "n_nonoverlap": 29
+      }
+    },
+    "semiconductor__mom_3": {
+      "type": "산업고유(rotation)",
+      "horizon_m": 3,
+      "rho_full": 0.215,
+      "n": 83,
+      "leave_one_year": {
+        "2019": 0.256,
+        "2020": 0.274,
+        "2021": 0.239,
+        "2022": 0.147,
+        "2023": 0.289,
+        "2024": 0.171,
+        "2025": 0.137,
+        "2026": 0.165
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        0.137,
+        0.289
+      ],
+      "placebo_p": 0.048,
+      "nonoverlap": {
+        "rho_nonoverlap": 0.118,
+        "n_nonoverlap": 28
+      }
+    },
+    "consumer__mom_6": {
+      "type": "산업고유(rotation)",
+      "horizon_m": 3,
+      "rho_full": -0.251,
+      "n": 80,
+      "leave_one_year": {
+        "2019": -0.317,
+        "2020": -0.247,
+        "2021": -0.293,
+        "2022": -0.273,
+        "2023": -0.225,
+        "2024": -0.15,
+        "2025": -0.278,
+        "2026": -0.263
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        -0.317,
+        -0.15
+      ],
+      "placebo_p": 0.0215,
+      "nonoverlap": {
+        "rho_nonoverlap": -0.071,
+        "n_nonoverlap": 27
+      }
+    },
+    "telecom__foreign_flow": {
+      "type": "MACRO공통(시장timing)",
+      "horizon_m": 3,
+      "rho_full": -0.243,
+      "n": 86,
+      "leave_one_year": {
+        "2019": -0.318,
+        "2020": -0.225,
+        "2021": -0.276,
+        "2022": -0.224,
+        "2023": -0.225,
+        "2024": -0.226,
+        "2025": -0.246,
+        "2026": -0.19
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        -0.318,
+        -0.19
+      ],
+      "placebo_p": 0.0255,
+      "nonoverlap": {
+        "rho_nonoverlap": -0.102,
+        "n_nonoverlap": 29
+      }
+    },
+    "steel__foreign_flow": {
+      "type": "MACRO공통(시장timing)",
+      "horizon_m": 3,
+      "rho_full": -0.251,
+      "n": 86,
+      "leave_one_year": {
+        "2019": -0.258,
+        "2020": -0.242,
+        "2021": -0.206,
+        "2022": -0.255,
+        "2023": -0.323,
+        "2024": -0.273,
+        "2025": -0.193,
+        "2026": -0.237
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        -0.323,
+        -0.193
+      ],
+      "placebo_p": 0.0215,
+      "nonoverlap": {
+        "rho_nonoverlap": -0.282,
+        "n_nonoverlap": 29
+      }
+    },
+    "telecom__semi_ppi_yoy": {
+      "type": "MACRO공통(시장timing)",
+      "horizon_m": 3,
+      "rho_full": -0.334,
+      "n": 85,
+      "leave_one_year": {
+        "2019": -0.305,
+        "2020": -0.353,
+        "2021": -0.478,
+        "2022": -0.317,
+        "2023": -0.229,
+        "2024": -0.296,
+        "2025": -0.313,
+        "2026": -0.347
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        -0.478,
+        -0.229
+      ],
+      "placebo_p": 0.0025,
+      "nonoverlap": {
+        "rho_nonoverlap": -0.422,
+        "n_nonoverlap": 29
+      }
+    },
+    "aitech__semi_ppi_yoy": {
+      "type": "MACRO공통(시장timing)",
+      "horizon_m": 3,
+      "rho_full": -0.333,
+      "n": 85,
+      "leave_one_year": {
+        "2019": -0.364,
+        "2020": -0.339,
+        "2021": -0.275,
+        "2022": -0.349,
+        "2023": -0.352,
+        "2024": -0.286,
+        "2025": -0.319,
+        "2026": -0.335
+      },
+      "loy_sign_consistent": true,
+      "loy_range": [
+        -0.364,
+        -0.275
+      ],
+      "placebo_p": 0.0015,
+      "nonoverlap": {
+        "rho_nonoverlap": -0.455,
+        "n_nonoverlap": 29
+      }
+    }
+  }
+}

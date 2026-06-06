@@ -1,0 +1,53 @@
+{
+  "source": "yfinance US-listed = 글로벌 cycle proxy (KR 직접 아님 = proxy 한계 박제)",
+  "verified": "source 사전검증(empirical-claim §1.1-ext, history(period=max) 1샘플)",
+  "drivers": {
+    "ai_capex_nvda": "NVDA 데이터센터 GPU = hyperscaler AI capex 직접 proxy",
+    "nasdaq_qqq": "QQQ 글로벌 tech/인터넷 cycle",
+    "rate_10y": "^TNX 10Y = ★성장주 long-duration 핵심 macro driver",
+    "soxx_semi": "SOXX 글로벌 반도체 cycle (AI capex 연동)"
+  },
+  "no_direct": {
+    "game_newrelease": "게임 신작 출시·흥행 = 무료 정형 시계열 부재(각사 IR/앱애니 유료) → momentum proxy 유지(한계 박제)",
+    "ad_revenue": "인터넷 광고매출 yoy = 분기 IR 수동 → momentum proxy",
+    "saas_arr": "SaaS ARR/구독 = 분기 IR 수동 → momentum proxy"
+  },
+  "fetched": {
+    "ai_capex_nvda": {
+      "ticker": "NVDA",
+      "n": 2117,
+      "range": [
+        "2018-01-02",
+        "2026-06-04"
+      ],
+      "last": 218.66
+    },
+    "nasdaq_qqq": {
+      "ticker": "QQQ",
+      "n": 2117,
+      "range": [
+        "2018-01-02",
+        "2026-06-04"
+      ],
+      "last": 740.61
+    },
+    "rate_10y": {
+      "ticker": "^TNX",
+      "n": 2117,
+      "range": [
+        "2018-01-02",
+        "2026-06-04"
+      ],
+      "last": 4.48
+    },
+    "soxx_semi": {
+      "ticker": "SOXX",
+      "n": 2117,
+      "range": [
+        "2018-01-02",
+        "2026-06-04"
+      ],
+      "last": 602.72
+    }
+  }
+}

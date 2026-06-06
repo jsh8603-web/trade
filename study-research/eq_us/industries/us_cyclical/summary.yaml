@@ -1,205 +1,284 @@
-# summary.yaml — us_cyclical sleeve v3 (frame v3 §M exposure card 계약)
-# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge, BY/FDR, LOO/block-boot).
-# ★미국 1단계 = EDGAR/yfinance/FRED 파이프라인 검증 겸함(작동 확인). ★PER○ 방향(한국 auto PER✗ peak-EPS 와 반대 발견, BY 미생존 TENTATIVE).
-# raw 재현: raw-v3/{collect, measure}.py + data/{prices, edgar_fundamentals, macro, universe}.parquet
+# summary.yaml — us_cyclical sleeve v3 (재작업 2026-06-03, sector-neutral z 정식)
+# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge, BY/FDR, LOO/block-boot). sector당 12종 = magnitude 보수.
+# ★재작업 핵심 = (1) S1 신규 신호(EDGAR 12 concept) (2) 자문 R2 4수정(family 3분리/M_eff/eff_N/basket불필요)
+#   (3) ★방법 결함 발견·교정 = universe-demean → sector-neutral z (frame §M.7 계약, BY 생존 0→8 회복).
+# raw 재현: raw-v3/{collect, measure}.py + data/{prices, edgar_fundamentals, macro, universe}.parquet → validation-metrics-v3.json
 
-industry: us_cyclical         # eq_us Tier 1 sleeve (SOXX/XLB/XLI/XLE/XLF)
+industry: us_cyclical         # eq_us Tier 1 sleeve (SOXX/XLB/XLI/XLE/XLF, 60종 = 5 sector × 12)
 asset_scope: [equity.us]
-archetype: cyclical           # archetype.py: 경기민감, ev_ebitda·P/B primary (peak-EPS 경계)
+archetype: cyclical           # peak-EPS trap → peak-EPS-robust value(PBR/EV-EBITDA) primary
 archetype_attestation:
   valid_from: "2015-01-01"    # ★PIT 사전선언 (yfinance 가용 시작)
-  declared_at: "2026-06-04"
-  primary_metric: per         # ★미국 cyclical = PER value 작동(한국 auto PER✗ 와 반대). peak-EPS trap 약(대형주 earnings 안정).
-  secondary: null
+  declared_at: "2026-06-03"
+  primary_metric: pbr         # ★PBR value premium (sector-neutral, BY 생존, CONFIRMED). + EV/EBITDA. PER 약(peak-EPS).
+  secondary: ev_ebitda
   basis: >
-    ★미국 cyclical 발견(잠정) = 한국 auto/반도체(PER✗ peak-EPS / PBR○)와 **반대 방향**: PER value premium 방향(per_z 24M
-    IC -0.119 t=-2.76 block-boot 유의 단 degen, LOO sector 안정적) > PBR 약(비유의). ★BY 미생존 = 약 prior(TENTATIVE).
-    = ★미국 대형 cyclical 은 적자 비율 낮아(3-16%) peak-EPS 왜곡 약 → PER 방향 작동 가능성. archetype.py cyclical "trap=peak-EPS"의 ★시장·시총 의존성 가능성.
+    ★미국 cyclical = peak-EPS-robust value(PBR/EV-EBITDA) sector-neutral cross-sectional 작동 = 한국 auto/반도체
+    (PBR○ PER✗ peak-EPS) **정합**. PBR sector-neutral IC −0.117(12M, t−3.19, BY 생존) / EV-EBITDA −0.110(t−3.39).
+    PER 약(peak-EPS trap, IC≈0). ★핵심 = universe-demean(기존 결함) → sector-neutral z 전환 시 BY 생존 0→8 회복.
 as_of: "2026-05-28"
+
+# ── ★재작업 방법 정정 (자문 R2 4수정 + sector-neutral 결함 교정) ──
+method_corrections:
+  z_standardization: >
+    ★sector-neutral z (frame §M.7 'within-industry peer-relative cross-sectional z') 정식 채택. 기존 measure.py =
+    universe-demean = multi-sector sleeve 에서 계약 위반 버그(sector mixing 신호 희석). 단일산업(한국 7산업)은
+    sector-neutral = universe-demean byte-identical(battery 검증 max abs diff 0.00e+00) = 무회귀.
+  sector_z_mechanism: >
+    ★검증(b): sector-z 분해 — universe-z(pbr 24M −0.077)는 within-sector-z(−0.146 진짜)와 sector-LEVEL-component
+    (+0.157 부호 반대 = sector value trap)이 ★섞인 희석 결과(⛔IC 단순 가산 항등식 아님 — Spearman IC 비선형이라
+    −0.146++0.157 ≠ uni −0.077; 부호 상쇄 직관). within value(싼 종목)=양수익, sector-level value(싼 sector)=음수익 →
+    universe-demean 이 두 반대부호 성분 mixing 으로 희석. sector-neutral 이 sector-level 반대성분 제거 → within value
+    순수 추출. ★G-C hedge: sector-LEVEL trap magnitude 는 n_sector=5(매월 5점) = pbr sector-level t1.36~1.92
+    (비유의~경계)·ev_ebitda 만 강유의(t4.6~5.1) → 방향만 신뢰·magnitude over-claim 금지. frame line 322 =
+    over-neutralize 우려인데 cross-std≈1(분산 보존)로 기각, 단 small-N(sector당 12종) 우려는 hedge 흡수(완전 반박
+    아님). BY 8 = 진짜 신호(G-C 독립 재현 raw_p 0.46→0.0018 PASS).
+  by_family_3way: "family_1 unconditional 예측 IC(BY 검정) / family_2 regime-conditional gated(baa_aaa 사전지정, 별 m) / family_3 driver β attribution(BY 제외)."
+  m_eff: "Li-Ji(2005) eigenvalue, test-statistic(IC 시계열) 상관행렬. raw m=36 → M_eff=20.0(near-dup 정확 포착). family_1 BY threshold(rank1)=0.00137."
+  eff_n_double: "시계열 eff_N≈T/h × 횡단면 N/(1+(N−1)ρ̄). breadth-IR=IC·√(유효breadth×ts_eff_n). 24M overlap eff_N≈4.7 degenerate(primary 강등)."
+  basket: "cyclical = basket화 불필요(60종 cross-sectional 유효, mega_tech 전용)."
 
 # ── 블록1 LENS ──
 lens:
   pricing_principle: >
-    미국 cyclical(SOXX/XLB/XLI/XLE/XLF) = ★PER value premium 방향 약 prior(한국 auto 와 반대, BY 미생존 TENTATIVE). 대형주 earnings 안정
-    → peak-EPS trap 약. vol_60 변동성 프리미엄(고변동성 forward↑ = 고베타 보상). HY OAS regime 강(risk-on/off).
+    미국 cyclical(SOXX/XLB/XLI/XLE/XLF) = ★peak-EPS-robust value(PBR/EV-EBITDA) sector-neutral premium (CONFIRMED).
+    PER 약(peak-EPS trap). vol 변동성 프리미엄 약(sector-neutral 후 비유의). credit(HY OAS/baa_aaa) regime = risk-on/off.
   cycle_reading: >
-    HY OAS regime = cyclical↔defensive rotation 주요 분류기(direction R1, 상대 강). ★단 BAMLH0A0HYM2 = 2023-05~만(37mo)
-    = regime-conditional INSUFFICIENT(eq_us_defensive H3 ERROR 패턴 회피). dollar β = 비유의(Bruno-Shin US 도달 약, R2 정합).
+    credit regime = cyclical↔defensive rotation 분류기(Fama-French 1989 default spread). HY OAS(BAMLH0A0HYM2)=2023-05~
+    37mo INSUFFICIENT → ★Baa-Aaa(FRED, 1919~) proxy 채택(family_2 사전지정 regime). dollar β = Bruno-Shin US 도달 약 caveat.
   estimation_note: >
-    2026-05: universe 60종(5 sector × 12). cross-sectional avgN 60(가격)/35-40(valuation, 적자 제외). ★PER value
-    = primary. derive_weights valuation 중심. ★미국 1단계 = EDGAR/yfinance/FRED 파이프라인 작동 검증 완료.
+    universe 60종(5 sector × 12). ★sector-neutral z(sector당 median 9~12종 = small-n hedge, magnitude 보수·방향 신뢰).
+    cross-sectional avgN 53(pbr)/37(ev_ebitda). ★primary = PBR/EV-EBITDA sector-neutral value.
 
-# ── 블록2 INDICATORS ──
-# ★PER value premium (primary, block-boot 유의 LOO 안정적) + vol 프리미엄.
+# ── 블록2 INDICATORS (★sector-neutral z, family_1 BY 생존) ──
 indicators_passed:
-  - id: cs_per_z_24m
-    layer: 1                  # valuation (EDGAR PIT)
+  - id: cs_pbr_z
+    layer: 1                  # valuation (EDGAR PIT, sector-neutral)
     family: value
-    horizon: 24M_value
-    ic_mean: -0.119           # 저PER value premium 방향 (한국 auto PER✗ 와 반대 = 미국 PER 방향 작동, BY 미생존 약 prior)
-    ic_ci_95: [-0.169, -0.075]  # block-bootstrap. 0 배제(유의).
-    t_nw: -2.76               # p=0.007 (NW 유의)
-    n_effective: 113
-    avg_universe_n: 35.1      # 적자 종목 제외 (PBR 40 대비)
+    horizon: 12M
+    ic_mean: -0.1172          # 저PBR value premium (sector-neutral). 한국 auto/반도체 PBR○ 정합.
+    ic_ci_95: [-0.1846, -0.0437]  # block-bootstrap. 0 배제(유의).
+    t_nw: -3.19               # p=0.0018 (NW 유의)
+    n_effective: 125
+    avg_universe_n: 53.0
     oos_ratio: 1.00           # CPCV OOS hit
-    loo_sector_robust: true   # ★LOO sector 제외 IC [-0.136,-0.066] 전부 음
-    within_period: 0.70
-    source_id: "raw-v3/validation-metrics-v3.json:indicators.per_z__24M_value"
+    within_period: 0.91
+    breadth_ir: -2.75
+    loo_sector_robust: true   # ★LOO 5 sector 제외 IC −0.09~−0.18 전부 음
+    leave_year_stable: true   # ★11 연도 각 제외 IC −0.099~−0.145 안정
+    long_only_net: 0.1003     # ★12M top-quintile long-only net spread +10.0% (16bps 차감)
+    by_survived: true         # ★family_1 BY 생존. 3M/6M/12M/24M + nondegenerate strip 후 3M/6M/12M.
+    source_id: "raw-v3/validation-metrics-v3.json:family_1_indicators.pbr_z__12M"
     notes: |
-      저PER cross-sectional z → 24M forward (EDGAR PIT filed date 이후만). value premium 강(block-boot 0배제,
-      NW 유의 t=-2.76(degen) , CPCV 1.00, LOO sector 안정적). ★per_z 3M 도 t=-2.47 유의(BY 미생존). = ★미국 cyclical PER 방향 약 prior
-      (한국 auto PER✗ peak-EPS 와 반대 — 미국 대형주 earnings 안정 → peak-EPS 약). ★BY 보정 미생존 + 비-degen 유의 3M 1개 = TENTATIVE.
-      ★★[frame §M.12 정정] 24M overlap eff_indep_N = 113/24 ≈ 4.7 = degenerate(한국 2.5보다 나으나 여전히 hedge).
-      → ★primary 증거 = per_z 3M(t=-2.47, eff_N≈45 = n134/3), 24M_value = 보조. ★peak-EPS 메커니즘 = earnings
-      cycle 진폭(흑자도 trap), ⛔시총 인과 금지. 미국 PER○ = ★consistent-with 한국 PER✗(시장·시총 의존, explained-by 아님).
-  - id: cs_vol_60_24m
-    layer: 3
-    family: volatility
-    horizon: 24M_value
-    ic_mean: 0.151            # ★양 = 고변동성 forward↑ (US 변동성/고베타 프리미엄, 저변동성 anomaly와 반대)
-    ic_ci_95: [0.084, 0.215]  # block-boot 0 배제
-    t_nw: 2.29
-    n_effective: 111
-    avg_universe_n: 59.5
-    within_period: 0.80
-    source_id: "raw-v3/validation-metrics-v3.json:indicators.vol_60__24M_value"
-    notes: "고변동성 종목 forward↑ = US large-cap cyclical 고베타 보상(저변동성 anomaly 반대). block-boot 유의. BY 미생존."
+      ★CONFIRMED — PBR value premium (sector-neutral). family_1 BY 생존(M_eff=20.0, raw_p 0.0018). 전 robustness 통과:
+      OOS persist(decay>1 강화) + within 0.91 + LOO-sector(−0.09~−0.18) + leave-year(stable, ex −0.099~−0.145) + long-only net +10.0%.
+      ★sector-neutral mechanism: within-sector value=양수익(−0.117), sector-level value=음(+0.140 trap, ★n_sector=5 hedge: pbr t1.36~1.92 비유의~경계·방향만) → universe-demean 희석.
+      = ★한국 auto/반도체(PBR○ PER✗ peak-EPS) 정합. small-n hedge(sector당 12종, magnitude 보수).
+  - id: cs_ev_ebitda
+    layer: 1                  # valuation (EDGAR PIT: EV=mktcap+debt−cash / EBITDA=OpIncome+D&A, sector-neutral)
+    family: value
+    horizon: 12M
+    ic_mean: -0.1095          # 저EV/EBITDA value premium (peak-EPS-robust, sales 기반 EBITDA)
+    ic_ci_95: [-0.1793, -0.0517]
+    t_nw: -3.39               # p=0.0009 (NW 유의)
+    n_effective: 125
+    avg_universe_n: 37.2      # financials 제외 (EV/EBITDA 은행 부적합 개념차)
+    oos_ratio: 1.00
+    within_period: 0.91
+    breadth_ir: -2.15
+    leave_year_stable: true   # 11 연도 각 제외 IC −0.090~−0.132
+    long_only_net: 0.0836     # 12M long-only net +8.4%
+    by_survived: true         # ★family_1 BY 생존 (3M/6M/12M/24M + nondegenerate strip 후 3M/6M/12M)
+    source_id: "raw-v3/validation-metrics-v3.json:family_1_indicators.ev_ebitda__12M"
+    notes: |
+      ★CONFIRMED — EV/EBITDA value premium (peak-EPS-robust, sector-neutral). family_1 BY 생존. OOS persist + within 0.91 + leave-year stable + long-only net +8.4%.
+      ★financials sub-sector +0.060(양) = EV/EBITDA 은행 부적합 개념차(은행 EBITDA 무의미) = cancel 아닌 sector-conditional 제외(A-4 게이트). 나머지 4 sector 음 강(energy −0.355).
+      small-n hedge(median 가용 37종, financials 제외 후).
 
 # ── 블록3 RELATIONSHIPS ──
 relationships_passed:
-  - {node_a: cs_per_z_24m, node_b: us_cyclical_fwd_24m, lag_months: 0, corr: -0.119,
-     corr_ci_95: [-0.169, -0.075], conditioning_set: [], n: 113,
-     source_id: "raw-v3/validation-metrics-v3.json:indicators.per_z__24M_value",
-     note: "★PER value premium block-boot 유의, LOO sector 안정적. partial-corr = supervisor RegimeGlasso."}
+  - {node_a: cs_pbr_z, node_b: us_cyclical_fwd_12m, lag_months: 0, corr: -0.1172,
+     corr_ci_95: [-0.1846, -0.0437], conditioning_set: [sector_neutral], n: 125,
+     source_id: "raw-v3/validation-metrics-v3.json:family_1_indicators.pbr_z__12M",
+     note: "★PBR value premium sector-neutral, BY 생존·전 robustness. partial-corr = supervisor RegimeGlasso."}
+  - {node_a: cs_ev_ebitda, node_b: us_cyclical_fwd_12m, lag_months: 0, corr: -0.1095,
+     corr_ci_95: [-0.1793, -0.0517], conditioning_set: [sector_neutral, ex_financials], n: 125,
+     source_id: "raw-v3/validation-metrics-v3.json:family_1_indicators.ev_ebitda__12M",
+     note: "EV/EBITDA value premium sector-neutral, BY 생존. financials 제외(개념차)."}
 
 # ── 블록4 WEIGHT_RULES ──
 weight_rule_candidates:
-  - indicator_id: cs_per_z_24m
-    base_weight_range: [0.05, 0.12]
+  - indicator_id: cs_pbr_z
+    base_weight_range: [0.08, 0.15]
     modulate_by: [archetype, regime, cycle_phase]
-    direction: "저PER z 상위(싼) overweight (value). ★미국 cyclical = PER 방향 약 prior(한국 auto 와 반대, BY 미생존). long-only-implementable."
-    granularity: cross_sectional
-    gate_status: {n: pass, se: pass, power: pass, fdr: marginal, oos: pass}  # block-boot 유의 / BY borderline
-    source_ids: ["raw-v3/validation-metrics-v3.json:indicators.per_z__24M_value"]
-    hedge_note: "★PER value premium 방향 강(block-boot 유의, LOO 안정적, within 0.70) but BY 미생존(borderline). ★비-degenerate horizon 중 유의 = 3M 1개(BY 미생존), 6M/12M 비유의 → TENTATIVE 격하(§M.12). FF5+Mom+QMJ+BAB neutralize = supervisor 단계."
+    direction: "저PBR z(싼) overweight (value). ★sector-neutral within-sector(sector-level 반대성분 제거). long-only-implementable(net +10%)."
+    granularity: cross_sectional_sector_neutral
+    gate_status: {n: pass, se: pass, power: pass, fdr: pass, oos: pass}  # ★BY 생존 (fdr pass)
+    source_ids: ["raw-v3/validation-metrics-v3.json:family_1_indicators.pbr_z__12M"]
+    hedge_note: "★PBR value premium CONFIRMED(BY 생존+전 robustness). ★small-n hedge: sector당 12종 = magnitude 점추정 보수(EB/James-Stein 권고), 방향 신뢰. FF5+Mom+QMJ+BAB neutralize = supervisor 단계."
+  - indicator_id: cs_ev_ebitda
+    base_weight_range: [0.05, 0.10]
+    modulate_by: [archetype, regime]
+    direction: "저EV/EBITDA z overweight (peak-EPS-robust value). sector-neutral, financials 제외."
+    granularity: cross_sectional_sector_neutral
+    gate_status: {n: pass, se: pass, power: pass, fdr: pass, oos: pass}
+    source_ids: ["raw-v3/validation-metrics-v3.json:family_1_indicators.ev_ebitda__12M"]
+    hedge_note: "EV/EBITDA CONFIRMED(BY 생존). financials 개념차 제외. small-n hedge(median 37종). PBR 과 상관(M_eff 반영 = near-dup 일부)."
 
 # ── 블록5 CONFIDENCE_HOOKS — ★affects_indicator 필수 ──
 confidence_hooks:
-  - hypothesis_id: us_cyclical_per_value_premium
-    affects_indicator: cs_per_z_24m   # ★필수
-    affects_edge: [cs_per_z_24m, us_cyclical_fwd_24m]
-    confirm_signal: "live 저PER z 상위 종목 forward rank IC < 0 유지 (value, rolling 24M)"
-    reject_signal: "PER value premium IC e-CUSUM 부호 반전/소멸 (peak-EPS 전환)"
+  - hypothesis_id: us_cyclical_pbr_value_premium
+    affects_indicator: cs_pbr_z   # ★필수
+    affects_edge: [cs_pbr_z, us_cyclical_fwd_12m]
+    confirm_signal: "live 저PBR sector-neutral z 상위 종목 forward rank IC < 0 유지 (value, rolling 12M)"
+    reject_signal: "PBR value premium IC e-CUSUM 부호 반전/소멸 (sector-level trap 흡수 또는 peak-EPS 전환)"
     emit_where: "panel-score-IC 축"
     accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
-    feeds_weight: "derive_weights 재적합 → PER base_weight 변동"
+    feeds_weight: "derive_weights 재적합 → PBR base_weight 변동"
     action_threshold: "e-value > 20 → retract / 회복 = score_ic_recovery_eprocess"
+  - hypothesis_id: us_cyclical_ev_ebitda_value
+    affects_indicator: cs_ev_ebitda
+    affects_edge: [cs_ev_ebitda, us_cyclical_fwd_12m]
+    confirm_signal: "live 저EV/EBITDA sector-neutral z(ex-financials) forward rank IC < 0 유지"
+    reject_signal: "EV/EBITDA IC e-CUSUM 부호 반전/소멸"
+    emit_where: "panel-score-IC 축"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "derive_weights → EV/EBITDA base_weight"
+    action_threshold: "e-value > 20 → retract"
 
 # ── 블록6 COLLECTOR_PLAN ──
 collector_plan_industry:
-  - missing: "★survivorship bias 보정 (현 ETF holdings = 생존 종목, 상폐/구성변경 누락)"
+  - missing: "★survivorship bias 보정 (현 ETF holdings = 생존 종목, 상폐/구성변경 누락: GE 분할/에너지 셰일 파산)"
     source: "S&P500 historical changes + 상폐 ticker / Sharadar Core US($50/월). yfinance 단독 = 생존편향"
-    priority: high   # ★미국 universe = 현 holdings 큐레이션 = 생존편향 강
-  - missing: "★HY OAS 장기 시계열 (현 BAMLH0A0HYM2 = 2023-05~만 = regime INSUFFICIENT)"
-    source: "ICE BofA HY OAS = FRED 2023~만. 장기 = Bloomberg/Moody's Baa-Aaa spread proxy"
-    priority: high   # ★H3 HY OAS rotation regime 핵심 제약 (eq_us_defensive H3 ERROR 패턴)
-  - missing: "EV/EBITDA (cyclical 보조 metric) + IBES Earnings Revision Breadth(ERB, direction R1 alpha 1순위)"
-    source: "EDGAR(EBITDA = 영업이익+감가상각) + IBES(유료) OR Refinitiv"
-    priority: medium
+    priority: high
+  - missing: "★ERB (Earnings Revision Breadth, direction R1 alpha 1순위) — peak-EPS-robust forward expectation"
+    source: "IBES/FactSet/Refinitiv(유료). ★free API 부재(EDGAR=actuals only). Yahoo/SeekingAlpha scraping(fragile)"
+    priority: high   # ★cyclical turning point 포착 핵심, 유료 게이트로 이연
+  - missing: "★HY OAS 장기 시계열 (현 BAMLH0A0HYM2 = 2023-05~ 37mo). Baa-Aaa proxy 채택했으나 HY 직접 정합 검증 미완"
+    source: "ICE BofA HY OAS = FRED 2023~만. ★Baa-Aaa(BAA−AAA, 1919~) proxy 사용 중(family_2). HY 직접 가용 시 정합 재검"
+    priority: medium  # ★Baa-Aaa proxy 로 부분 해소
+  - missing: "accruals(Sloan) — NOA 분해(current/noncurrent liab·debt 세분) + capex cycle"
+    source: "EDGAR 추가 concept(LiabilitiesCurrent/NoncurrentLiabilities 등)"
+    priority: low
 
 # ── cross (§M.3 — sleeve=보고만) ──
 cross:
   common_factor_exposure:
-    - {factor: hy_oas, beta: -0.0926, beta_ci_95: [-0.111, -0.075], contemporaneous: true,
-       source_id: "raw-v3/validation-metrics-v3.json:dollar_beta_H4.hy_oas",
-       note: "★HY OAS 확대 = cyclical 약세(risk-off), β=-0.093 t=-10.04 강유의. ★단 n=36 month(2023~ 한정) = hedge(CI 넓음, 추가 검증 필요). direction R1 'HY OAS 주요 분류기(상대 강)' 정합."}
-    - {factor: rate, beta: -0.0388, beta_ci_95: [-0.065, -0.012], contemporaneous: true, note: "rate↑ = cyclical 약 음(t=-2.86 유의). duration 효과."}
-    - {factor: vix, beta: -0.0027, beta_ci_95: [-0.005, -0.001], contemporaneous: true, note: "VIX↑ = 약세(t=-2.45 유의, risk-off)."}
-    - {factor: dollar, beta: -0.2279, beta_ci_95: [-0.664, 0.208], contemporaneous: true,
-       note: "★dollar β 비유의(t=-1.02). = direction R2 'Bruno-Shin EM 메커니즘 US cross-sectional 도달 약' 정합. H4 = 약."}
+    - {factor: hy_oas, beta: -0.1202, beta_ci_95: [-0.1459, -0.0946], contemporaneous: true, n: 36,
+       source_id: "raw-v3/validation-metrics-v3.json:family_3_driver_beta.hy_oas",
+       note: "★HY OAS 확대 = cyclical 약세(risk-off), β=−0.120 t=−9.18 강. ★단 n=36mo(2023~) = hedge(CI 넓음). family_3 attribution(BY 제외)."}
+    - {factor: baa_aaa, beta: -0.1130, beta_ci_95: [-0.2652, 0.0392], contemporaneous: true, n: 135,
+       note: "★Baa-Aaa 장기 proxy β=−0.113 t=−1.46 비유의(135mo, 단일회귀 contemporaneous). HY OAS(36mo) 보다 약 = 장기 표본서 contemporaneous credit β 희석. family_2 regime split 용으로는 유효."}
+    - {factor: vix, beta: -0.0080, beta_ci_95: [-0.0096, -0.0063], contemporaneous: true, n: 136, note: "VIX↑ = 약세(t=−9.71 강, risk-off)."}
+    - {factor: dollar, beta: -1.0430, beta_ci_95: [-1.591, -0.495], contemporaneous: true, n: 136,
+       note: "★dollar β=−1.04 t=−3.73(단독 회귀 유의 — 단 R2 Bruno-Shin EM 메커니즘 US cross-sectional 도달 약 caveat, multivariate 시 약화 가능). attribution."}
+    - {factor: rate, beta: 0.0029, beta_ci_95: [-0.0657, 0.0715], contemporaneous: true, n: 136, note: "rate β 비유의(t=0.08, 단독 회귀)."}
   directional_spillover: []   # DY = supervisor 통합
   structural_linkage:
     - supplier_or_customer: null
-      verdict: "AI capex→Mag7 EPS supply-chain momentum = us_mega_tech(T0) sleeve 영역. us_cyclical 은 macro(HY OAS/rate) regime 의존이 dominant. skip(한국 패턴 동일)."
+      verdict: "AI capex→Mag7 EPS supply-chain = us_mega_tech(T0) 영역. us_cyclical = macro(credit/dollar) regime + sector-neutral value dominant. skip."
   # ⛔ sector-rotation clock = myth.
 
-# ── ★valuation 횡단면 (§M.7 — EDGAR PIT, ★PER 방향 약 prior 발견, BY 미생존 TENTATIVE) ──
+# ── ★valuation 횡단면 (§M.7 — EDGAR PIT, sector-neutral, PBR/EV-EBITDA CONFIRMED) ──
 valuation_cross_sectional:
-  data_source: "raw-v3/validation-metrics-v3.json (EDGAR 27637 rows + yfinance 가격)"
-  mechanism_works: true   # ★EDGAR PIT 재구성 작동(파이프라인 검증). PBR cov 5607 / PER cov 4935 cells.
-  pipeline_validation: "★미국 1단계 = EDGAR(companyconcept XBRL, filed date PIT) + yfinance + FRED 파이프라인 작동(산출 정상). 60종 EDGAR equity/net_income/shares 수집(filed date = lookahead 회피)."
-  pit_note: "EDGAR filing acceptance date(filed) 이후만 적용 = lookahead 회피(Large accel 10-K 60d/10-Q 40d 자동 반영)."
+  data_source: "raw-v3/validation-metrics-v3.json (EDGAR 12 concept 94650 rows + yfinance 가격 + FRED 거시)"
+  mechanism_works: true   # ★EDGAR PIT 재구성 작동 + sector-neutral 정식. shares 60/60(dei fallback).
+  z_method: "★sector-neutral (frame §M.7). 단일산업=universe-demean byte-identical."
+  pipeline_validation: "★EDGAR(companyconcept XBRL 12 concept, filed date PIT) + yfinance + FRED(HY/baa_aaa/rate/vix) + DXY. 60종 전 concept(Assets 60/60, shares dei fallback 60/60)."
+  pit_note: "EDGAR filing acceptance date(filed) 이후만 적용 = lookahead 회피(Large accel 10-K 60d/10-Q 40d 자동)."
   cyclical_finding: >
-    ★미국 cyclical = PER value premium 방향 약 prior(한국 auto/반도체 PER✗ peak-EPS 와 ★반대, BY 미생존 TENTATIVE). 미국 대형 cyclical 적자
-    비율 낮아(financials 2.9%/industrials 6.9%/materials 8.7%/semi 9.7%/energy 16.4%) peak-EPS 왜곡 약 → PER 방향 작동 가능성.
-    = archetype.py cyclical "trap=peak-EPS"의 ★시장·시총 의존성(미국 대형 ≠ 한국 중형). PBR 은 약(비유의).
+    ★미국 cyclical = peak-EPS-robust value(PBR/EV-EBITDA) sector-neutral CONFIRMED(BY 생존+전 robustness) = 한국 auto/반도체
+    (PBR○ PER✗ peak-EPS) **정합**. PER 약(peak-EPS trap, sector-neutral 후에도 IC≈−0.02~−0.04). ★sector-neutral mechanism =
+    within-sector value 강 + sector-level value trap 상쇄 제거(검증 b). 적자비율 낮아(2.9~16.4%) peak-EPS 약화 → 흑자도 trap.
   indicators:
-    - id: cs_per_z
-      signal: "PER cross-sectional z (저PER=value, ★미국 cyclical 작동)"
-      horizon_results:
-        - {horizon: 3M, ic: -0.062, t_nw: -2.47, p: 0.015, n: 134, within: 0.75}
-        - {horizon: 6M, ic: -0.066, t_nw: -1.79, p: 0.076, n: 131, within: 0.73}
-        - {horizon: 12M, ic: -0.084, t_nw: -1.69, p: 0.094, n: 125, within: 0.64}
-        - {horizon: 24M_value, ic: -0.119, t_nw: -2.76, p: 0.007, n: 113, ci_block: [-0.169, -0.075], within: 0.70, loo_sector_robust: true}
-      avg_universe_n: 35.1
-      verdict: "★PER value premium 방향(block-boot 유의, NW 유의 3M/24M, LOO sector 안정적). = 미국 cyclical PER 방향(한국 auto 와 반대). ★단 BY 생존 0 + 비-degen 중 유의=3M 1개(6M/12M 비유의) = TENTATIVE(§M.12)."
     - id: cs_pbr_z
-      signal: "PBR cross-sectional z"
-      horizon_24m: {ic: -0.100, t_nw: -1.21, ci_block: [-0.168, -0.024], n: 113, avgN: 40, verdict: "value 방향(음), block-boot 0배제 but NW 비유의"}
-      verdict: "TENTATIVE — 저PBR value 방향이나 NW 비유의(PER 보다 약). = 미국 cyclical 은 PER > PBR."
-  multiple_testing: "raw m=20 BY factor 3.598. raw_p_min=0.0068(per_z 24M, ★degen) > BY rank-1 임계 (1/20)×0.05/3.598≈0.000695 = 미달, survivors_BY=[]. ★BY 생존 0. 단 block-boot 유의 + LOO 안정적 = value premium 방향 약 prior(비유의, BY 미생존 + 비-degen 유의 3M 1개 → TENTATIVE)."
+      signal: "PBR sector-neutral z (저PBR=value)"
+      horizon_results:
+        - {horizon: 3M, ic: -0.072, t_nw: -3.65, p: 0.0004, n: 134, ci_block: [-0.109, -0.035], within: 0.92, by_survived: true}
+        - {horizon: 6M, ic: -0.092, t_nw: -3.18, p: 0.0018, n: 131, ci_block: [-0.146, -0.035], within: 0.73, by_survived: true}
+        - {horizon: 12M, ic: -0.117, t_nw: -3.19, p: 0.0018, n: 125, ci_block: [-0.185, -0.044], within: 0.91, by_survived: true}
+        - {horizon: 24M_value, ic: -0.146, t_nw: -3.57, p: 0.0005, n: 113, ci_block: [-0.213, -0.042], within: 0.80, by_survived: true, note: "eff_N≈4.7 degenerate, 보조"}
+      avg_universe_n: 53.0
+      verdict: "★CONFIRMED — PBR value premium (sector-neutral, 전 horizon BY 생존, nondegenerate strip 후 3M/6M/12M). LOO+leave-year+long-only net 통과."
+    - id: cs_ev_ebitda
+      signal: "EV/EBITDA sector-neutral z (peak-EPS-robust value, ex-financials)"
+      horizon_results:
+        - {horizon: 3M, ic: -0.062, t_nw: -2.79, p: 0.0061, n: 134, ci_block: [-0.107, -0.023], within: 0.75, by_survived: true}
+        - {horizon: 6M, ic: -0.090, t_nw: -3.38, p: 0.0010, n: 131, ci_block: [-0.145, -0.045], within: 0.82, by_survived: true}
+        - {horizon: 12M, ic: -0.110, t_nw: -3.39, p: 0.0009, n: 125, ci_block: [-0.179, -0.052], within: 0.91, by_survived: true}
+        - {horizon: 24M_value, ic: -0.117, t_nw: -5.09, p: 0.0000, n: 113, ci_block: [-0.158, -0.063], within: 0.90, by_survived: true, note: "degenerate eff_N≈4.7"}
+      avg_universe_n: 37.2
+      verdict: "★CONFIRMED — EV/EBITDA value premium (sector-neutral, BY 생존). financials 개념차 제외."
+    - id: cs_per_z
+      signal: "PER sector-neutral z (peak-EPS trap = 약)"
+      horizon_24m: {ic: -0.040, t_nw: -1.69, p: 0.094, n: 113, ci_block: [-0.089, -0.002], avgN: 47, verdict: "TENTATIVE — 약 음. 3M t−2.14(BY 미생존). peak-EPS trap."}
+      verdict: "★TENTATIVE — PER value 약(sector-neutral 후에도). 한국 auto/반도체 PER✗(peak-EPS) 정합 = 미국도 PER < PBR."
+    - id: cs_sales_yield
+      signal: "Sales/Price sector-neutral z (peak-EPS-robust, 양)"
+      horizon_24m: {ic: 0.083, t_nw: 2.02, p: 0.046, n: 113, ci_block: [-0.004, 0.172], avgN: 45, verdict: "TENTATIVE — 24M 양 but CI 0 포함 경계 + OOS persist=False(시간 불안정). sub-sector 전5 양 일관."}
+      verdict: "★TENTATIVE DIRECTIONAL — Sales/Price 양(peak-EPS-robust value). sub-sector 부호 일관(+0.08~+0.27) but unconditional 약·OOS 불안정."
+  multiple_testing: >
+    ★family_1 BY (M_eff=20.0, Li-Ji eigenvalue test-stat 상관행렬, raw m=36). threshold(rank1)=0.00137. ★survivors_BY=8
+    [pbr_z 3M/6M/12M/24M + ev_ebitda 3M/6M/12M/24M]. nondegenerate(24M strip) survivors=6 [pbr 3M/6M/12M + ev_ebitda 3M/6M/12M].
+    ★universe-demean(기존 결함) BY 생존 0 → sector-neutral BY 생존 8 회복(방법 결함 교정, 검증 b mechanism 입증).
   verdict: >
-    ★미국 cyclical = PER value premium 방향 약 prior(EDGAR PIT, block-boot 유의, LOO sector 안정적, BY 미생존 → TENTATIVE). = ★한국 auto/반도체
-    (PER✗ peak-EPS / PBR○)와 **반대 패턴** = peak-EPS trap 의 시장·시총 의존성 발견(미국 대형 cyclical earnings 안정).
-    + vol 프리미엄(고베타 보상) + HY OAS β 강(단 2023~ 한정 hedge). ★미국 1단계 데이터 파이프라인(EDGAR/yfinance/FRED) 작동 검증 완료.
+    ★미국 cyclical = peak-EPS-robust value(PBR/EV-EBITDA) sector-neutral CONFIRMED(BY 8 생존, 전 robustness). = ★한국 auto/반도체
+    (PBR○ PER✗ peak-EPS) 정합 = peak-EPS trap 의 valuation metric 적합도(PBR/EV-EBITDA○, PER✗) 시장 횡단 재현.
+    PER/sales_yield TENTATIVE, asset_growth REJECTED(decay). ★sector-neutral mechanism = within value 강 + sector-level trap 상쇄 제거.
 
 # ── robustness_checks ──
 robustness_checks:
-  - indicator_id: cs_per_z_24m
-    leave_episode: null
-    within_period: "0.70 (24M) / 0.75 (3M)"
-    loo_sector: "★안정적 — 5 sector 제외 IC [-0.136, -0.066] 전부 음"
-    partial_corr_ratio: null
-    net_sharpe_ratio: null
-    forward_vs_contemp: "forward present (PER value premium)"
+  - indicator_id: cs_pbr_z
+    leave_episode: "★leave-year 11개 연도 각 제외 IC −0.099~−0.145 안정(단일 episode 의존 X)"
+    within_period: "0.91 (12M) / 0.92 (3M)"
+    loo_sector: "★안정적 — 5 sector 제외 IC −0.09~−0.18 전부 음"
+    long_only_net: "12M top-quintile long-only spread net +10.0% (gross +10.2% − 16bps), 6M net +4.4%"
+    forward_vs_contemp: "forward present (PBR value premium)"
     family_neutralized_ic: null   # FF5+Mom+QMJ+BAB = supervisor 단계
-    eff_n_tier: Validated         # n=113 months, avgN 35
-  - indicator_id: cs_vol_60_24m
-    within_period: "0.80"
-    eff_n_tier: Validated         # n=111, avgN 60
-    forward_vs_contemp: "forward present (변동성 프리미엄)"
+    eff_n_tier: Validated         # n=125 months, sector당 12종(small-n hedge)
+    sector_neutral_mechanism: "★검증 b: within-sector −0.117 vs sector-level +0.140(부호반대, ★n_sector=5 = pbr t1.36~1.92 비유의~경계·ev만 강유의 → 방향만 신뢰, magnitude over-claim 금지) = universe-demean 희석 → sector-neutral 순수 추출(IC 가산 항등식 아님, 부호 상쇄 직관)"
+  - indicator_id: cs_ev_ebitda
+    leave_episode: "leave-year 11개 −0.090~−0.132 안정"
+    within_period: "0.91 (12M)"
+    long_only_net: "12M net +8.4%"
+    forward_vs_contemp: "forward present"
+    eff_n_tier: Validated         # n=125, median 37종, financials 제외
+    note: "financials 개념차 제외(EV/EBITDA 은행 부적합). sector-level component +0.331(부호반대 강)."
 
 # ── horizon_verdict ──
 horizon_verdict:
-  best_horizon: "★[frame §M.12 primary 재배치] 3M (PER, t-2.47 p0.015, BY 미생존) = primary 근거(약 prior). 6M/12M 비유의. 24M_value = ★보조(eff_N≈4.7 degenerate, 방향만). vol 24M 도 degen."
-  forward_alpha_present: true   # ★PER value + vol 프리미엄 present
+  best_horizon: "★PBR/EV-EBITDA sector-neutral 전 horizon(3M/6M/12M) BY 생존. 12M = primary(within 0.91, eff_N 10.4). 24M = degenerate(eff_N≈4.7) 보조."
+  forward_alpha_present: true   # ★PBR/EV-EBITDA value premium present (sector-neutral)
   note: >
-    ★PER value premium + vol 프리미엄 forward present (block-boot 유의, LOO 안정적). momentum 약(mom_6 3M 유의이나 BY 미생존).
-    = 미국 cyclical PER 방향 약 prior(한국 auto 와 반대, BY 미생존 TENTATIVE). HY OAS regime = 2023~ 한정 INSUFFICIENT.
+    ★PBR/EV-EBITDA value premium forward present(sector-neutral, BY 생존, 전 robustness). momentum/vol = sector-neutral 후 약(universe-demean
+    의 sector-level 인위 신호 소거). asset_growth REJECTED(decay). PER/sales_yield TENTATIVE. credit regime(Baa-Aaa) = family_2.
 
 # ── Hard-fail 4 ──
 hard_fail_self_check:
-  B_real_data: {status: PASS, note: "합성 0%. yfinance 60종 + EDGAR XBRL 27637 rows(filed date PIT) + FRED CSV(HY OAS/rate/vix) + DXY. raw-v3/*.py 재현."}
-  C_traceability: {status: PASS, note: "yaml 수치 = validation-metrics-v3.json key 매핑. per_z 24M IC -0.119 / hy_oas β -0.093 / LOO raw 재현."}
+  B_real_data: {status: PASS, note: "합성 0%. yfinance 60종 + EDGAR XBRL 12 concept 94650 rows(filed PIT, dei fallback) + FRED(HY/baa_aaa/rate/vix) + DXY. raw-v3/*.py 재현."}
+  C_traceability: {status: PASS, note: "yaml 수치 = validation-metrics-v3.json key 매핑. pbr 12M IC −0.117 / ev_ebitda −0.110 / verify_b sector_z_decomposition / src_concept 박제."}
   D_pit:
     status: PASS
-    note: "가격 forward-shift safe. ★valuation = EDGAR filing acceptance date(filed) 이후만 적용 = lookahead 회피(Large accel 60d/40d 자동). 거시 = FRED."
+    note: "가격 forward-shift safe. ★valuation = EDGAR filing acceptance date(filed) 이후만 = lookahead 회피. 거시 = FRED. asset_growth = end 기준 YoY + filed PIT."
   I_survivor_bias:
     status: PARTIAL
-    note: "★universe = 현 ETF holdings 큐레이션(생존 종목). 상폐/구성변경(GE 분할/에너지 셰일 파산 등) 누락 = 생존편향 강. yfinance 단독 = 상폐 ticker 누락. Sharadar/S&P historical = collector_plan high."
+    note: "★universe = 현 ETF holdings 큐레이션(생존 종목). 상폐/구성변경(GE 분할/셰일 파산) 누락 = 생존편향. yfinance 단독 = 상폐 ticker 누락. Sharadar/S&P historical = collector_plan high."
 
-# ── verdict (small-n rule) ── ★미국 cyclical = PER value(한국 반대)
-verdict_label: TENTATIVE   # ★[frame §M.12 + SR #2] PER value premium block-boot 유의·LOO 안정적이나 BY 생존 0 + 24M degenerate strip 후 유의 horizon=3M 1개(6M/12M 비유의) = ghost-finding 방지 PARTIAL→TENTATIVE 강등. (재측정 0, 기존 BY=0 수치 근거 라벨 정정)
+# ── verdict (small-n rule) ── ★미국 cyclical = peak-EPS-robust value(한국 정합)
+verdict_label: PARTIAL_CONFIRMED   # ★PBR/EV-EBITDA 개별 = CONFIRMED(BY 생존+전 robustness) but sector당 12종 small-n + survivorship PARTIAL → sleeve 종합 PARTIAL_CONFIRMED
 verdict_detail:
-  cs_per_z_24m: "★TENTATIVE DIRECTIONAL (미국 cyclical 핵심, ★PARTIAL→TENTATIVE 강등) — PER value premium 방향 약 prior(IC -0.119 t=-2.76 block-boot 유의, LOO sector 안정적, within 0.70). ★단 24M = eff_N≈4.7 degenerate. 비-degen 재독: 3M t-2.47 p0.015(BY 미생존) / 6M p0.076 비유의 / 12M p0.094 비유의 = BY 생존 0 + 유의 horizon 3M 1개 → §M.12 + SR #2 ghost-finding 방지 격하. ★한국 auto(PER✗ peak-EPS)와 부호 반대 = peak-EPS 시장·시총 의존성(consistent-with, ⛔explained-by 아님). ★전이 불가 특이점(SR #3) = 별도 판정."
-  cs_vol_60_24m: "vol 프리미엄(IC +0.151, 고베타 보상). block-boot 유의, BY 미생존."
-  cs_pbr_z: "TENTATIVE (PBR value 방향, NW 비유의. PER < PBR — 미국 cyclical PER 우세)"
-  momentum: "약 (mom_6 3M t=2.40 유의이나 BY 미생존)"
-  common_factor: "★hy_oas β=-0.093 t=-10(강유의, 2023~ 한정 hedge) / rate·vix 유의 / ★dollar 비유의(t=-1.02, Bruno-Shin US 도달 약 = direction R2 정합)"
+  cs_pbr_z: "★CONFIRMED — PBR value premium(sector-neutral, IC −0.117 t−3.19 BY 생존, OOS+within 0.91+LOO+leave-year+long-only net +10%). 한국 auto/반도체 PBR○ 정합. small-n hedge(sector당 12종 magnitude 보수)."
+  cs_ev_ebitda: "★CONFIRMED — EV/EBITDA value(sector-neutral, IC −0.110 t−3.39 BY 생존). financials 개념차 제외."
+  cs_per_z: "TENTATIVE — PER 약(peak-EPS trap, sector-neutral 후에도 약). 한국 PER✗ 정합 = PER < PBR."
+  cs_sales_yield: "TENTATIVE DIRECTIONAL — Sales/Price 양(peak-EPS-robust) but unconditional 약·OOS 불안정. sub-sector 전5 양 일관."
+  asset_growth: "★REJECTED — unconditional/sector-neutral 둘 다 무신호 + OOS 부호반전(decay) = Cooper-Gulen-Schill 2015~ crowding/decay 확정(문헌·자문 예측대로), cyclical 미작동."
+  momentum: "약 — sector-neutral 후 비유의(universe-demean 의 sector-level 인위 신호 소거)."
+  vol: "약 — sector-neutral 후 vol_60 3M t1.53 비유의(기존 universe-demean t2.29는 sector mixing artifact)."
+  common_factor: "★hy_oas β=−0.120 t−9.18(36mo hedge) / vix −9.71 / dollar −3.73(단독, Bruno-Shin caveat) / baa_aaa −1.46 비유의(135mo) / rate 비유의. family_3 attribution(BY 제외)."
 verdict_note: >
-  ★미국 1단계 = EDGAR/yfinance/FRED 파이프라인 작동 검증 완료(미국 sleeve batch 진입 가능). ★핵심 발견(잠정) = 미국
-  cyclical PER value premium 방향 약 prior(block-boot 유의, LOO 안정적, ★BY 생존 0 + 24M degenerate strip 후 유의 3M 1개 = TENTATIVE)
-  = ★한국 auto/반도체(PER✗ peak-EPS)와 **부호 반대** = peak-EPS trap 의 시장·시총 의존성 가능성(미국 대형 cyclical earnings 안정, 적자 3-16%).
-  ★[SR #3] 한국과 부호 반대 = cross-market 전이 불가 특이점 = 별도 판정(한국 자문 결론으로 덮지 않음). dollar β 비유의(R2 Bruno-Shin 정합).
-  HY OAS β 강(risk-on/off 분류기)이나 2023~ 한정 hedge. = §M 양식이 미국에서도 작동 + archetype metric 적합도의
-  시장 의존성 가능성. supervisor 가설("한국 auto PER✗ 재현")은 ★데이터로 반증(미국 PER 방향○, 단 BY 미생존 = 약 prior) = 양식의 정직성 지지.
+  ★재작업 결론 = 미국 cyclical peak-EPS-robust value(PBR/EV-EBITDA) sector-neutral CONFIRMED(BY 8 생존, 전 robustness 통과)
+  = ★한국 auto/반도체(PBR○ PER✗ peak-EPS) **정합** = peak-EPS trap 의 valuation metric 적합도(PBR/EV-EBITDA○, PER✗)가 시장 횡단 재현.
+  ★핵심 방법 발견 = universe-demean(기존 measure.py 결함, frame §M.7 계약 위반) → sector-neutral z 전환 = family_1 BY 생존 0→8 회복.
+  검증 b mechanism = within-sector value 강 + sector-level value trap 상쇄 제거(★G-C hedge: line 322 over-neutralize 우려는 cross-std≈1 분산보존으로 기각, small-N sector당 12종 우려는 hedge 흡수 = "완전 반박" 아닌 "부분 반박+hedge". sector-LEVEL magnitude n_sector=5 → 방향만). per_z 기존 "유의"(t−2.48) = shares 47종
+  coverage artifact(60종 보강 t−1.16). asset_growth REJECTED(2015~ decay). ★sector-neutral = 전 sleeve(defensive/mega_tech) 전환 필요(양식 업데이트).
+  ★G-B 재자문 = team-lead 판정 불필요(약함 단정 아닌 방법 교정 회복). ★G-C 독립 audit 1순위 = sector-neutral mechanism 재검증.

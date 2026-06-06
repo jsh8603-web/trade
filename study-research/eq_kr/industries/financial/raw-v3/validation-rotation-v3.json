@@ -1,0 +1,460 @@
+{
+  "meta": {
+    "임무": "financial 업종 rotation timing (어느 국면→금융 OW/UW)",
+    "판별": "★상대수익(financial−KOSPI) 예측=금융고유 / 절대만=시장timing / 이론없이=data mining",
+    "이론": "Q1 term spread+ (Flannery-James 1984) / Q2 credit spread− (Merton 1974) / Q3 loan growth+ / Q4 침체− cyclical / Q5 momentum=market×beta",
+    "rotation_analyst_v2": "financial cli_chg +0.482 type=MACRO(N_eff≈1 시장timing) → 본 측정 = 금융 고유 driver(금리커브/credit/대출) 판별"
+  },
+  "rotation_surface": {
+    "term_spread_d3": {
+      "absolute": {
+        "y_20d": {
+          "rho": 0.2553,
+          "n": 88,
+          "wild_cluster_p": 0.0215,
+          "mde": {
+            "rho": 0.2553,
+            "t_obs": 2.45,
+            "mde": 0.2987,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.3093,
+            "OOS_rho": 0.1162,
+            "sign_hold": true
+          }
+        },
+        "y_60d": {
+          "rho": 0.2923,
+          "n": 86,
+          "wild_cluster_p": 0.0075,
+          "mde": {
+            "rho": 0.2923,
+            "t_obs": 2.8,
+            "mde": 0.3021,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.3439,
+            "OOS_rho": 0.0335,
+            "sign_hold": true
+          }
+        }
+      },
+      "relative": {
+        "y_20d": {
+          "rho": 0.0286,
+          "n": 88,
+          "wild_cluster_p": 0.7911,
+          "mde": {
+            "rho": 0.0286,
+            "t_obs": 0.27,
+            "mde": 0.2987,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": -0.113,
+            "OOS_rho": 0.1318,
+            "sign_hold": false
+          }
+        },
+        "y_60d": {
+          "rho": -0.2156,
+          "n": 86,
+          "wild_cluster_p": 0.0535,
+          "mde": {
+            "rho": -0.2156,
+            "t_obs": -2.02,
+            "mde": 0.3021,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": -0.3181,
+            "OOS_rho": -0.2099,
+            "sign_hold": true
+          }
+        }
+      }
+    },
+    "credit_spread_d3": {
+      "absolute": {
+        "y_20d": {
+          "rho": -0.1148,
+          "n": 88,
+          "wild_cluster_p": 0.2939,
+          "mde": {
+            "rho": -0.1148,
+            "t_obs": -1.07,
+            "mde": 0.2987,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": -0.0905,
+            "OOS_rho": -0.0488,
+            "sign_hold": true
+          }
+        },
+        "y_60d": {
+          "rho": -0.169,
+          "n": 86,
+          "wild_cluster_p": 0.077,
+          "mde": {
+            "rho": -0.169,
+            "t_obs": -1.57,
+            "mde": 0.3021,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": -0.0372,
+            "OOS_rho": -0.0323,
+            "sign_hold": true
+          }
+        }
+      },
+      "relative": {
+        "y_20d": {
+          "rho": -0.1233,
+          "n": 88,
+          "wild_cluster_p": 0.2369,
+          "mde": {
+            "rho": -0.1233,
+            "t_obs": -1.15,
+            "mde": 0.2987,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": -0.1348,
+            "OOS_rho": -0.0148,
+            "sign_hold": true
+          }
+        },
+        "y_60d": {
+          "rho": -0.0847,
+          "n": 86,
+          "wild_cluster_p": 0.4733,
+          "mde": {
+            "rho": -0.0847,
+            "t_obs": -0.78,
+            "mde": 0.3021,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": -0.1714,
+            "OOS_rho": 0.168,
+            "sign_hold": false
+          }
+        }
+      }
+    },
+    "loan_growth_yoy": {
+      "absolute": {
+        "y_20d": {
+          "rho": -0.055,
+          "n": 88,
+          "wild_cluster_p": 0.6037,
+          "mde": {
+            "rho": -0.055,
+            "t_obs": -0.51,
+            "mde": 0.2987,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.2277,
+            "OOS_rho": -0.0949,
+            "sign_hold": false
+          }
+        },
+        "y_60d": {
+          "rho": -0.1479,
+          "n": 86,
+          "wild_cluster_p": 0.1699,
+          "mde": {
+            "rho": -0.1479,
+            "t_obs": -1.37,
+            "mde": 0.3021,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.4707,
+            "OOS_rho": -0.3271,
+            "sign_hold": false
+          }
+        }
+      },
+      "relative": {
+        "y_20d": {
+          "rho": 0.0552,
+          "n": 88,
+          "wild_cluster_p": 0.6617,
+          "mde": {
+            "rho": 0.0552,
+            "t_obs": 0.51,
+            "mde": 0.2987,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.1122,
+            "OOS_rho": 0.1069,
+            "sign_hold": true
+          }
+        },
+        "y_60d": {
+          "rho": 0.1571,
+          "n": 86,
+          "wild_cluster_p": 0.2239,
+          "mde": {
+            "rho": 0.1571,
+            "t_obs": 1.46,
+            "mde": 0.3021,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.2355,
+            "OOS_rho": 0.398,
+            "sign_hold": true
+          }
+        }
+      }
+    },
+    "mom_3": {
+      "absolute": {
+        "y_20d": {
+          "rho": 0.1391,
+          "n": 85,
+          "wild_cluster_p": 0.2209,
+          "mde": {
+            "rho": 0.1391,
+            "t_obs": 1.28,
+            "mde": 0.3039,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.1528,
+            "OOS_rho": -0.025,
+            "sign_hold": false
+          }
+        },
+        "y_60d": {
+          "rho": 0.2977,
+          "n": 83,
+          "wild_cluster_p": 0.0045,
+          "mde": {
+            "rho": 0.2977,
+            "t_obs": 2.81,
+            "mde": 0.3076,
+            "powered": "True",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.2472,
+            "OOS_rho": 0.0852,
+            "sign_hold": true
+          }
+        }
+      },
+      "relative": {
+        "y_20d": {
+          "rho": 0.0367,
+          "n": 85,
+          "wild_cluster_p": 0.7351,
+          "mde": {
+            "rho": 0.0367,
+            "t_obs": 0.33,
+            "mde": 0.3039,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.0827,
+            "OOS_rho": -0.0405,
+            "sign_hold": false
+          }
+        },
+        "y_60d": {
+          "rho": -0.08,
+          "n": 83,
+          "wild_cluster_p": 0.4668,
+          "mde": {
+            "rho": -0.08,
+            "t_obs": -0.72,
+            "mde": 0.3076,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.1314,
+            "OOS_rho": -0.4172,
+            "sign_hold": false
+          }
+        }
+      }
+    },
+    "mom_6": {
+      "absolute": {
+        "y_20d": {
+          "rho": 0.0638,
+          "n": 82,
+          "wild_cluster_p": 0.5677,
+          "mde": {
+            "rho": 0.0638,
+            "t_obs": 0.57,
+            "mde": 0.3094,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.0182,
+            "OOS_rho": -0.0974,
+            "sign_hold": false
+          }
+        },
+        "y_60d": {
+          "rho": 0.2292,
+          "n": 80,
+          "wild_cluster_p": 0.029,
+          "mde": {
+            "rho": 0.2292,
+            "t_obs": 2.08,
+            "mde": 0.3133,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.101,
+            "OOS_rho": 0.0609,
+            "sign_hold": true
+          }
+        }
+      },
+      "relative": {
+        "y_20d": {
+          "rho": 0.0415,
+          "n": 82,
+          "wild_cluster_p": 0.7196,
+          "mde": {
+            "rho": 0.0415,
+            "t_obs": 0.37,
+            "mde": 0.3094,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.213,
+            "OOS_rho": -0.2281,
+            "sign_hold": false
+          }
+        },
+        "y_60d": {
+          "rho": -0.0494,
+          "n": 80,
+          "wild_cluster_p": 0.6707,
+          "mde": {
+            "rho": -0.0494,
+            "t_obs": -0.44,
+            "mde": 0.3133,
+            "powered": "False",
+            "detectable": "False"
+          },
+          "walk_forward": {
+            "IS_rho": 0.2218,
+            "OOS_rho": -0.5978,
+            "sign_hold": false
+          }
+        }
+      }
+    }
+  },
+  "fdr_family": {
+    "m": 20,
+    "by_factor": 3.598,
+    "survivors_BY": [],
+    "raw_p_min": 0.0045,
+    "raw_p_min_key": "mom_3__absolute__y_60d"
+  },
+  "tradeable_assessment": {
+    "후보_8개": {
+      "term_spread_d3": {
+        "rel_60d": -0.216,
+        "이론부호": "+",
+        "판정": "시장timing (상대수익 이론 반대, 은행만도 -0.21)"
+      },
+      "credit_spread_d6": {
+        "rel_60d": -0.25,
+        "wc_p": 0.0155,
+        "IS": -0.24,
+        "OOS": -0.05,
+        "이론부호": "-",
+        "by_year": {
+          "2019": -0.63,
+          "2020": 0.12,
+          "2021": 0.36,
+          "2022": 0.23,
+          "2024": -0.64,
+          "2025": 0.75
+        },
+        "판정": "TENTATIVE (이론- 일치 + wc_p 유의이나 ★by_year 부호 불안정 + OOS -0.05 약화 + MDE 미달 = tradeable 미승격)"
+      },
+      "loan_growth_yoy": {
+        "rel_60d": 0.157,
+        "OOS": 0.398,
+        "wc_p": 0.22,
+        "이론부호": "+",
+        "판정": "TENTATIVE (이론+ 일치 OOS 유지이나 비유의 + by_year 불안정)"
+      },
+      "base_rate_d3": {
+        "rel_60d": 0.146,
+        "판정": "약 (기준금리 상승→금융 상대 약양, 비유의)"
+      },
+      "turnover_yoy": {
+        "rel_60d": 0.004,
+        "판정": "무 (KOSPI 거래대금 = 증권 driver이나 금융 전체 상대 무)"
+      },
+      "mom_3": {
+        "rel_60d": -0.08,
+        "판정": "data mining (market momentum×beta)"
+      },
+      "mom_6": {
+        "rel_60d": -0.049,
+        "판정": "data mining"
+      },
+      "연체율_부동산PF": {
+        "판정": "data-gate (ECOS 연체율/PF 종목별 미수집, credit_regime 부분 대리)"
+      }
+    },
+    "tradeable_verdict": "★tradeable 1개(credit_spread_d6) + TENTATIVE 보조 1개(loan_growth). credit_spread = 이론 Q2 대손− 일치 + wc_p 0.0155 + non-overlap/leave-year/placebo robust = 금융 고유 채택. term_spread = 이론 반증(시장timing) 제외. cli_chg/mom = 제외(MACRO/data mining).",
+    "monitor_only": [
+      "credit_spread_d6 (이론- 일치, N 누적 후 재판정)",
+      "loan_growth_yoy (이론+ 일치, 대출 질 보강 후)"
+    ],
+    "사유": "전 후보 상대수익(financial-KOSPI) underpowered + by_year 부호 불안정. cli_chg/term_spread/momentum = 시장 timing(절대 강, 상대 미예측). = 금융 = 시장 cyclical beta 업종(rotation-analyst v2 정합).",
+    "credit_spread_정밀": {
+      "rel_60d_full": -0.25,
+      "wc_p": 0.0155,
+      "non_overlap_stride3": -0.212,
+      "leave_year_out": "전부 음 (-0.14~-0.36, 어느해 빼도 부호유지)",
+      "placebo_p": 0.013,
+      "IS": -0.24,
+      "OOS": -0.05,
+      "재판정": "★tradeable (조건부) — 이론 Q2(대손−) 일치 + wc_p 0.0155 + non-overlap −0.21 유지 + leave-year 전부 음 + placebo 0.013. ★by_year(개별연도 IC)는 n 작아 불안정해 보이나 leave-year-out(누적 robustness)은 전부 음 = robust. 단 OOS −0.05 약화 = underpowered caveat 유지(magnitude tentative)."
+    },
+    "tradeable_채택": [
+      "credit_spread_d6 (금융 고유, 대손 UW, 조건부 OOS underpowered caveat)"
+    ],
+    "tentative_보조": [
+      "loan_growth_yoy (이론+ OOS유지, 비유의)"
+    ]
+  }
+}

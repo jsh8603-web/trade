@@ -1,0 +1,115 @@
+{
+  "design": "STEP 4 add factor (단일 FDR family: ep_yield + idio_vol + residual_mom). size-valid fixed-b.",
+  "indicators": {
+    "ep_yield__12M": {
+      "ic_mean": -0.056,
+      "t_nw": -2.6,
+      "n": 185,
+      "n_eff": 51.8,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": true,
+      "asymptotic_sig": true,
+      "p_value_eff": 0.0122,
+      "avg_universe_n": 42.2
+    },
+    "ep_yield__6M": {
+      "ic_mean": -0.0484,
+      "t_nw": -2.27,
+      "n": 191,
+      "n_eff": 58.9,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": true,
+      "asymptotic_sig": true,
+      "p_value_eff": 0.0269,
+      "avg_universe_n": 42.4
+    },
+    "ep_yield__3M": {
+      "ic_mean": -0.0385,
+      "t_nw": -2.4,
+      "n": 194,
+      "n_eff": 82.7,
+      "fixed_b_cv": 2.08,
+      "size_valid_sig": true,
+      "asymptotic_sig": true,
+      "p_value_eff": 0.0187,
+      "avg_universe_n": 42.4
+    },
+    "idio_vol__12M": {
+      "ic_mean": 0.0198,
+      "t_nw": 0.73,
+      "n": 171,
+      "n_eff": 47.5,
+      "fixed_b_cv": 2.1,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.4691,
+      "avg_universe_n": 47.4
+    },
+    "idio_vol__6M": {
+      "ic_mean": 0.0095,
+      "t_nw": 0.46,
+      "n": 177,
+      "n_eff": 59.0,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.6472,
+      "avg_universe_n": 47.4
+    },
+    "idio_vol__3M": {
+      "ic_mean": 0.0105,
+      "t_nw": 0.56,
+      "n": 180,
+      "n_eff": 86.4,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.5769,
+      "avg_universe_n": 47.4
+    },
+    "residual_mom__12M": {
+      "ic_mean": 0.0394,
+      "t_nw": 2.55,
+      "n": 173,
+      "n_eff": 59.1,
+      "fixed_b_cv": 2.1,
+      "size_valid_sig": true,
+      "asymptotic_sig": true,
+      "p_value_eff": 0.0134,
+      "avg_universe_n": 47.4
+    },
+    "residual_mom__6M": {
+      "ic_mean": 0.0295,
+      "t_nw": 1.82,
+      "n": 179,
+      "n_eff": 67.5,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.0733,
+      "avg_universe_n": 47.4
+    },
+    "residual_mom__3M": {
+      "ic_mean": 0.0276,
+      "t_nw": 1.76,
+      "n": 182,
+      "n_eff": 104.6,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.0814,
+      "avg_universe_n": 47.4
+    }
+  },
+  "single_fdr_family_BY": {
+    "m_raw": 9,
+    "m_eff": 7.0,
+    "by_factor": 2.718,
+    "survivors_BY": [],
+    "raw_p_min": 0.01218,
+    "raw_p_min_key": "ep_yield__12M",
+    "rank1_threshold": 0.005256,
+    "note": "★단일 FDR family(ep+idio+rmom 공유 alpha budget). size-valid 생존 = BY survivor ∩ fixed-b 유의."
+  },
+  "size_valid_survivors": []
+}

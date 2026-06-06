@@ -1,0 +1,253 @@
+{
+  "meta": {
+    "version": "v2 (자문 3R 변별력+즉시발동)",
+    "n_months": 89,
+    "spec": "CS demean(expanding z 선행)+base sleeve-RP×EW+κ 연속수축+active 컨트롤러 cap15/band8~12",
+    "production_untouched": "core/stock import 0=byte-identical, go-live 미접촉",
+    "s_rot_calib": 0.058,
+    "ic0": 0.247
+  },
+  "signal_ic": {
+    "steel": {
+      "ic": 0.347,
+      "n": 84,
+      "ci": [
+        0.201,
+        0.54
+      ],
+      "sign_stable": true
+    },
+    "auto": {
+      "ic": 0.26,
+      "n": 84,
+      "ci": [
+        -0.08,
+        0.465
+      ],
+      "sign_stable": false
+    },
+    "battery": {
+      "ic": 0.247,
+      "n": 84,
+      "ci": [
+        -0.066,
+        0.432
+      ],
+      "sign_stable": false
+    },
+    "chemical": {
+      "ic": 0.422,
+      "n": 84,
+      "ci": [
+        0.149,
+        0.59
+      ],
+      "sign_stable": true
+    },
+    "semiconductor": {
+      "ic": 0.18,
+      "n": 84,
+      "ci": [
+        -0.122,
+        0.395
+      ],
+      "sign_stable": false
+    },
+    "telecom": {
+      "ic": 0.293,
+      "n": 84,
+      "ci": [
+        0.054,
+        0.458
+      ],
+      "sign_stable": true
+    },
+    "bio": {
+      "ic": 0.179,
+      "n": 84,
+      "ci": [
+        -0.096,
+        0.436
+      ],
+      "sign_stable": false
+    },
+    "aitech": {
+      "ic": 0.052,
+      "n": 84,
+      "ci": [
+        -0.313,
+        0.337
+      ],
+      "sign_stable": false
+    },
+    "consumer": {
+      "ic": 0.236,
+      "n": 80,
+      "ci": [
+        -0.017,
+        0.45
+      ],
+      "sign_stable": false
+    },
+    "financial": {
+      "ic": 0.022,
+      "n": 84,
+      "ci": [
+        -0.266,
+        0.255
+      ],
+      "sign_stable": false
+    },
+    "refining": {
+      "ic": 0.3,
+      "n": 84,
+      "ci": [
+        0.108,
+        0.445
+      ],
+      "sign_stable": true
+    }
+  },
+  "kappa": {
+    "steel": 0.584,
+    "auto": 0.0,
+    "battery": 0.0,
+    "chemical": 0.631,
+    "semiconductor": 0.0,
+    "telecom": 0.543,
+    "bio": 0.0,
+    "aitech": 0.0,
+    "consumer": 0.0,
+    "financial": 0.0,
+    "refining": 0.548
+  },
+  "base_weights": {
+    "semiconductor": 0.0562,
+    "auto": 0.0562,
+    "financial": 0.0562,
+    "battery": 0.0562,
+    "chemical": 0.0562,
+    "refining": 0.0562,
+    "shipbuilding": 0.0,
+    "steel": 0.0562,
+    "bio": 0.1834,
+    "consumer": 0.0562,
+    "telecom": 0.1834,
+    "aitech": 0.1834
+  },
+  "weights_formation": {
+    "semiconductor": {
+      "base": 0.0562,
+      "min": 0.0526,
+      "max": 0.0604,
+      "now": 0.0594,
+      "max_dev": 0.0042
+    },
+    "auto": {
+      "base": 0.0562,
+      "min": 0.0526,
+      "max": 0.0604,
+      "now": 0.0594,
+      "max_dev": 0.0042
+    },
+    "financial": {
+      "base": 0.0562,
+      "min": 0.0526,
+      "max": 0.0604,
+      "now": 0.0594,
+      "max_dev": 0.0042
+    },
+    "battery": {
+      "base": 0.0562,
+      "min": 0.0526,
+      "max": 0.0604,
+      "now": 0.0594,
+      "max_dev": 0.0042
+    },
+    "chemical": {
+      "base": 0.0562,
+      "min": 0.0162,
+      "max": 0.1007,
+      "now": 0.0366,
+      "max_dev": 0.0445
+    },
+    "refining": {
+      "base": 0.0562,
+      "min": 0.0063,
+      "max": 0.0854,
+      "now": 0.0594,
+      "max_dev": 0.0499
+    },
+    "shipbuilding": {
+      "base": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "now": 0.0,
+      "max_dev": 0.0
+    },
+    "steel": {
+      "base": 0.0562,
+      "min": 0.0065,
+      "max": 0.104,
+      "now": 0.0575,
+      "max_dev": 0.0497
+    },
+    "bio": {
+      "base": 0.1834,
+      "min": 0.1607,
+      "max": 0.2079,
+      "now": 0.1939,
+      "max_dev": 0.0245
+    },
+    "consumer": {
+      "base": 0.0562,
+      "min": 0.0526,
+      "max": 0.0604,
+      "now": 0.0594,
+      "max_dev": 0.0042
+    },
+    "telecom": {
+      "base": 0.1834,
+      "min": 0.1374,
+      "max": 0.2163,
+      "now": 0.1615,
+      "max_dev": 0.046
+    },
+    "aitech": {
+      "base": 0.1834,
+      "min": 0.1607,
+      "max": 0.2079,
+      "now": 0.1939,
+      "max_dev": 0.0245
+    }
+  },
+  "active_share": {
+    "mean": 0.1011,
+    "min": 0.0341,
+    "max": 0.15,
+    "cap": 0.15,
+    "band": [
+      0.08,
+      0.12
+    ]
+  },
+  "tilt_now_pct": {
+    "chemical": -2.16,
+    "steel": -0.18,
+    "telecom": -3.06
+  },
+  "double_count_check": {
+    "net_common_exposure": {
+      "d_usdkrw": 0.00563,
+      "foreign": 0.0,
+      "semi_ppi_yoy": 0.00392
+    },
+    "interpret": "CS demean 정상이면 net 공통인자 노출 ≈0 (산업 rotation = 1층과 직교, double-count 없음)"
+  },
+  "oos_active_ref": {
+    "mean": -7.2e-05,
+    "ann_IR": -0.071,
+    "note": "참고용(즉시발동이 주, OOS는 사후). underpowered=magnitude tentative(yaml §8)"
+  },
+  "verdict": "ROTATION_ACTIVE (즉시발동, 변별력 active share 밴드 내 + robust gate 통과 산업만 tilt)"
+}

@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "method": "Fama-MacBeth 1973 month-by-month cross-sectional, rank-normalized, NW-HAC t",
+    "purpose": "Q6 PBR/capex value premium = size 위장 아닌지 + capex 독립 alpha 검정"
+  },
+  "tests": {
+    "y_20d": {
+      "pbr_plus_size": {
+        "pbr": {
+          "beta_mean": -0.0413,
+          "t_nw": -1.39,
+          "n_months": 83
+        },
+        "size": {
+          "beta_mean": -0.0224,
+          "t_nw": -0.61,
+          "n_months": 83
+        },
+        "_n_months": 83
+      },
+      "capex_plus_size": {
+        "capex": {
+          "beta_mean": -0.1297,
+          "t_nw": -4.29,
+          "n_months": 83
+        },
+        "size": {
+          "beta_mean": -0.0913,
+          "t_nw": -2.32,
+          "n_months": 83
+        },
+        "_n_months": 83
+      },
+      "pbr_capex_size_multivariate": {
+        "pbr": {
+          "beta_mean": -0.034,
+          "t_nw": -1.1,
+          "n_months": 83
+        },
+        "capex": {
+          "beta_mean": -0.1192,
+          "t_nw": -3.58,
+          "n_months": 83
+        },
+        "size": {
+          "beta_mean": -0.0892,
+          "t_nw": -2.29,
+          "n_months": 83
+        },
+        "_n_months": 83
+      }
+    },
+    "y_60d": {
+      "pbr_plus_size": {
+        "pbr": {
+          "beta_mean": -0.1148,
+          "t_nw": -2.67,
+          "n_months": 82
+        },
+        "size": {
+          "beta_mean": -0.0185,
+          "t_nw": -0.38,
+          "n_months": 82
+        },
+        "_n_months": 82
+      },
+      "capex_plus_size": {
+        "capex": {
+          "beta_mean": -0.1851,
+          "t_nw": -3.78,
+          "n_months": 82
+        },
+        "size": {
+          "beta_mean": -0.1288,
+          "t_nw": -2.23,
+          "n_months": 82
+        },
+        "_n_months": 82
+      },
+      "pbr_capex_size_multivariate": {
+        "pbr": {
+          "beta_mean": -0.114,
+          "t_nw": -2.44,
+          "n_months": 82
+        },
+        "capex": {
+          "beta_mean": -0.185,
+          "t_nw": -3.38,
+          "n_months": 82
+        },
+        "size": {
+          "beta_mean": -0.1486,
+          "t_nw": -2.52,
+          "n_months": 82
+        },
+        "_n_months": 82
+      }
+    }
+  }
+}

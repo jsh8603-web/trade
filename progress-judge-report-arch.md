@@ -33,6 +33,13 @@ plan: plan-judge-report-arch.md
 - 잔여: substrate on(멀티에셋 macro view+regime) 주입 variant = RegimeGlasso 공유라 button 연결 후. coin baseline은 확보.
 
 ## Working Notes
+> [ckpt-202606041XXX:btn-Inv S4/S5 정보파이프라인 자문 수렴 → plan 반영]
+> ★**gemini-web+claude-web 병렬 자문 1R 강수렴**(.gemini-web-last.md / .claude-web-basic-last.md): **"텍스트는 가설 생성만 하고, 잔차 수익률 공간이 가설을 판정한다"** 한 원칙으로 두 모델 수렴. 새 의문 비생성 → 1R 종료. **3 핵심 반영(plan §3 S4/S5)**:
+> (1) **Q2 호출빈도**: daily batch **폐기** → 정보델타(retrieval 임베딩 novelty 임계초과) 트리거 + 생성/승격 분리(up 지연 e-value / down 즉시 = down-only 정합). 효과 3=유령회전(phantom turnover) 제거 + FDR 예산(LORD++ α-spending 매일소진) 절약 + 비용절감. ★현 설계 **최대 약한고리** 정정.
+> (2) **Q1 리포트 편향**: 별도모듈 X, 기존 불변식 흡수 — surprise/revision 공간만(level 금지)·한국 매도의견 희소→down-only 매핑·톤 2회 디민(애널리스트 FE + 동시점 횡단면)·선반영=발간 CAR통제+bitemporal PIT가 RAG stale 누수 차단. (Loughran-McDonald 2011, Michaely-Womack 1999)
+> (3) **Q3 직교성**: FWL 스패닝 회귀 발권게이트("잔차 수익률공간 α≠0 못 보이면 가설 아님", MOVE⊥VIX 흡수판정 공식화) + 국면 interaction(무조건부0/조건부 알파=최고가치) + 팩터타이밍 vs 종목선택 분해. (GRS 1989, Kelly-Pruitt-Su 2019)
+> ★**사용자 논의(대부분 기존 설계와 일치)**: 정보소스=정량(EDGAR/pykrx/공시) + 정성(리포트 RAG) / 카드 3겹 기준=사전 study 검증룰 + 정성 촉매(RAG) + 사후 e-value 채점 / 7팩터=바닥 좌표계(systematic) vs HBM류=잔차 테마(idiosyncratic, 직교 검증 통과분만). 사용자 RAG 구상(리포트 요약→BGE→LLM 발권)=S5 설계와 수렴 확인. ⛔ S2/S4/S5 = button 합류 + go-live 선결 불변.
+>
 > [ckpt-202606040XXX:btn-Inv core 정교화 2건 완료(67 passed) — chatter backoff 통합 + episode-LOO]
 > ★**완료(검증됨)**: 핸드오프 §5 미서명 "core 정교화 잔여"(btn-Inv 단독 가능) **2건 집행** → `tests/assume/ 67 passed`(기존 63 + 신규 4). **(1) ChatterBackoff 통합**: `transition`에 `chatter_backoff`(reject_recovery.ChatterBackoff 재사용)+`now_tick` opt-in 주입. revived→vacated 시 `record_kill`(지수 cooldown) → vacated→revived 직전 `can_retry` 게이트 → flapping noise 추격 차단(§14.8a). revival_cap(hard limit)과 보완(cap 전 시간 간격↑). **(2) episode-LOO**: `_DirectionalE`에 `_log_factors`+`e_value_loo`(양 기여 최대 단일 tick 제거) → `FHCState.e_value_loo` 노출 + `transition(require_loo_robust=True)` 게이트(단일 outlier episode 제거 후 e≥thr 요구, empirical-claim §1.2 n<30). 검증 e=24.3≥20>LOO=18.7.
 > ★**INV-11 byte-identical 입증**: 신규 3 param 전부 None/False fallback → 기존 63 passed 불변 + `test_chatter_backoff_none_byte_identical` 명시 케이스. additive·호출처 0·결정론/risk_gate 무수정 유지. fhc.py self-test 12/12 PASS.

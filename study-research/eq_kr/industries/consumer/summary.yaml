@@ -1,7 +1,8 @@
 # summary.yaml — consumer(소비재) 산업 v3 (frame v3 §M exposure card 계약)
 # ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge, BY/FDR, LOO/block-boot).
-# ★verdict 중심 = valuation 방향 약 prior 산업, TENTATIVE (battery=momentum / financial=regime-conditional 분기).
-# raw 재현: raw-v3/{collect, measure, collect_dart, measure_valuation, measure_cross, exposure_card}.py
+# ★[2026-06-05 S2 갱신] conditional IC surface + ★A-4 sub-sector 부호 CANCEL(화장품 cyclical vs 음식료 defensive) +
+#   G-G v2 tradeable 2축 + walk-forward OOS 추가. verdict = PARTIAL (화장품 per_z TENTATIVE + A-4 분리 트리거 + dollar risk-monitor).
+# raw 재현: raw-v3/{collect, collect_dart, collect_regime, measure_conditional, measure_valuation, measure_cross}.py
 
 industry: kr_consumer         # eq_kr Tier 3 (소비재: 식품/유통/화장품/음료/의류)
 asset_scope: [equity.kr]
@@ -117,8 +118,10 @@ cross:
     - {factor: credit, beta: null, contemporaneous: true, note: "측정(raw 참조)"}
   directional_spillover: []
   structural_linkage:
-    - supplier_or_customer: null
-      verdict: "customer-supplier momentum = consumer 부적합(소비재 upstream=농산물/원자재 다양). skip(battery/financial 동일 패턴)."
+    - supplier_or_customer: "곡물 upstream (옥수수ZC/밀ZW/대두ZS → 음식료 마진, cost pass-through)"
+      measured: true   # ★[audit 정정3] battery lithium 잔재 → 소비재 곡물로 정정 측정 (measure_cross.py)
+      result: "★null — corn/wheat/soybean 전 lag(0-3M) p>0.12 비유의 (corn lag1 ρ0.14 p0.20 최강). §D forward-alpha falsifier 정상."
+      verdict: "곡물→consumer forward = null. 음식료 한정 cost driver가 산업평균(28종 eq-weight)에 희석 = skip 기록(§M.10 패턴). 음식료 sub-sleeve 분리 시 재측정 여지."
   # ⛔ sector-rotation clock = myth.
 
 # ── ★valuation 횡단면 (§M.7 — ★consumer = valuation 방향 약 prior 산업, TENTATIVE) ──
@@ -192,3 +195,161 @@ verdict_note: >
   → valuation 측정 안정적. per_z value premium 방향 일관(전 horizon 음, 3M within 100%, 24M block-boot 유의 degen). ★단 비-degen 유의 horizon 0 + BY 생존 0 = 단정 불가.
   momentum 무신호 = asset_stable 정합. ★3산업 분기: battery(momentum CONFIRMED)·financial(regime-conditional TENTATIVE)·
   consumer(valuation TENTATIVE) = "산업마다 유효 신호 다름" 데이터 지지 = 동적가중(regime/산업 conditional IC) 정당화.
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ★[2026-06-05 S2 신규] conditional IC surface + A-4 sub-sector cancel + G-G v2
+# raw = raw-v3/validation-conditional-v3.json (measure_conditional.py, G-F 7항 헤더)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ── S2 conditional IC surface (★dispatch 원의도 본체: IC(지표,regime,horizon)) ──
+conditional_ic_surface:
+  regime_source:
+    macro: "FRED KORLOLITOAASTSAM CLI amplitude-adj 4국면 (CLI_PUB_LAG=2 vintage)"
+    krw: "FRED DEXKOUS yoy ±5% (★소비재 K-food 수출형 vs 내수형 부호분리 핵심)"
+    flow: "ECOS 802Y001/0030000 외국인순매수 28d z ±1"
+  cell_collapse: "36셀 full N>=24 = 0 cell → 단일축(Macro4/KRW3/flow3) + 2축 merge. 36셀 full = INSUFFICIENT."
+  fdr_family:
+    m: 105
+    survivors_BY: []          # ★BY 생존 0 (small-n + 36셀 multiplicity). raw_p_min=0.0005(vol_60 y_60d Slowdown)
+    note: "단일 FDR family 측정前 멤버십 고정. M_eff 통합 supervisor. ★over-claim 회피 = 미생존 정직보고."
+  g_g_v2_power:
+    well_powered_cells: 5     # ★[audit 정정] |t_obs_eff|>2.802 & status=powered = 5개 (앞선 "0" 오류)
+    well_powered_list:        # 5개 모두 wc_p<0.01 강 but 105 multiplicity 단일 BY-FDR 못넘음
+      - {cell: "vol_60 y_60d KRW_neutral", ic: -0.112, t_obs: -3.46, n: 36, wc_p: 0.0025}
+      - {cell: "per_z y_60d Slowdown", ic: +0.198, t_obs: +3.40, n: 25, wc_p: 0.0025, note: "Slowdown 국면 고PER→고forward(quality flight 가설)"}
+      - {cell: "vol_60 y_60d Recovery", ic: -0.137, t_obs: -3.24, n: 26, wc_p: 0.002}
+      - {cell: "rev_1m y_5d Slowdown", ic: +0.109, t_obs: +2.89, n: 25, wc_p: 0.008}
+      - {cell: "pbr_z y_5d flow_neutral", ic: -0.100, t_obs: -2.89, n: 44, wc_p: 0.008, note: "저PBR value(flow 중립)"}
+    interpretation: "★5개 well-powered 존재(wc_p<0.01)하나 105 multiplicity 단일 BY-FDR 못넘음(survivors 0). = '전부 underpowered'가 아니라 '5개 well-powered 있으나 multiplicity 보정 후 미생존'. M_eff 통합 supervisor 단계. OOS 부호유지 신호 = eligibility 후보."
+  key_conditional_findings:
+    - signal: rev_1m
+      regime: "krw_regime=KRW_weak"
+      ic: -0.0819
+      n_months: 34
+      wild_cluster_p: 0.0625    # borderline
+      t_obs_eff: -1.98
+      contrast: "KRW_neutral +0.078 = 부호 반대 (sign-flip → family_2)"
+      family_2_interaction_t: -2.36   # ★유의 (main t=+1.29 비유의) = "국면 따라 부호 갈림" 입증
+      oos: "KRW_weak IS-0.099 → OOS-0.054 부호유지(✓)"
+      verdict: "TENTATIVE conditional — 원화약세 국면 단기 reversal 증폭. ★[audit 정정] KRW_weak=38개월·12 episode(overfit 우려 완화) but wc_p0.0625 borderline + small-n magnitude haircut."
+    - signal: momentum
+      note: "mom_6/mom_12_1 uncond IC≈0 (wc_p>0.7), family_2 비유의 = ★asset_stable 방어주 모멘텀 무신호 정합(battery growth 대조)."
+
+# ── ★A-4 sub-sector 부호 CANCEL (소비재 핵심 = financial XLF 교훈 실증) ──
+subsector_sign_check:
+  data_source: "raw-v3/validation-conditional-v3.json:subsector_sign_check"
+  subcluster_counts: {food: 9, cosmetics: 4, retail: 10, apparel: 3, beverage: 2}
+  cancel_detected: true       # ★전 6 신호 부호 cancel 검출
+  핵심발견:
+    per_z:
+      cosmetics: {ic: -0.2579, n_months: 19, wc_p: 0.047, t_obs_eff: -2.19, note: "★화장품 저PER value premium 강(中cyclical)"}
+      food: {ic: -0.0192, wc_p: 0.76, note: "음식료 valuation 무신호(defensive, peak-EPS earnings cycle)"}
+      retail: {ic: +0.0351, note: "유통 역부호(약)"}
+      verdict: "★CANCEL — 화장품(value 작동) vs 음식료/유통(무신호·역부호). sub-cluster eq-weight 시 cancel(전체 per_z -0.077 = 희석)."
+    mom_6: {food: +0.0302, retail: -0.0895, cosmetics: -0.0074, verdict: "CANCEL — 음식료 momentum / 유통 reversal"}
+  cosmetics_per_z_robustness:    # ★small-n 정직 검증 (§M.12 haircut)
+    horizon_sweep: {h5d: -0.335, h20d: -0.258, h60d: -0.306, note: "전 horizon 음 일관, wc_p<0.05"}
+    oos: "5d/20d 부호유지(✓), 60d FLIP(IS-0.46→OOS+0.25) = 장기 artifact 경계"
+    leave_episode: "최강 5개월 제외 → IC-0.071 wc_p0.58 ★비유의 = single-episode 의존 노출"
+    within_period: "음비율 71% (2021/2024 양) = 부호 불일관"
+    s5_size_orthogonal: "★역공격: size 통제 후 IC-0.172(partial/marginal=0.67>0.5)=genuine value(small-cap 위장 아님) but wc_p0.22 비유의(자유도 소모)"
+    n_codes: 4                  # ★small-n → magnitude 50-70% haircut 의무
+  verdict: >
+    ★A-4 sub-sector 부호 CANCEL 실증 = financial XLF cancel 교훈 동형. 화장품(中의존 cyclical, valuation 작동)
+    vs 음식료(defensive, 무신호) driver 이질 → ★sub-sleeve 분리 트리거. 단 화장품 per_z = n_codes=4 small-n +
+    leave-episode 비유의 = TENTATIVE DIRECTIONAL(방향 약 prior, magnitude haircut). 분류노이즈(코웨이/큐렉소
+    오분류)는 retail/food 약신호라 결론 불변, 화장품 4사(아모레/LG생건/한국콜마/코스맥스)=순수.
+
+# ── ★G-G v2 매매신호 충분성 (eligibility 2축 + conviction) ──
+g_g_v2_tradeable:
+  판정: PASS-conditional      # tradeable ≥1 but low confidence (small-n / episode<3 / well-powered 0)
+  eligibility_candidates:     # OOS 부호유지 + 방향 확정
+    - {signal: "화장품 per_z", oos_sign_hold: "5d/20d ✓", tier: TENTATIVE_DIRECTIONAL, caveat: "leave-episode 비유의 + n_codes=4"}
+    - {signal: "rev_1m × KRW_weak", oos_sign_hold: "✓", tier: TENTATIVE_conditional, caveat: "episode<3 overfit"}
+    - {signal: "dollar β -1.19(t=-2.57)", type: risk_monitor, note: "contemporaneous de-risk 신호(alpha 아님)"}
+  conviction: "약 (well-powered cell 0 + BY 생존 0 + small-n). → conservative cap + monitor + ★보강권고(non-blocking)."
+  보강권고:
+    - "★화장품 universe 확장 (n_codes 4→7+: 코스맥스엔비티/콜마비앤에이치/애경산업/클리오 등 중소형 추가) → single-episode 의존 해소 + 횡단면 demean 유효화"
+    - "中소비 regime 분리 (면세점 매출/따이공 z) → 화장품 cyclical 국면 명시"
+  코드화: "PASS-conditional = conservative cap + monitor-only. ⛔over-trade(약신호 강제투입) 차단. go-live 미접촉(supervisor)."
+
+# ── ★walk-forward OOS (IS2019-22 / OOS2023-26) ──
+walk_forward_oos:
+  split: {IS: "2019-01~2022-12", OOS: "2023-01~2026-05"}
+  focus_regime: "krw_regime=KRW_weak"
+  sign_consistent:
+    - {signal: "rev_1m KRW_weak", IS: -0.099, OOS: -0.054, hold: true}
+    - {signal: "mom_6 KRW_weak", IS: -0.039, OOS: -0.082, hold: true}
+    - {signal: "화장품 per_z 20d", IS: -0.250, OOS: -0.280, hold: true}
+    - {signal: "pbr_z uncond", IS: -0.047, OOS: -0.008, hold: true}
+  sign_flip:
+    - "대부분 uncond(mom/rev/per uncond) FLIP = in-sample artifact 경계 (조건부 신호만 OOS 생존)"
+  verdict: "★조건부 신호(KRW_weak conditional + 화장품 per_z)만 OOS 부호유지 = unconditional 보다 conditional 우세 = conditional IC surface 의미 입증. but small-n magnitude tentative."
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ★[2026-06-05] verdict 정정 (S2 통합)
+# ═══════════════════════════════════════════════════════════════════════════
+verdict_s2_consolidated: PARTIAL
+verdict_s2_note: >
+  ★consumer = PARTIAL (TENTATIVE 신호 다수 + A-4 분리 트리거). 핵심 = ★A-4 sub-sector 부호 CANCEL 실증
+  (화장품 中cyclical value 작동 vs 음식료 defensive 무신호) = financial XLF cancel 교훈 동형 → sub-sleeve 분리 트리거.
+  tradeable 후보 = (1) 화장품 per_z TENTATIVE DIRECTIONAL (IC-0.258 wc_p0.047, OOS 부호유지 but leave-episode 비유의·n_codes=4)
+  (2) rev_1m×KRW_weak TENTATIVE conditional (family_2 t=-2.36 유의, OOS 부호유지) (3) dollar β-1.19 risk-monitor.
+  G-G v2 = PASS-conditional (eligibility 2 but conviction 약, conservative cap + 화장품 universe 확장 권고).
+  BY 생존 0 (well-powered 5개 존재하나 105 multiplicity 못넘음) = ★"신호 약" 단정 불가(family_2 살아있음, G-B 미발동).
+  momentum 무신호 = asset_stable 정합. = battery(momentum)·financial(regime-conditional)·consumer(★sub-sector valuation cancel) 분기.
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ★[2026-06-05 ROTATION] 소비재 업종 자체 rotation timing (종목selection 위 차원)
+# raw = raw-v3/validation-rotation-consumer-v1.json (measure_rotation_consumer.py)
+# ★파이프라인 = 이론 부호 사전확약 → 통계검증 (data mining 차단). rotation v2 NO_DIRECT 보강.
+# ═══════════════════════════════════════════════════════════════════════════
+rotation_timing:
+  analysis_unit: "소비재 업종 eq-weight 패널(28종 월수익) + sub-cluster 분리(cosmetics/food/retail). ★종목 cross-section 아님."
+  candidates_enumerated: 14   # ★team-lead 규칙 ≥8 충족 (측정 68 셀). 이론 사전확약→통계검증→채택/기각.
+  tradeable_accepted: 4       # ★규칙 ≥2 충족.
+  primary_rotation:   # ★이론+통계 둘 다 충족 = 채택
+    - signal: "CSI 소비지출 3M모멘텀 (industry, 60d)"
+      rho: +0.325
+      wild_cluster_p: 0.001     # ★theory family 단일 BY 유일 생존
+      oos: "IS+0.335 → OOS+0.303 (부호+mag 유지✓)"
+      residualized: +0.370      # ★공통인자 residualize 후 강화 = 진짜 내수 소비 alpha
+      loy: "leave-one-year 전부 양(+0.24~+0.41) = single-episode 아님"
+      theory: "소비심리 단기 개선 모멘텀 → 소비재 매출 전망↑ (ECOS 511Y002 FMCB)"
+      verdict: "★STRONG — 이론+통계 둘 다 robust. retail 패널 +0.301(wc_p0.002). ★소비재 전문성 핵심 발굴."
+    - signal: "mom_6 reversal (industry, 60d)"
+      rho: -0.251
+      wild_cluster_p: 0.018
+      oos: "IS-0.157 → OOS-0.554 (유지✓)"
+      residualized: -0.361      # 강화 = 공통인자 재포장 아님(자문 A 반례)
+      theory: "내수 방어주 펀더멘털 안정 → 가격 과대반응 평균회귀(theory §1.4)"
+      verdict: "★채택"
+    - signal: "mom_6 reversal (cosmetics, 60d)"
+      rho: -0.324
+      wild_cluster_p: 0.004     # ★최강
+      oos: "IS-0.073 → OOS-0.748 (유지✓)"
+      verdict: "★화장품 변동성 평균회귀(최강). retail=무신호(flip)."
+    - signal: "홍콩 3M모멘텀 (관광/면세, industry, 60d)"
+      rho: +0.254
+      wild_cluster_p: 0.044
+      oos: "IS+0.049 → OOS+0.287 (적격✓)"
+      theory: "리오프닝/면세 risk-on → 화장품"
+      verdict: "★채택(TENTATIVE) — underpowered but 이론일치+OOS적격."
+  secondary_cycle:    # 이론 일치하나 underpowered = TENTATIVE 보조
+    - {driver: "곡물 cost-push (음식료)", best: "soy food y_60d rho-0.221 wc_p0.0695", sign_match: "✓전부 음(corn/wheat/soy)", verdict: "TENTATIVE — 이론일치 OOS유지 but underpowered. 음식료 한정 방향 prior."}
+  rejected:           # ★이론 사전확약 위반 / OOS flip / DATA-GATE (정직 박제)
+    - {driver: "CSI 소비지출/여행비/의류비 yoy", result: "부호 반대(음, exp 양)", 사유: "yoy=level 기저효과(高수준=고점=forward 평균회귀). d3 단기변화가 진짜 신호 = d3 채택 yoy 기각"}
+    - {driver: "WTI유가 yoy", result: "rho-0.261 wc_p0.0165 but OOS flip(-0.35→+0.08)", 사유: "in-sample 강하나 OOS flip = 채택불가"}
+    - {driver: "항셍/상하이/USDCNY/中CLI/XLP-XLY", result: "부호 혼재 또는 약", 사유: "中주식 모멘텀 혼재 + 글로벌 ETF 매핑 약"}
+    - {driver: "한국 소매판매 yoy", result: "DATA-GATE", 사유: "★KORSARTMISMEI 2024-03 제약(OECD MEI discontinuation) = 구조빈약 박제(이연 아님)"}
+  g_g_v2: PASS-conditional
+  verdict: >
+    ★소비재 rotation = (1) CSI 소비지출 3M모멘텀 STRONG(내수 소비심리, 단일 BY 생존, residual 강화, LOY robust) +
+    (2)(3) mom_6 reversal(내수 방어 평균회귀, industry/cosmetics) + (4) 홍콩 관광 모멘텀 TENTATIVE = ★채택 4.
+    ★CSI yoy 부호반대(기저효과)·WTI OOS flip·한국소매 DATA-GATE = 정직 기각. 곡물 cost-push = TENTATIVE 보조.
+    ★sub-cluster 이질(retail=CSI소비심리 / cosmetics=관광+reversal / food=곡물) = 종목 capsule A-4 cancel 과 동형.
+    gated(default0 + hysteresis + cost-aware + 60d primary) = over-trade 차단. 전 신호 underpowered tier = magnitude tentative.
+  collector_plan:
+    - {missing: "中소비 regime (면세점 매출/따이공 z)", purpose: "화장품 中경기 cycle 직접매핑 (현 혼재)", priority: high}
+    - {missing: "내수 소매판매 source 갱신 (KORSARTMISMEI 2024-03 제약)", source: "통계청 KOSIS 직접", priority: medium}
+  방법: "raw-v3/measure_rotation_consumer.py — 14 driver(68셀) 이론 사전확약 + forward IC + OOS + residualize + LOY + 단일 BY-FDR + wild-cluster."

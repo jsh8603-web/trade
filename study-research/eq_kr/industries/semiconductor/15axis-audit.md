@@ -44,3 +44,37 @@
 - ★**핵심 검증 가치**: momentum forward IC 부호 = **음(reversal)** = battery(양)와 반대 = **cyclical archetype 지지**(peak 되돌림). 부호 검증이 산업별 archetype 판별에 결정적.
 - archetype cyclical 사후편향 검사(M.5): valid_from 2019 사전선언, declared_at 명시 = ex-post hazard 회피. transition 없음(단일 archetype).
 - ★pilot 결론(미러): cross-sectional 메커니즘 작동 입증 + 부호가 산업 특성(cyclical vs growth) 반영 = 7산업 batch 일반화의 핵심 증거. ★valuation 횡단면 측정 완료(§10): PBR value premium 작동(pbr_z 24M IC -0.114, BY 유일 생존, CPCV 1.00, within 100%) + PER 무효(peak-EPS trap, 전 horizon 비유의) = archetype.py cyclical(PBR○ PER✗) 실데이터 입증, auto 동형.
+
+---
+
+# ★S2 conditional IC surface self-audit 보강 (2026-06-05, dispatch 원의도 본체)
+
+> 위 audit = unconditional 측정(2026-06-04). 본 섹션 = S2 신규 conditional IC(measure_conditional.py) + G-F 7항 + family_2 의 15축 self-check. raw = validation-conditional-v3.json + regime_*.parquet.
+
+| 축 | conditional 측정 판정 | 근거 |
+|---|---|---|
+| **A** 이론실재 | PASS | theory-notes §1 부호 사전확약(M1~M4) = Daniel-Moskowitz 2016/Asness QMJ/Choe-Kho-Stulz 2005/MS Memory Tracker. round-1(측정前) HARKing 방지. |
+| **B** ★실데이터 | **PASS** | regime = FRED CLI/DEXKOUS + ECOS 외국인순매수 일별 실데이터. 합성지문 PASS(USDKRW 2022-10 1440.5/CLI 2020 99.13/외국인 대량매도 episode). collect_regime.py 재현. |
+| **C** ★추적성 | **PASS** | summary.yaml conditional_ic_surface 수치 = validation-conditional-v3.json key 매핑. family_2(measure_interaction_terms 정식함수) + critique_validation(Fama-MacBeth) 재현가능. |
+| **D** ★PIT | **PASS** | ★OECD CLI 발표지연(~1-2M) → CLI_PUB_LAG=2 적용(Macro regime PIT-safe). KRW(DEXKOUS)/flow(ECOS) 일별 실시간. forward=shift(+h). lag 보강 후 핵심발견 유지. |
+| **E** 다중검정 | PASS | ★G-F §3 family 측정前 사전고정(6신호×3h×regime cell 단일 BY-FDR). m=105 BY survivors=[]. M_eff_signal=3.0(Li-Ji) 박제. ★over-claim 정정: naive m 과대 = M_eff 통합 supervisor 단계. |
+| **F** OOS/walk-forward | **PASS** | ★walk-forward IS(2019-22)/OOS(2023-26) split: KRW_weak conditional 3신호(mom_6 -0.060→-0.155 / rev_1m -0.117→-0.064 / pbr_z -0.051→-0.050) 전부 OOS 부호+magnitude 유지. family_2 mom_6 IS t=-2.09→OOS t=-2.69 유의. = in-sample artifact 아님. (진짜 holdout 2026+ = flip-register pristine OOS 별개 미래 보너스.) |
+| **G** 자기상관 | PASS | ★small-block size-invalid(Kiefer-Vogelsang) → wild-cluster bootstrap(Rademacher B=2000) per-cell p + n_eff(autocorr) + block-boot CI. asymptotic NW-HAC t = 참고만. |
+| **A-5** ★regime interaction | **PASS** | ★family_2 의무 충족(rejected 박제 前). mom_6/rev_1m interaction t=-2.95/-2.33 유의(main 비유의) = "국면 따라 부호 갈림" 입증. mom_12_1/vol_60 비유의(정직). regime별 block-boot CI(wild-cluster). |
+| **I** ★생존편향 | PARTIAL | universe = FDR 현재 스냅샷(생존종목). delisted/M&A 누락 = PIT 멤버십 collector_plan high(unconditional audit 동일). |
+| **K** 다중검정/over-claim | PASS | ★비판검토 = 데이터 직접 검정(team-lead). Q6 PBR size위장 기각(Fama-MacBeth PBR|Size t=-2.47) + Q10 episode종속 기각(sub-period 부호일관). 무비판 채택 0. |
+
+## S2 conditional verdict
+
+- ★hard-fail 코어 (B/C/D) PASS, I PARTIAL(정직 격하). conditional 측정 = hard-fail 0.
+- **핵심 = conditional IC surface 작동**(dispatch 원의도): KRW_weak regime서 value/reversal 증폭(family_2 t=-2.95) / flow_strong_buy서 momentum 소멸 / pbr 전horizon robust. = "어느 국면에 어느 지표" 답.
+- ★G-B = "약함" 아님(family_2 살아있음 = conditional 본질, supervisor skip 판정). BY naive 미생존은 M_eff 미통합 + small-n.
+- ★**verdict 확정 (walk-forward OOS)**: mom_6/pbr_z KRW_weak = CONFIRMED(tentative, n<30) / rev_1m KRW_weak = PARTIAL. = in-sample artifact 아님(OOS 부호+magnitude 유지).
+- ★정직 단서: (a) OOS n=13 small-n → magnitude tentative(부호·방향만) (b) M_eff 통합 supervisor 단계 (c) magnitude hedge(PBR 24M overlap inflation) (d) 종목레벨 외국인flow = DATA-GATE(KRX 차단, deferral 아님).
+
+## S2 신규 cycle 지표 측정완료 (★이연 금지 이행, 2026-06-05)
+
+- ★사용자 박제 "이연 금지" 이행: 재고/CAPEX/R&D = DART 분기 재구성으로 **측정완료**(measure_fundamentals_cycle.py → validation-fundamentals-cycle-v3.json). 불확실해도 verdict 박제.
+- **측정결과 (정직, over-claim 0)**: ppe_yoy(CAPEX asset growth) = TENTATIVE(y_60d IC -0.034 wc_p=0.0155, OOS -0.028 부호유지, prior 음 정합, BY 미생존) / inv_ratio = ★prior 반증(y_60d +0.045 일관 양, 재고순환 가설 반대) / 나머지(inv_yoy/capex_ratio/rnd_ratio) 비유의.
+- **★통합 단일 FDR family**(merge_fdr_family.py): m_total=183(conditional 105 + fundamentals 78) survivors=0 = garden-of-forking-paths 차단(신규 추가시 더 엄격). raw_p_min 0.0005(pbr_z KRW_weak + ppe_yoy 동률).
+- B/C/D PASS(DART 실재 + rcept_dt PIT + json 추적). 신규지표 hard-fail 0. = 약신호지만 정직 측정·박제.

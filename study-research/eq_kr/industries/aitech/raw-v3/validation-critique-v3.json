@@ -1,0 +1,63 @@
+{
+  "Q1_fama_macbeth_pbr_size": {
+    "univariate_pbr_ic_mean": -0.0814,
+    "univariate_n": 82,
+    "pbr_controlled_b": -0.0781,
+    "pbr_controlled_t": -3.51,
+    "size_controlled_b": -0.036,
+    "size_controlled_t": -1.5,
+    "n_months": 82,
+    "verdict": "★PBR 독립 alpha (size 위장 아님)"
+  },
+  "Q2Q3_subperiod_consistency": {
+    "pbr_z": {
+      "2019-2021": {
+        "ic": -0.0094,
+        "n": 32
+      },
+      "2022-2026": {
+        "ic": -0.1275,
+        "n": 50
+      },
+      "consistent": true
+    },
+    "per_z": {
+      "2019-2021": {
+        "ic": 0.044,
+        "n": 32
+      },
+      "2022-2026": {
+        "ic": -0.0986,
+        "n": 50
+      },
+      "consistent": false
+    },
+    "mom_12_1": {
+      "2019-2021": {
+        "ic": -0.0085,
+        "n": 24
+      },
+      "2022-2026": {
+        "ic": -0.0885,
+        "n": 50
+      },
+      "consistent": true
+    }
+  },
+  "Q3_leave_2022_out": {
+    "mom_12_1": {
+      "full_ic": -0.0625,
+      "ex2022_ic": -0.0332,
+      "n_full": 74,
+      "n_ex2022": 62,
+      "verdict": "부호 생존(episode 종속 아님)"
+    },
+    "pbr_z": {
+      "full_ic": -0.0814,
+      "ex2022_ic": -0.0708,
+      "n_full": 82,
+      "n_ex2022": 70,
+      "verdict": "부호 생존(episode 종속 아님)"
+    }
+  }
+}

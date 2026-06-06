@@ -1,0 +1,514 @@
+{
+  "meta": {
+    "strict_universe_n": 23,
+    "index": "eq-weight 월수익 (strict 23종)",
+    "contamination_check": "★prices.parquet = pass_floor 23종 정확 일치 = 오염 0 (정유 가스9종과 다름)",
+    "residualize": "공통인자(d_usdkrw/foreign/semi_ppi_yoy) 회귀 잔차 = idiosyncratic",
+    "priors": {
+      "iron_ore": "양/음 데이터판정(원가 vs 수요동행)",
+      "china_fxi": "양(수요)",
+      "slx_steel": "양(동조)",
+      "slx_iron_spread": "양(마진)",
+      "coking_coal": "음(원가)",
+      "usdkrw": "약세→양 약"
+    }
+  },
+  "signals": {
+    "iron_ore_yoy": {
+      "y_20d": {
+        "raw": {
+          "ic": -0.0614,
+          "ic_contrib_mean": -0.0614,
+          "n": 88,
+          "t_nw": -0.57,
+          "wild_cluster_p": 0.5782,
+          "walk_forward_oos": {
+            "is_ic": 0.0474,
+            "oos_ic": -0.2163,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": -0.0964,
+          "ic_contrib_mean": -0.0964,
+          "n": 87,
+          "t_nw": -0.93,
+          "wild_cluster_p": 0.3518,
+          "walk_forward_oos": {
+            "is_ic": 0.0039,
+            "oos_ic": -0.182,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        }
+      },
+      "y_60d": {
+        "raw": {
+          "ic": -0.0919,
+          "ic_contrib_mean": -0.0919,
+          "n": 84,
+          "t_nw": -0.53,
+          "wild_cluster_p": 0.3688,
+          "walk_forward_oos": {
+            "is_ic": 0.0416,
+            "oos_ic": -0.252,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": -0.1689,
+          "ic_contrib_mean": -0.1689,
+          "n": 83,
+          "t_nw": -0.99,
+          "wild_cluster_p": 0.1329,
+          "walk_forward_oos": {
+            "is_ic": -0.0681,
+            "oos_ic": -0.2146,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        }
+      }
+    },
+    "iron_ore_d3": {
+      "y_20d": {
+        "raw": {
+          "ic": 0.1623,
+          "ic_contrib_mean": 0.1623,
+          "n": 88,
+          "t_nw": 1.55,
+          "wild_cluster_p": 0.1139,
+          "walk_forward_oos": {
+            "is_ic": 0.2246,
+            "oos_ic": 0.0857,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": 0.1841,
+          "ic_contrib_mean": 0.1841,
+          "n": 87,
+          "t_nw": 1.56,
+          "wild_cluster_p": 0.1049,
+          "walk_forward_oos": {
+            "is_ic": 0.2212,
+            "oos_ic": 0.1501,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        }
+      },
+      "y_60d": {
+        "raw": {
+          "ic": 0.3484,
+          "ic_contrib_mean": 0.3484,
+          "n": 84,
+          "t_nw": 2.66,
+          "wild_cluster_p": 0.0025,
+          "walk_forward_oos": {
+            "is_ic": 0.3495,
+            "oos_ic": 0.387,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": 0.2898,
+          "ic_contrib_mean": 0.2898,
+          "n": 83,
+          "t_nw": 1.99,
+          "wild_cluster_p": 0.0135,
+          "walk_forward_oos": {
+            "is_ic": 0.2884,
+            "oos_ic": 0.3916,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        }
+      }
+    },
+    "china_fxi_yoy": {
+      "y_20d": {
+        "raw": {
+          "ic": 0.0413,
+          "ic_contrib_mean": 0.0413,
+          "n": 88,
+          "t_nw": 0.39,
+          "wild_cluster_p": 0.7141,
+          "walk_forward_oos": {
+            "is_ic": 0.0551,
+            "oos_ic": 0.0212,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": -0.0558,
+          "ic_contrib_mean": -0.0558,
+          "n": 87,
+          "t_nw": -0.55,
+          "wild_cluster_p": 0.5932,
+          "walk_forward_oos": {
+            "is_ic": 0.0131,
+            "oos_ic": -0.164,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        }
+      },
+      "y_60d": {
+        "raw": {
+          "ic": 0.1695,
+          "ic_contrib_mean": 0.1695,
+          "n": 84,
+          "t_nw": 1.28,
+          "wild_cluster_p": 0.081,
+          "walk_forward_oos": {
+            "is_ic": 0.1875,
+            "oos_ic": 0.2124,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": -0.0296,
+          "ic_contrib_mean": -0.0296,
+          "n": 83,
+          "t_nw": -0.23,
+          "wild_cluster_p": 0.7476,
+          "walk_forward_oos": {
+            "is_ic": 0.034,
+            "oos_ic": -0.0929,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        }
+      }
+    },
+    "china_fxi_d3": {
+      "y_20d": {
+        "raw": {
+          "ic": -0.0364,
+          "ic_contrib_mean": -0.0364,
+          "n": 88,
+          "t_nw": -0.35,
+          "wild_cluster_p": 0.7491,
+          "walk_forward_oos": {
+            "is_ic": 0.081,
+            "oos_ic": -0.2366,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": -0.0152,
+          "ic_contrib_mean": -0.0152,
+          "n": 87,
+          "t_nw": -0.15,
+          "wild_cluster_p": 0.8906,
+          "walk_forward_oos": {
+            "is_ic": 0.0617,
+            "oos_ic": -0.151,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        }
+      },
+      "y_60d": {
+        "raw": {
+          "ic": 0.1219,
+          "ic_contrib_mean": 0.1219,
+          "n": 84,
+          "t_nw": 0.9,
+          "wild_cluster_p": 0.2689,
+          "walk_forward_oos": {
+            "is_ic": 0.2664,
+            "oos_ic": -0.0931,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": 0.0493,
+          "ic_contrib_mean": 0.0493,
+          "n": 83,
+          "t_nw": 0.34,
+          "wild_cluster_p": 0.6562,
+          "walk_forward_oos": {
+            "is_ic": 0.2137,
+            "oos_ic": -0.1973,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        }
+      }
+    },
+    "slx_steel_yoy": {
+      "y_20d": {
+        "raw": {
+          "ic": 0.0133,
+          "ic_contrib_mean": 0.0133,
+          "n": 88,
+          "t_nw": 0.12,
+          "wild_cluster_p": 0.923,
+          "walk_forward_oos": {
+            "is_ic": 0.0924,
+            "oos_ic": -0.1672,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": 0.1149,
+          "ic_contrib_mean": 0.1149,
+          "n": 87,
+          "t_nw": 1.05,
+          "wild_cluster_p": 0.3423,
+          "walk_forward_oos": {
+            "is_ic": 0.1511,
+            "oos_ic": -0.0114,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        }
+      },
+      "y_60d": {
+        "raw": {
+          "ic": 0.0412,
+          "ic_contrib_mean": 0.0412,
+          "n": 84,
+          "t_nw": 0.24,
+          "wild_cluster_p": 0.7186,
+          "walk_forward_oos": {
+            "is_ic": 0.1013,
+            "oos_ic": -0.1448,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": 0.1603,
+          "ic_contrib_mean": 0.1603,
+          "n": 83,
+          "t_nw": 0.97,
+          "wild_cluster_p": 0.1649,
+          "walk_forward_oos": {
+            "is_ic": 0.1875,
+            "oos_ic": 0.0119,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        }
+      }
+    },
+    "slx_iron_spread": {
+      "y_20d": {
+        "raw": {
+          "ic": -0.1003,
+          "ic_contrib_mean": -0.1003,
+          "n": 88,
+          "t_nw": -0.99,
+          "wild_cluster_p": 0.3658,
+          "walk_forward_oos": {
+            "is_ic": -0.053,
+            "oos_ic": -0.2131,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": -0.0626,
+          "ic_contrib_mean": -0.0626,
+          "n": 87,
+          "t_nw": -0.59,
+          "wild_cluster_p": 0.5767,
+          "walk_forward_oos": {
+            "is_ic": -0.0398,
+            "oos_ic": -0.1291,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        }
+      },
+      "y_60d": {
+        "raw": {
+          "ic": -0.1961,
+          "ic_contrib_mean": -0.1961,
+          "n": 84,
+          "t_nw": -1.46,
+          "wild_cluster_p": 0.09,
+          "walk_forward_oos": {
+            "is_ic": -0.153,
+            "oos_ic": -0.3141,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": -0.1312,
+          "ic_contrib_mean": -0.1312,
+          "n": 83,
+          "t_nw": -0.99,
+          "wild_cluster_p": 0.2514,
+          "walk_forward_oos": {
+            "is_ic": -0.1321,
+            "oos_ic": -0.2067,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        }
+      }
+    },
+    "coking_coal_d3": {
+      "y_20d": {
+        "raw": {
+          "ic": 0.012,
+          "ic_contrib_mean": 0.012,
+          "n": 88,
+          "t_nw": 0.1,
+          "wild_cluster_p": 0.92,
+          "walk_forward_oos": {
+            "is_ic": 0.0695,
+            "oos_ic": -0.1308,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": 0.1283,
+          "ic_contrib_mean": 0.1283,
+          "n": 87,
+          "t_nw": 1.06,
+          "wild_cluster_p": 0.2599,
+          "walk_forward_oos": {
+            "is_ic": 0.1437,
+            "oos_ic": 0.0186,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        }
+      },
+      "y_60d": {
+        "raw": {
+          "ic": -0.029,
+          "ic_contrib_mean": -0.029,
+          "n": 84,
+          "t_nw": -0.16,
+          "wild_cluster_p": 0.8076,
+          "walk_forward_oos": {
+            "is_ic": 0.0014,
+            "oos_ic": -0.0953,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": 0.1051,
+          "ic_contrib_mean": 0.1051,
+          "n": 83,
+          "t_nw": 0.62,
+          "wild_cluster_p": 0.3853,
+          "walk_forward_oos": {
+            "is_ic": 0.0975,
+            "oos_ic": 0.1174,
+            "sign_hold": true,
+            "verdict": "✅OOS 부호유지"
+          },
+          "status": "powered"
+        }
+      }
+    },
+    "usdkrw_d3": {
+      "y_20d": {
+        "raw": {
+          "ic": 0.0189,
+          "ic_contrib_mean": 0.0189,
+          "n": 88,
+          "t_nw": 0.18,
+          "wild_cluster_p": 0.8626,
+          "walk_forward_oos": {
+            "is_ic": -0.0621,
+            "oos_ic": 0.1912,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": 0.0123,
+          "ic_contrib_mean": 0.0123,
+          "n": 87,
+          "t_nw": 0.12,
+          "wild_cluster_p": 0.8991,
+          "walk_forward_oos": {
+            "is_ic": -0.0435,
+            "oos_ic": 0.1041,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        }
+      },
+      "y_60d": {
+        "raw": {
+          "ic": -0.0982,
+          "ic_contrib_mean": -0.0982,
+          "n": 84,
+          "t_nw": -0.64,
+          "wild_cluster_p": 0.3848,
+          "walk_forward_oos": {
+            "is_ic": -0.3041,
+            "oos_ic": 0.2562,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        },
+        "residualized": {
+          "ic": -0.1338,
+          "ic_contrib_mean": -0.1338,
+          "n": 83,
+          "t_nw": -0.95,
+          "wild_cluster_p": 0.2079,
+          "walk_forward_oos": {
+            "is_ic": -0.2095,
+            "oos_ic": 0.0371,
+            "sign_hold": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "powered"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,264 @@
+industry: chemical
+asset_scope: [equity.kr]
+archetype: cyclical          # core/structure/archetype.py cyclical (primary=P/B, trap=peak-EPS) — 단 ★화학은 PER value premium 강(peak-EPS trap 약, 측정 발견)
+as_of: "2026-06-05"
+owner: chem-analyst@kr-equity (opus 1m)
+verdict_label: PARTIAL       # tradeable ≥1 (vol/per/mom) but n=17 small-n + BY 일부 생존 → PARTIAL
+universe_n: 17               # ★small-n (telecom 13/auto 17 동급) → magnitude haircut + 방향만 신뢰
+
+# ── 블록1 LENS (정성) ──
+lens:
+  pricing_principle: "석유화학 = cyclical 장치산업. 에틸렌-납사 spread/유가/중국 cycle이 산업 timing 결정. 종목 selection은 저변동(vol)·역모멘텀(reversal)·저PER value가 forward 예측. ★capex anomaly는 화학 REJECTED — 종목별 capex 분산은 존재(cross-sectional CV 0.241, 범위 0.236~0.617)하나 forward 예측력 부재(panel n_obs=1312 powered인데 IC≈0 = 측정 못함 아니라 예측력 없음). auto/steel(분산+예측력 유효, within=0.96)과 대비."
+  cycle_reading: "cyclical 정점→둔화 국면(Slowdown)에서 저변동·역모멘텀 강세. 중국 자급률 상승 구조적 역풍. 2024-25 공급과잉 down-cycle."
+  estimation_note: "2026-05 현 시점 = 중국 증설 공급과잉 지속 down-cycle 추정 (theory-notes §3). PBR 역사적 밴드 하단. 단 측정은 cross-sectional selection만, cycle timing은 regime 변수."
+
+# ── 블록2 INDICATORS (5게이트 통과/tradeable) ──
+indicators_passed:
+  - id: vol_60
+    layer: 1
+    family: low_volatility
+    ic_mean: -0.142            # ★y_60d, 점추정 아님 = 분포로
+    ic_ci_95: [-0.227, -0.063] # block-boot, 0 제외
+    n_effective: 44            # n_eff (n=82)
+    oos_ratio: 0.60            # OOS/IS (OOS -0.108 / IS -0.180)
+    source_id: "validation-macro.md §3 / validation-conditional-v3.json vol_60.y_60d"
+    note: "저변동성 anomaly 음. BY 생존, OOS HOLD, size-orth -0.169(독립). t_obs(neff)=3.14 WELL-powered. ★최강 tradeable. small-n magnitude haircut 의무."
+  - id: per_z
+    layer: 1
+    family: value
+    ic_mean: -0.218            # 6M (point estimate 아님, size-orth -0.110 = 절반 size)
+    ic_ci_95: [-0.328, -0.108] # NW 근사
+    n_effective: 79
+    oos_ratio: 1.48            # OOS -0.322 / IS -0.135 (OOS 강화)
+    source_id: "validation-fundamental.md §4 / validation-valuation-v3.json per_z__6M"
+    note: "★PER value premium 강 (저PER→고forward). auto/반도체와 반대(peak-EPS trap 화학 약). BY 생존(per 6M/3M/12M). ★size-orth IC 절반(-0.110)=small-cap value 절반, small-n(n≈12.5) magnitude 50-70% haircut. 24M degenerate 제외."
+  - id: mom_6
+    layer: 1
+    family: momentum_reversal
+    ic_mean: -0.115            # y_60d (음 = reversal)
+    ic_ci_95: [-0.183, -0.049]
+    n_effective: 42
+    oos_ratio: 4.64            # OOS -0.195 / IS -0.042 (OOS 강화)
+    source_id: "validation-macro.md §2 / validation-conditional-v3.json mom_6.y_60d"
+    note: "모멘텀 reversal 음 (cyclical 정점, 반도체 동형). BY 생존, OOS HOLD, size-orth -0.146(독립). t_obs(neff)=2.48 underpowered but OOS HOLD → tradeable."
+
+# ── 블록3 RELATIONSHIPS (regime-conditional) ──
+relationships_passed:
+  - node_a: inv_ratio
+    node_b: forward_return_20d
+    conditioning_set: [krw_regime=KRW_neutral]
+    corr: -0.105
+    corr_ci_95: [-0.20, -0.01]   # wc_p 0.024
+    n: 38
+    source_id: "validation-fundamental.md §2 / validation-fundamentals-cycle-v3.json inv_ratio.y_20d.krw_neutral"
+    note: "재고순환 음(재고↑→forward↓) — KRW_neutral 국면만. 단일 FDR BY 미생존(36셀 multiplicity). TENTATIVE regime-conditional."
+
+# ── 블록4 WEIGHT_RULES (점추정 박제 금지 = range + gate) ──
+weight_rule_candidates:
+  - indicator_id: vol_60
+    base_weight_range: [0.08, 0.15]   # IC -0.142 ± SE 비례, small-n 보수
+    modulate_by: [regime, cycle_phase]
+    direction: "low_vol_long (저변동 매수)"
+    granularity: cross_sectional
+    confidence: "medium (BY 생존 + OOS HOLD + size독립, but n=17 small-n)"
+    gate_status: {n: pass, se: pass, power: pass, fdr: pass_BY, oos: pass}
+    source_ids: ["validation-macro.md §3"]
+  - indicator_id: per_z
+    base_weight_range: [0.06, 0.12]   # size-orth -0.110 기준(full -0.218 haircut)
+    modulate_by: [regime, cycle_phase]
+    direction: "low_per_long (저PER value 매수)"
+    granularity: cross_sectional
+    confidence: "medium-low (BY 생존 + OOS HOLD, but size 절반 + small-n magnitude haircut)"
+    gate_status: {n: pass, se: pass, power: pass, fdr: pass_BY, oos: pass}
+    source_ids: ["validation-fundamental.md §4"]
+  - indicator_id: mom_6
+    base_weight_range: [0.04, 0.10]
+    modulate_by: [regime, cycle_phase]
+    direction: "reversal (역모멘텀, 과거고수익→매도)"
+    granularity: cross_sectional
+    confidence: "low-medium (BY 생존 but underpowered neff, OOS HOLD)"
+    gate_status: {n: pass, se: pass, power: underpowered_oos_hold, fdr: pass_BY, oos: pass}
+    source_ids: ["validation-macro.md §2"]
+
+# ── 블록5 CONFIDENCE_HOOKS (affects_indicator 필수) ──
+confidence_hooks:
+  - hypothesis_id: H_vol_lowvol
+    affects_indicator: vol_60
+    affects_edge: null
+    confirm_signal: "vol_60 forward IC 음 유지 (저변동 프리미엄)"
+    reject_signal: "e-CUSUM 붕괴 OR OOS 부호 양반전"
+    emit_where: "panel-score-IC 축"
+    accumulate_in: "weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "derive_weights 재적합"
+  - hypothesis_id: H_per_value
+    affects_indicator: per_z
+    affects_edge: null
+    confirm_signal: "per_z forward IC 음 유지 (value premium)"
+    reject_signal: "peak-EPS trap 발현(IC→0 or 양반전) OR size-orth IC 소멸"
+    emit_where: "panel-score-IC 축"
+    accumulate_in: "weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "derive_weights 재적합"
+
+# ── 블록6 COLLECTOR_PLAN ──
+collector_plan_industry:
+  - missing: "에틸렌-납사 spread 시계열 (화학 cycle 핵심 timing 변수)"
+    source: "ICIS/Platts (유료) 또는 한국석유화학협회 KPIA 무료 부분"
+    priority: high
+  - missing: "중국 화학 PMI / 중국 화학제품 수입가 (구조적 역풍 변수)"
+    source: "Caixin China PMI (무료) + 관세청 수입가"
+    priority: medium
+  - missing: "KR HY credit spread (현 US HY OAS proxy)"
+    source: "한국 회사채 스프레드 (ECOS/KOFIA)"
+    priority: medium
+  - missing: "PIT universe 멤버십 (delisted/M&A 포함, 현 스냅샷=생존편향)"
+    source: "KrxSectorProvider.get_sector_map(as_of) 시점별 inclusion"
+    priority: high
+
+# ── cross (분석 단위 간) ──
+cross:
+  common_factor_exposure:
+    - {factor: oil, beta: 0.111, beta_ci_95: [-0.114, 0.335], contemporaneous: true, source_id: "validation-cross.md §1"}
+    - {factor: dollar, beta: -1.452, beta_ci_95: [-4.27, 1.37], contemporaneous: true, source_id: "validation-cross.md §1"}
+    - {factor: credit, beta: -0.082, beta_ci_95: [-0.199, 0.035], contemporaneous: true, source_id: "validation-cross.md §1"}
+  directional_spillover:
+    - {pair: [chemical, oil_wti], net_connectedness: -0.10, lead_or_lag: lag, window_n: 82, source_id: "validation-cross.md §2 — measured-null (corr<0.1 p>0.3)"}
+    - {pair: [chemical, global_materials], net_connectedness: 0.09, lead_or_lag: lag, window_n: 83, source_id: "validation-cross.md §2 — measured-null"}
+  structural_linkage: []   # I-O centrality = frame M.3 optional 최하위 skip (통합 단계, 산업별 매번 X)
+  cross_note: "common factor 전부 비유의(n=35). cycle 선행 spillover null(유가-화학 spread 매개). cross=risk 노출 보고용."
+
+# ── robustness_checks ──
+robustness_checks:
+  - indicator_id: vol_60
+    leave_episode: pass        # OOS HOLD = single-episode 아님
+    within_period: pass        # frame 양식 (conditional 측정)
+    partial_corr_ratio: null   # collector
+    net_sharpe_ratio: 0.65     # 중회전 추정 (CPCV 캘리브 필요)
+    forward_vs_contemp: "forward 음 (저변동 premium)"
+    family_neutralized_ic: -0.169  # size-orth (size factor 직교 후)
+    eff_n_tier: Tentative      # n_eff 44 = 50-100 미만 → Tentative
+  - indicator_id: per_z
+    leave_episode: pass
+    within_period: pass        # within consistency 0.86
+    partial_corr_ratio: 0.50   # size-orth/full = -0.110/-0.218 ≈ 0.50
+    net_sharpe_ratio: 0.80     # value 저회전
+    forward_vs_contemp: "forward 음 (value premium)"
+    family_neutralized_ic: -0.110  # size-orth
+    eff_n_tier: Tentative      # avg universe n≈12.5 small
+  - indicator_id: mom_6
+    leave_episode: pass
+    within_period: pass
+    partial_corr_ratio: null
+    net_sharpe_ratio: 0.55     # 중회전
+    forward_vs_contemp: "forward 음 reversal"
+    family_neutralized_ic: -0.146
+    eff_n_tier: Tentative
+  - indicator_id: capex_ratio       # ★REJECTED 기록
+    leave_episode: fail
+    within_period: fail
+    forward_vs_contemp: "IC≈0 (auto 미재현)"
+    family_neutralized_ic: -0.002   # size-orth도 ≈0
+    eff_n_tier: REJECTED
+    note: "★capex 일반화 가설 화학 기각 — 종목별 capex 분산은 존재(CV 0.241)하나 cross-sectional forward 예측력 부재(n_obs=1312 powered, IC≈0). auto/steel(within=0.96 유효)과 근본 차이"
+
+# ── horizon_verdict ──
+horizon_verdict:
+  best_horizon: "y_60d (vol/mom) / 6M-12M (per value)"
+  forward_alpha_present: true    # vol_60/per_z/mom_6 forward 음 신호 + OOS HOLD
+
+# ── G-G v2 tradeable 판정 ──
+tradeable_signal_assessment:
+  verdict: PASS-conditional       # tradeable ≥1 but small-n low confidence → conservative cap + monitor
+  eligibility:
+    - {signal: vol_60, oos_sign_hold: true, t_obs_neff: 3.14, powered: WELL, size_independent: true}
+    - {signal: per_z, oos_sign_hold: true, t_obs_neff: 6.46, powered: WELL, size_independent: partial_0.5}
+    - {signal: mom_6, oos_sign_hold: true, t_obs_neff: 2.48, powered: "under(OOS hold=tradeable)", size_independent: true}
+  conviction_note: "shrunk IC sizing = small-n posterior 수축. n=17 universe → conservative cap + monitor. magnitude 50-70% haircut 의무."
+  rejected: [capex_ratio, ppe_yoy, inv_yoy, rnd_ratio]
+  regime_label: "Slowdown(둔화)+flow_sell(외국인매도) 국면 → 저변동·역모멘텀 화학주 강세 / value(저PER) 전국면"
+
+# ── Hard-fail 4 self-check ──
+hard_fail_self_check:
+  B_real_data: {status: PASS, note: "실 DART/KRX/FRED PIT. 합성 0. raw-v3/measure_*.py 재실행 가능. 2020 코로나·2022 down-cycle 실재."}
+  C_traceability: {status: PASS, note: "yaml IC = validation-*.json cell ID 매핑. raw .py 재현."}
+  D_pit: {status: PASS, note: "DART rcept_dt 이후만(median delay 108-120일). regime CLI 2M lag. 가격 PIT-safe."}
+  I_survivor_bias: {status: PARTIAL, note: "현 스냅샷 universe = 생존편향 한계(PIT 멤버십 collector_plan high). 화학 상폐 적으나 보정 미완."}
+
+# ── ★ROTATION 섹션 (업종 자체 비중 timing, 종목 selection과 별 차원) ──
+# 분석 unit = 화학 업종 eq-weight 월수익 시계열 (종목 cross-section 아님). raw = raw-v3/rotation/.
+rotation:
+  verdict: PASS-strong          # 이론(증권 컨센서스)+통계 수렴. 채택 2 독립 베팅: spread(margin,demand채널) + mom_3_residualized(momentum,직교)
+  unit: "화학 업종 eq-weight 월수익 (17종), n=88월 2019-02~2026-05"
+  theory_basis: "증권 컨센서스(키움 이동욱/NH 윤재성/신한 이진명) = 중국 수요(demand-pull)가 화학 cycle 본질, 나프타=cost-push 변동성, 스프레드=통합 KPI. rotation-signals.md §1"
+  candidates_measured: 8         # naphtha/china_mchi/china_fxi/spread(china-naphtha)/spread(china-brent)/usdkrw/brent/kr_exports + v1 robust
+  universe_strict_NCC: ["051910","011170","009830","011780","006650","005950"]  # 순수 NCC robustness 대조
+  signals:
+    - id: spread_china_minus_brent
+      direction: "양 (수요-원가 margin↑→화학 OW)"
+      rho_y60d_full: 0.539        # z(china_mchi_yoy) - z(brent_yoy), full 17종
+      rho_y60d_strict_NCC: 0.427  # ★strict 6종에서도 OOS robust = 본질
+      wc_p: 0.001
+      oos: "부호+mag 유지 (eligible, full+strict 둘 다)"
+      tier: "★STRONG (margin 최강, 증권 '스프레드 통합 KPI' 정합). underpowered(t_power 2.31)=부호·방향 한정"
+      source_id: "validation-chem-rotation-v2.json spread_china_minus_brent__y_60d"
+    - id: spread_china_minus_naphtha
+      direction: "양 (수요-원가 margin↑→화학 OW)"
+      rho_y60d_full: 0.450        # z(china_fxi_yoy) - z(naphtha_yoy)
+      rho_y60d_strict_NCC: 0.354  # ★strict 유지
+      wc_p: 0.001
+      oos: "부호+mag 유지 (eligible, full+strict)"
+      robustness: {non_overlap_s3: 0.552, placebo_p: 0.002, loy_sign_consistent: true}
+      tier: "★STRONG (margin, strict NCC robust)"
+      source_id: "validation-chem-rotation-v2.json spread_china_minus_naphtha__y_60d / v1 robust"
+    - id: china_mchi_yoy
+      direction: "양 (중국 수요↑→화학 OW)"
+      rho_y60d_full: 0.458
+      rho_y60d_strict_NCC: 0.236  # strict 약화 but OOS 유지
+      wc_p: 0.001
+      oos: "부호+mag 유지 (eligible)"
+      robustness: {non_overlap_s3: 0.503, placebo_p: 0.002, loy_sign_consistent: true}
+      tier: "STRONG (본질 demand-pull)"
+      source_id: "validation-chem-rotation-v1/v2.json china_mchi_yoy__y_60d"
+    - id: china_fxi_yoy
+      direction: "양"
+      rho_y60d_full: 0.347
+      wc_p: 0.001
+      oos: "부호+mag 유지 (eligible)"
+      tier: "STRONG (secondary China demand, spread/mchi와 동일 채널)"
+      source_id: "validation-chem-rotation-v1.json china_fxi_yoy__y_60d"
+    - id: mom_3_residualized
+      channel: momentum            # ★spread/china(demand 채널)와 직교 = 2번째 독립 베팅
+      direction: "양 (업종 추세 추종)"
+      rho_y60d: 0.385              # 공통 macro(usdkrw+brent) residualize 후 잔존
+      wc_p: 0.001
+      oos: "부호+mag 유지 (eligible)"
+      robustness: {non_overlap_s3: 0.475, placebo_p: 0.002, loy_sign_consistent: true, orthogonality_to_spread: 0.26, orthogonality_to_china: 0.35}
+      tier: "★채택 (독립 보조 베팅). residualize 생존 = data-mining 아닌 고유 momentum. underpowered=부호·방향 한정"
+      source_id: "validation-chem-rotation-aux-v1.json mom_3_residualized__y60 / mom3_robust.py"
+    - id: pbr_z_valband
+      channel: valuation
+      direction: "양 (추세 일관)"
+      rho_y60d: 0.550
+      wc_p: 0.001
+      oos: "부호+mag 유지 (eligible)"
+      tier: "valuation-band guard (보조). mom3_resid(0.58)/china(0.52) 중복 = 독립 베팅 약 → guard로만"
+      source_id: "validation-chem-rotation-aux-v1.json pbr_z_valband__y60 / _rotation valband +0.448"
+    - id: naphtha_yoy
+      direction: "음 (납사 원가↑→마진↓→화학 UW)"
+      rho_y60d_full: -0.375       # _rotation v2 -0.367 재현
+      wc_p: 0.001
+      oos: "부호유지 mag약 (eligible=false). strict NCC = OOS flip"
+      tier: "TENTATIVE (cost-push 변동성, 방향 본질 아님). v2 신호 정밀화: 강등"
+      source_id: "validation-chem-rotation-v1/v2.json naphtha_yoy__y_60d"
+  rotation_rule: "spread(중국수요-원가 margin) 확대 + 중국 demand(MCHI yoy) 상승 → 화학 OW / spread 축소 + 중국 둔화 + 나프타 cost-push 우세 → 화학 UW (증권 실무 = 중국 PMI>50 + 스프레드 BEP 상회)"
+  rejected: [usdkrw_yoy, kr_exports_yoy, naphtha_d3, china_fxi_d3]   # prior 반대/비유의/3M 무신호
+  strict_NCC_robustness: "순수 석유화학 6종(LG화학/롯데/한화솔/금호석유/대한유화/이수화학)에서 China·naphtha 단독은 OOS flip이나 spread(margin)는 robust 유지 = 화학 rotation 본질 = 수요-원가 margin (cost/demand 단독 아님)"
+  collector_plan: "★에틸렌/프로필렌 spot(ICIS/Platts 유료) + 중국 화학 PMI(Caixin)/부동산 착공 = 진짜 NCC spread 수집 시 proxy 정밀화. 현 = demand(FXI/MCHI)/cost(naphtha/brent)/spread(z 차이) proxy로 본질 입증."
+  note: "★종목 selection capsule(vol_60/per_z/mom_6)과 별 차원 = 업종 동적 tilt. WIRE5 결합·sizing = supervisor 통합. underpowered → gated default(over-trade 차단). 후보 8개 측정, 채택 5(spread×2/china×2/cost-push secondary), REJECTED 4."
+
+# ── open questions (H축) ──
+open_questions:
+  - "capex 일반화 화학 기각 = 분산 존재(CV 0.241)하나 forward 무예측. steel은 within=0.96 selection 유효(근본 차이) = capex 유효성은 산업구조 아니라 forward 예측력 실측 의존. 시계열(산업 timing) capex로는 유효한지 별 측정 필요(현 cross-sectional만)."
+  - "PER value premium > PBR (auto 반대) = peak-EPS trap 화학 약. 화학 적자 빈도/EPS 변동 진폭이 반도체보다 작아서인지 검증 필요."
+  - "에틸렌-납사 spread 미수집 → cycle timing 변수 부재. ★rotation에서 China demand+spread proxy로 본질 입증했으나 진짜 NCC spread 수집 시 정밀화."
+  - "n=17 small-n → magnitude 신뢰 낮음. PIT universe 확장 시 재측정."
+  - "★rotation = China demand(+0.458) 본질 입증(이론+통계 수렴). 진짜 에틸렌-납사 spread + 중국 화학 PMI 수집 시 spread_proxy 정밀화."

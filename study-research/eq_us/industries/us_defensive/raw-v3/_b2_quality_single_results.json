@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "H": 12,
+    "family": "us_equity_exploratory_v1 (★별 family)",
+    "note": "defensive quality 단일 + net_issuance(primary alpha)/ep 직교성 + stacking. anti-value ep 부호 음 주의."
+  },
+  "op_profitability": {
+    "size_valid": {
+      "label": "op_profitability",
+      "ic_mean": -0.0116,
+      "n": 185,
+      "n_eff": 52.7,
+      "underpowered": false,
+      "t_nw": -0.59,
+      "fixed_b_cv": 2.09,
+      "fixed_b_sig": false,
+      "p_wild_cluster": 0.5655
+    },
+    "ir": {
+      "ir_neff": -0.587,
+      "n_eff": 52.7
+    }
+  },
+  "net_issuance": {
+    "size_valid": {
+      "label": "net_issuance",
+      "ic_mean": 0.0824,
+      "n": 185,
+      "n_eff": 50.6,
+      "underpowered": false,
+      "t_nw": 3.31,
+      "fixed_b_cv": 2.12,
+      "fixed_b_sig": true,
+      "p_wild_cluster": 0.0018
+    },
+    "ir": {
+      "ir_neff": 3.514,
+      "n_eff": 50.6
+    }
+  },
+  "ep_yield": {
+    "size_valid": {
+      "label": "ep_yield",
+      "ic_mean": -0.056,
+      "n": 185,
+      "n_eff": 51.8,
+      "underpowered": false,
+      "t_nw": -2.6,
+      "fixed_b_cv": 2.12,
+      "fixed_b_sig": true,
+      "p_wild_cluster": 0.0174
+    },
+    "ir": {
+      "ir_neff": -2.742,
+      "n_eff": 51.8
+    }
+  },
+  "gross_prof": {
+    "size_valid": {
+      "label": "gross_prof",
+      "ic_mean": 0.0022,
+      "n": 185,
+      "n_eff": 48.6,
+      "underpowered": false,
+      "t_nw": 0.06,
+      "fixed_b_cv": 2.15,
+      "fixed_b_sig": false,
+      "p_wild_cluster": 0.9494
+    },
+    "ir": {
+      "ir_neff": 0.072,
+      "n_eff": 48.6
+    }
+  },
+  "quality_comp": {
+    "size_valid": {
+      "label": "quality_comp",
+      "ic_mean": 0.0228,
+      "n": 185,
+      "n_eff": 47.1,
+      "underpowered": false,
+      "t_nw": 0.69,
+      "fixed_b_cv": 2.12,
+      "fixed_b_sig": false,
+      "p_wild_cluster": 0.4969
+    },
+    "ir": {
+      "ir_neff": 0.74,
+      "n_eff": 47.1
+    }
+  },
+  "net_iss+quality_stack": {
+    "size_valid": {
+      "label": "net_iss+quality_stack",
+      "ic_mean": 0.0701,
+      "n": 185,
+      "n_eff": 67.7,
+      "underpowered": false,
+      "t_nw": 4.38,
+      "fixed_b_cv": 2.08,
+      "fixed_b_sig": true,
+      "p_wild_cluster": 0.0
+    },
+    "ir": {
+      "ir_neff": 4.128,
+      "n_eff": 67.7
+    }
+  },
+  "orthogonality": {
+    "netiss_quality": -0.0416,
+    "ep_quality": 0.1578,
+    "note": "net_issuance↔quality, ep↔quality cross-corr. 직교(≈0/음)면 stacking 이득"
+  },
+  "stacking_gain": {
+    "netiss_only_ir": 3.514,
+    "stack_ir": 4.128
+  }
+}

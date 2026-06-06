@@ -1,0 +1,115 @@
+evaluation_by: ship-auditor (독립 G-C audit teammate, opus 1m)
+date: 2026-06-05
+evaluator_model: opus-1m
+note: |
+  ★독립 audit (author=ship-analyst ≠ auditor). self-audit(15axis-audit.md) 무비판 신뢰 X.
+  raw-v3/*.py 직접 재실행 + 핵심 claim 독립 재계산이 유일 판정 근거.
+axes_source:
+  primary: D:/projects/Inv/study-research/AUDIT-GUIDE.md           # 15축 SSOT
+  application: D:/projects/Inv/study-research/eq_kr/evaluation-axes.md
+  gates: D:/projects/Inv/study-research/_dispatch-gates.md          # G-C + G-G v2
+
+industries:
+  - industry: shipbuilding
+    verdict: 충실                          # hard-fail 0 + per_z 격하/capex 무신호/구조적 약 전부 데이터 정합
+    provenance:
+      raw_scripts_rerun: true              # measure_valuation.py 직접 재실행 → json 완전 일치
+      rerun_evidence: |
+        per_z__24M_value IC=0.2041 t_nw=4.47 BY survivor / pbr_z__24M IC=-0.0447 등
+        8 지표 전 수치 원본 json 과 byte-수준 동일 재현. PIT 로직(rcept_dt 이후만) 직접 확인.
+      synthetic_fingerprint_check: true    # 전 항목 실데이터 지문
+      fingerprint_evidence: |
+        주말갭 정상(월~금만, 토일 0) / covid 2020-03 한화오션 -54.3% drawdown 실재 /
+        daily logret kurtosis 5.05 (fat-tail) / 슈퍼사이클 한화오션 15636(2022-10)→149900(2026-01) 9.59x /
+        DART 적자(2021-22 6-7종)→흑자전환(2024-26 10-13종) 실재.
+      yaml_to_raw_traceable: true          # summary.yaml 전 신호 source_id 박제, 재현 일치
+
+    axes_15:
+      A: PASS    # 9가설 ex-ante 사전등록(측정 前 동결). Stopford/Cooper-Gulen-Schill 2008 JF/Damodaran/Clarkson 실재. HARKing 방지
+      B: PASS    # ★hard. measure_valuation.py 재실행 json 일치. 합성 0%. pykrx 16종 1818일 + DART 356rows + yfinance + FDR
+      C: PASS    # ★hard. summary.yaml 전 신호 source_id → raw json key 추적 가능. vol_60 IC -0.0568 / VIX β -0.0145 / per_z 0.2041 전부 일치
+      D: PASS    # ★hard. 가격 forward shift(미래누설 X). valuation = DART rcept_dt 이후만(avail=sub[rcept<=dt] 직접 확인). lookahead 0
+      E: PASS    # Gemini 리서치 → 학술 ground(Maritime Economics) cross-verify. 환각 claim 0. 자문 복붙 아닌 메커니즘 추출
+      F: PASS    # 9가설 정량 반증조건 + 기각 실측(H3 PER trap·H8 supply-chain REJECTED·per_z artifact 격하). 기각≥3 = p-hacking 아님
+      G: PASS    # ★tier. n_eff + wild-cluster boot + block-boot CI. avgN/n_months 명시. tier=structural_prior_low(validated 위장 X)
+      H: PASS    # collector_plan(Clarkson 수주/SCFI/EV-EBITDA/PIT 멤버십) + candidate-ledger 연결. 미해결 풍부(약신호 산업)
+      I: PARTIAL # ★hard축이나 PARTIAL=정직 격하. 신규상장 4종(329180/439260/460930/217590) look-back gap + delisted/M&A 누락(FDR 현스냅샷). over-claim 아님 — 약신호라 생존편향이 결과 부풀리는 방향도 아님. hard-fail 아님
+      J: PASS    # gross |IC| 0.057 vs 월 16.5bps. KR STT 비대칭. net 보존 marginal/약(breadth 협소) 정직 박제
+      K: PASS    # 통합 m=165 BY-FDR(by_factor 5.686, survivors=0). capex 33셀 p<0.05 2개=우연기대 1.7(multiplicity 인식). M_eff=supervisor
+      L: PASS    # VIX β 보고만(산업 cross 최종 박제 X). directional_spillover candidate 보고. 통합 PSD=supervisor 책임
+      M: PASS    # score_ic_breakdown_eprocess 직접 호출(재구현 X). opt-in. INV_R15_WEIGHTS 미접촉
+      N: "N/A"   # cross 조립(RegimeGlasso/Σ) = supervisor 단계. 산업 = β 벡터 보고만
+      O: PASS    # forward=shift(-h). reject≠missing tri-state(상장전 NaN=look-back gap / 적자기 PER NaN=분모음 관측). 직접 확인
+
+    hard_fail_count: 0                      # B·C·D PASS, I=PARTIAL(정직 격하, 무효 아님). M·N·O wire 위반 0
+    tier: structural_prior_low_confidence   # 전 신호 BY 미생존 + vol_60 TENTATIVE = validated_alpha 위장 불가, 정직 prior tier
+
+    # ===== ★임무 핵심 4 검증 (독립 재계산 근거) =====
+    audit_focus_findings:
+      per_z_artifact_격하_정당성:
+        verdict: ★정당 (진짜 신호 죽인 것 아님, 양방향 점검 완료)
+        독립_재계산:
+          - "non-overlap 진짜 독립표본 n=3 (IC -0.036/0.262/0.40), t=1.62 p=0.246 = 비유의. 24M IC 0.2041 의 t=4.47 은 61개월 overlap inflation"
+          - "eff_N 보정: overlap 자기상관 lag1=0.52 → eff_N≈8.6. measure.py NW lag=24 가 small-sample size distortion(Kiefer-Vogelsang)으로 t 부풀림"
+          - "6M/12M OOS 부호반전 직접 재현: 6M IS-0.132→OOS+0.086 / 12M IS-0.120→OOS+0.140 (summary.yaml 수치 단위까지 일치) = horizon 불안정"
+          - "흑자전환 착시 실증: HD현대중공업(329180) PER 첫관측 2024-03(흑전) 직후 24M fwd +294%. PER 늦게 생긴 종목=흑전 늦음=슈퍼사이클 진입 타이밍 → 고PER(z高)→고forward = IC>0 정체"
+          - "avgN 6.9 = 매월 6.9종만 cross-section(흑자 종목 한정). degenerate"
+        결론: "BY 생존했으나 tradeable 자격 X 격하 = 데이터 완전 정합. ship-analyst 판단 옳음(over-claim 회피 방향). 반대로 진짜 신호를 죽인 정황 없음 — non-overlap 독립검정 p=0.246 이 결정적"
+      capex_무신호_정직성:
+        verdict: ★정직
+        독립_재계산:
+          - "capex uncond y_5d/20d/60d wc_p = 0.477/0.911/0.889 전부 비유의"
+          - "capex 전 33셀 중 p<0.05 = 2개(Recovery y_60d 0.008, KRW_strong y_5d 0.044 n=10 INSUFFICIENT). 우연 기대 1.7개 = multiplicity noise 수준"
+          - "two-sided(과잉투자 음 / 수주확대 양) 측정 → 부호 +/- 교차(Recovery+, Slowdown-, Overheat-) = one-sided 음 단정 회피가 정답"
+        결론: "asset growth anomaly(Cooper-Gulen-Schill) 음 prior 가 조선엔 약하게도 미발현. 산업베타 지배가 종목 cross-sectional 부호효과 압도. 무신호 정직"
+      구조적_약_결론_정합성:
+        verdict: ★데이터 정합 (방법 결함 아닌 신호 본질 약)
+        독립_재계산:
+          - "조선 4대장 일간수익률 평균 pairwise 상관 0.66 (전 14종 0.50) = 종목 동조성 高"
+          - "PC1(산업 베타) 분산설명 74.5% = 슈퍼사이클 timing 이 종목 변동 3/4 지배 → cross-sectional selection 여지 구조적 작음"
+          - "통합 m=165 BY survivors=0 (raw_p_min 0.0015 도 Bonferroni α 0.000303 미달)"
+          - "반도체 85종 분산효과 충분 ↔ 조선 16종 + 상관 0.66 = breadth 부족 = selection alpha 구조적 약"
+        결론: "H9(산업베타 지배) ex-ante 가설을 PC1 74.5% + 상관 0.66 으로 직접 입증. Maritime Economics 정합. family_2 비유의도 재확인. '방법 결함 아닌 구조적 약' 정당"
+      vol_60_TENTATIVE_적정성:
+        verdict: ★적정
+        독립_재계산:
+          - "vol_60 uncond y_20d IC -0.0568 wc_p 0.128 CI[-0.129,+0.020](0포함) = magnitude 비유의 재현"
+          - "IS/OOS 부호유지 재현: IS -0.038 → OOS -0.034(monthly 근사). 방향(음, low-vol) OOS 일관 = 유일 생존 신호 확인"
+          - "summary gate_status {se:fail, fdr:fail, oos:pass} confidence:low = 자기검열 정직"
+        결론: "TENTATIVE DIRECTIONAL(방향 prior, magnitude 비유의) 격하 적정. over-claim 0"
+
+    system_fit:
+      current_skeleton_fits: true           # structural_prior tier + monitor-only/conservative cap 으로 현 골격 수용 가능
+      pipeline_upgrade_needed: false
+      upgrade_plan: |
+        non-blocking 보강(ship-analyst 제안 타당): PBR 밴드 timing 레이어(cross-sectional 무효지만
+        시계열 유효 가능) + Clarkson 수주/SCFI 운임 timing 변수. 다운그레이드 아님. 통합 후 판정.
+
+    remediation: []                         # 부분/불충분 항목 없음 (충실 판정)
+
+    flag_dynamic_path_check:
+      affects_indicator_present: true        # confidence_hooks affects_indicator: cs_lowvol_60d (매칭 확인)
+      affects_edge_present: true             # affects_edge: [cs_lowvol_60d, ship_fwd_20d]
+
+    # ===== G-G v2 매매 신호 충분성 판정 =====
+    g_g_v2_tradeable_sufficiency:
+      verdict: PASS-conditional (최약) 경계 FAIL
+      tradeable_count: 1                     # vol_60 만 (방향 OOS 생존), magnitude 비유의
+      detail: |
+        (a) OOS 부호유지: vol_60 ✅ / 나머지 ✗ (per_z/pbr OOS 반전, momentum 소멸).
+        (b) tier: vol_60 = TENTATIVE DIRECTIONAL(경계).
+        (c) net-alpha: marginal/약(breadth 협소 16종 + low-vol turnover 낮음).
+        (d) regime: vol_60 Reflation/flow_neutral 증폭 = 국면 답 가능 ✅.
+        → tradeable=1 but CI 0포함 + BY 미생존 = magnitude 비유의. per_z BY 생존=artifact 제외.
+        ★supervisor 판정 권고: monitor-only(최소 weight) + PBR밴드 timing 보강. cross-sectional selection 강제투입 ⛔(over-trade 차단).
+      g_b_trigger: 충족 (BY 0 + 약신호) — 단 family_2 의무 이행(비유의) + Gemini 리서치(H9) = "방법 결함 아닌 구조적 약" 근거. team-lead 자문 발동 여부 판정
+
+summary:
+  total_industries: 1
+  verdict_counts: {충실: 1, 부분: 0, 불충분: 0}
+  hard_fail_industries: []                  # B·C·D·I(+M·N·O) hard-fail 0
+  overall_recommendation: |
+    ★PASS (충실, hard-fail 0). per_z 24M artifact 격하 = 데이터 완전 정당(non-overlap n=3 t=1.62 p=0.246,
+    6M/12M OOS 반전 재현, 흑전 +294% 착시 실증) — 진짜 신호를 죽인 것 아님. capex 무신호 = multiplicity 인식한
+    정직 보고. 구조적 약(PC1 74.5% + 상관 0.66) = 방법 결함 아닌 신호 본질. vol_60 TENTATIVE 적정. over-claim 0.
+    G-C 통과. G-G v2 = PASS-conditional 최약(monitor-only + 보강 권고). 코드화 진행 시 conservative cap.

@@ -1,0 +1,285 @@
+# summary.yaml — refining(정유) 산업 v3 conditional (frame v3 §M + dispatch conditional IC surface)
+# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge 어휘, BY 보정, LOO/block-boot, n<30 hedge).
+# ★★CRITICAL data-gate: 정유 코어 strict 2종(SK이노/S-Oil) → cross-sectional IC ⛔불가. 산업 시계열(frame M2)로 측정.
+# raw 재현: raw-v3/{collect, collect_refining_cycle, collect_dart, collect_dart_extended}.py (수집)
+#   + {measure_timeseries, measure_ts_robustness, measure_capex_cycle, measure_valuation_ts, measure_cross_placebo}.py (측정)
+# regime 데이터 = regime_labels/regime_series.parquet (auto서 복사, 시장공통 FRED CLI/DEXKOUS + ECOS 외국인순매수)
+
+industry: kr_refining          # eq_kr 12산업 中 Tier 3 (정유, 석유·가스)
+asset_scope: [equity.kr]
+archetype: cyclical            # spread_driven 성격 강 (정제마진 crack spread + 유가 cycle, 원자재 노출)
+archetype_attestation:
+  valid_from: "2019-01-01"     # ★PIT 사전선언 (§M.5 ex-post 금지). cyclical = 정제마진/유가 사이클
+  declared_at: "2026-06-05"    # 선언 시점 (사후편향 hazard 방지 attestation)
+  primary_metric: pbr          # cyclical primary (peak-EPS trap → PBR, PER 무효). 단 측정불가(2종)
+  secondary: crack_spread      # 정유 고유 = 정제마진(산업 timing, 종목선택 아님)
+  basis: >
+    ★실측 결론(2026-06-05): cross-sectional(종목선택) = 전부 INSUFFICIENT(strict 2종, 횡단면 IC 불가).
+    산업 시계열(frame M2)서 ① 유가 Brent forward 음(mean-reversion, TENTATIVE) ② crack spread 약 ③ PBR 시계열 음(비유의)
+    ④ ★capex level forward 양 = spurious(ADF I(1) + 유가proxy collinear) REJECTED. cyclical = PER 무효(적자빈발+peak-EPS).
+as_of: "2026-05-29"
+
+# ★★ data-gate 선언 (B/C/D self-check 前 최우선 박제) ──────────────────────
+data_gate:
+  status: "CRITICAL — cross-sectional 측정 불가 산업"
+  refining_core_floor_pass_strict: 2     # 시총3000억∧ADV30억(battery/auto 동일) 통과 = SK이노096770 + S-Oil010950
+  refining_core_total: 5                 # 석유 정제품 제조업 (한국쉘석유/미창석유/극동유화 = microcap·ADV 0.3~1.6억)
+  gas_util_floor_pass_strict: 0          # 가스유틸/LPG = floor 통과 0종 + archetype 이질(규제 유틸 ≠ 정제마진 cyclical)
+  cross_sectional_verdict: "★INSUFFICIENT — Spearman IC min 8종 필요, 정유 2종. PBR/PER/capex 횡단면 측정 불능."
+  approach: "frame §0 미션을 종목 횡단면 대신 ★산업 시계열(frame M2)로 답. 종목선택(L3)은 INSUFFICIENT 박제."
+  user_breadth_warning: "dispatch ★정유 universe 협소 = small breadth → 점추정 금지, 방향+권역만, n<30 hedge 강화 (정확히 실현)."
+  scope_boundary: "화학(석유화학 25종) = chemical teammate(task#14) scope, 침범 불가(frame §1.6 분석unit 오염). energy 광의(가스 포함)는 supervisor 결정 대기."
+
+# ── 블록1 LENS (정성) ──
+lens:
+  pricing_principle: >
+    정유 = cyclical (정제마진 crack spread + 유가 cycle). "싸다" = P/B(★peak-EPS trap: 정유 = 사이클 정점 마진·EPS 극대 →
+    저PER 착시, 2016-17 호황 PER 4~5배→장기하락). primary=pbr but cross-sectional 측정불가(2종). 단기 주가 driver = 유가 재고평가손익.
+    ★실측 핵심: ① 유가 동시(+, 재고평가이익) vs 예측(-, mean-reversion·수요파괴) 부호 갈림(Deaton-Laroque 1992) ② 정제마진 약
+    (Gulf crack proxy 한계, 한국=싱가포르GRM) ③ ★capex level forward 양 = spurious(유가국면 proxy, REJECTED).
+  cycle_reading: >
+    2019-2026 = COVID 마진붕괴(2020 crack -9$, Brent $19)→우크라전 디젤크랙 폭등(2022 diesel crack $116)→정상화(2024~ crack $8~40).
+    regime(시장공통): Macro[Slowdown/Recovery/Reflation/Overheat] × KRW[neutral/weak/strong] × flow[neutral/sell/strong_buy].
+    유가 contemporaneous β +0.23(동조 강), forward mean-reversion(고유가→peak-out). 2026-05 Brent $93, crack 정상권.
+  estimation_note: >
+    2026-05 시점: cross-sectional universe = SK이노/S-Oil 2종(strict). ★small breadth 최악(반도체73·auto17 대비 n=2).
+    종목선택 신호 측정 불능 → 산업 시계열만. SK이노 PBR 0.52(밴드 하단, 역사 0.38~3.0) / S-Oil 1.42. capex_ratio 0.42/0.55(초자산집약).
+    ★breadth-adjusted IR(frame §M.12): 시계열 신호 breadth=1(cross-sectional 분산 없음) → IR=IC·√eff-N = 유가 -0.37·√26.5 ≈ -1.89(=t_eff, marginal).
+    cross-sectional 가능했다면 IR=IC·√(eff-N×N종) but 정유 N=2 = breadth 자동차(17종)의 1/8.5 = 신호 누적 구조적 불가. ★= 매매 alpha 누적 불능 정량 박제.
+
+# ── ★블록2-A 측정 결과 (cross-sectional 불가 → 시계열 frame M2) ──
+# ★점추정 금지: rho + wild_cluster_p + n + n_eff + eff-N 보정 t + walk-forward OOS.
+conditional_ic_surface:
+  source: "raw-v3/validation-timeseries-v3.json + validation-ts-robustness-v3.json + validation-cross-placebo-v3.json"
+  meta:
+    measurement_unit: "★산업 패널 시계열 (정유 strict2 동일가중 월수익 vs cycle driver). cross-sectional 불가."
+    horizons: "★horizon sweep 5d/20d/60d(team-lead 승인, validation-ts-horizon-v3.json) + contemporaneous + forward 1M/3M (frame §D falsifier: 동시 vs 예측)"
+    regime_axes: "Macro 4 × KRW 3 × flow 3 (시장공통 regime_labels)"
+    calibration: "★small n_months(82~88) + 60d/3M 중첩 autocorr → eff-N 보정 t + wild-cluster bootstrap(Rademacher B=2000) + block-boot CI"
+    fdr_single_family: "★단일 FDR family(BY) m=23(6 driver × 3 horizon + 5 regime cell) survivors=0. raw_p_min=0.003(refinery_ip y_60d)도 BY 미생존 = 약신호 정직 확정."
+    crack_proxy_caveat: "★한국 정유 표준 = 싱가포르 복합정제마진(GRM, 무료부재) → US Gulf Coast crack(gasoline/diesel−Brent) proxy. 글로벌 동조 prior but proxy 한계 = magnitude hedge."
+
+  # ── 시계열 cycle 신호 (frame M2, 정유 본질) ──
+  timeseries_signals:
+    - id: oil_brent
+      family: commodity_price
+      prior: "동시 양(+, 재고평가이익) / 예측 음(-, mean-reversion·수요파괴)"
+      contemporaneous: {rho: 0.4068, wc_p: 0.0025, n: 88, n_eff: 82.9, status: powered, note: "★유가 동시 동조 강 = 재고평가이익 mechanism"}
+      horizon_term_structure:   # ★team-lead 승인 horizon sweep 5d/20d/60d (정유섹터 forward IC)
+        y_5d: {rho: -0.201, wc_p: 0.0825, t_eff: -1.90, note: "단기 음 marginal"}
+        y_20d: {rho: -0.155, wc_p: 0.1754, t_eff: -1.45, note: "중기 음 약화(비유의)"}
+        y_60d: {rho: -0.338, wc_p: 0.0035, t_eff: -1.81, note: "★60d 가장 강(분기 peak-out mean-reversion)"}
+        note: "★term-structure = 5d/60d 강 음 / 20d 약 = mean-reversion 분기 단위 작동(theory peak-out 정합). 단 전 horizon eff-N |t|<2 marginal + FDR 미생존."
+      forward_3m: {rho: -0.368, wc_p: 0.0015, n: 86, n_eff: 26.5, t_naive: -3.63, t_eff_corrected: -1.96, note: "★eff-N 보정 t=-1.96 = marginal(|t|<2 경계). (월간 ret 기준, horizon y_60d와 정합)"}
+      walk_forward_oos_horizon: {y_5d: "HOLD(IS-0.30/OOS-0.07)", y_20d: "HOLD(IS-0.17/OOS-0.25)", y_60d: "HOLD(IS-0.37/OOS-0.52 강화)", note: "전 horizon OOS 부호유지"}
+      walk_forward_oos: {is_rho: -0.3887, oos_rho: -0.6039, sign_hold: true, note: "★OOS 부호유지+강화"}
+      leave_episode: {full_rho: -0.368, leave_covid_ukraine_rho: -0.2508, survive: true, note: "2020covid+2022우크라 제외해도 음 survive(magnitude 약화)"}
+      delta_check: {d_brent_forward_rho: -0.049, t_eff: -0.24, note: "★Δ유가(차분) 예측력 0 = level만 음 = level mean-reversion(momentum 아님)"}
+      adf: {brent_level: "I(1) p=0.173 비정상", refining_fwd3_ret: "I(0) p=0.019", note: "★level 비정상 → level-on-level 부분 spurious 위험, 단 forward ret I(0)라 순수 spurious 아님"}
+      family_2_interaction: {dummy: "macro_regime=Slowdown", b_main: -0.051, t_main: -3.16, b_inter: 0.090, t_inter: 2.23, note: "★A-5 충족: Slowdown regime interaction 유의(t=2.23) = 국면따라 유가 forward 음 완화/반전"}
+      verdict: >
+        ★TENTATIVE DIRECTIONAL — 유가 level forward 음(mean-reversion) = OOS robust + leave-episode survive but
+        ★eff-N 보정 t=-1.96(marginal) + FDR 미생존 + Δ유가 예측력0(level mean-reversion, momentum 아님) + level I(1)(spurious 부분위험).
+        = ★alpha generator 아닌 risk-monitor/de-risk 용도(고유가 peak 회피). family_2 Slowdown interaction = 국면 conditional.
+    - id: crack_spread_blended
+      family: refining_margin
+      prior: "양(+, 정제마진=gross profit driver)"
+      contemporaneous: {rho: 0.136, wc_p: 0.2199, n: 88, status: powered, note: "약/비유의(gasoline crack 0.196 marginal wc_p=0.072)"}
+      common_factor_beta: {beta: 0.004, t: 2.16, note: "동시 β marginal 유의 but magnitude 미미"}
+      forward: {note: "forward 예측력 부재(blended fwd3 rho=-0.18 약 + Δcrack 무)"}
+      crack_proxy_caveat: "★Gulf crack proxy = 한국 싱가포르GRM 차선. 약신호 = proxy 한계 가능(한국 GRM 직접 측정 시 강할 수 있음, data-gate)."
+      verdict: "TENTATIVE/약 — 정제마진 동시 동조 약(wc_p>0.07) + forward 무. ★단 Gulf proxy 한계 = 싱가포르GRM 미측정 = 잠정(under-claim 회피)."
+    - id: refinery_utilization
+      family: capacity
+      prior: "양(+, 가동률↑→수급타이트→마진)"
+      contemporaneous: {rho: 0.026, wc_p: 0.8176, n: 88, note: "비유의"}
+      forward_3m: {rho: -0.315, t_eff: -1.64, oos: "FLIP(IS-0.43/OOS+0.08)", note: "★OOS flip = 무효"}
+      verdict: "INSUFFICIENT/무신호 — 동시 비유의 + forward OOS flip. (US IP proxy 한계 + 한국 가동률 무료부재)"
+
+  # ── valuation (cross-sectional INSUFFICIENT + 시계열 PBR) ──
+  valuation_signals:
+    - id: pbr
+      family: value
+      prior: "음(저PBR→고forward, value premium)"
+      cross_sectional: {status: "★INSUFFICIENT", note: "strict 2종, 횡단면 IC(min 8) 불가"}
+      timeseries_band: {pbr_level_fwd3_rho: -0.173, wc_p: 0.1084, n: 82, t_eff: -0.85, oos: "HOLD(IS-0.16/OOS-0.39)", note: "저PBR→forward양(value 방향) but eff-N t=-0.85 비유의"}
+      verdict: "TENTATIVE DIRECTIONAL — 시계열 PBR(밴드) forward 음(value premium 방향) but 비유의(t=-0.85). cross-sectional INSUFFICIENT. SK이노 PBR 0.52 밴드 하단."
+    - id: per
+      family: value
+      prior: "무효(peak-EPS trap)"
+      cross_sectional: {status: "★INSUFFICIENT + 무효 확정"}
+      verdict: >
+        ★INSUFFICIENT/무효 확정 — (1) cross-sectional 2종 불가 (2) net_income 적자 빈발(SK이노2024 -2.4조/S-Oil 2020·24·25 적자)
+        + FY만(연1회) = 음수EPS·sparse → PER 산출 불능. cyclical peak-EPS trap(정점EPS↑→저PER 함정) 정유 전형. E/P·PBR 대체.
+
+  # ── ★capex (dispatch ★★최우선 가설) — cross-sectional 불가 + 시계열 spurious ──
+  capex_hypothesis:
+    source: "raw-v3/validation-capex-cycle-v3.json"
+    dispatch_prior: "음(-) cross-sectional asset growth anomaly (Cooper-Gulen-Schill 2008), 자동차 OOS robust 일반화"
+    asset_intensity: {sk_innovation: 0.42, s_oil: 0.55, note: "★초자산집약 확인(유형자산/총자산, 자동차 0.2~0.3의 2배) = dispatch '초자산집약 장치산업' 정합"}
+    cross_sectional: {status: "★INSUFFICIENT", note: "strict 2종 → 횡단면 capex IC(min 8) 불가. dispatch 음 prior 일반화 = 정유선 ★검증 불능(측정 자체 불가, 부호 발견 X)"}
+    timeseries_level: {rho: 0.474, wc_p: 0.0005, oos: "HOLD", note: "★시계열 capex level forward 양(+) = dispatch 음 prior와 반대"}
+    spurious_evidence:
+      - "ADF: capex_ratio level p=0.859 = 강한 I(1) 비정상 (cv=0.093 느린추세) → level-on-level §1.7 spurious 위험"
+      - "Δcapex(차분) forward rho=+0.199(p=0.074 marginal) = level +0.474의 절반 이하 약화 (진짜면 차분도 강해야)"
+      - "★capex_level vs brent_level corr=-0.435 = capex가 유가국면 proxy 부분 → 시계열 capex 양은 brent forward 음과 일부 공통원인"
+    attack_atk3_rebuttal:   # ★S5 역공격(measure_attack.py ATK-3)이 over-rejection 반박
+      - "★brent 통제 후 capex partial rho=+0.292 잔존 = capex가 brent proxy ★만은 아님(orthogonal 성분 존재)"
+      - "Δcapex p=0.074 = 완전 무신호 아님(marginal)"
+      - "→ ★단순 'spurious REJECTED' 단정은 과함(over-rejection). but level I(1) + cross-sectional 측정불가로 standalone alpha 채택도 불가."
+    verdict: >
+      ★capex = INCONCLUSIVE (정직 수정, ATK-3 반영) — (1) cross-sectional 측정불가(2종, dispatch 음 prior 검증 불능)
+      (2) 시계열 level forward 양(+)은 ADF I(1) spurious 위험 강 + 유가국면 proxy 부분 ★but brent 통제 후 orthogonal 잔존(+0.29)
+      = 단순 spurious 단정 과함. → standalone alpha 채택 불가(level I(1) + n=2 cross-sectional 불가) + 단순 spurious REJECT도 보류
+      = ★INCONCLUSIVE(부호 dispatch 음 prior와 반대인 양(+) 잔존은 정유 특이 — capex↓국면=유가高=forward약? 추가검증 필요).
+      §1.8 함정 회피하되 over-rejection도 회피(ATK-3). 차기 vintage + universe 확보 시 재검.
+
+  # ── A-3 cross (분석 단위 간 상관, 빈[] 금지) ──
+  cross:
+    common_factor_exposure:   # 동시 β (validation-cross-placebo-v3.json)
+      - {factor: oil_brent, beta: 0.233, beta_ci_95: [0.1044, 0.3606], t: 3.56, contemporaneous: true, note: "★유가 동시 노출 강(정유 본질)"}
+      - {factor: usdkrw, beta: -1.432, beta_ci_95: [-2.2916, -0.5721], t: -3.26, contemporaneous: true, note: "★원화약세(usdkrw↑)→정유 음 = 원유수입 달러비용 마진압박(수출주 현대차와 반대 부호)"}
+      - {factor: crack_blended, beta: 0.004, beta_ci_95: [0.0003, 0.0069], t: 2.16, contemporaneous: true, note: "정제마진 동시 marginal"}
+      - {factor: natgas, beta: 0.055, beta_ci_95: [-0.042, 0.1527], t: 1.11, contemporaneous: true, note: "비유의"}
+    directional_spillover:    # ★A-3 빈[] 금지: 선행신호 후보
+      - {candidate: oil_brent_level, contemp_rho: -0.0756, forward_1m_rho: -0.1875, note: "유가 level 선행 약 음(mean-reversion lead)"}
+      - {candidate: blended_crack, contemp_rho: 0.017, forward_1m_rho: -0.0806, note: "crack lead 약"}
+      - {supervisor_note: "DY(Diebold-Yilmaz) 정식분해 = supervisor 통합단계. 정유 선행신호 후보 = 유가 mean-reversion(de-risk)."}
+    structural_linkage:
+      - {supplier: "글로벌 원유시장(Brent/Dubai) + 싱가포르 GRM", verdict: "유가 동시 β 강(+) but forward alpha 부재(mean-reversion) = RegimeGlasso Ω 흡수(동조성분). customer(석유화학·항공)=chemical/별 산업 scope."}
+    placebo: {random_series_rho: 0.1652, p: 0.1284, verdict: "비유의 = 측정 파이프 정상(placebo 통과)"}
+
+  # ── ★ROTATION 신호 (업종 비중 타이밍, team-lead 지시) — rotation-signals.md SSOT ──
+  # 정유 = 종목selection 영구불가(2종 과점) → rotation(섹터 OW/UW)이 유일 활로.
+  rotation_signals:
+    source: "raw-v3/validation-rotation-refining-v3.json + rotation-signals.md (이론검증+13후보)"
+    candidates_reviewed: 13   # ★team-lead 목록 완전반영: gasoline/diesel/항공유(jet)/blended crack + Brent-WTI spread + 가동률 + brent level + oil_yoy + usdkrw환율 + natgas + wti (11 측정) + 재고/OPEC (2 data-gate enumerate)
+    theory_crack_d3: "crack_d3(3M 모멘텀) = PEAD/펀더멘털 모멘텀(Bernard-Thomas 1989/1990, Chan-Jegadeesh-Lakonishok 1996). crack level=즉시반영/변화율=실적추정 상향 점진반영. ★이론 정당(data mining 아님)."
+    critical_panel_contamination:
+      finding: "★★rotation-analyst v2 'crack_d3 +0.241' = 정유 아닌 ★가스 오염 신호"
+      evidence:
+        - "정유 strict2(SK이노/S-Oil) 단독 gasoline_crack_d3 y60d = -0.014 (OOS -0.234 flip) = 무신호"
+        - "가스유틸만 = +0.248 (OOS +0.263) = ★신호 출처"
+        - "에너지11종(v2 load_industry 전체 패널) = +0.242"
+      root_cause: "measure_rotation_v2 load_industry('refining') = 정유디렉토리 prices.parquet 전체 11종(정유2+가스9) 동일가중 = energy 광의(frame§1.6 오염, supervisor 기각한 것). crack_d3 = 가스/LPG 에너지가격 베타."
+      action: "★정유 단독 통합 시 v2 crack_d3 제외 또는 'energy 광의' 재라벨(supervisor 결정). 팀 영향 = 타 산업 패널 구성 점검 권고."
+    refining_solo_results:   # ★정유 2종 단독 (가스 제외)
+      - {signal: gasoline_crack_d3, rho_y60d: -0.014, oos: "-0.234 flip", verdict: REJECTED, note: "이론 정당하나 정유 단독 무신호+OOS flip"}
+      - {signal: diesel_crack_d3, rho_y60d: -0.024, oos: "-0.145 flip", verdict: REJECTED, note: "★이론 디젤우위(수출40%) 미입증"}
+      - {signal: jet_crack_d3, rho_y60d: -0.039, oos: "-0.14 flip", verdict: REJECTED, note: "★항공유(리오프닝) 미입증 = 제품별 차별 없음"}
+      - {signal: brent_level, rho_y60d: -0.364, oos: "-0.618 강화", verdict: "★TENTATIVE", note: "유가 mean-reversion = 유일 robust 신호(고유가 UW). eff-N marginal + FDR 미생존"}
+      - {signal: refinery_util_d3, rho_y60d: 0.297, oos: "0.165 약화", verdict: TENTATIVE_약}
+      - {signal: oil_yoy_d3, rho_y60d: 0.164, oos: "0.431", verdict: 불안정, note: "d3/level 부호반대"}
+    fdr_family: {m: 38, survivors_BY: 0, raw_p_min: 0.0015, raw_p_min_key: brent_level__y_60d, note: "BY 미생존"}
+    rotation_verdict: >
+      ★정유 rotation = 유가 level mean-reversion(고유가→UW) 1개 marginal만. ★crack_d3 모멘텀 = 이론 정당(PEAD)하나
+      정유 2종 단독선 가스 오염 제거 시 소멸(REJECTED). 디젤 우위도 미입증. = monitor-only(기존 conditional IC verdict 일치).
+      종목selection 0(2종 과점). OW/UW = 유가 peak de-risk monitor 용도.
+
+# ── 블록3 WEIGHT_RULES — derive_weights 입력 (점추정 금지) ──
+weight_rule_candidates:
+  - indicator_id: industry_oil_mean_reversion   # ★산업 timing (종목선택 아님, risk-monitor)
+    base_weight_range: [-0.10, -0.02]   # 유가 level forward 음(mean-reversion). ★marginal(t_eff=-1.96) = 권역 좁게, monitor 위주.
+    modulate_by: [regime, cycle_phase]   # Slowdown interaction(family_2 t=2.23)
+    direction: "고유가 level → 정유 forward 약(mean-reversion). de-risk/peak 회피 timing. ★종목선택 아닌 산업 sleeve timing."
+    granularity: industry_timeseries     # ★cross-sectional 아님(2종 불가)
+    gate_status: {n: pass, se: marginal, power: marginal, fdr: fail, oos: pass}  # eff-N t=-1.96 marginal + FDR 미생존
+    source_ids: ["raw-v3/validation-ts-robustness-v3.json:forward_fullsample.brent_level", "validation-cross-placebo-v3.json:family_2_interaction"]
+    hedge_note: >
+      ★유가 mean-reversion = OOS robust + leave-episode survive but eff-N 보정 t=-1.96(marginal) + FDR 미생존 + level I(1) spurious 부분위험
+      + Δ유가 예측력0(level only). = alpha 아닌 risk-monitor(고유가 peak de-risk). base_weight 방향만, magnitude 권역 좁게. ★종목선택 신호 아님.
+  - indicator_id: industry_dividend_income_trap   # ★2번째 tradeable (team-lead 보강 지시)
+    base_weight_range: [-0.12, -0.03]   # 배당수익률 income trap 음. ★t_eff=-2.48 유의(유가보다 강)지만 연1회+2종 hedge → conservative.
+    modulate_by: [regime, cycle_phase]
+    direction: "★고배당수익률(전년 호황 DPS/하락주가) = 사이클 정점 직후 → 정유 forward 약(peak-out). 고배당수익률→UW. = PER peak-EPS trap의 배당 버전."
+    granularity: industry_timeseries
+    gate_status: {n: pass, se: pass, power: pass, fdr: marginal, oos: pass}  # ★eff-N t=-2.48 유의 + OOS HOLD + leave-episode survive
+    source_ids: ["raw-v3/validation-dividend-signal-v3.json"]
+    hedge_note: >
+      ★배당수익률 income trap = 2번째 tradeable(team-lead 지시 보강). rho-0.41, eff-N t=-2.48(유의, 유가 t=-1.96보다 강), OOS HOLD(-0.41/-0.44),
+      leave-episode survive(-0.51). ★부호 사전확약 정정(HARKing): prior 양(고배당=저평가) → 실측 음(cyclical income trap). ★유가와 partial 독립
+      (brent corr +0.42, partial -0.241 잔존) but peak-out 공통테마 = N_eff<2(단일 bet 근접) → conservative cap + hedge. 연1회 배당 + 2종 + 2023 무배당(cyclical) 한계.
+  - indicator_id: cs_selection_signals   # ★cross-sectional 종목선택 = 측정 불가
+    base_weight_range: [0.0, 0.0]   # ★INSUFFICIENT(2종) = 종목선택 비중 0
+    modulate_by: []
+    direction: "★cross-sectional 종목선택(PBR/PER/capex) = 전부 INSUFFICIENT(strict 2종). 매수룰 구성 불가 → weight 0."
+    granularity: cross_sectional
+    gate_status: {n: fail, se: fail, power: fail, fdr: fail, oos: fail}  # ★n<8 = 측정 불가
+    source_ids: ["raw-v3/validation-valuation-ts-v3.json", "validation-capex-cycle-v3.json"]
+    hedge_note: "★정유 cross-sectional 종목선택 신호 = 측정 불능(2종). over-trade 차단 = 종목선택 weight 0. 정유 = monitor-only/산업 timing sleeve."
+
+# ── 블록4 CONFIDENCE_HOOKS ──
+confidence_hooks:
+  - hypothesis_id: refining_oil_mean_reversion
+    affects_indicator: industry_oil_mean_reversion
+    affects_edge: [oil_brent_level, refining_fwd3]
+    confirm_signal: "live 고유가 level → 정유패널 forward 음 유지 (mean-reversion, Slowdown regime서 완화)"
+    reject_signal: "유가 forward 부호 양 전환 OR eff-N 보정 후 |t|>2.5 강화(약→강 승격 시 재평가)"
+    emit_where: "산업-timing 축 (종목선택 아님)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "derive_weights 산업 sleeve timing (de-risk 강도)"
+    action_threshold: "e-value > 20 → retract. ★universe 2종 = 안정성 모니터 강화, marginal 신호 주의."
+  - hypothesis_id: refining_cross_sectional_data_gate
+    affects_indicator: cs_selection_signals
+    affects_edge: null
+    confirm_signal: "정유 universe ≥8종 확보(신규상장/floor 변경) 시 cross-sectional 측정 재개"
+    reject_signal: "n/a (data-gate, 신호 reject 아님)"
+    emit_where: "data-availability 축"
+    accumulate_in: "collector_plan PIT universe"
+    feeds_weight: "★현 종목선택 weight 0 (측정 불가). universe 확보 시 재측정."
+    action_threshold: "floor-pass refining ≥8종 → cross-sectional capex/PBR 재측정 트리거."
+
+# ── 블록5 COLLECTOR_PLAN ──
+collector_plan_industry:
+  - missing: "★싱가포르 복합정제마진(GRM) — 한국 정유 표준 마진 지표"
+    source: "Platts/Argus 유료 OR 정유사 IR 분기 공시 GRM. 현 = US Gulf Coast crack proxy(글로벌 동조, 한계)."
+    priority: high   # ★crack 약신호가 proxy 한계인지 진짜 약인지 = GRM 직접 측정 필요
+    status: "DATA-GATE — Gulf proxy 측정완료. 싱가포르GRM = under-claim 회피 위해 high(crack verdict 잠정)."
+  - missing: "★정유 universe 확대 — cross-sectional 측정 가능 N≥8"
+    source: "현 floor-pass strict 2종(SK이노/S-Oil). 가스 포함 energy 광의(supervisor 결정) OR microcap floor 완화(J축 위반 위험)."
+    priority: high
+    status: "★CRITICAL — 종목선택 신호 측정의 전제. 현 구조론 정유 cross-sectional 영구 불가(국내 정유사 = 2-3개 과점)."
+  - missing: "한국 정유 가동률 (월별)"
+    source: "한국석유공사 Petronet OR 정유사 IR. 현 = US 석유·석탄제품 IP(IPG32411S) proxy(한계, OOS flip)."
+    priority: medium
+  - missing: "PIT universe 멤버십 + delisted"
+    source: "FDR KRX-DESC = 현재 스냅샷. ★정유 = 과점 구조조정 적음(생존편향 영향 작음, 2종 안정)."
+    priority: low
+
+# ── Hard-fail 4 (B C D I) self-check ──
+hard_fail_self_check:
+  B_real_data: {status: PASS, note: "합성 0%. 합성지문 PASS(2020-04 Brent$19.8 covid crack붕괴, 2022-06 diesel crack$64 우크라폭등, 2024-09 정상화 실재). pykrx OHLCV(11종 1818일) + FRED Brent/Gulf crack/IP + DART(financials+extended) + regime(공통). raw-v3/*.py 재현."}
+  C_traceability: {status: PASS, note: "모든 yaml 수치 = validation-{timeseries,ts-robustness,capex-cycle,valuation-ts,cross-placebo}-v3.json key 매핑. eff-N/OOS/family_2/ADF 재현."}
+  D_pit:
+    status: PASS
+    note: >
+      가격신호 = PIT-safe(forward shift -h). 유가/crack = FRED 일별 spot(실시간 근사). refinery_ip 월별 = IP_PUB_LAG=2 적용.
+      DART valuation/capex = rcept_dt(공시일) 이후만 = lookahead·restatement 회피. 시총=Close×현재주식수 근사(시점별 주식수 정밀화=collector low).
+  I_survivor_bias:
+    status: PASS_with_caveat
+    note: >
+      ★정유 = 과점(SK이노/S-Oil 안정) = 구조조정·상폐 적음 = 생존편향 영향 작음(auto·bio 대비). 단 현 스냅샷 universe = PIT 멤버십 미반영(collector low).
+      ★단 universe 2종 자체가 근본 한계(생존편향 아닌 표본 부재) = cross-sectional INSUFFICIENT.
+
+# ── verdict (small-n rule) ──
+verdict_label: INSUFFICIENT_CROSS_SECTIONAL + TENTATIVE_TIMESERIES  # ★종목선택 불가 + 산업 timing marginal
+g_g_judgment:
+  status: "★PASS-conditional (G-G v2, tradeable 2개 확보)"
+  tradeable_cross_sectional: 0   # 종목선택 신호 0 (전부 INSUFFICIENT, 2종 과점)
+  tradeable_industry_timing: "★2개 (team-lead 지시 최소 2개 충족): (1) 유가 level mean-reversion(t_eff-1.96 marginal) (2) 배당수익률 income trap(t_eff-2.48 유의, OOS HOLD)"
+  tradeable_orthogonality: "★N_eff<2 — 둘 다 음(peak-out UW 공통테마), brent corr +0.42(G-G v2 |ρ|<0.3 미달). 배당 partial -0.241 잔존=부분독립. → conservative cap(단일 peak-out bet 근접)."
+  recommendation: >
+    ★정유 sleeve = conservative monitor + 산업 timing(peak-out UW: 고유가 OR 고배당수익률 → 비중축소). 종목선택(L3 cross-sectional) 비중 0(측정 불가).
+    ★tradeable 2개(유가 mean-reversion + 배당 income trap) 확보 = 사용자 최소 2개 충족 but 부분 상관(peak-out) → N_eff<2 conservative cap. over-trade 차단. supervisor G-G 최종판정 대기.
+verdict_detail:
+  cross_sectional: "★INSUFFICIENT — strict 2종(SK이노/S-Oil). PBR/PER/capex 횡단면 IC 측정 불능. 종목선택 신호 0."
+  oil_brent_forward: "★TENTATIVE DIRECTIONAL — 유가 level forward 음(mean-reversion) OOS robust+leave-episode survive but eff-N t=-1.96 marginal + FDR 미생존 + Δ예측력0 + level I(1). = risk-monitor(alpha 아님). family_2 Slowdown interaction 유의(국면 conditional)."
+  crack_spread: "TENTATIVE/약 — 동시 marginal(wc_p>0.07) + forward 무. ★Gulf proxy 한계(싱가포르GRM 미측정) = under-claim 회피 잠정."
+  capex: "★INCONCLUSIVE — cross-sectional INSUFFICIENT(2종) + 시계열 level 양(+, dispatch 음 prior 반대): ADF I(1) spurious 위험 강 ★but brent 통제 후 orthogonal 잔존(+0.29, ATK-3)=단순 spurious 단정 과함. standalone 채택 불가 + REJECT 보류 = INCONCLUSIVE. dispatch 일반화 = 정유 검증불능(universe 부족)."
+  per: "★INSUFFICIENT/무효 확정 — 2종 불가 + 적자빈발+FY만. peak-EPS trap 전형."
+  pbr: "TENTATIVE DIRECTIONAL — 시계열 forward 음(value 방향) 비유의(t=-0.85). cross-sectional INSUFFICIENT."
+verdict_note: >
+  ★정유 = data-gate 산업(cross-sectional 측정 불가, strict 2종). 핵심 = ① 종목선택(L3) 신호 = 전부 INSUFFICIENT(2종) = 매매룰 구성 불가
+  ② 산업 시계열(frame M2)서 유가 mean-reversion(TENTATIVE, risk-monitor) + 정제마진 약(proxy 한계) ③ ★capex/PBR/PER cross-sectional
+  = INSUFFICIENT(dispatch capex 음 prior = 정유 검증 불능, 시계열 capex 양은 spurious REJECTED) ④ 유가 동시 동조 강(재고평가이익) vs 예측 음(mean-reversion).
+  ★G-G 제안 = monitor-only/산업 timing sleeve, 종목선택 weight 0. ★전체 over-claim 회피: universe 2종 = 모든 신호 방향만, n<30 hedge 극대, marginal 신호 risk-monitor 격하.

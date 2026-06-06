@@ -1,0 +1,57 @@
+# G-C 독립 audit — telecom (통신) — author≠auditor
+# 감사자: G-C audit teammate (opus 1m, telecom-analyst와 독립). 직접 재계산이 유일 근거.
+evaluation_by: gc-audit-subagent-telecom
+date: 2026-06-05
+evaluator_model: opus-1m
+axes_source:
+  primary: D:/projects/Inv/study-research/AUDIT-GUIDE.md
+  application: D:/projects/Inv/study-research/eq_kr/evaluation-axes.md
+  gates: D:/projects/Inv/study-research/_dispatch-gates.md  # G-C + G-G v2
+
+industries:
+  - industry: telecom
+    verdict: 부분   # hard-fail 코어 0 but C축 추적성 결함 1 + framing 부정확 1
+    provenance:
+      raw_scripts_rerun: true        # measure_telecom.py + measure_robustness.py 직접 재실행
+      synthetic_fingerprint_check: true  # 합성 아님 확정 (아래)
+      yaml_to_raw_traceable: partial # ★size_neutral 수치는 raw에 부재 (C 부분결함)
+    recompute_match:
+      service_duration: "★일치 — 전 horizon 비유의(fwd_3m level rho=+0.007 wc_p=0.94), 부호 prior(음) 반대 대부분 양, horizon 20d만 rho=-0.239 marginal. ADF kr10y level I(1) p=0.808 / d_kr10y I(0) p<<0.001 재현."
+      equipment_pbr: "★일치 — y_60d IC=-0.167 wc_p=0.0005 = BY 유일 생존. LOO 10종 [-0.195,-0.150] 전부 음. OOS is=-0.041/oos=-0.119 sign_hold. 재현 완전."
+      fdr: "★일치 — m=24, by_factor=3.776, survivors=[eqp_y_60d_pbr_z] 재현."
+      size_corr: "★일치 — pbr_z↔size_z(log marcap) pooled corr 직접재계산 +0.555 (주장 +0.554)."
+      size_neutral_ic: "★부분 — 직접 residualize 재계산 size-neutral 60d IC = -0.032(shrink 81%). 주장 -0.053(68%)와 부호·결론 동일하나 magnitude 불일치 + ★raw 미존재(추적불가)."
+      synthetic_check: "★실데이터 — KR10Y 2020-08 1.37%/2022-10 4.27%/2024-06 커브역전 -0.26 실재. 주말공백(weekday 0-4만). 한화비전 1414일 NaN(최근상장 PIT). SKT kurtosis 8.92 fat-tail + 2020-03 covid -6.85% 급락 실재."
+    axes_12:
+      A: PASS    # theory-notes 학술ref(Cornell 2000 duration/FF1992 value/JT1993 mom/Basu1977) + 부호 prior 사전동결(HARKing 방지)
+      B: PASS    # ★hard — 실데이터, 합성 0%, raw 재현 완전
+      C: PARTIAL # ★hard축 but PARTIAL: size_neutral(-0.053) source_ids가 가리키는 validation-robustness-v3.json:equipment_pbr_size_neutral 키 ★부재. 직접재계산은 부호 일치(-0.032)이나 yaml 수치 추적불가
+      D: PASS    # ★hard — 가격 forward-shift, KR금리 ffill(발표지연 보수), DART rcept_dt 이후만
+      E: PASS    # 자문 미사용(이론=학술 직접), 환각 0
+      F: PASS    # 기각 다수(service duration INCONCLUSIVE / mom 무신호 / per underpowered / pbr size-confound)
+      G: PARTIAL # tier 강등: equipment pbr=TENTATIVE / service duration=INCONCLUSIVE / mom·per=INSUFFICIENT
+      H: PASS    # candidate-ledger 미해결(ARPU/5G data-gate, size confound) + research-log
+      I: PARTIAL # ★hard축 but PARTIAL(비FAIL): service 3사 과점 생존편향 작음 + equipment PIT 멤버십 미반영(collector low). service 3종은 표본부재(data-gate, 생존편향 아님)
+      J: PARTIAL # service 종목선택 0 = net 무대상. equipment KOSDAQ 소형 capacity 제약 flag
+      K: PASS    # 단일 BY family m=24, survivor 1(정직), wild-cluster bootstrap
+      L: DEFER   # 통합 supervisor 단계
+    hard_fail_count: 0   # B·C·D·I 중 FAIL 0 (C·I = PARTIAL 비FAIL). ★단 C PARTIAL = 보강 권고
+    tier: structural_prior_low_confidence  # equipment pbr=TENTATIVE(size-confounded) / service=INCONCLUSIVE
+    system_fit:
+      current_skeleton_fits: true   # equipment value = weight_card lens + cross-sectional IC 수용 가능
+      pipeline_upgrade_needed: false
+      upgrade_plan: "없음 — service weight 0(INCONCLUSIVE) + equipment conservative cap(size-confounded). 현 골격 수용."
+    remediation:
+      - "★C 추적성 보강(권고): measure_robustness.py에 size confound 측정(size_z 계산 + pbr↔size corr + size-neutral residual IC)을 실제 추가하고 validation-robustness-v3.json에 박제. 현재 헤더 주석은 'size confound?'를 약속하나 측정코드 부재 = source_ids가 미존재 키 인용 = 재계산 불일치(-0.032 vs 주장 -0.053)."
+      - "★2 archetype 분리 framing 정정(권고): yaml/ledger/research-log 전반의 '6/3 옛 한 풀 = defensive≠cyclical 부호 cancel 오염'은 PBR에서 ★재현 안 됨. 직접재현: pool(14종) -0.162 / equipment(10종) -0.167 / service(3종) -0.195 = ★모두 같은 음(value), cancel 아님. 분리의 진짜 정당성은 (a)service cross-sectional n=3 불가→시계열 측정축 차이 (b)archetype driver 본질차(defensive bond-proxy vs cyclical capex)이지 'PBR 부호 cancel'이 아님. 옛 -0.542는 cancel이 아니라 24M overlap horizon Spearman 극단화 artifact(옛 산출도 magnitude 과대 인정)."
+    flag_dynamic_path_check:
+      affects_indicator_present: true  # equipment_cs_pbr_z, service_rate_duration 명시
+      affects_edge_present: true       # [equipment_pbr_z, equipment_fwd_60d] 등
+
+summary:
+  total_industries: 1
+  verdict_counts: {충실: 0, 부분: 1, 불충분: 0}
+  hard_fail_industries: []   # B·C·D·I FAIL 없음 (C·I PARTIAL)
+  gc_verdict: "PASS(조건부) — hard-fail 코어 0. ★단 C축 추적성 PARTIAL(size_neutral raw 미존재) + framing 부정확 1(cancel 미재현) = 보강 권고."
+  gg_judgment: "service tradeable 0(duration INCONCLUSIVE) + equipment tradeable 1 conditional(pbr value, size-confounded → conservative cap). G-G FAIL~PASS-conditional 경계 정합 = 정당."
+  overall_recommendation: "통합 진행 가능(hard-fail 0) + ★보강 2건(C 추적성 size confound 코드화 / cancel framing 정정). verdict 라벨(service INCONCLUSIVE + equipment TENTATIVE size-confounded)은 직접재계산으로 정당 확인."

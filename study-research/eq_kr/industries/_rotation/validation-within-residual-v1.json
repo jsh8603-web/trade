@@ -1,0 +1,147 @@
+{
+  "meta": {
+    "purpose": "산업 내 종목 selection 잔차 산업별 분석 (자문 C9~C13)",
+    "signal": "종목 book-to-price(equity_PIT/시총) cheapness z → forward 60d cross-sectional rank IC",
+    "shares": "Marcap/최근가 근사 (cross-sectional z 충분)",
+    "pit": "dart rcept_dt 이후 equity ffill",
+    "n0_median_neff": 13.63,
+    "ic0_median_icpp": 0.0454,
+    "ic_bar_global": 0.0442,
+    "tau2_between": 0.001262,
+    "원칙": "C10 산업내 잔차 불안정→v 산업중립 수축(ρ_i), L2 자르기 아님. C11 N_eff 한번만(이중처벌 방지)"
+  },
+  "per_industry": {
+    "semiconductor": {
+      "ic_local": 0.0393,
+      "s2": 0.0003202682320087681,
+      "n_months": 82,
+      "n_codes": 85,
+      "n_eff": 53.06,
+      "w_shrink": 0.798,
+      "ic_pp": 0.0403,
+      "rho_i": 0.374,
+      "selection_신뢰": "中"
+    },
+    "auto": {
+      "ic_local": 0.0987,
+      "s2": 0.0007835319387324261,
+      "n_months": 82,
+      "n_codes": 17,
+      "n_eff": 7.32,
+      "w_shrink": 0.617,
+      "ic_pp": 0.0778,
+      "rho_i": 0.221,
+      "selection_신뢰": "中"
+    },
+    "financial": {
+      "ic_local": 0.0017,
+      "s2": 0.0005931387945681049,
+      "n_months": 28,
+      "n_codes": 33,
+      "n_eff": 18.51,
+      "w_shrink": 0.68,
+      "ic_pp": 0.0153,
+      "rho_i": 0.0,
+      "selection_신뢰": "低"
+    },
+    "battery": {
+      "ic_local": -0.0126,
+      "s2": 0.0012700194368447,
+      "n_months": 82,
+      "n_codes": 29,
+      "n_eff": 19.27,
+      "w_shrink": 0.498,
+      "ic_pp": 0.0159,
+      "rho_i": 0.0,
+      "selection_신뢰": "低"
+    },
+    "chemical": {
+      "ic_local": 0.0572,
+      "s2": 0.0010960955552911911,
+      "n_months": 82,
+      "n_codes": 17,
+      "n_eff": 4.4,
+      "w_shrink": 0.535,
+      "ic_pp": 0.0512,
+      "rho_i": 0.129,
+      "selection_신뢰": "低"
+    },
+    "refining": {
+      "ic_local": 0.0582,
+      "s2": 0.0016088998656043278,
+      "n_months": 82,
+      "n_codes": 11,
+      "n_eff": 7.56,
+      "w_shrink": 0.44,
+      "ic_pp": 0.0504,
+      "rho_i": 0.188,
+      "selection_신뢰": "低"
+    },
+    "shipbuilding": {
+      "ic_local": -0.0155,
+      "s2": 0.001162031334693582,
+      "n_months": 82,
+      "n_codes": 16,
+      "n_eff": 11.72,
+      "w_shrink": 0.521,
+      "ic_pp": 0.0131,
+      "rho_i": 0.0,
+      "selection_신뢰": "低"
+    },
+    "steel": {
+      "ic_local": 0.0828,
+      "s2": 0.0006272491167346875,
+      "n_months": 82,
+      "n_codes": 23,
+      "n_eff": 16.39,
+      "w_shrink": 0.668,
+      "ic_pp": 0.07,
+      "rho_i": 0.331,
+      "selection_신뢰": "中"
+    },
+    "bio": {
+      "ic_local": 0.0135,
+      "s2": 0.0005679818064108714,
+      "n_months": 82,
+      "n_codes": 38,
+      "n_eff": 17.44,
+      "w_shrink": 0.69,
+      "ic_pp": 0.023,
+      "rho_i": 0.189,
+      "selection_신뢰": "低"
+    },
+    "consumer": {
+      "ic_local": 0.0237,
+      "s2": 0.0006867631840902741,
+      "n_months": 82,
+      "n_codes": 28,
+      "n_eff": 9.59,
+      "w_shrink": 0.648,
+      "ic_pp": 0.0309,
+      "rho_i": 0.167,
+      "selection_신뢰": "低"
+    },
+    "telecom": {
+      "ic_local": 0.135,
+      "s2": 0.0015486059722291464,
+      "n_months": 82,
+      "n_codes": 14,
+      "n_eff": 8.12,
+      "w_shrink": 0.449,
+      "ic_pp": 0.085,
+      "rho_i": 0.243,
+      "selection_신뢰": "中"
+    },
+    "aitech": {
+      "ic_local": 0.0708,
+      "s2": 0.00046340199965441665,
+      "n_months": 82,
+      "n_codes": 26,
+      "n_eff": 15.54,
+      "w_shrink": 0.731,
+      "ic_pp": 0.0637,
+      "rho_i": 0.311,
+      "selection_신뢰": "中"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "rev1_bank_pbr_loo": {
+    "full": -0.1614,
+    "loo_top2": -0.2023
+  },
+  "rev1_leave2020": -0.0386,
+  "rev1_leave2022": -0.0256,
+  "pbr_cancel_diff": {
+    "bank": -0.1614,
+    "secur": 0.1464,
+    "diff_t": -3.18,
+    "n": 27,
+    "autocorr_corrected": {
+      "lag1_autocorr": 0.452,
+      "t_naive": -3.18,
+      "t_nw_hac_lag3": -2.64,
+      "n_eff_autocorr": 14.7,
+      "t_neff": -2.35,
+      "wild_cluster_p": 0.0045,
+      "block_boot_ci95": [
+        -0.6,
+        -0.14
+      ],
+      "note": "★60d overlapping diff = lag-1 autocorr 0.452 → naive t=-3.18 과대. NW-HAC lag3 t=-2.64 / n_eff 14.7 t=-2.35 + wild-cluster p=0.0045 + block-boot CI[-0.60,-0.14](0 배제). ★부호 결론(은행 value vs 증권 반대) robust 유지. fin-audit G-C remediation 1 반영(라벨 정밀화, 격하 아님)."
+    }
+  }
+}

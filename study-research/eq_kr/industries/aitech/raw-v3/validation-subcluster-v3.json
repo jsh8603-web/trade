@@ -1,0 +1,269 @@
+{
+  "note": "aitech sub-cluster A-4 부호점검(internet/game/saas) + flow_strong_buy interaction(family_2 핵심)",
+  "subcluster_signcheck": {
+    "pbr_z": {
+      "ALL": {
+        "ic": -0.0897,
+        "n_mo": 80
+      },
+      "game": {
+        "ic": -0.1079,
+        "n_mo": 80,
+        "n_codes": 13
+      },
+      "internet": {
+        "ic": -0.1025,
+        "n_mo": 80,
+        "n_codes": 5
+      },
+      "saas": {
+        "ic": -0.0949,
+        "n_mo": 80,
+        "n_codes": 8
+      },
+      "_cancel_check": {
+        "positive_clusters": [],
+        "negative_clusters": [
+          "game",
+          "internet",
+          "saas"
+        ],
+        "cancel": false,
+        "verdict": "부호 일관 (sub-cluster 통합 유지 가능)"
+      }
+    },
+    "per_z": {
+      "ALL": {
+        "ic": -0.0449,
+        "n_mo": 80
+      },
+      "game": {
+        "ic": -0.0437,
+        "n_mo": 80,
+        "n_codes": 13
+      },
+      "internet": {
+        "ic": -0.0102,
+        "n_mo": 49,
+        "n_codes": 5
+      },
+      "saas": {
+        "ic": -0.0205,
+        "n_mo": 80,
+        "n_codes": 8
+      },
+      "_cancel_check": {
+        "positive_clusters": [],
+        "negative_clusters": [
+          "game",
+          "saas"
+        ],
+        "cancel": false,
+        "verdict": "부호 일관 (sub-cluster 통합 유지 가능)"
+      }
+    },
+    "mom_12_1": {
+      "ALL": {
+        "ic": -0.0625,
+        "n_mo": 74
+      },
+      "game": {
+        "ic": -0.1127,
+        "n_mo": 74,
+        "n_codes": 13
+      },
+      "internet": {
+        "ic": 0.0027,
+        "n_mo": 74,
+        "n_codes": 5
+      },
+      "saas": {
+        "ic": -0.0331,
+        "n_mo": 74,
+        "n_codes": 8
+      },
+      "_cancel_check": {
+        "positive_clusters": [],
+        "negative_clusters": [
+          "game",
+          "saas"
+        ],
+        "cancel": false,
+        "verdict": "부호 일관 (sub-cluster 통합 유지 가능)"
+      }
+    },
+    "rev_1m": {
+      "ALL": {
+        "ic": -0.0125,
+        "n_mo": 80
+      },
+      "game": {
+        "ic": -0.0,
+        "n_mo": 80,
+        "n_codes": 13
+      },
+      "internet": {
+        "ic": -0.0137,
+        "n_mo": 80,
+        "n_codes": 5
+      },
+      "saas": {
+        "ic": -0.0276,
+        "n_mo": 80,
+        "n_codes": 8
+      },
+      "_cancel_check": {
+        "positive_clusters": [],
+        "negative_clusters": [
+          "saas"
+        ],
+        "cancel": false,
+        "verdict": "부호 일관 (sub-cluster 통합 유지 가능)"
+      }
+    },
+    "vol_60": {
+      "ALL": {
+        "ic": -0.0681,
+        "n_mo": 80
+      },
+      "game": {
+        "ic": -0.0868,
+        "n_mo": 80,
+        "n_codes": 13
+      },
+      "internet": {
+        "ic": -0.0338,
+        "n_mo": 80,
+        "n_codes": 5
+      },
+      "saas": {
+        "ic": -0.0095,
+        "n_mo": 80,
+        "n_codes": 8
+      },
+      "_cancel_check": {
+        "positive_clusters": [],
+        "negative_clusters": [
+          "game",
+          "internet"
+        ],
+        "cancel": false,
+        "verdict": "부호 일관 (sub-cluster 통합 유지 가능)"
+      }
+    }
+  },
+  "family_2_flow_strong_buy": {
+    "dummy": "flow_regime=flow_strong_buy",
+    "horizon_days": 20,
+    "method": "pooled panel, month-clustered SE",
+    "results": [
+      {
+        "signal": "mom_6",
+        "b_main": -0.0158,
+        "t_main": -0.53,
+        "b_interaction": -0.0517,
+        "t_interaction": -1.02,
+        "n_obs": 2002,
+        "n_months": 81,
+        "verdict": "interaction 비유의"
+      },
+      {
+        "signal": "mom_12_1",
+        "b_main": 0.0049,
+        "t_main": 0.16,
+        "b_interaction": -0.1552,
+        "t_interaction": -2.71,
+        "n_obs": 1846,
+        "n_months": 75,
+        "verdict": "interaction 유의"
+      },
+      {
+        "signal": "rev_1m",
+        "b_main": -0.0364,
+        "t_main": -1.27,
+        "b_interaction": 0.0025,
+        "t_interaction": 0.04,
+        "n_obs": 2022,
+        "n_months": 81,
+        "verdict": "interaction 비유의"
+      },
+      {
+        "signal": "vol_60",
+        "b_main": -0.0239,
+        "t_main": -0.8,
+        "b_interaction": -0.0996,
+        "t_interaction": -1.86,
+        "n_obs": 2014,
+        "n_months": 81,
+        "verdict": "interaction 비유의"
+      },
+      {
+        "signal": "pbr_z",
+        "b_main": -0.031,
+        "t_main": -1.18,
+        "b_interaction": -0.082,
+        "t_interaction": -1.69,
+        "n_obs": 2000,
+        "n_months": 81,
+        "verdict": "interaction 비유의"
+      },
+      {
+        "signal": "per_z",
+        "b_main": -0.025,
+        "t_main": -0.65,
+        "b_interaction": -0.0755,
+        "t_interaction": -0.98,
+        "n_obs": 1142,
+        "n_months": 81,
+        "verdict": "interaction 비유의"
+      }
+    ]
+  },
+  "family_2_macro_recovery": {
+    "dummy": "macro_regime=Recovery",
+    "horizon_days": 60,
+    "method": "pooled panel, month-clustered SE",
+    "results": [
+      {
+        "signal": "mom_6",
+        "b_main": -0.027,
+        "t_main": -0.77,
+        "b_interaction": -0.0211,
+        "t_interaction": -0.34,
+        "n_obs": 1976,
+        "n_months": 80,
+        "verdict": "interaction 비유의"
+      },
+      {
+        "signal": "mom_12_1",
+        "b_main": -0.0672,
+        "t_main": -2.02,
+        "b_interaction": 0.0098,
+        "t_interaction": 0.17,
+        "n_obs": 1820,
+        "n_months": 74,
+        "verdict": "interaction 비유의"
+      },
+      {
+        "signal": "rev_1m",
+        "b_main": -0.0149,
+        "t_main": -0.45,
+        "b_interaction": 0.0084,
+        "t_interaction": 0.15,
+        "n_obs": 1996,
+        "n_months": 80,
+        "verdict": "interaction 비유의"
+      },
+      {
+        "signal": "vol_60",
+        "b_main": -0.0654,
+        "t_main": -2.09,
+        "b_interaction": -0.0126,
+        "t_interaction": -0.24,
+        "n_obs": 1988,
+        "n_months": 80,
+        "verdict": "interaction 비유의"
+      }
+    ]
+  }
+}

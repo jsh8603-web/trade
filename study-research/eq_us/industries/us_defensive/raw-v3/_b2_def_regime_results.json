@@ -1,0 +1,164 @@
+{
+  "meta": {
+    "H": 12,
+    "note": "국면 조건부 재검. 연속 slope=size-valid / split=비-size-valid 진단(forking-paths 플래그)."
+  },
+  "DEF-2": {
+    "continuous_regime_slope": {
+      "vix": {
+        "slope": -0.00116,
+        "t_hac": -0.76,
+        "n": 183,
+        "fixed_b_cv": 2.09,
+        "fixed_b_sig": false,
+        "wild_p": 0.5039
+      },
+      "baa_aaa": {
+        "slope": 0.05429,
+        "t_hac": 1.16,
+        "n": 183,
+        "fixed_b_cv": 2.09,
+        "fixed_b_sig": false,
+        "wild_p": 0.3013
+      },
+      "real_rate": {
+        "slope": 0.02451,
+        "t_hac": 1.61,
+        "n": 183,
+        "fixed_b_cv": 2.09,
+        "fixed_b_sig": false,
+        "wild_p": 0.169
+      },
+      "dollar": {
+        "slope": 0.00267,
+        "t_hac": 2.22,
+        "n": 183,
+        "fixed_b_cv": 2.09,
+        "fixed_b_sig": true,
+        "wild_p": 0.0445
+      }
+    },
+    "split_diagnostic": {
+      "vix": {
+        "hi_mean": 0.0152,
+        "hi_n": 73,
+        "lo_mean": 0.0256,
+        "lo_n": 73,
+        "welch_t": -0.65,
+        "welch_p": 0.5167,
+        "hi_sign": 1,
+        "note": "★비-size-valid(small-block forking-paths). 참고용."
+      },
+      "baa_aaa": {
+        "hi_mean": 0.0424,
+        "hi_n": 75,
+        "lo_mean": -0.005,
+        "lo_n": 73,
+        "welch_t": 3.05,
+        "welch_p": 0.0027,
+        "hi_sign": 1,
+        "note": "★비-size-valid(small-block forking-paths). 참고용."
+      },
+      "real_rate": {
+        "hi_mean": 0.0288,
+        "hi_n": 74,
+        "lo_mean": 0.0226,
+        "lo_n": 73,
+        "welch_t": 0.39,
+        "welch_p": 0.6942,
+        "hi_sign": 1,
+        "note": "★비-size-valid(small-block forking-paths). 참고용."
+      },
+      "dollar": {
+        "hi_mean": 0.0632,
+        "hi_n": 73,
+        "lo_mean": -0.0012,
+        "lo_n": 73,
+        "welch_t": 4.14,
+        "welch_p": 0.0001,
+        "hi_sign": 1,
+        "note": "★비-size-valid(small-block forking-paths). 참고용."
+      }
+    },
+    "did_n": 183
+  },
+  "DEF-1": {
+    "continuous_regime_slope": {
+      "vix": {
+        "slope": 0.00028,
+        "t_hac": 0.15,
+        "n": 183,
+        "fixed_b_cv": 2.09,
+        "fixed_b_sig": false,
+        "wild_p": 0.8928
+      },
+      "baa_aaa": {
+        "slope": -0.0314,
+        "t_hac": -0.5,
+        "n": 183,
+        "fixed_b_cv": 2.09,
+        "fixed_b_sig": false,
+        "wild_p": 0.6512
+      },
+      "real_rate": {
+        "slope": 0.01164,
+        "t_hac": 0.73,
+        "n": 183,
+        "fixed_b_cv": 2.09,
+        "fixed_b_sig": false,
+        "wild_p": 0.5108
+      },
+      "dollar": {
+        "slope": -0.00343,
+        "t_hac": -2.48,
+        "n": 183,
+        "fixed_b_cv": 2.09,
+        "fixed_b_sig": true,
+        "wild_p": 0.0336
+      }
+    },
+    "split_diagnostic": {
+      "vix": {
+        "hi_mean": -0.0386,
+        "hi_n": 73,
+        "lo_mean": -0.0338,
+        "lo_n": 73,
+        "welch_t": -0.25,
+        "welch_p": 0.8026,
+        "hi_sign": -1,
+        "note": "★비-size-valid(small-block forking-paths). 참고용."
+      },
+      "baa_aaa": {
+        "hi_mean": -0.0437,
+        "hi_n": 75,
+        "lo_mean": -0.0223,
+        "lo_n": 73,
+        "welch_t": -1.12,
+        "welch_p": 0.2627,
+        "hi_sign": -1,
+        "note": "★비-size-valid(small-block forking-paths). 참고용."
+      },
+      "real_rate": {
+        "hi_mean": -0.0168,
+        "hi_n": 74,
+        "lo_mean": -0.048,
+        "lo_n": 73,
+        "welch_t": 1.72,
+        "welch_p": 0.0881,
+        "hi_sign": -1,
+        "note": "★비-size-valid(small-block forking-paths). 참고용."
+      },
+      "dollar": {
+        "hi_mean": -0.0448,
+        "hi_n": 73,
+        "lo_mean": 0.0082,
+        "lo_n": 73,
+        "welch_t": -2.85,
+        "welch_p": 0.0051,
+        "hi_sign": -1,
+        "note": "★비-size-valid(small-block forking-paths). 참고용."
+      }
+    },
+    "did_n": 183
+  }
+}

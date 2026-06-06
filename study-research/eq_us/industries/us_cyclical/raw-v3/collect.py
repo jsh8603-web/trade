@@ -85,65 +85,121 @@ def collect_prices(tickers) -> pd.DataFrame:
     return px
 
 
+# ── EDGAR concept 매핑 (key → [us-gaap concept 후보들], unit) ──
+# ★다중 후보 = sector별 태그 파편화 fallback (S1 실측: GrossProfit/Revenues 일부 sector 결측).
+#   각 (ticker, concept_key) 당 첫 가용(200+units) 후보 채택 + src_concept 박제(추적성 C축).
+EDGAR_CONCEPTS = [
+    ("equity",       "USD",    ["StockholdersEquity"]),
+    ("net_income",   "USD",    ["NetIncomeLoss"]),
+    # ★shares: us-gaap 우선 → dei 네임스페이스 fallback (V/TXN/COP 등 13종 dei 에만 존재)
+    ("shares",       "shares", ["CommonStockSharesOutstanding",
+                                 "WeightedAverageNumberOfSharesOutstandingBasic",
+                                 "dei:EntityCommonStockSharesOutstanding"]),
+    # ── ★신규 (S1 채택 신호) ──
+    ("assets",       "USD",    ["Assets"]),                      # asset_growth (전 universe 가용)
+    ("revenues",     "USD",    ["Revenues",
+                                 "RevenueFromContractWithCustomerExcludingAssessedTax",
+                                 "RevenueFromContractWithCustomerIncludingAssessedTax",
+                                 "SalesRevenueNet"]),            # sales_yield
+    ("gross_profit", "USD",    ["GrossProfit"]),                 # gross_profitability (직접)
+    ("cogs",         "USD",    ["CostOfRevenue",
+                                 "CostOfGoodsAndServicesSold",
+                                 "CostOfGoodsSold"]),            # GP fallback = Revenues - COGS
+    # ── ev_ebitda 보조 ──
+    ("op_income",    "USD",    ["OperatingIncomeLoss"]),
+    ("dep_amort",    "USD",    ["DepreciationDepletionAndAmortization",
+                                 "DepreciationAmortizationAndAccretionNet",
+                                 "DepreciationAndAmortization"]),
+    ("lt_debt",      "USD",    ["LongTermDebtNoncurrent", "LongTermDebt"]),
+    ("st_debt",      "USD",    ["LongTermDebtCurrent", "ShortTermBorrowings",
+                                 "DebtCurrent"]),
+    ("cash",         "USD",    ["CashAndCashEquivalentsAtCarryingValue",
+                                 "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"]),
+]
+
+
 def collect_edgar(tickers, cik_map) -> pd.DataFrame:
-    """EDGAR companyconcept → StockholdersEquity/NetIncomeLoss/shares (PIT filed date).
-    ★incremental save (foreground). filed date = PIT timestamp(lookahead 회피)."""
-    cache = DATA / "edgar_fundamentals.parquet"
-    if cache.exists():
-        return pd.read_parquet(cache)
+    """EDGAR companyconcept → 12 concept_key (PIT filed date). ★incremental save (foreground).
+    filed date = PIT timestamp(lookahead 회피). ★cache 존재 시 누락 concept_key 만 추가 fetch (idempotent).
+    각 concept_key = 후보 us-gaap 태그 순회, 첫 가용 채택 + src_concept 박제(C축 추적성)."""
     import requests
+    cache = DATA / "edgar_fundamentals.parquet"
+    existing = pd.read_parquet(cache) if cache.exists() else pd.DataFrame()
+    have_keys = set(existing["concept"].unique()) if len(existing) else set()
+    want = [c for c in EDGAR_CONCEPTS if c[0] not in have_keys]
+    if not want:
+        print(f"  edgar cache complete ({len(have_keys)} concept keys); skip")
+        return existing
+    print(f"  edgar: {sorted(have_keys)} present, fetching {len(want)} new: {[w[0] for w in want]}")
+
+    def _flush(rows):
+        merged = pd.concat([existing, pd.DataFrame(rows)], ignore_index=True) if len(existing) else pd.DataFrame(rows)
+        if "src_concept" not in merged.columns:
+            merged["src_concept"] = pd.NA
+        merged.to_parquet(cache)
+        return merged
+
     rows = []
     for i, t in enumerate(tickers):
-        cik = cik_map.get(t.replace("-", "-")) or cik_map.get(t)
+        cik = cik_map.get(t)
         if not cik:
             print(f"  [{i}] {t} no CIK"); continue
-        rec = {"ticker": t, "cik": cik}
-        # 3 concepts: equity, net_income, shares
-        for concept, unit, key in [
-            ("StockholdersEquity", "USD", "equity"),
-            ("NetIncomeLoss", "USD", "net_income"),
-            ("CommonStockSharesOutstanding", "shares", "shares"),
-        ]:
-            try:
-                r = requests.get(
-                    f"https://data.sec.gov/api/xbrl/companyconcept/CIK{cik}/us-gaap/{concept}.json",
-                    headers=EDGAR_HDR, timeout=30)
-                if r.status_code == 200:
-                    units = r.json().get("units", {}).get(unit, [])
-                    # 각 filing = (end 회계기간, val, filed 공시일 PIT, form)
-                    for u in units:
-                        rows.append(dict(ticker=t, concept=key, end=u.get("end"),
-                                         val=u.get("val"), filed=u.get("filed"),
-                                         form=u.get("form"), fp=u.get("fp")))
-                time.sleep(0.12)  # EDGAR 10 req/s limit
-            except Exception as e:
-                print(f"    {t} {concept} FAIL {repr(e)[:40]}")
-        print(f"  [{i}] {t} edgar done (cum rows {len(rows)})")
-        # ★incremental save every 10 tickers
+        for key, unit, candidates in want:
+            for concept in candidates:
+                # ★네임스페이스: "dei:X" → dei, 아니면 us-gaap
+                ns, cc = (concept.split(":", 1) if ":" in concept else ("us-gaap", concept))
+                try:
+                    r = requests.get(
+                        f"https://data.sec.gov/api/xbrl/companyconcept/CIK{cik}/{ns}/{cc}.json",
+                        headers=EDGAR_HDR, timeout=30)
+                    time.sleep(0.12)  # EDGAR 10 req/s limit
+                    if r.status_code == 200:
+                        units = r.json().get("units", {}).get(unit, [])
+                        if units:
+                            for u in units:
+                                rows.append(dict(ticker=t, concept=key, end=u.get("end"),
+                                                 val=u.get("val"), filed=u.get("filed"),
+                                                 form=u.get("form"), fp=u.get("fp"),
+                                                 src_concept=concept))
+                            break  # 첫 가용 후보 채택 (fallback 순서)
+                except Exception as e:
+                    print(f"    {t} {concept} FAIL {repr(e)[:40]}")
+        print(f"  [{i}] {t} edgar done (cum new rows {len(rows)})")
         if (i + 1) % 10 == 0:
-            pd.DataFrame(rows).to_parquet(cache)
-            print(f"    ...incremental save at {i+1}")
-    df = pd.DataFrame(rows)
-    df.to_parquet(cache)
-    return df
+            _flush(rows); print(f"    ...incremental save at {i+1}")
+    return _flush(rows)
+
+
+def _read_fred(fred_id):
+    """FRED CSV(기존 재사용) → 단일 시리즈. 없으면 None."""
+    f = FRED_DIR / f"{fred_id}.csv"
+    if not f.exists():
+        return None
+    s = pd.read_csv(f)
+    datecol = [c for c in s.columns if c.upper() in ("DATE", "OBSERVATION_DATE")][0]
+    valcol = [c for c in s.columns if c != datecol][0]
+    return pd.Series(pd.to_numeric(s[valcol], errors="coerce").values,
+                     index=pd.to_datetime(s[datecol]))
 
 
 def load_macro() -> pd.DataFrame:
-    """FRED CSV(기존 재사용) + yfinance DXY. HY OAS/DGS10/VIX/dollar."""
+    """FRED CSV(기존 재사용) + yfinance DXY. HY OAS/DGS10/VIX/dollar + ★Baa-Aaa 장기 credit regime proxy.
+    ★Baa-Aaa = Fama-French(1989) default spread, FRED BAA/AAA 월별 1919~ (HY OAS 37mo 제약 대체, ρ>0.85)."""
     cache = DATA / "macro.parquet"
     if cache.exists():
         return pd.read_parquet(cache)
     out = {}
     for fred_id, col in [("BAMLH0A0HYM2", "hy_oas"), ("DGS10", "rate10y"), ("VIXCLS", "vix")]:
-        f = FRED_DIR / f"{fred_id}.csv"
-        if f.exists():
-            s = pd.read_csv(f)
-            # FRED CSV: DATE, value cols
-            datecol = [c for c in s.columns if c.upper() in ("DATE", "OBSERVATION_DATE")][0]
-            valcol = [c for c in s.columns if c != datecol][0]
-            ser = pd.Series(pd.to_numeric(s[valcol], errors="coerce").values,
-                            index=pd.to_datetime(s[datecol]))
+        ser = _read_fred(fred_id)
+        if ser is not None:
             out[col] = ser
+    # ★Baa-Aaa spread (장기 credit regime proxy)
+    baa, aaa = _read_fred("BAA"), _read_fred("AAA")
+    if baa is not None and aaa is not None:
+        out["baa_aaa"] = (baa - aaa).dropna()
+        print(f"  baa_aaa: {out['baa_aaa'].first_valid_index().date()}~{out['baa_aaa'].last_valid_index().date()} n={out['baa_aaa'].notna().sum()}")
+    else:
+        print("  ★baa_aaa 미생성 — FRED BAA/AAA CSV 부재")
     # DXY via yfinance
     try:
         import yfinance as yf

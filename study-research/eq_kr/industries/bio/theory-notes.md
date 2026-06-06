@@ -92,9 +92,36 @@
 - **EvaluatePharma 글로벌 바이오 매출 forecast** — paywall, alternative source 탐색 필요.
 - **clinicaltrials.gov v2 facet API** — 부재 (yearly count 만 가능). monthly cycle 분석 불가.
 
-## §5 비판 / 한계
+## §6 ★conditional IC 부호 사전확약 (S2 측정 前 동결, HARKing 방지, 2026-06-05)
 
-1. **삼바·셀트리온 dominance** — Top 30 시총 70% = 두 종목 forward return 이 산업 평균 dominate. eq-weight 평균 = misleading. **시총 가중 또는 sub-cluster 별 분석 권고** (round-N).
-2. **regime shift 광범위** — 코로나 + 인플레/금리쇼크 + AI cycle 재편 → 2020-2022 vs 2023+ corr sign flip 다수 관찰. **regime classifier 명시** + IS/OOS 외 추가 (예: 코로나 sub-regime) 필요.
-3. **factor neutralization 부재** — toraniko factor model 미적재. systematic factor (market/size/value) exposure 제거 후 idiosyncratic IC = 본 라운드 미산출.
-4. **N gate 한계** — 월간 n=146 (12년) 이지만 36 cell 분해 시 cell당 N≈4 미달. M3 36 cell = 미적용 (cell collapse fallback 권고).
+> dispatch 본체 = `IC(지표, regime, horizon)` surface. 측정 결과 보기 前 이론으로 **부호 one-sided 사전확약**(plan §3 = HARKing 방지). 아래는 archetype(event_driven) + bio 거시 sensitivity 이론에서 도출한 부호. 측정값(§measure_conditional)과 대조해 적합/반증 판정.
+
+### 6.1 신호별 unconditional 부호 사전확약 (event_driven archetype)
+| 신호 | 이론 부호 | 근거 (메커니즘) |
+|---|---|---|
+| **vol_60** (저변동성) | **음(−)** | ★bio primary. 고변동성 = 임상 베팅 신약(binary event risk) → forward 낮음. 저변동성(안정 제약) 우위 = 임상 risk 회피. (Frazzini-Pedersen 2014 BAB; bio 특화 = 임상 binary) |
+| **per_z** (흑자한정) | **음(−)** | 흑자 제약사(유한/한미/녹십자) 저PER value premium. ★적자 신약(36%)은 PER 무효 = 흑자 한정 측정. (Asness QMJ) |
+| **pbr_z** | **음(−) 약** | value 방향이나 적자 신약 자본잠식 → PBR 왜곡 = 약 신호 예상. |
+| **mom_6 / mom_12_1** | **불확정(0)** | bio = 임상 binary 이벤트 dominant → 가격 momentum 약/무신호 예상(반도체 reversal, battery growth 와 달리 archetype event_driven). |
+| **rev_1m** | **음(−) 약** | 단기 reversal (event 후 평균회귀) 약 신호. |
+
+### 6.2 ★conditional regime 증폭축 사전확약 (bio = VIX 고베타 성장주)
+- bio = **VIX 고베타(β=+0.011 t=6.03)** = risk-on 강세 성장주(§4 cross 실측). → **risk-off/외국인 순매도 국면에서 신호 증폭** 예상.
+- **확약 가설 H-cond**: bio 신호(특히 momentum/valuation)는 **flow_sell(외국인 순매도) 국면에서 증폭**(음 강화). 메커니즘 = 외국인 순매도 = 글로벌 risk-off → bio 고베타 성장주 차별적 매도 → fundamental 신호(저PER·안정성)가 종목 분별력 회복. (Choe-Kho-Stulz 2005 외국인 herding; Grinblatt-Keloharju 2000)
+- **반례 확약(falsifier)**: 만약 flow_sell 증폭이 (a) 단일 episode 종속이거나 (b) VIX(risk-off) 단순 대리면 → flow 효과 아님 = 기각. (S5 역공격에서 직접 검정)
+- ★반도체와의 대조 사전확약: 반도체 증폭축 = **KRW_weak**(수출주 환율). bio 는 수출비중 높으나(삼바/셀트리온) valuation 이 환율보다 **event/유동성 driven** → KRW 보다 **flow** 가 증폭축일 것으로 사전 예상(§3.1 USDKRW REJECTED 정합).
+
+### 6.3 측정 대조 결과 (사전확약 vs 실측, over-claim 0)
+- **vol_60 음 = 적합**(uncond IC −0.066 wc_p=0.012). 단 ★OOS magnitude 약화(−0.119→−0.008) = IS 편중, OOS 약.
+- **per_z 흑자 음 = 부분적합**(uncond +0.027 = 오히려 양, but flow_sell 국면 −0.092). unconditional 은 사전확약과 반대(양) = 약/혼재.
+- **mom 불확정 = 적합**(uncond 비유의).
+- ★**H-cond(flow_sell 증폭) = 강 적합**: family_2 interaction mom_6 t=−2.90 / mom_12_1 t=−2.92 / per_z t=−2.29 유의. KRW_weak interaction = 비유의(반도체와 반대) = 사전확약(flow > KRW) 적중.
+- ★**falsifier 검정(S5)**: flow_sell 8개해 분산(단일 episode 아님) + VIX 21.9≈20.1(risk-off 대리 아님) + leave-2021-out mom_6 t=−2.94 생존 = 반례 기각. 단 IS t 약 → OOS t 강 = **최근(2023+) 발현 성격** = regime shift 가능성(magnitude tentative).
+
+## §7 비판 / 한계
+
+1. **삼바·셀트리온 dominance** — Top 30 시총 70% = 두 종목 forward return 이 산업 평균 dominate. eq-weight 평균 = misleading. cap-weighted IC 병행 보고로 점검.
+2. **regime shift 광범위** — 코로나 + 인플레/금리쇼크 + AI cycle 재편 → 2020-2022 vs 2023+ corr sign flip 다수. ★실측 확인: unconditional 신호 OOS 부호반전(mom/pbr/per) = regime shift 실재. conditional(flow_sell) 만 OOS 생존.
+3. **factor neutralization 부재** — toraniko factor model 미적재 = 통합 supervisor 단계(M.7 분담). 산업 단계 = peer-relative z(sector-neutral)까지.
+4. **N gate 한계** — 36 cell full N≥24=0(실측) → 단일축 regime + family_2 interaction 으로 측정. flow_sell cell n=18~20 = underpowered(방향만).
+5. **★생존편향 (I축 최악)** — bio = 임상실패→상폐 잦음(코오롱티슈진 인보사·신라젠·헬릭스미스 등 실제 상폐/관리종목 다수). 현 universe = FDR 2026-05 스냅샷 = **delisted 완전 누락**(거래 끊긴 종목 0). 누락된 건 대부분 고변동성 임상실패 신약 → **vol_60(고변동성 회피) 신호 과대평가 우려 강**. PIT 멤버십 = collector_plan high.

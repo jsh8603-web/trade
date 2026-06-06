@@ -348,6 +348,28 @@ AI 거부권: 매수 점수 충족이어도 `ai_composite_signal.score`<0이면 
 - **왜 PBO**: H23(:463) — walk-forward·생존편향까지 가도 "몇 개 전략 시도?" 보정 없으면 수십~수백 trials 중 하나가 우연 통과. DSR·PBO(Bailey/López de Prado)로 trial-count deflate.
 - **왜 forward-only(back-adjust 금지)**: 미래 정보로 과거 시점 값을 덮어쓰면 lookahead → 시점별 가시성(`visible_at`) 보존, "그때 알 수 있던 것"만 forward. heavy-agent는 LLM 학습데이터 미래 오염(H22)으로 BACKTEST=ABSTAIN stub. *(back-adjust 금지 명시 SPEC 문구는 grep 미발견 — H16/H22 lookahead 원칙 + `visible_at`/`filter_pit_fundamentals` 구현에서 도출.)*
 
+#### study-research/eq_kr — 한국 주식 산업 연구 트랙 (production 미배선)
+
+`study-research/`는 **실거래 코드에 닿지 않는 연구 샌드박스**다(production `core/`·`stock/` byte-identical 보존). 한국 12산업(철강·자동차·배터리·화학·반도체·통신·금융·AI테크·바이오·소비재·정유·조선)별로 *어떤 거시 국면에서 어떤 종목 신호가 forward 수익을 예측하는지(conditional IC)*를 PIT 실데이터로 측정한다. 산업별 capsule analyst가 각 업종에 맞는 줄자(value/momentum/저변동 등)로 IC를 검증해 SSOT로 박제하고, 그 위에 3층 매매 구조를 설계한다.
+
+**3층 매매 구조** (곱 결합 `w_j = W_i × v_{j|i}`, fund-of-sleeves):
+- **1층 자산배분**: regime → sleeve 비중(`regime_to_weights`, 기구현)
+- **2층 sleeve rotation tilt**: 거시 국면별로 산업 sleeve 비중을 능동 조정(WIRE5 대상)
+- **3층 종목 selection**: sleeve 안에서 어느 종목까지 담을지(`v_{j|i}`, Σ=1)
+
+**WIRE5 — 2층 rotation 변별력 실측 코드화** (미국 `_sleeve_rotation.py` 패턴 fork):
+- `_rotation/build_rotation_signal_panel.py` → 11산업 primary 신호를 OW 방향으로 정렬한 통합 패널(frozen parquet, fetch 0 = 재현성)
+- `_rotation/_sleeve_rotation_kr.py` → 2층 rotation 본체. base sleeve-RP×within-EW + 즉시발동 연속수축 κ_i + additive tilt(±5%p clip) + active 천장 15%cap·8~12% 운용 + over-trade 3중 안전장치(hysteresis·persistence·cost-aware STT 0.23%)
+- `_rotation/within_industry_residual_kr.py` → 3층 종목 selection 신뢰도 메타분석. capsule IC를 SSOT로 집계 + N_eff participation ratio(과점 자동감지) + EB shrinkage(부호 보존) → 산업별 ρ_i 등급
+- spec SSOT: `_rotation/rotation-study_session.yaml`. 검증: `wire5-yaml-code-mapping.md`(yaml↔코드 전수 대조) + `gc-audit-wire5-20260606.md`(독립 audit PASS, hard-fail 0)
+
+**변별력 판정** (사용자 핵심 질문 "낮은 게 타당한가"):
+- **2층 산업 간 rotation = 변별력 충분**: active share mean 10.1%(band 8~12% 중앙, 천장 cap 15%), 산업별 비중 13배 차등(경기민감 최소 ~1.6% / 통신 13.7~21.6%), 즉시발동 κ통과 4산업(화학·철강·정유·통신 IC≥0.29) 비대칭 고밀도. 초기 tilt 0.5% 변별력 부재를 자문 3R 수렴(C1~C13)으로 해소.
+- **3층 산업 내 selection = 낮음(中 최고·高 없음)**: ρ 반도체 0.36 / 철강 0.29 / AI테크 0.28(中) / 나머지 低 / 정유 불가(2종 과점).
+- **왜 3층이 낮은 게 타당한가**: 한국 small market(종목 수 적음, 정유 11·통신 14) + 과점(화학 N_eff 4.4 = LG화학 지배) + 소표본(88개월) + breadth 3.5(Fundamental Law `IR=IC×√BR`)로 종목선택 alpha 천장이 구조적으로 낮다. 억지로 키우면 overfit(변별력≠tracking error). EB 후 small-n IC 보수화 = 데이터 한계의 정직한 반영.
+
+> ⛔ WIRE5는 **연구 트랙 실측**이며 production 미배선. go-live 시 곱 결합(`W_i × v_{j|i}`)·hierarchical FDR 통합은 사람 게이트 통과 후 별도 단계. 점추정 단독 박제 금지(분포+CI+gate, small-n hedge), 실 PIT 데이터만(합성·시뮬 금지).
+
 ---
 
 ## 🔢 Phase 진화 (구현 단계 — `architecture.md` §2)
@@ -403,6 +425,7 @@ agents/              레거시 실행(감독·전략 3종·뉴스랑) — 현재
 scripts/             데이터 수집·실행·파이프라인(run_agents.sh)
 stock/               주식 가치 트랙(valuation·value_trigger·KIS·data/)
 backtest/            통합 백테스트(engine·walk_forward·pbo·capacity)
+study-research/      연구 샌드박스(production 미배선) — eq_kr 12산업 conditional IC·WIRE5 2층 rotation
 supabase/            DB 마이그레이션(decisions·embeddings·감사 테이블)
 ```
 

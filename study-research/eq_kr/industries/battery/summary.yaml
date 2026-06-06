@@ -1,249 +1,409 @@
-# summary.yaml — battery(2차전지) 산업 v3 (frame v3 §M exposure card 계약)
+# summary.yaml — battery(2차전지) 산업 v3 conditional IC (frame v3 §M + dispatch 원의도)
 # ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge 어휘, BY 보정, LOO/block-boot).
-# supersedes: v2 (robustness_checks/cross/horizon 필드 부재). 산출 범위 = §M.7 exposure card (측정 전용).
-# raw 재현: raw-v3/{collect.py, measure.py, measure_cross.py, exposure_card.py}
+# supersedes: v3 exposure-card(2026-06-03, unconditional only). 본 버전 = conditional IC surface + walk-forward OOS + 신규 cycle 지표 추가(2026-06-05).
+# 반도체 파일럿(semiconductor/summary.yaml) 미러. ★battery momentum = 양 continuation (반도체 음=reversal 와 반대 부호).
+# raw 재현: raw-v3/{collect, collect_dart, collect_dart_extended, collect_regime, measure, measure_valuation, measure_conditional, measure_fundamentals_cycle, measure_walkforward, merge_fdr_family}.py
 
 industry: kr_battery          # eq_kr 12산업 中 Tier 2 (2차전지)
 asset_scope: [equity.kr]
-archetype: cyclical           # archetype.py DEFAULT_SECTOR_ARCHETYPE["kr_battery"] = cyclical (capex/리튬 사이클)
+archetype: cyclical           # archetype.py DEFAULT_SECTOR_ARCHETYPE["kr_battery"] = cyclical (리튬/capex 사이클)
 archetype_attestation:
-  valid_from: "2019-01-01"    # ★PIT 사전선언 (§M.5 ex-post 금지). cyclical = capex 주도 사이클 산업
-  declared_at: "2026-06-03"   # 선언 시점 (사후편향 hazard 방지 attestation)
-  primary_metric: ev_ebitda   # cyclical primary (peak-EPS trap 경계 — 정점에 멀티플 낮음)
-  secondary: event_driven     # soft/probabilistic: IRA/FEOC 정책 event 비중 (보조, prob~0.3)
-  basis: "리튬/capex 사이클 1차 가설. 검증: 가격기반 모멘텀 IC 가 cyclical 모멘텀 패턴(3-12M 본진) 정합 확인 → cyclical 지지."
-as_of: "2026-05-31"
+  valid_from: "2019-01-01"    # ★PIT 사전선언 (§M.5 ex-post 금지)
+  declared_at: "2026-06-03"
+  primary_metric: ev_ebitda   # cyclical primary (단 2차전지 성장주 = 적자 多 → EV/GWh 대안 권고)
+  secondary: event_driven     # IRA/FEOC 정책 event 비중 (보조, prob~0.3)
+  basis: >
+    리튬/capex 사이클 + EV adoption S-curve 1차 가설. ★실측 검증: cross-sectional momentum forward IC = 양
+    (+0.075, 60d continuation) = ★반도체(음 reversal)와 반대 부호 = archetype cyclical 이나 cycle 위상 다름(EV 성장단계 + 종목 차별화).
+as_of: "2026-05-29"
 
 # ── 블록1 LENS (정성) ──
 lens:
   pricing_principle: >
-    2차전지 = cyclical. "싸다" = EV/EBITDA·P/B (peak-EPS 함정: 사이클 정점에 멀티플 낮아 보임).
-    ★실측 결론: 가격기반 cross-sectional 모멘텀(6M)이 강한 forward 예측력(IC +0.086, 12M horizon).
-    valuation 횡단면(PBR/PER) = 데이터 부재(pykrx 스냅샷 KRX 인증 차단)로 미측정 = primary gap.
+    2차전지 = cyclical(리튬 사이클) + 성장(EV S-curve). "싸다" valuation = 성장주 왜곡으로 약(PER 적자 多 무효, PBR 무신호).
+    ★실측 결론: 가격기반 cross-sectional momentum(6M·12-1M)이 forward(60d 본진)에 ★양의 예측력(IC +0.075 continuation) =
+    승자지속(수주·증설·고객 차별화 누적). 반도체(음 reversal)와 반대 = archetype 내 이질성. valuation 은 보조(약·비유의).
   cycle_reading: >
-    2019-2026 = 리튬 hyper-cycle 1회 완주 (2021-22 bull → 2023-24 down → 2025-26 bottoming).
-    LIT yoy regime ex-ante 라벨: neutral 44 / bull 31 / bear 14 month. 양극재 cost-pass-through proxy.
+    2019-2026 = 리튬 hyper-cycle 1회 완주(2021-22 bull → 2023-24 down → 2025-26 bottoming) + EV 침투율 takeoff(15-20%).
+    ★flow regime(외국인 passive)이 momentum IC 변조 핵심축: flow_neutral → momentum 증폭(IC +0.123), flow_strong_buy → 음 flip.
   estimation_note: >
-    2026-05 시점: universe 29종(시총≥3000억 ∧ ADV≥30억). 모멘텀 시변 IC 가 regime 함수 —
-    derive_weights w∝Θ_signal·IC 로 동적 가중(통합 단계). 본 산출 = 측정 + peer-relative z card 까지.
+    2026-05 시점: 측정 cross-section 29종(시총≥3000억∧ADV floor). ★breadth 작음(반도체 85종 1/3) → magnitude 보수 cap.
+    momentum 시변 IC = flow regime 함수 → derive_weights w∝Θ_signal·IC 동적가중(통합 단계). 본 산출 = 측정 + conditional surface.
 
-# ── 블록2 INDICATORS (forward 횡단면 Rank-IC, horizon-tagged) ──
-# ★점추정 금지: ic_mean + ic_ci_95(block-boot ∧ NW) + n_effective + oos(CPCV)
+# ── 블록2 INDICATORS (forward 횡단면 Rank-IC, horizon-tagged, 일간) ──
+# ★점추정 금지: ic_mean + wild_cluster_p + block-boot CI + n_eff + walk-forward OOS
 indicators_passed:
   - id: cs_mom_6m
-    layer: 3                  # 가격 cycle proxy (cross-sectional 모멘텀)
-    family: momentum
-    horizon: 12M_mom          # ★horizon-tagged (§M.2): 6M 신호 → 12M forward 본진
-    ic_mean: 0.086
-    ic_ci_95: [0.032, 0.132]  # block-bootstrap(block=3M,B=2000). NW CI [0.043,0.130] 정합. 0 비포함.
-    ic_se_nw: 0.0223          # Newey-West HAC (lag=horizon=12, overlapping forward 보정)
-    t_nw: 3.87
-    n_effective: 71           # months (autocorr 보정 전 raw; Validated tier ≥? — 아래 eff_n_tier 참조)
-    oos_ratio: 1.00           # CPCV OOS hit=1.00 (15 folds, purge=12M, embargo=1)
-    avg_universe_n: 26.0      # 횡단면 평균 종목수 (★cross-sectional 작동 = 기존 4종 대비 결정적)
-    source_id: "raw-v3/validation-metrics-v3.json:indicators.mom_6__12M_mom"
+    layer: 3
+    family: momentum          # ★부호 양 = continuation (2차전지 성장 + 종목차별화, 반도체 reversal 과 반대)
+    horizon: y_60d            # 6M 신호 → 60d forward 본진 (장기 momentum)
+    ic_mean: 0.0751
+    ic_ci_95: null            # block-boot CI = validation-conditional-v3.json:conditional_ic_surface.mom_6.y_60d.unconditional.ci95_block_boot
+    wild_cluster_p: 0.0125    # ★asymptotic NW-HAC t 대신 wild-cluster bootstrap (G-F §7, small-block size-invalid 회피)
+    n_months: 80
+    n_eff: 38.7
+    walk_forward_oos: "IS(2019-22) +0.0780 → OOS(2023-26) +0.0720 = ✅부호+magnitude 유지"
+    leave_2022_out: "+0.0751 → +0.1020 (wc_p 0.012→0.002 강화) = ★2022 리튬붕괴 episode 종속 아님(오히려 2022가 약화 요인)"
+    source_id: "raw-v3/validation-conditional-v3.json:conditional_ic_surface.mom_6.y_60d"
     notes: |
-      cross-sectional 6M 모멘텀 z-score → 12M forward return Rank-IC.
-      within-period 연도별 부호 일관 100% (2019-2025 전부 양). leave-episode 생존.
-      유동성-티어: hi-ADV IC +0.070 / lo-ADV +0.096 / cap-weighted +0.046 (microcap 지배 아님).
-      BY 보정(16 테스트, factor 3.38) 후 유일 생존 지표.
-  - id: cs_mom_6m_6Mfwd
+      cross-sectional 6M 모멘텀 z → 60d forward Rank-IC = ★양(continuation). flow_neutral regime 에서 +0.123(wc_p=0.001, 최강 cell).
+      ★BY 미생존(merged family m=177, raw_p_min 0.0005). 방향 안정적(wc_p<0.05 + OOS 부호유지 + leave-2022-out 강화) but 다중검정 후 비유의 → small-n hedge, PARTIAL.
+  - id: cs_mom_12_1
     layer: 3
     family: momentum
-    horizon: 6M_mom
-    ic_mean: 0.083
-    ic_ci_95: [0.013, 0.148]  # block-boot. NW CI [0.005,0.161]. 하단 0 근접(weaker).
-    ic_se_nw: 0.0393
-    t_nw: 2.10
-    n_effective: 77
-    oos_ratio: 0.93           # CPCV OOS hit=0.93
-    avg_universe_n: 26.2
-    source_id: "raw-v3/validation-metrics-v3.json:indicators.mom_6__6M_mom"
-    notes: "6M 모멘텀 → 6M forward. within-period 0.71(2022/2025 음 flip). BY 미생존 → TENTATIVE."
-  - id: cs_rev_1m_12Mfwd
+    horizon: y_60d
+    ic_mean: 0.0554
+    wild_cluster_p: 0.064
+    n_months: 74
+    walk_forward_oos: "IS +0.0156 → OOS +0.0932 = ✅부호유지+강화"
+    leave_2022_out: "+0.0554 → +0.0698 (wc_p 0.064→0.041)"
+    source_id: "raw-v3/validation-conditional-v3.json:conditional_ic_surface.mom_12_1.y_60d"
+    notes: "12-1 모멘텀 → 60d forward continuation. flow_neutral +0.106. BY 미생존. PARTIAL."
+  - id: cs_rev_1m
     layer: 3
     family: reversal
-    horizon: 12M_mom
-    ic_mean: 0.050
-    ic_ci_95: [0.001, 0.101]  # block-boot 하단 0 근접
-    ic_se_nw: 0.0184
-    t_nw: 2.73
-    n_effective: 76
-    oos_ratio: 1.00
-    avg_universe_n: 26.2
-    source_id: "raw-v3/validation-metrics-v3.json:indicators.rev_1m__12M_mom"
-    notes: "1M 단기수익 z → 12M forward (장기 모멘텀 동조). BY 미생존. TENTATIVE."
+    horizon: y_20d
+    ic_mean: -0.0294
+    wild_cluster_p: 0.3333
+    n_months: 81
+    source_id: "raw-v3/validation-conditional-v3.json:conditional_ic_surface.rev_1m.y_20d"
+    notes: "1M 단기 reversal 약 음 (uncond 비유의). KRW_weak regime -0.073. TENTATIVE."
+  - id: inv_ratio
+    layer: 1                   # ★신규 cycle 지표 (재고/총자산) — ★prior 반증
+    family: inventory
+    horizon: y_60d
+    ic_mean: 0.1121
+    wild_cluster_p: 0.0005     # ★merged family 최강 raw_p (m=177 중 1위)
+    n_months: 82
+    prior_부호: "음 (Chen-Novy-Marx-Zhang 재고순환)"
+    walk_forward_oos: "IS +0.1703 → OOS +0.0447 = ✅부호유지(약화)"
+    source_id: "raw-v3/validation-fundamentals-cycle-v3.json:indicators.inv_ratio.horizons.y_60d"
+    notes: |
+      ★prior 음 → 측정 양 = REVERSED. 메커니즘 재해석: 高재고/자산 = 성장·생산확대 종목 proxy(리튬 재고 cycle 음 신호 아님).
+      ★반도체 inv_ratio 와 동일 반증 패턴 = 재고/자산 = 성장 proxy 공통(memory enum). OOS 부호유지하나 약화 + size/growth confound 미분리 → TENTATIVE.
 
 # ── 블록3 RELATIONSHIPS (partial-corr) — RegimeGlasso 통합 단계 입력 ──
 relationships_passed:
-  - {node_a: cs_mom_6m, node_b: battery_fwd_12m, lag_months: 0, corr: 0.086,
-     corr_ci_95: [0.032, 0.132], conditioning_set: [], n: 71,
-     source_id: "raw-v3/validation-metrics-v3.json:indicators.mom_6__12M_mom",
-     note: "본 corr = cross-sectional IC(unconditional). partial-corr(공통인자 통제) = 통합 RegimeGlasso 단계."}
+  - {node_a: cs_mom_6m, node_b: battery_fwd_60d, lag_months: 0, corr: 0.0751,
+     conditioning_set: [], n: 80,
+     source_id: "raw-v3/validation-conditional-v3.json:conditional_ic_surface.mom_6.y_60d.unconditional",
+     note: "본 corr = cross-sectional IC(unconditional, 양=continuation). partial-corr(공통인자 통제) = 통합 RegimeGlasso 단계."}
 
 # ── 블록4 WEIGHT_RULES — derive_weights(w∝Θ_signal·IC) 입력 (range, 점추정 금지) ──
 weight_rule_candidates:
   - indicator_id: cs_mom_6m
-    base_weight_range: [0.06, 0.13]   # ic_mean=0.086 ± CI → 보수 range. 점추정 박제 금지.
+    base_weight_range: [0.04, 0.12]   # ★양의 IC continuation → weight 부호 양. CI 반영 보수 range(breadth 29종 hedge).
     modulate_by: [archetype, regime, cycle_phase]
-    direction: "cross-sectional 6M 모멘텀 z 상위 종목 overweight (peer-relative). long-only-implementable."
-    granularity: cross_sectional       # ★universe-relative z (own-history 아님)
-    gate_status: {n: pass, se: pass, power: pass, fdr: pass, oos: pass}  # 5게이트 ALL (G2=BY 생존)
-    source_ids: ["raw-v3/validation-metrics-v3.json:indicators.mom_6__12M_mom"]
-    hedge_note: "n=71 months Tentative-Validated 경계. CI [0.032,0.132] 유지. ★supervisor 가 cap/Σ_signal 조립."
+    direction: >
+      cross-sectional 6M 모멘텀 z 상위(많이 오른) 종목 overweight (continuation, peer-relative). long-only-implementable.
+      ★flow regime modulation 필수: flow_neutral 증폭 / flow_strong_buy 음 flip(passive 지배) → weight 축소·반전.
+    granularity: cross_sectional
+    gate_status: {n: pass, se: pass, power: pass, fdr: fail, oos: pass}  # ★G2(BY/Bonferroni) FAIL = 반도체와 동일
+    source_ids: ["raw-v3/validation-conditional-v3.json:conditional_ic_surface.mom_6.y_60d"]
+    hedge_note: >
+      n=80 months Tentative tier + breadth 29종 small. wc_p=0.0125 + OOS 부호유지 + leave-2022-out 강화 = 방향 안정적.
+      ★FDR 게이트 FAIL(merged m=177 BY 미생존) → supervisor conservative cap + flow-regime modulation 조립 시 hedge weight.
 
-# ── 블록5 CONFIDENCE_HOOKS — ★affects_indicator 필수 (비우면 결선 dead) ──
+# ── 블록5 CONFIDENCE_HOOKS — ★affects_indicator 필수 ──
 confidence_hooks:
-  - hypothesis_id: battery_cs_momentum_persistence
-    affects_indicator: cs_mom_6m       # ★★필수 — indicators_passed.id 와 매칭
-    affects_edge: [cs_mom_6m, battery_fwd_12m]
-    confirm_signal: "live 횡단면 6M 모멘텀 z 상위 종목의 12M forward rank IC > 0 유지 (rolling 12M)"
-    reject_signal: "Rank-IC e-CUSUM 단측 붕괴 (baseline 0.043=CI하단 미달 누적 K=3 month)"
+  - hypothesis_id: battery_cs_momentum_continuation
+    affects_indicator: cs_mom_6m
+    affects_edge: [cs_mom_6m, battery_fwd_60d]
+    confirm_signal: "live 횡단면 6M 모멘텀 z 상위 종목의 60d forward rank > 하위 유지 (rolling 12M, continuation 지속, flow_neutral regime)"
+    reject_signal: "Rank-IC e-CUSUM 부호 반전 붕괴 (IC 양→음 전환 누적 K=3 month = momentum crash/reversal 전환, Daniel-Moskowitz)"
     emit_where: "panel-score-IC 축 (backtest SELL 아님)"
     accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
-    feeds_weight: "derive_weights 재적합 → cross-sectional 모멘텀 base_weight 변동"
+    feeds_weight: "derive_weights 재적합 → cross-sectional momentum base_weight 변동 (부호 양 유지 조건)"
     action_threshold: "e-value > 1/alpha=20 → retract(live 차단) / 회복 = score_ic_recovery_eprocess"
+  - hypothesis_id: battery_flow_strong_buy_momentum_flip
+    affects_indicator: cs_mom_6m
+    affects_edge: [cs_mom_6m, battery_fwd_20d]
+    confirm_signal: "flow_strong_buy regime 진입 시 momentum IC 음으로 flip (interaction t<-2, passive 지배)"
+    reject_signal: "flow_strong_buy 에서 momentum IC 양 유지 (interaction |t|<1 = passive 지배 가설 소멸)"
+    emit_where: "regime-conditional weight modulation 축"
+    accumulate_in: "core/assume/weight_falsification.flow_regime_interaction_eprocess"
+    feeds_weight: "flow regime 따라 momentum weight 부호 modulation"
+    action_threshold: "interaction OOS t 부호 반전 누적 → flow modulation 제거"
 
 # ── 블록6 COLLECTOR_PLAN ──
 collector_plan_industry:
-  - missing: "시점별 발행주식수 (시총 PIT 정밀화) + EV-EBITDA(부채/현금 = DART BS 추가 계정)"
-    source: "DART stockTotqySttus(주식총수). 현 = FDR 현재주식수 근사(증자 잦은 종목 PIT 부정확 잔존)"
-    priority: medium  # ★valuation 횡단면 = DART fnlttSinglAcntAll 로 해소(PBR/PER 산출 완료). 잔여 = 주식수 PIT + EV/EBITDA.
-    status: "PBR/PER cross-sectional = 해소(2026-06-03). EV-EBITDA·시점주식수 = 후속."
-  - missing: "PIT universe 멤버십 (시점별 섹터 편입/편출 + delisted 종목)"
-    source: "FDR KRX-DESC = 현재 스냅샷만. KRX PIT 섹터분류(get_market_sector_classifications) 인증 필요"
-    priority: high   # 생존편향 완전 보정 (현 = 상장 시점 차이만 정량화)
+  - missing: "EV-EBITDA (cyclical primary_metric, 부채/현금 = DART BS) + 시점별 발행주식수(시총 PIT)"
+    source: "DART fnlttSinglAcntAll(부채총계/현금성자산) + stockTotqySttus. 현 = FDR 현재주식수 근사."
+    priority: high
+    status: "PBR/PER = 산출(약). EV-EBITDA = 후속. ★2차전지 성장주 = EV/GWh·EV/Capacity 대안 권고."
+  - missing: "종목레벨 외국인 flow (순매수/시총 cs-rank, 종목 alpha)"
+    source: "KRX 종목별(인증 차단) → ETF flow proxy. ★시장레벨 flow regime 은 ECOS 측정완료."
+    priority: high
+  - missing: "리튬 price yoy / GWh 출하 (산업 cycle regime 변수)"
+    source: "Trading Economics·SNE Research 유료 → FRED 리튬 PPI proxy. cross-sectional 부적합 = regime conditioning."
+    priority: medium
+  - missing: "PIT universe 멤버십 (시점별 섹터 편입/편출 + delisted)"
+    source: "FDR KRX-DESC = 현재 스냅샷만. KRX PIT 섹터분류 인증 필요"
+    priority: high
   - missing: "KR HY credit spread (공통인자 credit β KR-local)"
-    source: "현 = US BAML HY OAS proxy(FRED). KR 회사채 spread = 금융투자협회/한국신용평가 유료"
+    source: "현 = US BAML HY OAS proxy(FRED, n=35). KR 회사채 spread = 금투협/한신평 유료"
     priority: medium
-  - missing: "DART 분기 펀더멘털 시계열 (R&D/매출/OP margin, rcept_dt PIT stamp)"
-    source: "DART_API_KEY(.env 보유) — fnlttSinglAcntAll 종목당 fetch. Layer 1 펀더멘털 IC"
-    priority: medium
+
+# ════════════════════════════════════════════════════════════════════
+# ── ★★CONDITIONAL IC SURFACE (dispatch 원의도 본체, S2 신규 2026-06-05) ──
+# IC(지표, regime, horizon) = "어느 국면에 어느 지표가 forward return 예측하나".
+# 측정: raw-v3/measure_conditional.py (G-F 7항 헤더 선언) → validation-conditional-v3.json
+# regime: Macro(FRED CLI amplitude-adj 4) × KRW(DEXKOUS yoy 3) × flow(ECOS 외국인순매수 28d z 3)
+# horizon: y_5d/y_20d(메인)/y_60d 일간 forward. per-cell = wild-cluster bootstrap p + n_eff + block-boot CI.
+# ════════════════════════════════════════════════════════════════════
+conditional_ic_surface:
+  cell_collapse: >
+    ★36셀 full(Macro4×KRW3×flow3) N>=24 cell = 0개(실측) → INSUFFICIENT.
+    측정 = 단일축(Macro 4 / KRW 3 / flow 3 각각) conditional IC + family_2 interaction. 2축 merge = 통합단계.
+  fdr_family:
+    m_naive: 99               # powered cell 수 (conditional, 단일 FDR family, G-F §3)
+    m_eff_signal: 3.0         # ★Li-Ji M_eff (가격4신호 상관보정). naive 6신호 → 유효 ~3
+    by_survivors: []          # naive m=99 BY 보정 후 0 (raw_p_min=0.001 flow_neutral momentum)
+    bonferroni_note: "Bonferroni α/99=0.00051. raw_p_min(mom_6 flow_neutral)=0.001 > 0.00051 → 미생존."
+    note: "★M_eff 통합 보정 = supervisor 통합단계(M.7 분담). 산업 = naive + M_eff_signal 박제."
+  # ── ★핵심 발견: regime별 momentum IC 증폭/반전 (y_60d 본진, wild-cluster p) ──
+  key_findings:
+    - finding: "flow_neutral regime = momentum 증폭축 (battery primary 발견)"
+      cells:
+        - {signal: mom_6, horizon: y_60d, regime: "flow=flow_neutral", ic: 0.1233, wc_p: 0.001, n: 43, status: powered}
+        - {signal: mom_6, horizon: y_5d, regime: "flow=flow_neutral", ic: 0.1220, wc_p: 0.009, n: 44, status: powered}
+        - {signal: mom_12_1, horizon: y_60d, regime: "flow=flow_neutral", ic: 0.1062, wc_p: 0.010, n: 40, status: powered}
+      mechanism: "외국인 flow 중립기 = 종목별 fundamental 차별화 작동 → momentum continuation 증폭. theory M3(Choe-Kho-Stulz passive 지배의 역) 정합."
+    - finding: "momentum 양 continuation = 전 horizon uncond (★반도체 reversal 과 반대)"
+      cells:
+        - {signal: mom_6, horizon: y_60d, ic: 0.0751, wc_p: 0.0125, n: 80}
+        - {signal: mom_12_1, horizon: y_60d, ic: 0.0554, wc_p: 0.064, n: 74}
+      mechanism: "2차전지 성장단계 + 종목 차별화 → 승자지속. theory M1(Jegadeesh-Titman) 정합. ★단 BY 미생존(small-n hedge)."
+    - finding: "flow_strong_buy regime → momentum 부호 반전(음 flip)"
+      cells:
+        - {signal: mom_6, horizon: y_20d, regime: "flow=flow_strong_buy", ic: -0.1081, n: 18, status: underpowered}
+        - {signal: mom_12_1, horizon: y_20d, regime: "flow=flow_strong_buy", ic: -0.1281, n: 17, status: underpowered}
+      mechanism: "외국인 강매수 regime = passive 지배 → 개별 momentum 신호 음 flip. theory M3(Choe-Kho-Stulz) 정합. ★underpowered(n<24) but interaction term 으로 정식 검정."
+  # ── ★★family_2 interaction (G-B 의무, rejected 박제 前 = frame A-5) ──
+  # ★battery 특화: 반도체 = KRW_weak 축. battery = flow_strong_buy 축(momentum sign-flip).
+  # measure_conditional.measure_interaction_terms(dummy=flow_strong_buy) → validation-conditional-v3.json:family_2_interaction
+  family_2_interaction:
+    method: "pooled panel: ret_rank ~ sig_rank + sig_rank×flow_strong_buy_dummy, month-clustered SE (자유도 보존)"
+    primary_axis: "flow_regime=flow_strong_buy (★battery sign-flip 축, 반도체 KRW_weak 과 다름)"
+    results:
+      - {signal: mom_6, horizon: y_20d, b_main: 0.0492, t_main: 1.57, b_interaction: -0.1567, t_interaction: -2.43, n_months: 81, verdict: "interaction 유의"}
+      - {signal: mom_12_1, horizon: y_20d, b_main: 0.0707, t_main: 2.05, b_interaction: -0.1989, t_interaction: -3.20, n_months: 75, verdict: "interaction 유의"}
+      - {signal: rev_1m, horizon: y_20d, b_main: -0.0190, t_main: -0.60, b_interaction: -0.0416, t_interaction: -0.56, n_months: 81, verdict: "interaction 비유의"}
+      - {signal: vol_60, horizon: y_20d, b_main: -0.0085, t_main: -0.23, b_interaction: -0.0806, t_interaction: -1.16, n_months: 81, verdict: "interaction 비유의"}
+    krw_weak_axis_comparison: "★cross-sector 비교(반도체 축): KRW_weak interaction = mom_6 t=-0.84 / mom_12_1 t=+0.54 = 비유의 → battery 의 conditioning 축은 KRW 아닌 flow."
+    interpretation: >
+      ★mom_6/mom_12_1: main effect(양 continuation) + interaction term 유의(t=-2.43/-3.20) = "flow_strong_buy regime 에서 momentum 효과 음 flip"(frame A-5 정의) 입증.
+      = momentum 이 unconditional 양이나 외국인 강매수기엔 음(passive 지배). ★rev_1m/vol_60 = interaction 비유의(정직 보고).
+      ⛔ G-B "신호 약함" 단정 부적합 — family_2(mom_6·mom_12_1) 살아있음.
+  gb_status:
+    trigger_check: "BY 생존 0 AND raw_p_min(0.0005) > 2×BY_thresh = 트리거 충족(간발)"
+    verdict: >
+      ★"약함" 아님 = (a) flow_strong_buy interaction 유의(t=-3.20) (b) momentum uncond wc_p<0.05 + OOS 부호유지 + leave-2022-out 강화 (c) m=177 과대(M_eff 미통합).
+      → G-B 자동자문 발동 여부 = supervisor 판단(보고). 산업 판정 = "conditional 강함(flow modulation), unconditional+naive-FDR 약" = 동적가중 정당화.
+
+# ── ★신규 cycle 지표 (재고/CAPEX/R&D, ★이연 금지 = 측정완료, 2026-06-05) ──
+# 측정: collect_dart_extended.py(DART 재고/유형/무형자산 PIT 747rows/29종) → measure_fundamentals_cycle.py
+fundamentals_cycle:
+  source: "DART dart_extended.parquet (29종 747rows, coverage inv 90%/ppe 100%/intangible 83%/cogs 19%). PIT rcept_dt."
+  measured: "★사용자 박제 '이연 금지' 이행 — 불확실해도 지금 측정 + verdict 박제."
+  indicators:
+    - {id: inv_ratio, family: inventory, prior: 음, ic_y60d: 0.1121, wc_p_y60d: 0.0005, oos: "IS +0.170 → OOS +0.045 부호유지(약화)", verdict: "★TENTATIVE prior 반증 — 일관 양(prior 음 반대). 재고/자산 高=성장·생산확대 proxy 재해석. family 최강 raw_p but BY 미생존 + size/growth confound 미분리. 반도체 inv_ratio 와 동일 반증(memory enum)."}
+    - {id: ppe_yoy, family: asset_growth, prior: 음, ic_y60d: -0.022, oos: "IS +0.128 → OOS -0.149 부호반전", verdict: "INSUFFICIENT (uncond 비유의 + OOS artifact)"}
+    - {id: capex_ratio, family: asset_growth, prior: 음, ic_y60d: -0.007, oos: "IS +0.102 → OOS -0.134 부호반전", verdict: "INSUFFICIENT (비유의 + OOS artifact)"}
+    - {id: inv_yoy, family: inventory, prior: 음, ic_y60d: 0.008, oos: "OOS 부호반전", verdict: "INSUFFICIENT (비유의)"}
+    - {id: rnd_ratio, family: rnd, prior: 양, ic_y60d: 0.0676, wc_p_y60d: 0.0415, oos: "IS -0.023 → OOS +0.172 부호반전", verdict: "INSUFFICIENT (raw 약 양 정합이나 OOS 불안정)"}
+  verdict: >
+    ★신규지표 대부분 약/비유의 OR OOS artifact = 가격 momentum 보다 약. inv_ratio 만 강(wc_p 0.0005 family 최강) but prior 반증(양) =
+    메커니즘 재해석(성장 proxy) + confound 미분리 = TENTATIVE. = 정직 박제(over-claim 0). 사용자 "이연 금지" 이행.
+  fdr_family_merged:  # ★단일 FDR family 합산 (garden-of-forking-paths)
+    m_total: 177
+    composition: "conditional 99 + fundamentals 78"
+    survivors_BY: 0
+    raw_p_min: 0.0005
+    raw_p_min_key: "FUND::inv_ratio__y_60d__uncond"
+    note: "★신규지표 추가시 family m 커져 BY 더 엄격 = garden-of-forking-paths 차단 정확 작동. M_eff 통합보정=supervisor."
+  data_gate:
+    종목레벨_외국인flow: "★DATA-GATE(deferral 아님) — KRX 종목별 차단. 시장레벨 ECOS flow는 측정완료."
+    리튬_GWh_cycle: "★DATA-GATE — Trading Economics·SNE Research 유료 + 산업 공통 시계열(cross-sectional 부적합). FRED PPI proxy 후속."
 
 # ── ★cross (분석 단위 간 상관) — §M.3 3소비자 라우팅 (산업=보고만) ──
 cross:
-  # (a) 공통인자 exposure β (contemporaneous) → 통합 supervisor Σ_return 입력
   common_factor_exposure:
     - {factor: credit, beta: -0.1642, beta_ci_95: [-0.2941, -0.0344], contemporaneous: true,
        source_id: "raw-v3/validation-cross-v3.json:common_factor_exposure.credit",
        note: "credit risk-off 시 battery 약세 (t=-2.48 유의). ★credit=US HY OAS proxy(KR HY 부재), n=35 small."}
     - {factor: oil, beta: 0.2481, beta_ci_95: [0.0124, 0.4837], contemporaneous: true,
-       source_id: "raw-v3/validation-cross-v3.json:common_factor_exposure.oil",
        note: "oil/risk-on 약 양 노출 (t=+2.06). CI 하단 0 근접 = tentative."}
-    - {factor: VIX, beta: 0.0008, beta_ci_95: [-0.0177, 0.0192], contemporaneous: true, note: "비유의"}
-    - {factor: dollar, beta: -1.305, beta_ci_95: [-4.334, 1.724], contemporaneous: true, note: "비유의 (CI 넓음)"}
-    - {factor: rate, beta: -0.0824, beta_ci_95: [-0.268, 0.103], contemporaneous: true, note: "비유의"}
-  # (b) 방향성 spillover (DY) = 통합 단계 (산업별 매번 X) → skip
+    - {factor: VIX, beta: 0.0008, contemporaneous: true, note: "비유의 (t=0.08)"}
+    - {factor: dollar, beta: -1.305, contemporaneous: true, note: "비유의 (t=-0.84, CI 넓음)"}
+    - {factor: rate, beta: -0.0824, contemporaneous: true, note: "비유의 (t=-0.87)"}
   directional_spillover: []   # §M.3: DY connectedness = supervisor 통합, I-O centrality = optional 최하위
-  # (c) 구조 linkage (customer-supplier momentum) — alpha 후보 검증 결과
   structural_linkage:
-    - supplier_or_customer: lithium_upstream   # LIT/ALB (리튬 공급망 upstream)
-      io_weight: null            # BEA I-O = US, KR I-O 부재 → 정성 supply-chain
-      lagged_return_signal: 0.086  # lag3 corr (3M upstream momentum → battery fwd 1M)
+    - supplier_or_customer: lithium_upstream   # LIT/ALB (리튬 공급망)
+      io_weight: null
+      lagged_return_signal: 0.086
       p_value: 0.441
-      source_id: "raw-v3/validation-cross-v3.json:customer_supplier_momentum.lithium_upstream"
-      verdict: "REJECTED as alpha — 전 lag(0-3) 비유의. forward 예측력 부재(§D falsifier 작동). 동조성분은 RegimeGlasso Ω 흡수."
+      source_id: "raw-v3/validation-cross-v3.json:customer_supplier_momentum"
+      verdict: "REJECTED as alpha — 전 lag(0-3) 비유의. 리튬=산업 공통 시계열 = cross-sectional alpha 부재(§D falsifier 작동). 동조성분은 RegimeGlasso Ω 흡수 + regime 변수로 재배치."
   # ⛔ sector-rotation business-cycle clock = 학술 myth(Molchanov 2024). 모멘텀 rotation 만 tentative.
 
-# ── ★valuation 횡단면 (§M.7 핵심, 결함1 해소 — DART 재구성 2026-06-03) ──
-# DART fnlttSinglAcntAll 재무 + pykrx 가격 → PBR/PER cross-sectional z → forward IC.
-# ★PIT 엄수: rcept_dt(공시일) 이후만 적용. 시총=Close×현재주식수(시점별 주식수=collector_plan).
+# ── ★valuation 횡단면 (§M.7, DART 재구성) ──
 valuation_cross_sectional:
-  data_source: "raw-v3/validation-valuation-v3.json (DART 698 rows + pykrx 가격)"
-  mechanism_works: true   # ★cross-sectional 작동 — PBR 횡단면 avgN 26(전종목)/PER 20(순이익 양수). coverage PBR 2231/PER 1664 cells.
-  pit_note: "재무 = rcept_dt 공시일 이후만(lookahead 회피). FY 보고지연 median 80일."
+  data_source: "raw-v3/validation-valuation-v3.json (DART 698 rows + pykrx 가격) + conditional 재측정"
+  mechanism_works: {pbr: false, per: false}   # ★2차전지 성장주 valuation 왜곡 = 둘 다 약/무효
+  pit_note: "재무 = rcept_dt(공시일) 이후만(lookahead 회피). FY 보고지연 median 80일."
+  archetype_caveat: >
+    ★2차전지 = 성장주 valuation 왜곡: PER 적자/고성장 EPS 多 → 무효(trough-EPS, peak-EPS 와 다름). PBR 무신호(무형 가치 미반영).
+    = 반도체(PBR○ robust)와 달리 valuation 약. 가격 momentum 이 dominant.
   indicators:
-    - id: cs_per_z
-      signal: "PER cross-sectional z (저PER=value)"
-      horizon: 24M_value    # ★value 3-5Y 장기(§M.2)
-      ic_mean: -0.116       # 부호 음 = value premium 방향(저PER→고forward) 일치
-      ic_ci_95_nw: [-0.281, 0.049]      # NW(n=61, 24M overlap 보수) = 0 포함 → 비유의
-      ic_ci_95_block_boot: [-0.196, -0.042]  # block-boot = 0 배제 (NW 와 불일치, 보수적으로 NW 채택)
-      t_nw: -1.38
-      n_effective: 61
-      cpcv_oos_hit: 0.80
-      within_period: 0.67
-      avg_universe_n: 19.7
-      source_id: "raw-v3/validation-valuation-v3.json:indicators.per_z__24M_value"
-      verdict: "TENTATIVE DIRECTIONAL — 저PER value premium 방향성 약 prior(장기). NW 비유의(p=0.17), BY 미생존. CI 넓음, 추가 검증 필요. ★[frame §M.12] 24M eff_indep_N=61/24≈2.5 degenerate = 방향만. battery primary = cs_mom_6m(momentum), valuation 약·보조."
-    - id: cs_pbr_z
-      signal: "PBR cross-sectional z (저PBR=value)"
-      horizon: 24M_value
-      ic_mean: -0.019       # 거의 0
-      ic_ci_95_nw: [-0.329, 0.292]
-      t_nw: -0.12
-      n_effective: 61
-      avg_universe_n: 25.2
-      source_id: "raw-v3/validation-valuation-v3.json:indicators.pbr_z__24M_value"
-      verdict: "INSUFFICIENT signal — IC≈0, 무방향. battery PBR 횡단면은 forward 예측 부재."
-  multiple_testing: "8 테스트(2 신호×4 horizon) BY factor 2.72. raw_p_min=0.174(per_z__24M). ★BY 생존 0 = 전 valuation 지표 비유의."
+    - {id: cs_pbr_z, signal: pbr_z, horizon: y_60d, ic_mean: 0.0002, wc_p: 0.996, verdict: "INSUFFICIENT (무신호, 무방향)"}
+    - {id: cs_per_z, signal: per_z, horizon: y_60d, ic_mean: 0.0239, wc_p: 0.598, verdict: "TENTATIVE 약 (24M NW 비유의 p=0.17 기존, conditional 도 비유의). KRW_weak -0.072 약 음."}
   verdict: >
-    valuation 횡단면 메커니즘 = 작동(avgN 20-26, PBR 전종목/PER 순이익양수). 단 battery 내 IC = 약·비유의
-    (PER value premium 방향성 약 prior 장기 horizon, PBR 무신호). ★momentum(cs_mom_6m CONFIRMED)이
-    battery 의 dominant 신호 — valuation 은 보조. 사용자 요구("PER/PBR 평균대비 골고루") 산출 구조는 완성,
-    IC 유효성은 battery 한정 약(다른 산업에선 다를 수 있음 = 6산업 batch 가 검증).
-
-# ── robustness_checks (측정 17종 통과 기록, 지표별) ──
-robustness_checks:
-  - indicator_id: cs_mom_6m          # primary
-    leave_episode: pass              # ex-peak +0.067 (full +0.086), 부호·magnitude 생존
-    within_period: pass              # 연도별 부호 일관 100% (2019-2025)
-    partial_corr_ratio: null         # 통합 RegimeGlasso 단계 (산업 = unconditional IC 까지)
-    net_sharpe_ratio: null           # net IC haircut 33bps 왕복 / monthly 16.5bps (IC +0.086 >> cost) → gross 보존
-    forward_vs_contemp: "forward present"  # ★forward IC 유효 (§M.2 forward=primary, coin fallback 프레임 폐기)
-    family_neutralized_ic: null      # FF5/KR-factor neutralize = 통합 단계 (region-matched)
-    eff_n_tier: Tentative            # n=71 months (50-100 = Tentative). 종목 breadth 26 보완.
-  - indicator_id: cs_mom_6m_6Mfwd
-    leave_episode: pass
-    within_period: fail              # 0.71 (2022/2025 음 flip) — 6M horizon 덜 안정적
-    eff_n_tier: Tentative
-    forward_vs_contemp: "forward present (weaker)"
-  - indicator_id: cs_rev_1m_12Mfwd
-    leave_episode: pass
-    within_period: pass              # 0.71 (경계)
-    eff_n_tier: Tentative
-    forward_vs_contemp: "forward present (weak)"
+    valuation 횡단면 메커니즘 = 작동(avgN 20-26)하나 battery 내 IC = 약·비유의(PBR 무신호, PER 약). ★성장주 왜곡(theory M2) 정합.
+    momentum 이 battery dominant 신호 — valuation 보조. = 반도체(PBR robust)와 valuation 부호/강도 다름 = archetype 내 이질성.
 
 # ── horizon_verdict (forward alpha falsifier) ──
 horizon_verdict:
-  best_horizon: "12M (6M 모멘텀 신호 → 12M forward)"
-  forward_alpha_present: true        # ★present — 단독 베팅 근거 O (risk-monitor 격하 아님)
+  best_horizon: "60d (6M·12-1 모멘텀 신호 → 60d forward continuation)"
+  forward_alpha_present: true        # ★present (양 continuation) — 단독 베팅 근거 O 단 BY 미생존 hedge
   note: >
-    horizon 구조 = 모멘텀 3-12M 본진(§M.2 정합): 12M>6M>3M 단조. 1M_PEAD/reversal 약(단기 reversal).
-    customer momentum forward = null(REJECTED) → upstream lead-lag alpha 부재. 가격 모멘텀이 primary.
+    horizon 구조 = ★모멘텀 continuation: |IC| 60d(0.055-0.075) > 20d(0.016-0.024) = 장기 본진. 1M 약 reversal(음).
+    customer momentum forward = null(REJECTED). ★반도체(음 reversal)와 부호 반대 = cyclical archetype 내 이질성 핵심.
 
 # ── net-cost (KR 비대칭) ──
 net_cost:
   model: "spread/2 + commission + STT_sell(0.20%, 매도측만) — §M.4 비대칭"
   roundtrip_bps: 33.0
-  monthly_cost_bps: 16.5   # turnover 0.5/월 가정
-  note: "IC +0.086 (annualized IR breadth 26종) >> 16.5bps/월 → net 보존. ★sqrt impact·size-tier = CPCV 캘리브레이션(supervisor)."
+  monthly_cost_bps: 16.5
+  note: "|IC| 0.075 (breadth 29종 IR) > 16.5bps/월 이나 breadth 작아 IR 침식 + momentum turnover → net 보존 marginal. sqrt impact = supervisor."
 
 # ── Hard-fail 4 (B C D I) self-check ──
 hard_fail_self_check:
-  B_real_data: {status: PASS, note: "합성 0%. pykrx OHLCV 실측 29종 + yfinance(LIT/factors) + DART + FDR. raw-v3/*.py 재현."}
-  C_traceability: {status: PASS, note: "모든 yaml 수치 = raw-v3/validation-metrics-v3.json + validation-cross-v3.json + validation-valuation-v3.json key 매핑."}
+  B_real_data: {status: PASS, note: "합성 0%. pykrx OHLCV 29종(1818일) + yfinance(factors) + DART(financials 698 + extended 747) + FRED/ECOS regime. raw-v3/*.py 재현."}
+  C_traceability: {status: PASS, note: "모든 yaml 수치 = raw-v3/validation-{conditional,fundamentals-cycle,merged-fdr,walkforward,cross,valuation,metrics}-v3.json key 매핑."}
   D_pit:
     status: PASS
     note: >
-      가격신호 = PIT-safe(forward return shift). ★valuation 횡단면 = DART rcept_dt(공시일) 이후만 적용
-      = lookahead·restatement 회피(FY 보고지연 median 80일 실측). 시총=Close×현재주식수(시점별 주식수 정밀화 = 잔여 medium).
+      가격신호 = PIT-safe(forward return shift, 일간). valuation/펀더멘털 = DART rcept_dt(공시일) 이후만(lookahead 회피, FY 지연 median 80일).
+      regime Macro = CLI 발표지연 2개월 lag 적용(collect_regime). 시총=Close×현재주식수(시점주식수 정밀화 = collector_plan high).
   I_survivor_bias:
     status: PARTIAL
     note: >
-      universe = FDR 현재 스냅샷(생존 종목만). delisted/M&A 종목 누락 = 생존편향 잔존. 상장 시점 차이 정량화
-      (29종 中 6종 부분 이력: LG엔솔 2022상장 등) = look-back gap. PIT 멤버십 = collector_plan high.
+      universe = FDR 현재 스냅샷(생존 종목만). delisted/M&A 누락 = 생존편향 잔존. 29종 中 일부 부분이력(LG엔솔 2022상장 등).
+      PIT 멤버십 = collector_plan high.
 
 # ── verdict (small-n rule) ──
-verdict_label: PARTIAL  # ★전체 산업 = PARTIAL CONFIRMED
+verdict_label: PARTIAL
 verdict_detail:
-  cs_mom_6m__12M: "CONFIRMED (n=71 months≥30, t_NW=3.87 p<0.001, BY 생존, CPCV OOS hit 1.00, within-period 100%, leave-episode 생존, 유동성티어 부호 일관). battery dominant 신호. ★단 avg_universe_n=26(<30) = magnitude 보수."
-  cs_mom_6m__6M: "PARTIAL (within-period flip, BY 미생존)"
-  cs_rev_1m__12M: "TENTATIVE (CI 하단 0 근접, BY 미생존)"
-  valuation_cross_sectional: "★해소(DART 재구성) — 메커니즘 작동(PBR avgN 26/PER 20). per_z 24M value = TENTATIVE DIRECTIONAL(저PER value premium 약 prior, NW 비유의 p=0.17, BY 미생존) / pbr_z = INSUFFICIENT(무신호). battery 한정 valuation IC 약."
-  customer_momentum: "REJECTED (forward 예측력 부재, 전 lag 비유의)"
-  common_factor: "credit/oil tentative (credit US proxy, n=35 small)"
+  cs_mom_6m__y60d: >
+    PARTIAL (n=80, wc_p=0.0125, flow_neutral +0.123 wc_p=0.001, ★walk-forward OOS 부호+magnitude 유지(IS+0.078→OOS+0.072),
+    ★leave-2022-out 강화(+0.075→+0.102 wc_p 0.002)). ★BY 미생존(merged m=177) = 방향 안정적이나 다중검정 후 비유의.
+    ★양 continuation = 반도체(음 reversal)와 반대 부호 = archetype cyclical 내 이질성.
+  cs_mom_12_1__y60d: "PARTIAL (wc_p=0.064, OOS 강화 IS+0.016→OOS+0.093, BY 미생존)"
+  flow_strong_buy_interaction: "PARTIAL — interaction 유의(mom_6 t=-2.43, mom_12_1 t=-3.20), OOS mom_12_1 t=-2.59 생존 / mom_6 t=-1.03 약화. passive 지배 momentum 음 flip."
+  inv_ratio: "★TENTATIVE prior 반증(양 +0.112, family 최강 wc_p=0.0005, OOS 부호유지 약화). 성장 proxy 재해석 + confound 미분리."
+  valuation: "PBR INSUFFICIENT(무신호) / PER TENTATIVE 약. 성장주 valuation 왜곡."
+  customer_momentum: "REJECTED (리튬 upstream forward 예측력 부재, 전 lag 비유의)"
+  common_factor: "credit 유의(t=-2.48, US proxy n=35) / oil 약 양(t=2.06) / 나머지 비유의"
 verdict_note: >
-  산업 전체 = PARTIAL. momentum(cs_mom_6m) CONFIRMED = dominant. valuation 횡단면 결함 = 해소(산출 구조 완성)
-  하나 battery 내 valuation IC 는 약·비유의(per value premium 방향성만). ★pilot 결론: cross-sectional 메커니즘
-  (momentum + valuation 양쪽) 작동(파이프라인 산출 정상). valuation IC 유효성은 산업별 상이 가능 → 6산업 batch 가 일반화 검증.
+  산업 전체 = PARTIAL. ★핵심 발견 = momentum forward IC 부호 = ★양(continuation, +0.075) = 반도체(음 -0.065)와 반대 =
+  cyclical archetype 내 이질성(2차전지 성장단계 + 종목차별화). flow regime 이 momentum IC 변조 핵심축(flow_neutral 증폭 / flow_strong_buy 음 flip,
+  interaction t=-3.20 유의). 방향 안정적(wc_p<0.05 + OOS 부호유지 + leave-2022-out 강화) 하나 merged BY 미생존(m=177) → 다중검정 후 비유의 hedge.
+  valuation 약(성장주 왜곡, 반도체 PBR robust 와 다름). inv_ratio prior 반증(성장 proxy). breadth 29종 small = magnitude 보수.
+
+# ── ★S2 conditional 차원 verdict (dispatch 원의도 본체, walk-forward OOS 확정) ──
+verdict_conditional:
+  status: "★conditional PARTIAL→강 (tentative, n<30 cell) — walk-forward OOS 부호+magnitude 유지 + leave-2022-out 강화"
+  핵심: >
+    ★momentum 양 continuation(uncond +0.075)이 **flow regime 으로 변조** = dispatch 원의도.
+    (a) flow_neutral regime: mom_6 +0.123(wc_p=0.001, 최강 cell) 증폭.
+    (b) flow_strong_buy interaction: mom_6 t=-2.43 / mom_12_1 t=-3.20 유의(passive 지배 음 flip, frame A-5).
+    (c) ★battery conditioning 축 = flow(반도체 KRW_weak 과 다름) = 산업별 driver 이질성 입증.
+  walk_forward_oos:  # ★team-lead 지시 = verdict 확정 근거 (IS 2019-22 / OOS 2023-26)
+    mom_6_uncond: {is_ic: 0.0780, is_n: 42, oos_ic: 0.0720, oos_n: 38, verdict: "✅부호+magnitude 유지"}
+    mom_6_flow_neutral: {is_ic: 0.1315, is_n: 24, oos_ic: 0.1129, oos_n: 19, verdict: "✅부호+magnitude 유지"}
+    mom_12_1_flow_neutral: {is_ic: 0.0482, is_n: 21, oos_ic: 0.1703, oos_n: 19, verdict: "✅부호유지+강화"}
+    flow_strong_buy_interaction: {mom_6: "IS t=-2.64 → OOS t=-1.03 (부호유지 약화)", mom_12_1: "IS t=-1.91 → OOS t=-2.59 (부호유지+강화)"}
+    결론: >
+      ★momentum continuation + flow_neutral 증폭 = OOS 부호+magnitude 유지 = **in-sample artifact 아님**. = conditional PARTIAL→강(★tentative, OOS n=19 small-n magnitude hedge).
+      flow_strong_buy interaction = mom_12_1 OOS 생존(t=-2.59) / mom_6 OOS 약화(t=-1.03) = PARTIAL. = 미래 데이터 불필요한 현 walk-forward 검증.
+  adversarial_s5:
+    target: "momentum 양 continuation (2022 리튬붕괴 episode 종속?)"
+    attacks:
+      - {attack: "★2022 단일 episode(리튬붕괴) 종속?", test: "leave-2022-out IC", result: "mom_6 +0.075→+0.102(wc_p 0.012→0.002 강화) / mom_12_1 +0.055→+0.070", verdict: "★결정적 기각 — 2022 제거시 오히려 강화(2022가 약화 요인) = episode 종속 아님"}
+      - {attack: "flow_strong_buy = 단일 episode?", test: "시간분포", result: "2019(2)/2020(1)/2021(3)/2022(4)/2023(3)/2024(1)/2025(5) = 7년 분산", verdict: "기각(여러해 분산)"}
+      - {attack: "walk-forward OOS(2022 제외기간) 소멸?", test: "OOS 2023-26", result: "momentum+flow_neutral 부호+magnitude 유지", verdict: "★기각(OOS 생존)"}
+    convergence: "momentum continuation = 반증 3종(leave-2022-out 강화 + 시간분포 + walk-forward OOS) 모두 방어 = ★in-sample artifact 아님. S5 수렴."
+  gb_판정: >
+    ★G-B 자동자문 = supervisor 판단(family_2 interaction 유의 = '약함 단정' 반증). "약함" 부적합.
+    merged BY m=177 미생존은 M_eff 미통합 + small-n + breadth 29종. = 동적가중(flow modulation) 정당화. ★OOS 검증 완료 = in-sample only hedge 해소(부호·방향 한정, magnitude tentative).
+  비판검토: "inv_ratio prior 반증(성장 proxy, 반도체 동형) + customer momentum REJECTED(리튬 산업시계열) + valuation 약(성장주 왜곡) = 정직 박제."
+  정직단서: "OOS n=19 small-n + breadth 29종 → magnitude tentative(부호·방향만) / M_eff 통합 supervisor / 종목레벨 외국인flow·리튬·GWh = data-gate / inv_ratio confound 미분리."
+
+# ════════════════════════════════════════════════════════════════════
+# ── ★★ROTATION SIGNAL (업종 자체 비중 timing — 종목selection 위 차원, 2026-06-05) ──
+# 측정 대상 = "어느 국면 → 2차전지 업종 OW/UW" = 업종 eq-weight forward return 예측.
+# 위 conditional_ic_surface = 종목selection(산업 안 어느 종목). 본 섹션 = 산업 자체 timing.
+# 파이프라인 = 이론(증권사) → 통계검증(forward IC + OOS + G-G) → 판정. 가격 momentum 단독=data mining 채택불가.
+# 측정: _rotation/measure_rotation_v2.py(rotation-analyst) v2 baseline 재현·검증·심화. raw=_rotation/validation-rotation-v2.json + cycle_battery.parquet(LIT).
+# ★상세 capsule = rotation-signals.md (theory→stat→verdict 전문).
+# ════════════════════════════════════════════════════════════════════
+rotation_signal:
+  primary_driver: lithium_yoy   # ★LIT(Global X Lithium ETF) yoy = 리튬/배터리 cycle 직접신호
+  verdict: "★STRONG (tentative, underpowered) — 이론+통계 둘 다 채택. 후보 10개 검토 / tradeable 6개. universe 오염 없음(STRICT 검증)."
+  capsule_ref: "rotation-signals.md (§0 오염검증 + §1 부호확약 + §3 측정표 10후보 + §4 판정)"
+  universe_contamination_check:   # ★refine-analyst CRITICAL 대응 (v2 디렉토리전체 패널 오염 점검)
+    result: "★NO 오염 (steel 동형, refining 반대)"
+    comparison: "v2 전체29종 rho +0.274 / STRICT 19종 +0.285 / CORE 셀+양극 8종 +0.338(강화) / 제외10종만 +0.141(약화)"
+    note: "부수종목(포스코인터·두산·연료전지·연축·태양 등 10종) = 신호 희석(생성X). 양극재 makers(리튬원가 60-70%)가 민감도 최고 → strict일수록 강화 = 진짜 2차전지 신호. ★채택 패널 = STRICT 19종."
+  measurement:   # ★STRICT 19종 패널 기준 (오염 제거)
+    signal: "lithium_yoy = LIT ETF yoy (12M pct_change). source 사전검증 = yf.Ticker('LIT').history(period='max'). ★실 리튬 carbonate spot 아닌 ETF proxy(배터리tech 혼합) → ALB 보강."
+    target: "battery 업종 STRICT19 eq-weight 패널 60d(3M) forward cumulative return (종목 cross-section 아님 = 업종 시계열)"
+    horizon: y_60d   # ★3M 본진 (y_20d/1M = 비유의, cycle = 분기 lag 메커니즘 정합)
+    spearman_rho: 0.285   # ★STRICT 패널 (v2 전체29종 = +0.274)
+    wild_cluster_p: 0.01
+    n_months: 86
+    n_eff: 29.8
+    status: underpowered   # ★t_power_mde=1.5 < 2.802 breakeven = magnitude tentative, 부호·방향만
+    walk_forward_oos_strict: {rho_is: 0.204, rho_oos: 0.356, eligible: true, verdict: "★STRICT OOS 부호+magnitude 강화(+0.20→+0.36)"}
+  driver_sweep:   # ★후보 10개 전수 (이론 ≥8 충족) / tradeable 6 (≥2 충족)
+    n_candidates: 10
+    n_tradeable: 6
+    eligible: ["LIT_yoy +0.285(리튬)", "ALB_yoy +0.281(리튬 pure-play)", "REMX_yoy +0.220(니켈코발트)", "NIO_yoy +0.250(중국EV)", "BATT_yoy +0.122(배터리ETF)", "self_mom_3 +0.198(업종momentum, ★공통인자 재포장 의심=강등)"]
+    rejected: ["TSLA_yoy +0.265(OOS flip -0.04)", "DRIV_yoy +0.151(EV광의 OOS약화)", "usdkrw_yoy -0.274(★macro 공통=시장timing, rotation 아님)", "XLB_yoy -0.131(★control 실패 OOS flip = specificity 입증)"]
+    multi_source_convergence: "★리튬/cathode-metal 직접 3종(LIT/ALB/REMX) 전부 eligible + control(XLB) 실패 = 리튬 cycle = 진짜 driver(generic 소재베타 아님). NIO=수요측 확인."
+    walk_forward_oos: {is_n: 48, oos_n: 38, rho_is: 0.2282, rho_oos: 0.4603, eligible: true, verdict: "★OOS 부호+magnitude 강화(+0.23→+0.46)"}
+  # ── ★이론 검증 (증권사 리서치, 가격통계 단독 data-mining 차단) ──
+  theory_validation:
+    mechanism: >
+      ★리튬가 → 한국 양극재/셀 마진 = cost pass-through(판가 연동) + 재고평가손익(lagging/reverse-lagging), 3-6M lag.
+      리튬↑ = 래깅 이익(저가매입→고가판매 마진 부풀림) / 리튬↓ = 역래깅 손실(2023 한국 배터리 실적악화 주원인).
+      ★리튬 = 선행지표(변곡점→1-2분기 후 실적, 주가 6M 선반영) + 동행지표(전방 EV 수요 시그널).
+    sources: >
+      KB증권(2023.10.04 "양극재 판가 3-6M 후행연동") / 신한투자증권(2023.11.20 역래깅 4Q 실적부진) /
+      삼성증권(2024.01.24 "리튬 반등=주가 반등 트리거, 업종 타이밍 지표") / 하나증권(2024.02.05 EV 침투율 구조성장) /
+      키움증권(2023.08.17 IRA/FEOC 구조적 해자). ★결론·목표가 아닌 메커니즘만 추출.
+    sign_precommit: "양(+) — 리튬가↑ → 한국 배터리 업종 OW. ★단 증권사 nuance = '바닥→완만 상승 전환'이 최강(역래깅 종료+래깅 시작=실적 턴어라운드). 급등 cost-push = 단기 caveat."
+    theory_stat_match: "★일치 — sign_precommit 양 = 측정 rho +0.274 양. OOS 2023-26 = 리튬 바닥→반등 국면 = 증권사 '최강 신호' 국면 정합 → OOS+0.46 강화 설명. = 채택(data mining 아님)."
+  # ── ★multi-source 검증 (LIT 단일 proxy 의존 차단, source 전부 사전검증) ──
+  multi_source_confirm:
+    - {proxy: "ALB (Albemarle, 세계최대 리튬생산)", rho: 0.247, wc_p: 0.0175, oos: "+0.13→+0.45 eligible", verdict: "★리튬 pure-play 확인 — LIT(배터리tech 혼합) 아닌 순수 리튬광산도 예측 = 리튬 cycle 본질"}
+    - {proxy: "REMX (희소금속 니켈/코발트)", rho: 0.194, wc_p: 0.0735, oos: "+0.03→+0.48 eligible", verdict: "NCM 양극재 metal cycle (theory M4 정합)"}
+    - {proxy: "BATT (배터리 ETF)", rho: 0.127, wc_p: 0.2584, oos: "+0.03→+0.34 eligible", verdict: "광의 배터리 cycle (약하나 부호일관)"}
+    - {proxy: "DRIV (EV ETF 전기차)", rho: 0.139, wc_p: 0.1654, oos: "+0.22→+0.06 약화", verdict: "EV 수요 proxy 약(not eligible) — 침투율은 구조성장(장기) > timing"}
+    - {proxy: "XLB (광의 소재섹터) = ★control", rho: -0.204, wc_p: 0.049, oos: "+0.07→-0.51 flip", verdict: "★control 실패(부호반대+OOS flip) = 배터리 신호의 specificity 입증(generic 소재 아님)"}
+    convergence: "★리튬/cathode-metal 직접 proxy 3종(LIT/ALB/REMX) 전부 eligible 양 + generic 소재(XLB) control 실패 = 리튬 cycle = battery rotation 진짜 driver(공통 소재베타 아님)."
+  # ── ★S5 역공격 (2022 리튬붕괴 episode 종속?) ──
+  adversarial_s5:
+    - {attack: "★2022 리튬 hyper-cycle 붕괴 episode 종속?", test: "leave-2022-out rho", result: "full +0.274 → ex-2022 +0.337(강화)", verdict: "★기각 — 2022 제거시 강화 = episode 종속 아님(stock-selection capsule 과 동일 패턴)"}
+    - {attack: "가격 momentum 재포장(data mining)?", test: "rotation-analyst residualize(공통인자 제거 후 momentum 소멸)", result: "battery momentum = market×beta 소멸 / 리튬 cycle = 직접신호 잔존", verdict: "★기각 — 리튬은 momentum 아닌 fundamental cycle 직접신호(자문 A 정합)"}
+  # ── ★판정 + gated 설계 (over-trade 차단) ──
+  verdict_detail: >
+    ★battery rotation = STRONG (tentative, underpowered). primary = lithium_yoy rho +0.274(wc_p 0.01) y_60d, OOS+0.46 강화 eligible,
+    이론(증권사 cost pass-through+재고평가+선행지표) + 통계(multi-source LIT/ALB/REMX 수렴 + XLB control 실패 + leave-2022-out 강화) 둘 다 채택.
+    ★momentum(secondary) = 공통인자 재포장(residualize 소멸) = data mining → 강등(리튬 cycle 이 primary). y_20d(1M) 비유의 = cycle 분기 lag 메커니즘 정합.
+  gated_design: "★underpowered → default weight 0 + hysteresis dead-band + cost-aware no-trade(α>k×23bps) + live e-CUSUM falsification. rotation tilt = static PCA sleeve(plan §8)와 결합 = 2층. sizing·WIRE = supervisor."
+  honest_caveat: >
+    ★전 rotation 신호 underpowered(60d overlap eff_N 29.8, t_power 1.5 < 2.802) → magnitude tentative, 부호·방향만.
+    리튬 LIT proxy = 실 리튬 carbonate spot 아닌 ETF(배터리tech 혼합) — ALB(순수 리튬광산)로 보강검증. 실 리튬 spot(Trading Economics 유료) = collector_plan.
+    급등 cost-push 시 단기 부정(증권사 nuance) = level yoy 가 '바닥→반등' 변곡 포착하나 급등/급락 비대칭 미분리 = 후속.

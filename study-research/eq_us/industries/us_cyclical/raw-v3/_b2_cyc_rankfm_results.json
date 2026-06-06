@@ -1,0 +1,145 @@
+{
+  "meta": {
+    "method": "rank-based Fama-MacBeth, H=12, B=9999, SPLIT=2022-01"
+  },
+  "CYC-1": {
+    "spec": "ev(저cheap)×gross_prof(고) Novy-Marx",
+    "pred": 1,
+    "full": {
+      "coef": 0.41599,
+      "n": 125,
+      "n_eff": 31.3,
+      "t_nw": 2.28,
+      "fixed_b_cv": 2.28,
+      "fixed_b_sig": false,
+      "wild_p": 0.0463,
+      "sign": 1
+    },
+    "in_sample": {
+      "coef": 0.18995,
+      "n": 84,
+      "n_eff": 25.0,
+      "t_nw": 0.84,
+      "fixed_b_cv": 2.41,
+      "fixed_b_sig": false,
+      "wild_p": 0.4469,
+      "sign": 1
+    },
+    "oos": {
+      "coef": 0.87908,
+      "n": 41,
+      "n_eff": 15.3,
+      "t_nw": 5.1,
+      "fixed_b_cv": 2.48,
+      "fixed_b_sig": true,
+      "wild_p": 0.0008,
+      "sign": 1
+    },
+    "sign_match": true
+  },
+  "CYC-3": {
+    "spec": "op_prof(고)×asset_growth(저) q-factor",
+    "pred": 1,
+    "full": {
+      "coef": -0.15362,
+      "n": 125,
+      "n_eff": 37.2,
+      "t_nw": -1.9,
+      "fixed_b_cv": 2.15,
+      "fixed_b_sig": false,
+      "wild_p": 0.0876,
+      "sign": -1
+    },
+    "in_sample": {
+      "coef": -0.12962,
+      "n": 84,
+      "n_eff": 27.7,
+      "t_nw": -1.1,
+      "fixed_b_cv": 2.3,
+      "fixed_b_sig": false,
+      "wild_p": 0.318,
+      "sign": -1
+    },
+    "oos": {
+      "coef": -0.20278,
+      "n": 41,
+      "n_eff": 18.5,
+      "t_nw": -2.6,
+      "fixed_b_cv": 2.36,
+      "fixed_b_sig": true,
+      "wild_p": 0.0337,
+      "sign": -1
+    },
+    "sign_match": false
+  },
+  "CYC-4": {
+    "spec": "ep_yield(고)×residual_mom",
+    "pred": 1,
+    "full": {
+      "coef": -0.19011,
+      "n": 89,
+      "n_eff": 28.5,
+      "t_nw": -1.75,
+      "fixed_b_cv": 2.28,
+      "fixed_b_sig": false,
+      "wild_p": 0.1087,
+      "sign": -1
+    },
+    "in_sample": {
+      "coef": -0.27353,
+      "n": 48,
+      "n_eff": 15.3,
+      "t_nw": -1.78,
+      "fixed_b_cv": 2.51,
+      "fixed_b_sig": false,
+      "wild_p": 0.1294,
+      "sign": -1
+    },
+    "oos": {
+      "coef": -0.09245,
+      "n": 41,
+      "n_eff": 13.5,
+      "t_nw": -0.64,
+      "fixed_b_cv": 2.6,
+      "fixed_b_sig": false,
+      "wild_p": 0.6613,
+      "sign": -1
+    },
+    "sign_match": false
+  },
+  "CYC-5": {
+    "spec": "ep_yield(고)×idio_vol(저)",
+    "pred": 1,
+    "full": {
+      "coef": -0.07656,
+      "n": 117,
+      "n_eff": 44.1,
+      "t_nw": -1.16,
+      "fixed_b_cv": 2.11,
+      "fixed_b_sig": false,
+      "wild_p": 0.2487,
+      "sign": -1
+    },
+    "in_sample": {
+      "coef": -0.08858,
+      "n": 76,
+      "n_eff": 31.3,
+      "t_nw": -1.03,
+      "fixed_b_cv": 2.19,
+      "fixed_b_sig": false,
+      "wild_p": 0.3235,
+      "sign": -1
+    },
+    "oos": {
+      "coef": -0.05427,
+      "n": 41,
+      "n_eff": 18.8,
+      "t_nw": -0.56,
+      "fixed_b_cv": 2.36,
+      "fixed_b_sig": false,
+      "wild_p": 0.5946,
+      "sign": -1
+    },
+    "sign_match": false
+  }
+}

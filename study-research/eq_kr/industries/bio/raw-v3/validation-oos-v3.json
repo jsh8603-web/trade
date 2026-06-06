@@ -1,0 +1,240 @@
+{
+  "meta": {
+    "is_period": "2019~2022",
+    "oos_period": "2023~2026",
+    "horizon_d": 20,
+    "method": "IS/OOS split + family_2 interaction OOS + S5 역공격(episode/VIX/leave-out)"
+  },
+  "unconditional_oos": {
+    "vol_60": {
+      "label": "vol_60 unconditional y_20d",
+      "is_ic": -0.1248,
+      "oos_ic": -0.0083,
+      "n_is": 42,
+      "n_oos": 39,
+      "sign_keep": true,
+      "verdict": "OOS 부호유지+magnitude 약화"
+    },
+    "rev_1m": {
+      "label": "rev_1m unconditional y_20d",
+      "is_ic": -0.0821,
+      "oos_ic": -0.0093,
+      "n_is": 42,
+      "n_oos": 39,
+      "sign_keep": true,
+      "verdict": "OOS 부호유지+magnitude 약화"
+    },
+    "mom_6": {
+      "label": "mom_6 unconditional y_20d",
+      "is_ic": -0.0512,
+      "oos_ic": 0.0135,
+      "n_is": 42,
+      "n_oos": 39,
+      "sign_keep": false,
+      "verdict": "OOS 부호반전(artifact)"
+    },
+    "pbr_z": {
+      "label": "pbr_z unconditional y_20d",
+      "is_ic": -0.0657,
+      "oos_ic": 0.0436,
+      "n_is": 42,
+      "n_oos": 39,
+      "sign_keep": false,
+      "verdict": "OOS 부호반전(artifact)"
+    },
+    "per_z": {
+      "label": "per_z unconditional y_20d",
+      "is_ic": -0.0063,
+      "oos_ic": 0.0608,
+      "n_is": 42,
+      "n_oos": 39,
+      "sign_keep": false,
+      "verdict": "OOS 부호반전(artifact)"
+    }
+  },
+  "flow_sell_conditional_oos": {
+    "mom_6": {
+      "label": "mom_6 | flow_sell y_20d",
+      "is_ic": -0.1299,
+      "oos_ic": -0.1563,
+      "n_is": 9,
+      "n_oos": 11,
+      "sign_keep": true,
+      "verdict": "OOS 부호유지+magnitude 유지/강화"
+    },
+    "mom_12_1": {
+      "label": "mom_12_1 | flow_sell y_20d",
+      "is_ic": -0.1297,
+      "oos_ic": -0.1296,
+      "n_is": 7,
+      "n_oos": 11,
+      "sign_keep": true,
+      "verdict": "OOS 부호유지+magnitude 유지/강화"
+    },
+    "rev_1m": {
+      "label": "rev_1m | flow_sell y_20d",
+      "is_ic": -0.0869,
+      "oos_ic": -0.1193,
+      "n_is": 9,
+      "n_oos": 11,
+      "sign_keep": true,
+      "verdict": "OOS 부호유지+magnitude 유지/강화"
+    },
+    "vol_60": {
+      "label": "vol_60 | flow_sell y_20d",
+      "is_ic": -0.055,
+      "oos_ic": -0.1346,
+      "n_is": 9,
+      "n_oos": 11,
+      "sign_keep": true,
+      "verdict": "OOS 부호유지+magnitude 유지/강화"
+    },
+    "per_z": {
+      "label": "per_z | flow_sell y_20d",
+      "is_ic": -0.1005,
+      "oos_ic": -0.0854,
+      "n_is": 9,
+      "n_oos": 11,
+      "sign_keep": true,
+      "verdict": "OOS 부호유지+magnitude 유지/강화"
+    }
+  },
+  "interaction_is": {
+    "mom_6": {
+      "b_inter": -0.0976,
+      "t_inter": -1.11,
+      "n_obs": 1300,
+      "n_months": 42
+    },
+    "mom_12_1": {
+      "b_inter": -0.1142,
+      "t_inter": -1.75,
+      "n_obs": 1096,
+      "n_months": 36
+    },
+    "rev_1m": {
+      "b_inter": -0.0117,
+      "t_inter": -0.16,
+      "n_obs": 1327,
+      "n_months": 42
+    },
+    "vol_60": {
+      "b_inter": 0.0955,
+      "t_inter": 1.07,
+      "n_obs": 1321,
+      "n_months": 42
+    },
+    "pbr_z": {
+      "b_inter": -0.0027,
+      "t_inter": -0.03,
+      "n_obs": 1315,
+      "n_months": 42
+    },
+    "per_z": {
+      "b_inter": -0.1175,
+      "t_inter": -1.02,
+      "n_obs": 684,
+      "n_months": 42
+    }
+  },
+  "interaction_oos": {
+    "mom_6": {
+      "b_inter": -0.2389,
+      "t_inter": -3.01,
+      "n_obs": 1375,
+      "n_months": 39
+    },
+    "mom_12_1": {
+      "b_inter": -0.1981,
+      "t_inter": -2.48,
+      "n_obs": 1356,
+      "n_months": 39
+    },
+    "rev_1m": {
+      "b_inter": -0.1532,
+      "t_inter": -2.86,
+      "n_obs": 1393,
+      "n_months": 39
+    },
+    "vol_60": {
+      "b_inter": -0.1783,
+      "t_inter": -3.08,
+      "n_obs": 1387,
+      "n_months": 39
+    },
+    "pbr_z": {
+      "b_inter": -0.1308,
+      "t_inter": -1.72,
+      "n_obs": 1392,
+      "n_months": 39
+    },
+    "per_z": {
+      "b_inter": -0.1842,
+      "t_inter": -2.61,
+      "n_obs": 640,
+      "n_months": 39
+    }
+  },
+  "s5_attack": {
+    "episode_distribution": {
+      "flow_sell_months_by_year": {
+        "2019": 3,
+        "2020": 2,
+        "2021": 4,
+        "2022": 1,
+        "2023": 3,
+        "2024": 4,
+        "2025": 2,
+        "2026": 3
+      },
+      "n_total": 22,
+      "note": "여러 해 분산 = 단일 episode 종속 아님"
+    },
+    "vix_proxy_check": {
+      "vix_flow_sell": 21.91,
+      "vix_all": 20.13,
+      "note": "비슷하면 risk-off 대리 아님(진짜 flow 효과), 크게 높으면 stress 대리"
+    },
+    "leave_worst_out": {
+      "dropped_year": 2021,
+      "interaction_after_drop": {
+        "mom_6": {
+          "b_inter": -0.1858,
+          "t_inter": -2.93,
+          "n_obs": 2303,
+          "n_months": 69
+        },
+        "mom_12_1": {
+          "b_inter": -0.1508,
+          "t_inter": -2.31,
+          "n_obs": 2093,
+          "n_months": 63
+        },
+        "rev_1m": {
+          "b_inter": -0.0756,
+          "t_inter": -1.52,
+          "n_obs": 2332,
+          "n_months": 69
+        },
+        "vol_60": {
+          "b_inter": -0.0556,
+          "t_inter": -0.93,
+          "n_obs": 2327,
+          "n_months": 69
+        },
+        "pbr_z": {
+          "b_inter": -0.0642,
+          "t_inter": -0.99,
+          "n_obs": 2325,
+          "n_months": 69
+        },
+        "per_z": {
+          "b_inter": -0.1358,
+          "t_inter": -1.87,
+          "n_obs": 1142,
+          "n_months": 69
+        }
+      }
+    }
+  }
+}

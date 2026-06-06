@@ -1,239 +1,329 @@
-# summary.yaml — us_mega_tech sleeve v3 (frame v3 §M exposure card 계약)
-# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge, BY/FDR, block-boot, ★§M.12 eff_N/breadth-IR/magnitude haircut).
-# 산출 범위 = §M.7 exposure card (측정 전용). us_defensive/us_cyclical + auto/consumer 미러.
-# raw 재현: raw-v3/{collect, measure, measure_cross, exposure_card, measure_valuation}.py
+# summary.yaml — us_mega_tech sleeve v3 (★재작업 2026-06-03, basket화 = 자문 R2 수정4)
+# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-basket(N=11) hedge 강(§M.12 eff_N/breadth-IR/magnitude haircut).
+# ★재작업 핵심 = (1) S1 신호(Gormsen-Lazarus duration) (2) 자문 R2 4수정(family 3분리/M_eff/eff_N/★수정4 basket화)
+#   (3) ★basket-level time-series factor timing 우선(N=11 cross-sec 통계력 약, Grinold breadth) + cross-sec small-basket hedge
+#   (4) ⛔ sector-neutral z 비적용(단일 archetype compounder basket, peer 구조 없음) — us_cyclical multi-sector 와 분기(15axis G-A.5)
+# raw 재현: raw-v3/{collect, measure}.py + data/{prices, amount, edgar_fundamentals}.parquet + us_defensive/raw/fred → validation-metrics-v3.json
 
-industry: us_mega_tech        # eq_us sleeve T0 (compounder, Mag7 custom basket)
+industry: us_mega_tech        # eq_us sleeve T0 (compounder, Mag7 custom basket 11종: Mag7+AVGO/AMD/ORCL/ASML)
 asset_scope: [equity.us]
-archetype: compounder         # mega-tech 성장 복리 (Mag7 + AI 반도체/SW) — expensive_trap(고PER 정상)
+archetype: compounder         # long-duration growth + quality. expensive_trap(고PER 정상 = value premium 부재)
 archetype_attestation:
-  valid_from: "2015-01-01"    # ★PIT 사전선언 (§M.5 ex-post 금지). compounder = 지속 성장 복리
+  valid_from: "2015-01-01"    # ★PIT 사전선언 (yfinance 가용 시작)
   declared_at: "2026-06-03"
-  primary_metric: fwd_eps_growth   # compounder primary (성장·fwd EPS, ★PER value 아님 = expensive_trap)
-  secondary: quality_lowvol        # 저변동성 quality (안정 mega-cap 복리)
+  primary_metric: real_rate_exposure   # ★basket-level duration(real-rate β) 노출 — Gormsen-Lazarus. ★노출≠alpha(timing 약). fwd EPS growth(IBES 유료 gap)
+  secondary: quality_lowvol        # 저변동성 quality(cross-sec small-basket hedge, basket-level low-beta)
   basis: >
-    mega-tech 복리 성장 1차 가설. ★실측 검증: ★vol_60 저변동성 quality IC +0.241(t=3.10, breadth-IR 2.56) dominant +
-    momentum 약 양(growth persistence 약) + ★PER 무신호(고PER 정상 = expensive_trap 정합) + VIX β 강 음(고베타 risk-on).
-    → compounder 지지 = 저변동성 quality·성장이 신호, value premium 아님. ★n=11 basket small-n hedge.
-as_of: "2026-05-31"
+    ★mega-tech = long-duration growth(Gormsen-Lazarus 2023 JF duration). ★실측 = ★basket-level real_rate Δ β −0.154 단독
+    / −0.210 multivariate(t−5.14) 강 음 = ★duration factor **노출** 강(QUALIFIED, us_defensive −0.066 대비 3배 = 이론 정합).
+    ⛔ 단 ★노출(contemporaneous β) ≠ alpha(예측) — forward timing ts_IC −0.191 p0.032 = ★약 유의(노출 강·예측 약). duration timing alpha
+    는 supervisor macro overlay 몫. VIX β 강 음(고베타 risk-on, risk overlay). PER 무신호(expensive_trap 가설 확인). cross-sec vol_60(+0.241)
+    = small-basket hedge(N=11 BY 미생존). ★sleeve 종합 = factor alpha 빈약 + duration overlay 가 본질(자문 R2 수정4 basket화).
+as_of: "2026-05-28"
 
-# ── 블록1 LENS (정성) ──
+# ── ★재작업 방법 정정 (자문 R2 4수정 + ★수정4 basket화) ──
+method_corrections:
+  basket_level_primary: >
+    ★자문 R2 수정4 = N=11 small-basket → cross-sectional rank-IC 통계력 약(Grinold IR=IC√breadth, breadth 11×ρ̄ 0.429
+    보정 시 cross_eff_n=2.08). → ★basket-level time-series factor exposure timing(real_rate/VIX/dollar/rate β + forward
+    timing) 우선 = family_1b 신규. cross-sectional 은 small-basket hedge(breadth-IR ρ̄ 보정 + magnitude 50~70% haircut),
+    단독 verdict 금지.
+  sector_neutral_NA: >
+    ⛔ sector-neutral z 비적용 = 단일 archetype(compounder) basket, 11종 모두 mega-tech 그룹 = sub-sector demean 할
+    peer 구조 없음 → universe-demean = sector-neutral 동치(별 sector factor 없음). us_cyclical(multi-sector 5개)는 sector-neutral
+    필수였으나 mega_tech 비적용. ★15axis G-A.5 사유 명시.
+  by_family_3way: "family_1 cross-sectional unconditional 예측 IC(BY) / family_1b basket-level factor timing(별 측정) / family_2 regime-conditional(VIX 사전지정, 별 m) / family_3 driver β attribution(BY 제외, family_1b 단독/multivariate 겸용)."
+  m_eff: "Li-Ji(2005) eigenvalue, test-stat(IC 시계열) 상관행렬. raw m=30 → M_eff=19.0. nondegenerate(24M strip) M_eff=16.0. family_1 BY threshold(rank1)=0.001484."
+  eff_n_double: "★시계열 eff_N≈T/h × 횡단면 eff_N=N/(1+(N−1)ρ̄). ★mega-tech ρ̄=0.429 높아 cross_eff_n=11→2.08 급감(small-basket degenerate 민감). breadth-IR 에 cross_eff_n 사용(과대 방지). 24M overlap ts_eff_n≈4.6 degenerate."
+
+# ── 블록1 LENS ──
 lens:
   pricing_principle: >
-    us_mega_tech = compounder. "싸다" ≠ 저PER(★expensive_trap: 고PER 정상 = growth-duration). primary = fwd EPS 성장·quality.
-    ★실측 결론: vol_60 저변동성 quality(AAPL/MSFT 안정 mega-cap) IC +0.241 dominant. PER value premium 없음(고PER 정상).
-    momentum 약 양(성장 persistence). valuation(PBR 약 value/PER 무신호/capex) = §10(EDGAR). VIX 민감(고베타 risk-on).
+    us_mega_tech = compounder(long-duration growth + quality). "싸다" ≠ 저PER(★expensive_trap: 고PER 정상 = growth-duration,
+    Gormsen-Lazarus). ★primary = basket-level real_rate(duration) factor **노출** β = −0.21(강 음, ★노출≠alpha = timing 예측 약).
+    VIX β 강 음(고베타 risk-on, risk overlay). quality(저변동) = cross-sec small-basket hedge(+0.241 but BY 미생존). value premium 부재(PER 무신호).
+    ★sleeve 본질 = factor alpha 빈약 + duration overlay(supervisor macro 입력).
   cycle_reading: >
-    2015-2026 = 모바일→클라우드→AI(2023~) 복리 성장. NDX yoy regime: bull 84 / neutral 45 / bear 8 month(compounder bull 편중).
-    ★reflexivity(H9): intra-Mag7 60d corr full 0.45/recent 0.355(p75 0.534) + breadth EW-top3 spread +0.08 = ★현재 정점 아님(corr<0.70, breadth 양).
+    2015-2026 = 모바일→클라우드→AI(2023~) 복리. ★duration 채널 = 할인율(real rate Δ) 민감(level 아닌 Δ). NDX yoy regime
+    bull 편중. ★reflexivity(H9 risk overlay): intra-corr recent 0.355<0.70 + breadth +0.08 = 정점 아님(cap-down 미발동).
   estimation_note: >
-    2026-05 시점: universe 11종 custom basket(Mag7+AVGO/AMD/ORCL/ASML). ★n=11 = 횡단면 avg_N 11 small-basket =
-    small-n hedge 강(magnitude haircut + breadth-IR 병기). n=123개월(2015~). 본 산출 = 측정+peer-relative z card + reflexivity monitor.
+    universe 11종 custom basket. ★N=11 = Grinold breadth 협소 → basket-level time-series timing 우선 + cross-sec small-basket
+    hedge(ρ̄=0.429, cross_eff_n 2.08). n=136개월(2015~). ⛔ sector-neutral 비적용(단일 archetype).
 
-# ── 블록2 INDICATORS (forward 횡단면 Rank-IC, ★§M.12 eff_N/breadth-IR) ──
+# ── 블록2 INDICATORS ──
+# ★primary = basket-level (family_1b). cross-sectional = small-basket hedge(단독 verdict 금지).
 indicators_passed:
-  - id: cs_lowvol
-    layer: 3
-    family: low_volatility     # ★저변동성 quality (compounder 핵심, 안정 mega-cap)
-    horizon: 12M_mom
-    ic_mean: 0.241
-    ic_ci_95: [0.104, 0.366]   # ★block-bootstrap(block=12M=horizon, §M.12). NW CI [0.089, 0.394] 정합. 둘 다 0 배제.
-    ic_se_nw: 0.0779
-    t_nw: 3.10
-    n_effective: 123           # months. ★eff_indep_N=123/12≈10.2 (12M horizon, degenerate 아님)
-    breadth_ir: 2.56           # ★IC·√(breadth 11 × eff_N 10.2) = 강한 신호 (§M.12 breadth-IR)
-    oos_ratio: 1.00            # CPCV OOS hit=1.00
-    avg_universe_n: 11.0
-    source_id: "raw-v3/validation-metrics-v3.json:indicators.vol_60__12M_mom"
+  - id: basket_real_rate_beta
+    layer: 2                  # macro factor exposure (basket-level time-series)
+    family: duration
+    horizon: contemporaneous_monthly
+    measurement: basket_level_time_series   # ★cross-sectional 아님 (자문 수정4)
+    beta_mean: -0.2096        # ★multivariate(real_rate+vix+dollar+rate) HAC. 단독 −0.1543.
+    beta_ci_95: [-0.2895, -0.1297]   # multivariate HAC. 0 배제(강 유의). 단독 CI [-0.2161,-0.0926].
+    t_nw: -5.14               # multivariate. 단독 t−4.90.
+    n_effective: 136          # months
+    r2_multivariate: 0.445
+    source_id: "raw-v3/validation-metrics-v3.json:family_1b_basket_level.factor_beta._multivariate.real_rate"
+    signal_type: factor_exposure   # ★노출(β) — alpha 아님. timing 예측은 약(supervisor macro overlay 몫).
     notes: |
-      cross-sectional 60d 변동성 z → 12M forward = ★양(저변동성→고forward = quality 프리미엄).
-      ★compounder 해석: 저변동 = AAPL/MSFT 안정 mega-cap(복리), 고변동 = AMD/투기적 → 안정성이 outperform.
-      NW+block-boot CI 둘 다 0 배제, CPCV 1.00, within 0.73, leave-episode 생존(ex-peak +0.196). vol_60→6M 도 IC +0.171(within 0.91 더 안정적).
-      ★BY 미생존(n=11 basket, raw_p 0.0024 < but BY 임계). ★n=11 small-n: magnitude는 breadth-IR(2.56) 병기, 점추정 단정 회피.
-  - id: cs_mom_6m_weak
-    layer: 3
-    family: momentum           # ★약 양(growth persistence, 비유의)
-    horizon: 1M
-    ic_mean: 0.050
-    ic_ci_95: [-0.014, 0.097]  # block-boot 0 포함 = 비유의
-    ic_se_nw: 0.0320
-    t_nw: 1.56
-    n_effective: 130
-    oos_ratio: 0.93
+      ★QUALIFIED(factor exposure 강) — duration(real-rate Δ) β 강 음 = mega-tech 가 금리에 강하게 **노출**(고duration). Gormsen-Lazarus(2023)
+      JF 78(3) duration 정합: long-duration growth = 할인율 민감 강. ★us_defensive real_rate β −0.066(t−6.78) 대비 3배 강 = 이론대로 mega-tech > defensive.
+      robustness 전부: sub-basket mag7 −0.148/ai_semi −0.175 둘 다 음 + leave-year all_negative(−0.169~−0.098) + ★level β −0.003 무 vs Δ β −0.154(할인율 변화가 신호).
+      ⛔ ★노출(contemporaneous β) ≠ alpha(예측): forward timing ts_IC −0.191 p0.032 = ★약 유의(노출 강하나 timing 예측력 약). = cross-sectional stock-picking
+      alpha 아님 = ★duration factor 노출(QUALIFIED), timing alpha 는 supervisor macro overlay 몫. 기존 cross-v3 −0.030 비유의 = 단일회귀 측정 부족(multivariate 회복).
+  - id: basket_vix_beta
+    layer: 2
+    family: risk_on
+    horizon: contemporaneous_monthly
+    measurement: basket_level_time_series
+    beta_mean: -0.0073        # 단독. multivariate −0.0053.
+    beta_ci_95: [-0.0095, -0.0052]
+    t_nw: -6.79
+    n_effective: 136
+    source_id: "raw-v3/validation-metrics-v3.json:family_1b_basket_level.factor_beta.vix_uni"
+    notes: |
+      ★고베타 risk-on 강 음(VIX↑=risk-off=mega-tech 약세). ★risk overlay·L축 공통인자(supervisor 1회 계상) — ★alpha 아님
+      (BAB 함의: high-beta risk-adj underperform). de-risk throttle + regime feature 입력. forward timing 무(ts_IC≈0) = 동시 risk factor.
+  - id: cs_lowvol
+    layer: 3                  # cross-sectional
+    role: diagnostic_no_verdict   # ★B″ STEP 0: 유효 cross-section n≈8 = factor void → 참고 지표만(verdict/PASS-FAIL 아님)
+    family: low_volatility
+    horizon: 12M_mom
+    measurement: cross_sectional   # ★N=11 small-basket
+    ic_mean: 0.241
+    ic_ci_95: [0.104, 0.366]  # block-bootstrap. NW CI [0.089,0.394] 정합.
+    t_nw: 3.10
+    n_effective: 123
+    cross_eff_n: 2.08         # ★ρ̄=0.429 보정 (11→2.08 급감)
+    breadth_ir: 1.11          # ★ρ̄ 보정 breadth-IR (기존 2.56 = ρ̄ 미보정 과대)
+    oos_ratio: 1.00
     avg_universe_n: 11.0
-    source_id: "raw-v3/validation-metrics-v3.json:indicators.mom_6__1M"
-    notes: "6M 모멘텀 → 1M forward = 약 양(growth persistence). ★battery 양 momentum 과 동방향이나 약·비유의(t=1.56). compounder 성장 지속 약 신호. TENTATIVE."
+    by_survived: false        # ★nondegenerate strip 시 survivors=[] (small-basket BY 미생존)
+    source_id: "raw-v3/validation-metrics-v3.json:family_1_cross_sectional.indicators.vol_60__12M"
+    notes: |
+      ★B″ STEP 0 = DIAGNOSTIC ONLY(참고 지표, verdict 아님) — 저변동성 quality IC +0.241 t3.10 CPCV 1.00 leave-episode 생존.
+      ★단 유효 cross-section n≈8(valuation 가용 7~8) = factor 추정 통계적 void → ★강제 시 spurious factor 제조 → verdict/PASS-FAIL 생성 안 함.
+      ρ̄ 보정 breadth-IR 1.11(과대 2.56 정정), BY 미생존. ★sleeve = exposure/timing overlay = cross-sectional factor 로 판정 안 함(참고만).
 
 # ── 블록3 RELATIONSHIPS ──
 relationships_passed:
+  - {node_a: basket_real_rate_beta, node_b: megatech_basket_ret, lag_months: 0, beta: -0.2096,
+     beta_ci_95: [-0.2895, -0.1297], conditioning_set: [vix, dollar, rate], n: 136,
+     source_id: "raw-v3/validation-metrics-v3.json:family_1b_basket_level.factor_beta._multivariate.real_rate",
+     note: "★basket-level duration β(multivariate). Gormsen-Lazarus. partial-corr=supervisor RegimeGlasso."}
+  - {node_a: basket_vix_beta, node_b: megatech_basket_ret, lag_months: 0, beta: -0.0073,
+     beta_ci_95: [-0.0095, -0.0052], conditioning_set: [], n: 136,
+     note: "★고베타 risk-on(VIX β). risk overlay·L축. alpha 아님."}
   - {node_a: cs_lowvol, node_b: megatech_fwd_12m, lag_months: 0, corr: 0.241,
      corr_ci_95: [0.104, 0.366], conditioning_set: [], n: 123,
-     source_id: "raw-v3/validation-metrics-v3.json:indicators.vol_60__12M_mom",
-     note: "cross-sectional IC(unconditional, 저변동성 quality 양). ★n=11 basket = magnitude breadth-IR 병기. partial-corr = RegimeGlasso 단계."}
+     note: "cross-sectional IC(저변동성 quality 양). ★N=11 small-basket = magnitude breadth-IR(ρ̄ 보정 1.11) 병기, BY 미생존."}
 
 # ── 블록4 WEIGHT_RULES ──
 weight_rule_candidates:
+  - indicator_id: basket_real_rate_beta
+    base_weight_range: [0.0, 0.0]   # ★factor 노출(β) = stock-picking weight 아님. supervisor macro overlay 입력(de-risk/regime timing).
+    modulate_by: [real_rate_regime]
+    direction: "★factor 노출(고duration). real rate Δ 상승 = mega-tech basket 약세(노출). ⛔ alpha weight 아님 = supervisor macro overlay(real-rate regime de-risk) 입력. timing 예측 약(ts_IC −0.191)."
+    granularity: basket_level_factor_exposure
+    gate_status: {n: pass, se: pass, power: pass, fdr: na, oos: pass}  # ★노출 β = BY family 아님(attribution). t−5.14 강. ★단 timing alpha 약.
+    source_ids: ["raw-v3/validation-metrics-v3.json:family_1b_basket_level.factor_beta._multivariate.real_rate"]
+    hedge_note: "★QUALIFIED(factor 노출 강) duration β. robustness 전부 통과. ⛔ ★노출≠alpha — timing ts_IC −0.191 p0.032 약 유의(예측 약). = duration timing 은 supervisor macro overlay 몫(sleeve weight 아님). FF5 neutralize=supervisor."
+  - indicator_id: basket_vix_beta
+    base_weight_range: [0.0, 0.0]   # ★risk overlay = weight 신호 아님 (de-risk throttle 입력)
+    modulate_by: [reflexivity_monitor]
+    direction: "★risk overlay (alpha 아님). VIX↑ = de-risk throttle(gross 축소). L축 공통인자(supervisor 1회 계상)."
+    granularity: basket_level_risk_overlay
+    gate_status: {n: pass, se: pass, power: pass, fdr: na, oos: na}
+    source_ids: ["raw-v3/validation-metrics-v3.json:family_1b_basket_level.factor_beta.vix_uni"]
+    hedge_note: "★신호 아님 = risk overlay. high-beta risk-adj underperform(BAB). supervisor throttle."
   - indicator_id: cs_lowvol
-    base_weight_range: [0.05, 0.20]   # 양 IC(저변동성 quality) → 저변동 mega-cap overweight. CI 반영.
-    modulate_by: [archetype, regime, reflexivity_monitor]
-    direction: "cross-sectional 60d 변동성 z 하위(저변동, 안정 mega-cap) 종목 overweight (quality). long-only."
-    granularity: cross_sectional
-    gate_status: {n: pass, se: pass, power: pass, fdr: fail, oos: pass}  # ★FDR(BY) fail = n=11 basket small-n
-    source_ids: ["raw-v3/validation-metrics-v3.json:indicators.vol_60__12M_mom"]
-    hedge_note: >
-      n=123 months, eff_N 10.2. CI [0.104,0.366] 0 배제 유의. ★단 n=11 basket = magnitude(IC 0.241) literal 인용 금지,
-      breadth-IR(2.56) 병기 + magnitude 50-70% haircut(§M.12). ★reflexivity(H9) cap-down 시 supervisor throttle.
+    base_weight_range: [0.0, 0.0]   # ★B″ STEP 0: diagnostic only = weight 부여 안 함(유효 n≈8 factor void). 참고 지표.
+    role: diagnostic_no_verdict
+    modulate_by: []
+    direction: "★diagnostic 참고 지표 (저변동성 quality IC +0.241). ⛔ weight 부여 안 함 = 유효 cross-section n≈8 = spurious factor 제조 회피. sleeve=exposure overlay."
+    granularity: cross_sectional_diagnostic
+    gate_status: {role: diagnostic_no_verdict}  # ★PASS/FAIL gate 폐기(verdict 생성 안 함)
+    source_ids: ["raw-v3/validation-metrics-v3.json:family_1_cross_sectional.indicators.vol_60__12M"]
+    hedge_note: "★B″ STEP 0 = DIAGNOSTIC ONLY(참고치, weight 0). 유효 n≈8 factor void = cross-sectional verdict 생성 안 함. sleeve 본질 = basket-level exposure overlay(real_rate/vix β)."
 
 # ── 블록5 CONFIDENCE_HOOKS — ★affects_indicator 필수 ──
 confidence_hooks:
-  - hypothesis_id: us_mega_tech_quality_lowvol
-    affects_indicator: cs_lowvol       # ★★필수 — indicators_passed.id 매칭
-    affects_edge: [cs_lowvol, megatech_fwd_12m]
-    confirm_signal: "live 횡단면 60d 변동성 z 하위(안정 mega-cap)의 12M forward rank IC 양 유지 (rolling 12M, quality 프리미엄)"
-    reject_signal: "Rank-IC e-CUSUM 부호 음 전환 누적 K=3 month (quality 소멸/고변동 outperform) OR ★H9 reflexivity cap-down(intra-corr>0.72 AND breadth<-3%p)"
-    emit_where: "panel-score-IC 축 (backtest SELL 아님)"
+  - hypothesis_id: us_mega_tech_duration_real_rate
+    affects_indicator: basket_real_rate_beta   # ★필수
+    affects_edge: [basket_real_rate_beta, megatech_basket_ret]
+    confirm_signal: "live basket real_rate Δ β < 0 유지 (rolling 36M, duration 채널). hawkish regime underperform 지속"
+    reject_signal: "real_rate β e-CUSUM 부호 양 전환/소멸 (duration 채널 소멸 또는 mega-tech 단기화)"
+    emit_where: "basket-factor-β 축"
     accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
-    feeds_weight: "derive_weights 재적합 → 저변동성 quality base_weight 변동 (reflexivity throttle 연동)"
-    action_threshold: "e-value > 1/alpha=20 → retract / H9 reflexivity → cap-down(gross 축소)"
+    feeds_weight: "derive_weights → real_rate_beta base_weight (real-rate regime timing)"
+    action_threshold: "e-value > 20 → retract / 회복 = beta_recovery_eprocess"
+  - hypothesis_id: us_mega_tech_quality_lowvol
+    affects_indicator: cs_lowvol
+    affects_edge: [cs_lowvol, megatech_fwd_12m]
+    confirm_signal: "live 횡단면 60d 변동성 z 하위 12M forward rank IC 양 유지 (rolling 12M, quality)"
+    reject_signal: "Rank-IC e-CUSUM 부호 음 전환 K=3 month OR ★H9 reflexivity cap-down(intra-corr>0.72 AND breadth<−3%p)"
+    emit_where: "panel-score-IC 축"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "derive_weights → 저변동성 quality base_weight (reflexivity throttle 연동)"
+    action_threshold: "e-value > 20 → retract / H9 reflexivity → cap-down"
 
 # ── 블록6 COLLECTOR_PLAN ──
 collector_plan_industry:
-  - missing: "fwd EPS 성장 (analyst estimate, compounder primary) + AI capex→fwd EPS lag 1-2Q(H6)"
-    source: "IBES/Refinitiv(유료) 또는 EDGAR 10-Q capex(수집완료) + 자체 fwd EPS proxy(과거 성장 외삽)"
-    priority: high   # ★compounder primary=fwd_eps_growth 미산출 = 핵심 gap (PBR/PER/capex 만 §10)
-    status: "PBR/PER/capex cross-sectional = §10(EDGAR). fwd EPS = collector_plan high."
-  - missing: "PIT basket 멤버십 (편입 시점 = NVDA pre/post-AI, ASML ADR 포함 여부 시변)"
-    source: "현 = 현재 basket 스냅샷. mega-tech 상폐 거의 없으나 편입 시점(TSLA 2020 S&P 편입 등) PIT"
-    priority: medium # survivorship 약(mega-tech 생존편향 작음) 단 편입 시점 PIT
+  - missing: "★fwd EPS 성장 / ERB (compounder primary, direction R1 alpha 1순위)"
+    source: "IBES/FactSet/Refinitiv(유료) = free API 부재. EDGAR=actuals only. proxy(net_income TTM YoY)=forward-looking 아님(보조)"
+    priority: high   # ★compounder primary 미측정 = 최대 gap (basket-level real_rate/vol_60 만 측정)
+  - missing: "gross_profitability (GP/Assets, Novy-Marx quality)"
+    source: "EDGAR concept 확장(GrossProfit/CostOfRevenue) — 현 4 concept(equity/ni/shares/capex)만. us_cyclical 12 concept 미러"
+    priority: medium
+  - missing: "PIT basket 멤버십 (편입 시점 = NVDA pre/post-AI, TSLA 2020 S&P 편입, ASML ADR 포함 여부 시변)"
+    source: "현 = 현재 basket 스냅샷. mega-tech 상폐 거의 없으나 편입 시점 PIT"
+    priority: medium
+  - missing: "FF5+Mom+QMJ+BAB factor neutralize (concentration β 분리, H12)"
+    source: "Ken French + AQR public. = supervisor 통합 단계"
+    priority: medium
   - missing: "reflexivity breadth = EW-CW spread (CW = 실 시총가중, 현 top3 근사)"
-    source: "EDGAR shares × price = 시총 가중 정밀화. 현 = NVDA/AAPL/MSFT top3 평균 근사"
-    priority: medium
-  - missing: "FF5+Mom+QMJ+BAB factor neutralize (concentration β 분리, H12) + momentum crash tail(Daniel-Moskowitz)"
-    source: "Ken French + AQR public. mega-tech concentration = QMJ/BAB 노출 분리 의무"
-    priority: medium
+    source: "EDGAR shares × price = 시총 가중 정밀화"
+    priority: low
 
-# ── ★cross (분석 단위 간 상관) — §M.3 (산업=보고만) ──
+# ── cross (§M.3 — sleeve=보고만) ──
 cross:
   common_factor_exposure:
-    - {factor: vix, beta: -0.008, beta_ci_95: [-0.013, -0.003], contemporaneous: true,
-       source_id: "raw-v3/validation-cross-v3.json:basket_factor_beta.MEGA_TECH_ALL.vix",
-       note: "★VIX 상승(risk-off) 시 mega-tech 약세 = 고베타 risk-on 성장주(t=-2.5, mag7 t=-4.0 강). compounder dominant 공통인자. n=36 small."}
-    - {factor: real_rate, beta: -0.030, beta_ci_95: [-0.34, 0.28], contemporaneous: true,
-       note: "real_rate 듀레이션 민감 약/비유의(t=-0.2). ★ai_semi -0.245(약 음, 성장 듀레이션) but mag7 +0.007 무. us_defensive utilities(-0.213 강)보다 약."}
-    - {factor: dollar, beta: 0.146, contemporaneous: true, note: "비유의 (CI 넓음)"}
-    - {factor: rate, beta: 0.022, contemporaneous: true, note: "비유의 (ai_semi +0.199 약 양만)"}
-  # ★H9 reflexivity monitor (mega-tech 고유 — supervisor de-risk throttle 입력)
-  reflexivity_monitor:
+    - {factor: real_rate, beta: -0.2096, beta_ci_95: [-0.2895, -0.1297], contemporaneous: true, n: 136,
+       source_id: "raw-v3/validation-metrics-v3.json:family_1b_basket_level.factor_beta._multivariate.real_rate",
+       note: "★duration β(multivariate) 강 음. Gormsen-Lazarus. family_3 attribution + primary 신호 겸. 단독 −0.154 t−4.90."}
+    - {factor: vix, beta: -0.0073, beta_ci_95: [-0.0095, -0.0052], contemporaneous: true, n: 136,
+       note: "★고베타 risk-on(t−6.79). risk overlay·L축. mag7 t−4.0 강."}
+    - {factor: rate, beta: 0.1057, beta_ci_95: [0.0307, 0.1808], contemporaneous: true, n: 136,
+       note: "★nominal rate β multivariate +0.106 t+2.76 (real_rate 통제 후 = inflation 성분 양?). 단독 −0.054 비유의. real_rate(duration) 가 본질."}
+    - {factor: dollar, beta: -0.2533, beta_ci_95: [-0.8665, 0.3599], contemporaneous: true, n: 136,
+       note: "★multivariate 비유의(t−0.81, CI 0 포함). 단독 −1.83 t−4.89 = real_rate 와 collinear(financial conditions 흡수). attribution."}
+  directional_spillover:      # ★B″ STEP 5/⑨: Cohen-Frazzini lagged firm-pair + achieved power/MDE (semi↔hyperscaler 한정)
+    - {model: cohen_frazzini_lagged_firm_pair, customer: hyperscaler, supplier: semiconductors,
+       contemporaneous_k0_corr: 0.690, cf_customer_lead_1m: -0.070, cf_customer_lead_2m: -0.092, cf_customer_lead_3m: -0.074,
+       reverse_semi_lead_1m: -0.018, mde_rho_power80: 0.238, achieved_power_lead1m: 0.127, underpowered: true, n: 135,
+       source_id: "raw-v3/validation-metrics-v3.json:directional_spillover_candidate",
+       note: "★B″ STEP 5 = 기존 k=0 corr +0.69 = ★Cohen-Frazzini 오용(동조, 같은 risk cluster, tradeable 아님). ★CF 정합 = 고객(hyper)_t→공급사(semi)_{t+1} lagged: lead 1-3m 전부 비유의(−0.07~−0.09) + ★UNDERPOWERED(power 0.13~0.19, MDE|ρ|=0.238). = lagged spillover null 단 ★증거부재≠부재증거(power 부족). 역방향(semi→hyper) 무. semi↔hyperscaler 체인 한정. DY 후보(supervisor)."}
+  reflexivity_monitor:        # ★H9 risk overlay (신호 아님)
     avg_intra_corr_full: 0.45
     avg_intra_corr_recent: 0.355
     intra_corr_p75: 0.534
-    breadth_spread_recent: 0.0807   # 양 = breadth 넓음(top3 주도 아님)
-    n_high_corr_months: 36          # intra-corr>0.70 월 수
+    breadth_spread_recent: 0.0807
+    n_high_corr_months: 36
     current_status: "정점 아님 (corr<0.70 AND breadth 양) = cap-down 미발동"
-    cap_down_rule: "★intra-Mag7 60d corr>0.70-0.75 AND breadth EW-CW 3M spread<-3~-5%p 동시 → supervisor gross cap-down(de-risk throttle, §M.3 DY 채널)"
+    cap_down_rule: "★intra-Mag7 60d corr>0.70-0.75 AND breadth EW-CW 3M spread<−3~−5%p 동시 → supervisor gross cap-down(de-risk throttle, §M.3 DY)"
     source_id: "raw-v3/validation-metrics-v3.json:reflexivity_monitor"
-  directional_spillover: []   # DY = supervisor 통합
   structural_linkage:
     - supplier_or_customer: ai_capex_chain
-      note: "★H6 AI capex→fwd EPS lag 1-2Q = capex_z 측정(§10, IC 약 음 -0.087 비유의). hyperscaler capex→반도체(NVDA/AVGO) lead-lag = supervisor DY 단계."
-      verdict: "capex intensity cross-sectional 약(비유의). fwd EPS proxy 필요(collector_plan)."
+      note: "★H6 AI capex→fwd EPS = capex_z 측정(post-AI 2023~ IC −0.404 over-investment penalty). hyperscaler→반도체 동시 corr +0.69(선행 비유의) = DY 후보(supervisor)."
+      verdict: "capex intensity = post-AI over-investment 음(n=29 small hedge). ★capex IC~VIX interaction β +0.0083 t+2.34 유의(G-A.5 family_2b = risk-off 시 capex IC 변동). fwd EPS proxy 필요(collector_plan)."
 
-# ── ★valuation 횡단면 (§M.7 — EDGAR XBRL PIT, ★§M.12 eff_N) ──
+# ── ★valuation 횡단면 (§M.7 — EDGAR PIT, expensive_trap 직접 검증) ──
 valuation_cross_sectional:
-  data_source: "raw-v3/validation-valuation-v3.json (EDGAR XBRL 6630 rows + yfinance)"
-  mechanism_works: true   # ★EDGAR PIT 재구성 작동. PBR cov 1151/PER 1041/capex 1145 cells. avg_N 8종(basket valuation 가용).
-  pit_note: "EDGAR filed date 이후만(lookahead 회피, 한국 DART rcept_dt 대응)."
+  data_source: "raw-v3/validation-metrics-v3.json (family_1 per_z/pbr_z/capex_z) + validation-valuation-v3.json(보조 cov)"
+  mechanism_works: true   # EDGAR PIT 재구성 작동. pbr cov 1151/per 1041/capex 1145.
+  z_method: "universe-demean (★sector-neutral 비적용 = 단일 archetype basket, peer 구조 없음. 15axis G-A.5)."
+  pit_note: "EDGAR filed date 이후만(lookahead 회피)."
   archetype_note: >
-    ★compounder=expensive_trap: ★PER 무신호(per_z 3/6/12M ≈0 = 고PER 정상, value premium 없음) = core/structure/archetype.py
-    compounder 정의 지지(저PER value 아님). PBR 약 value 방향(음, 비유의). capex(H6) 약 음. ★§M.12: 24M_value = eff_N≈4.7 degenerate(방향만).
+    ★compounder = expensive_trap: ★PER 무신호(per_z 3M −0.001 p0.987 / 12M +0.013 p0.872 ≈0 = 고PER 정상) = value premium 부재
+    = archetype 정의 지지. Gormsen-Lazarus duration 으로 설명(고PER=long-duration 성장 반영). ★REJECT 아닌 expected null 확인(코멘트2).
   indicators:
-    - id: cs_pbr_z_12m
-      signal: "PBR cross-sectional z (저PBR=value)"
-      horizon: 12M
-      ic_mean: -0.167       # 저PBR→고forward = value 방향(약)
-      ic_ci_95_nw: [-0.374, 0.040]   # 0 포함 = 비유의
-      t_nw: -1.58
-      eff_indep_n: 10.4
-      n_effective: 130
-      breadth_ir: -1.55
-      avg_universe_n: 8.3
-      source_id: "raw-v3/validation-valuation-v3.json:indicators.pbr_z__12M"
-      verdict: "TENTATIVE — PBR value 방향(음) but 비유의(t=-1.58, NW CI 0 포함). pbr_z 3M raw_p=0.056 borderline. n=8 small-basket hedge."
     - id: cs_per_z_expensive_normal
       signal: "PER cross-sectional z (고PER=expensive)"
       horizon: "3M/6M/12M"
-      ic_mean: "≈0 (3M -0.001/6M +0.026/12M +0.013)"
-      verdict: "★INSUFFICIENT/expensive-trap 정합 — PER 무신호 = 고PER 정상(compounder value premium 없음). core archetype 지지."
+      ic_mean: "≈0 (3M −0.001/6M +0.026/12M +0.013)"
+      verdict: "★EXPECTED NULL(expensive_trap 정합) — PER 무신호 = 고PER 정상(compounder value premium 부재). archetype 지지. ★측정 완료(생략 X)."
+    - id: cs_pbr_z
+      signal: "PBR cross-sectional z (저PBR=value)"
+      horizon: 12M
+      ic_mean: -0.167
+      ic_ci_95_nw: [-0.374, 0.040]
+      t_nw: -1.58
+      verdict: "TENTATIVE — PBR value 방향(음) but 비유의(t−1.58, CI 0 포함). 3M raw_p=0.056 borderline. n=8 small-basket hedge."
     - id: cs_capex_z_h6
       signal: "capex/equity intensity z (H6 AI capex)"
-      horizon: "3M/6M/12M"
-      ic_mean: "약 음 (-0.028~-0.087, 비유의)"
-      verdict: "TENTATIVE — 고capex→저forward 약(과투자 우려?) 비유의. fwd EPS proxy 필요(collector_plan)."
-  multiple_testing: "9 테스트(24M degen 제외) BY factor. raw_p_min=0.056(pbr_z__3M). ★BY 생존 0."
+      horizon: "12M, AI-regime split"
+      ic_mean: "−0.087(full 비유의). ★pre-AI +0.009(n96 무) vs post-AI −0.404(n29 강 음)"
+      verdict: "★TENTATIVE_DIRECTIONAL — post-AI(2023~) IC −0.404(n=29, AI cycle 한정, ★OOS 없음) = AI capex over-investment penalty 신호 ★가능성(미입증). pre-AI 무. ⛔ 단정 금지(Cooper-Gulen-Schill 방향 정합이나 n=29 small-n hedge 강, observe-only)."
+  multiple_testing: "★family_1 BY (M_eff=19.0, raw m=30). survivors_BY(M_eff)=[vol_60 24M/12M] but nondegenerate(24M strip) survivors=[]. = small-basket BY 미생존."
   verdict: >
-    valuation 메커니즘 작동(EDGAR PIT, cov 1151) but compounder 특성상 ★PER 무신호(expensive_trap 정합, 고PER 정상) +
-    PBR 약 value(비유의) + capex 약. = compounder는 valuation value premium 없음(archetype 정합). dominant 신호 = vol_60 quality.
-    ★§M.12: 24M_value eff_N≈4.7 degenerate 라벨(primary 강등, 3/6/12M 우선). n=8 small-basket magnitude hedge.
+    ★valuation = compounder expensive_trap 정합: PER 무신호(expected null, archetype 지지) + PBR 약 value(비유의) + capex post-AI
+    over-investment 음(n=29 hedge). value premium 부재. ★primary 신호 = basket-level real_rate(duration) β(cross-sec valuation 아님).
 
 # ── robustness_checks ──
 robustness_checks:
-  - indicator_id: cs_lowvol           # primary
-    leave_episode: pass              # ex-peak +0.196 (full +0.241), 생존
-    within_period: pass              # 0.73 (6M=0.91 더 안정적)
-    partial_corr_ratio: null         # RegimeGlasso 단계
-    net_sharpe_ratio: null           # |IC| 0.241 >> 2bps/월(mega-cap 초저비용) → net 보존 강
-    forward_vs_contemp: "forward present (저변동성 quality 유의)"
-    family_neutralized_ic: null      # FF5+QMJ+BAB = 통합 (★QMJ 노출 분리 의무)
-    eff_n_tier: Validated            # n=123, eff_N(12M) 10.2
-    multiple_testing_gate: fail      # BY 미생존(n=11 basket)
-    small_n_magnitude_hedge: "★n=11 basket: magnitude(0.241) literal 금지, breadth-IR 2.56 병기 + 50-70% haircut(§M.12)"
-    block_boot_applied: true         # block=12M(horizon 비례, §M.12)
+  - indicator_id: basket_real_rate_beta   # ★primary
+    sub_basket: "mag7 β −0.148 t−4.57 / ai_semi β −0.175 t−3.73 = 둘 다 음(ai_semi 더 강=고duration). 부호 일관."
+    leave_year: "all_negative=True, range −0.169~−0.098 (단일 연도 의존 X)"
+    level_vs_diff: "★level β −0.003 t−0.54 무 vs Δ β −0.154 t−4.90 = duration 메커니즘(할인율 변화)이 신호, level 아님"
+    forward_timing: "real_rate 6M ts_IC −0.191 p0.032(약 유의), 3M −0.136 p0.119"
+    vs_defensive: "★us_defensive real_rate β −0.066(t−6.78) 대비 mega-tech −0.154~−0.210 = 3배 강 음(이론 정합)"
+    eff_n_tier: Validated   # n=136 month basket-level time-series
+    forward_vs_contemp: "contemporaneous β 강 + forward timing 약 유의"
+  - indicator_id: cs_lowvol
+    leave_episode: "ex-peak +0.196(full +0.241) 생존"
+    within_period: "0.73 (6M=0.91 더 안정)"
+    breadth_ir: "★ρ̄ 보정 1.11 (기존 미보정 2.56 = 과대)"
+    eff_n_tier: Validated   # n=123, ★단 cross_eff_n 2.08(small-basket)
+    multiple_testing_gate: fail   # BY 미생존(N=11)
+    small_n_magnitude_hedge: "★N=11 basket: magnitude(0.241) literal 금지, ρ̄ 보정 breadth-IR 1.11 + 50~70% haircut(§M.12)"
+    block_boot_applied: true
 
-# ── horizon_verdict ──
+# ── horizon_verdict (★B″ STEP 0: exposure overlay = verdict 아님) ──
 horizon_verdict:
-  best_horizon: "12M (vol_60 저변동성 quality 유의) + 6M(within 0.91 안정적)"
-  forward_alpha_present: true        # ★vol_60 forward alpha 유의(quality). momentum 약 양.
+  best_horizon: "★basket-level real_rate β = contemporaneous(monthly, duration 노출). cross-sectional(cs_lowvol 12M) = diagnostic 참고만."
+  forward_alpha_present: exposure_only   # ★duration 노출 강(contemporaneous β) but forward timing alpha 약(ts_IC −0.191). cross-sectional factor = diagnostic(유효 n≈8 void). ⛔ verdict 아님 = exposure overlay.
   note: >
-    ★compounder horizon: vol_60 저변동성 quality(+0.241, 12M 유의) dominant + momentum 약 양(growth persistence, 비유의).
-    PER 무신호(expensive_trap 정합). ★n=11 basket = magnitude breadth-IR 병기. 24M_value eff_N degenerate(§M.12).
-    reflexivity(H9) = supervisor throttle 입력(현 정점 아님). = compounder = quality·성장 신호, value 아님.
+    ★B″ STEP 0 = us_mega_tech = exposure/timing overlay(verdict 아님). basket-level duration(real-rate β −0.21 노출 강) + VIX 고베타 risk-on 노출 = factor exposure 한계기여.
+    ⛔ ★노출≠alpha(duration timing ts_IC −0.191 약) = supervisor macro overlay 몫. cross-sectional(cs_lowvol +0.241/per/capex) = ★DIAGNOSTIC ONLY(유효 n≈8 factor void).
+    reflexivity(H9) = concentration/crowding 지표(supervisor throttle). capex×VIX = regime-conditional beta 안정성(timing overlay).
 
-# ── net-cost (US, mega-cap 초저비용) ──
+# ── net-cost ──
 net_cost:
-  model: "spread/2 + commission (★US STT 없음, mega-cap 최고유동성 = spread 극소)"
+  model: "spread/2 + commission (★US STT 없음, mega-cap 최고유동성)"
   roundtrip_bps: 14.0
   monthly_cost_bps: 7.0
-  note: "US mega-cap 최저비용. |IC| 0.241 >> 7bps/월 → net 보존 강(단 magnitude hedge). impact 무시 가능(최고유동성)."
+  note: "US mega-cap 최저비용. basket-level timing = turnover 낮음(regime 전환 시만). cs_lowvol |IC| 0.241 >> 7bps."
 
 # ── Hard-fail 4 (B C D I) self-check ──
 hard_fail_self_check:
-  B_real_data: {status: PASS, note: "합성 0%. yfinance 11종(2867일) + EDGAR XBRL 6630 rows(filed PIT, equity/net_income/shares/capex) + FRED CSV(real_rate/VIX 실시리즈). raw-v3/*.py 재현."}
-  C_traceability: {status: PASS, note: "모든 yaml 수치 = validation-metrics-v3 / validation-cross-v3 / validation-valuation-v3.json key 매핑. vol_60 IC +0.241 / VIX β -0.008 / pbr_z 12M -0.167."}
+  B_real_data: {status: PASS, note: "합성 0%. yfinance 11종(2867일) + EDGAR XBRL 6630 rows(filed PIT) + FRED CSV(DFII10/VIXCLS/DTWEXBGS/DGS10 실시리즈, us_defensive 재사용). raw-v3/*.py 재현."}
+  C_traceability: {status: PASS, note: "모든 yaml 수치 = validation-metrics-v3.json key 매핑. real_rate β −0.2096(family_1b._multivariate) / vix −0.0073 / vol_60 +0.241(family_1_cross_sectional.indicators, diagnostic) / per_z ≈0 / capex post-AI −0.404 / ★spillover CF lagged 1m −0.070 underpowered(power 0.13). sleeve_type=exposure_timing_overlay."}
   D_pit:
     status: PASS
-    note: >
-      가격신호 = PIT-safe(forward shift). ★valuation = EDGAR filed date 이후만(lookahead 회피, 한국 DART rcept_dt 대응).
-      ★block bootstrap block=horizon 비례(§M.12). ★24M_value eff_N degenerate 라벨.
+    note: "가격신호=PIT-safe(forward shift). valuation=EDGAR filed date(lookahead 회피). 거시=FRED. real_rate Δ=동시 β(미래 누설 X). block-boot block=horizon. 24M_value eff_N degenerate 라벨."
   I_survivor_bias:
     status: PARTIAL
-    note: >
-      basket = 현 Mag7 스냅샷. ★mega-tech 생존편향 약(상폐 거의 없음) 단 PIT 멤버십(NVDA pre/post-AI 편입, TSLA 2020 편입) = look-back.
-      n=11 basket = 전부 현존 대형주. collector_plan medium(편입 시점 PIT).
+    note: "basket = 현 Mag7 스냅샷. mega-tech 생존편향 약(상폐 거의 없음) but PIT 멤버십(NVDA pre/post-AI, TSLA 2020 편입) = look-back. collector_plan medium. hard-fail 회피=정직 격하."
 
-# ── verdict (small-n rule, ★§M.12) ──
-verdict_label: PARTIAL
-verdict_detail:
-  cs_lowvol__12M: >
-    ★PARTIAL (small-basket, ★over-claim 회피 — CONFIRMED 격하) — IC +0.241(저변동성 quality), t_NW=3.10, NW+block-boot CI 둘 다 0 배제, CPCV 1.00, leave-episode 생존,
-    within 0.73(6M 0.91), eff_N 10.2. ★단 n=11 basket = small-basket → ★BY 미생존(raw m=16 multiple_testing: raw_p_min=0.0024 vs BY rank-1 임계 (1/16)×0.05/3.381≈0.00092 = 미달, survivors_BY=[]).
-    ★magnitude(0.241) literal 금지 = breadth-IR 2.56 병기 + 50-70% haircut(§M.12, posterior 권역 0.07~0.12). = PARTIAL(small-basket) 정직화.
-  cs_mom_6m__1M: "TENTATIVE — momentum 약 양(growth persistence, t=1.56 비유의). battery 양 momentum 동방향 약."
-  valuation_cross_sectional: >
-    ★PER 무신호(expensive_trap 정합, 고PER 정상) = compounder archetype 지지. PBR 약 value(비유의), capex 약. 24M degenerate. value premium 없음.
-  reflexivity_monitor: "★H9: 현재 정점 아님(intra-corr 0.45<0.70, breadth +0.08 양). cap-down 미발동. supervisor throttle 입력 대기."
-  common_factor: "★VIX β 강 음(t=-4.0 mag7 = 고베타 risk-on). real_rate 듀레이션 약(ai_semi -0.245 약만). n=36 small."
-verdict_note: >
-  sleeve 전체 = PARTIAL. ★핵심 발견 = ★vol_60 저변동성 quality(+0.241 dominant, 안정 mega-cap 복리) + momentum 약 양(growth persistence) +
-  ★PER 무신호(expensive_trap 정합 = 고PER 정상, value premium 없음 = compounder archetype 지지) + VIX β 강(고베타 risk-on).
-  ★n=11 basket small-n = magnitude breadth-IR 병기 + 50-70% haircut(§M.12). 24M_value eff_N degenerate 라벨. reflexivity(H9) = supervisor throttle 입력(현 정점 아님).
-  archetype compounder 지지 = quality·성장 신호(value 아님). ★5 archetype 전수 완성: cyclical(반도체 reversal/auto PBR) / asset_stable(consumer/telecom/us_defensive value·reversal) / spread_driven(financial NIM) / event_driven(bio 변동성) / ★compounder(us_mega_tech quality·expensive-trap).
+# ── ★sleeve_type (★B″ 3R STEP 0/⑧ 재분류 — verdict 생성 폐기) ──
+# ★us_mega_tech = ★verdict 없는 exposure/timing overlay. cross-sectional factor(family_1) = DIAGNOSTIC ONLY(유효 n≈8 = 통계적 void).
+# ⛔ verdict_label(PASS/FAIL/PARTIAL/CONFIRMED) 폐기 = sleeve 가 cross-sectional factor ranking sleeve 아님. 보고 3종(exposure/concentration/regime-beta).
+sleeve_type: exposure_timing_overlay   # ★B″ STEP 0: verdict 없는 macro exposure/timing overlay (cross-sectional factor sleeve 아님)
+eff_cross_section_n: 8.3   # ★유효 cross-section n (valuation 가용 ~7-8) = cross-sectional factor 추정 통계적 void → diagnostic only
+overlay_report:   # ★보고 3종 (verdict 아님 = exposure/timing/risk 진단)
+  1_factor_exposure_contribution:
+    basket_real_rate_beta: >
+      ★duration factor **노출**(EXPOSURE, alpha 아님) — β −0.154 단독 / −0.210 multivariate(t−5.14) 강 음 = mega-tech 가 금리에 강하게 노출(고duration).
+      Gormsen-Lazarus 정합(defensive 3배). robustness 전부(sub-basket/leave-year/level-vs-Δ) 통과. ⛔ contemporaneous β = 노출 한계기여(supervisor RegimeGlasso/macro overlay 입력), stock-picking alpha 아님. forward timing ts_IC −0.191 약.
+    basket_vix_beta: "★고베타 risk-on 노출 — VIX β −0.0073 t−6.79. L축 공통인자(supervisor 1회 계상) + de-risk throttle. alpha 아님(BAB)."
+  2_concentration_crowding:
+    reflexivity_monitor: "★H9: 현 정점 아님(intra-corr 0.355<0.70, breadth +0.08). cap-down 미발동. supervisor de-risk throttle 입력(신호 아님)."
+  3_regime_conditional_beta_stability:
+    capex_vix_interaction: >
+      ★family_2b capex IC~VIX β +0.0083 — ★B″ STEP 2(⑦) fixed-b size-valid 재검정 결과 = ★MIXED(post-AI 사망):
+      (전체 n=125) t_HAC +2.43 > fixed-b CV 2.19 + wild-cluster p=0.044 = ★SURVIVE(effN 33) but ★pre-AI 무신호 구간 섞인 희석.
+      (★post-AI n=29 = capex 신호 −0.404 가 강한 의미있는 구간) t_HAC +1.94 < fixed-b CV 2.86(small-block inflation) + wild-cluster p=0.234 = ★DIE
+      = ★payout split(t−2.86→fixed-b 2.09 사망)과 동일 Kiefer-Vogelsang size-invalid artifact. ⛔ "timing overlay 신호" 자격 = ★post-AI 미통과
+      (NW over-rejection). = capex regime-conditional = ★size-valid 미입증(전체 표본 SURVIVE 는 무신호 구간 희석 산물). per_z/vol_60 interaction 비유의(n/a).
+diagnostic_only_no_verdict:   # ★cross-sectional family_1 = 참고 지표(verdict 생성 안 함, 유효 n≈8 void)
+  cs_lowvol: "★diagnostic 참고치 — IC +0.241(저변동 quality) but ★유효 cross-section n≈8 = factor void → PASS/FAIL 라벨 없음. spurious factor 제조 회피. (참고: BY 미생존, breadth-IR ρ̄ 보정 1.11)."
+  cs_per_z: "★diagnostic — PER ≈0 = expensive_trap 정합(고PER 정상, archetype 지지 참고). verdict 아님."
+  cs_capex_z: "★diagnostic — post-AI IC −0.404(n=29 OOS 없음) = over-investment 신호 가능성 참고치(미입증, underpowered)."
+  cs_pbr_z: "★diagnostic — PBR 약 음 비유의 참고치."
+  note: "★B″ STEP 0: cross-sectional rank-IC = DIAGNOSTIC ONLY(유효 n≈8 통계적 void). F-score/net-issuance 측정 폐기(설계 mismatch). verdict/PASS-FAIL 생성 안 함."
+sleeve_summary: >
+  ★B″ 3R 재분류 = us_mega_tech = ★verdict 없는 exposure/timing overlay(cross-sectional factor sleeve 아님). 보고 3종:
+  (1) factor exposure 한계기여 = duration(real_rate basket β −0.21 노출 강, supervisor macro overlay 입력) + VIX 고베타 risk-on (2) concentration/crowding =
+  reflexivity(현 정점 아님) (3) regime-conditional beta 안정성 = capex×VIX interaction(timing overlay). ★cross-sectional factor(vol_60/per/capex) = DIAGNOSTIC ONLY
+  (유효 n≈8 통계적 void = 강제 시 spurious factor). ⛔ verdict 생성 폐기 = ③ PASS-search 압력 제거(capex×VIX inflate 자동 해소). F-score/net-issuance 측정 폐기.
+  ★real_rate 노출 = supervisor RegimeGlasso/macro overlay 입력(sleeve weight 아님). ⛔ sector-neutral 비적용(단일 archetype, G-A.5).

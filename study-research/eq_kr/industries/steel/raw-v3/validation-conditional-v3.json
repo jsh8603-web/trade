@@ -1,0 +1,2937 @@
+{
+  "meta": {
+    "universe_n": 23,
+    "date_range": [
+      "2019-01-02",
+      "2026-05-29"
+    ],
+    "gf_contract": "measure_conditional.py 헤더 7항 선언 참조",
+    "horizons_days": {
+      "y_5d": 5,
+      "y_20d": 20,
+      "y_60d": 60
+    },
+    "regime_source": {
+      "macro": "FRED KORLOLITOAASTSAM (CLI amplitude-adj 4국면)",
+      "krw": "FRED DEXKOUS yoy ±5%",
+      "flow": "ECOS 802Y001/0030000 외국인순매수 28d z ±1"
+    },
+    "cell_collapse_note": "36셀 full N>=24 = 0 cell (실측) → 단일축 측정 + 2축 merge. 36셀 full = INSUFFICIENT."
+  },
+  "conditional_ic_surface": {
+    "mom_6": {
+      "y_5d": {
+        "unconditional": {
+          "n_months": 82,
+          "n_eff": 82.0,
+          "ic_mean": -0.0983,
+          "t_nw_asymptotic": -3.01,
+          "wild_cluster_p": 0.0055,
+          "ci95_block_boot": [
+            -0.1686,
+            -0.0385
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 8.1,
+          "ic_mean": -0.132,
+          "t_nw_asymptotic": -1.38,
+          "wild_cluster_p": 0.1944,
+          "ci95_block_boot": [
+            -0.3559,
+            0.0329
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 23.7,
+          "ic_mean": -0.1279,
+          "t_nw_asymptotic": -2.14,
+          "wild_cluster_p": 0.046,
+          "ci95_block_boot": [
+            -0.2562,
+            -0.0136
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 21,
+          "n_eff": 21.0,
+          "ic_mean": -0.0334,
+          "t_nw_asymptotic": -0.62,
+          "wild_cluster_p": 0.5987,
+          "ci95_block_boot": [
+            -0.1447,
+            0.0709
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 25.0,
+          "ic_mean": -0.1085,
+          "t_nw_asymptotic": -1.94,
+          "wild_cluster_p": 0.1304,
+          "ci95_block_boot": [
+            -0.2126,
+            0.0004
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 38,
+          "n_eff": 38.0,
+          "ic_mean": -0.1689,
+          "t_nw_asymptotic": -3.92,
+          "wild_cluster_p": 0.0015,
+          "ci95_block_boot": [
+            -0.2451,
+            -0.0777
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 8.4,
+          "ic_mean": 0.0236,
+          "t_nw_asymptotic": 0.34,
+          "wild_cluster_p": 0.7271,
+          "ci95_block_boot": [
+            -0.1296,
+            0.1378
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 34,
+          "n_eff": 28.8,
+          "ic_mean": -0.0552,
+          "t_nw_asymptotic": -1.0,
+          "wild_cluster_p": 0.3048,
+          "ci95_block_boot": [
+            -0.1816,
+            0.0265
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 44,
+          "n_eff": 44.0,
+          "ic_mean": -0.0683,
+          "t_nw_asymptotic": -1.61,
+          "wild_cluster_p": 0.1354,
+          "ci95_block_boot": [
+            -0.157,
+            0.0094
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 20,
+          "n_eff": 20.0,
+          "ic_mean": -0.1342,
+          "t_nw_asymptotic": -2.19,
+          "wild_cluster_p": 0.1129,
+          "ci95_block_boot": [
+            -0.2516,
+            -0.0026
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 18,
+          "n_eff": 11.1,
+          "ic_mean": -0.1316,
+          "t_nw_asymptotic": -1.91,
+          "wild_cluster_p": 0.047,
+          "ci95_block_boot": [
+            -0.2787,
+            -0.0169
+          ],
+          "block": 2,
+          "status": "underpowered"
+        }
+      },
+      "y_20d": {
+        "unconditional": {
+          "n_months": 81,
+          "n_eff": 81.0,
+          "ic_mean": -0.0776,
+          "t_nw_asymptotic": -2.56,
+          "wild_cluster_p": 0.0215,
+          "ci95_block_boot": [
+            -0.1362,
+            -0.015
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": -0.0575,
+          "t_nw_asymptotic": -0.83,
+          "wild_cluster_p": 0.5867,
+          "ci95_block_boot": [
+            -0.2065,
+            0.0538
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 21.7,
+          "ic_mean": -0.1099,
+          "t_nw_asymptotic": -1.88,
+          "wild_cluster_p": 0.0585,
+          "ci95_block_boot": [
+            -0.216,
+            0.0139
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 20,
+          "n_eff": 13.5,
+          "ic_mean": -0.0747,
+          "t_nw_asymptotic": -1.14,
+          "wild_cluster_p": 0.2919,
+          "ci95_block_boot": [
+            -0.1938,
+            0.059
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 25.0,
+          "ic_mean": -0.0544,
+          "t_nw_asymptotic": -1.28,
+          "wild_cluster_p": 0.3678,
+          "ci95_block_boot": [
+            -0.1388,
+            0.0308
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 37,
+          "n_eff": 30.0,
+          "ic_mean": -0.1311,
+          "t_nw_asymptotic": -2.51,
+          "wild_cluster_p": 0.011,
+          "ci95_block_boot": [
+            -0.2223,
+            -0.0219
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": 0.0108,
+          "t_nw_asymptotic": 0.15,
+          "wild_cluster_p": 0.91,
+          "ci95_block_boot": [
+            -0.1227,
+            0.1591
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 34,
+          "n_eff": 34.0,
+          "ic_mean": -0.0455,
+          "t_nw_asymptotic": -1.25,
+          "wild_cluster_p": 0.3413,
+          "ci95_block_boot": [
+            -0.1184,
+            0.0197
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 43,
+          "n_eff": 43.0,
+          "ic_mean": -0.0787,
+          "t_nw_asymptotic": -1.98,
+          "wild_cluster_p": 0.0715,
+          "ci95_block_boot": [
+            -0.1498,
+            0.0016
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 20,
+          "n_eff": 14.3,
+          "ic_mean": -0.11,
+          "t_nw_asymptotic": -1.33,
+          "wild_cluster_p": 0.1714,
+          "ci95_block_boot": [
+            -0.2618,
+            0.0587
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 18,
+          "n_eff": 14.9,
+          "ic_mean": -0.0391,
+          "t_nw_asymptotic": -0.59,
+          "wild_cluster_p": 0.5682,
+          "ci95_block_boot": [
+            -0.1748,
+            0.0945
+          ],
+          "block": 2,
+          "status": "underpowered"
+        }
+      },
+      "y_60d": {
+        "unconditional": {
+          "n_months": 80,
+          "n_eff": 50.1,
+          "ic_mean": -0.1021,
+          "t_nw_asymptotic": -3.07,
+          "wild_cluster_p": 0.003,
+          "ci95_block_boot": [
+            -0.1666,
+            -0.0337
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 8.8,
+          "ic_mean": 0.1056,
+          "t_nw_asymptotic": 2.08,
+          "wild_cluster_p": 0.0835,
+          "ci95_block_boot": [
+            -0.0346,
+            0.1851
+          ],
+          "block": 3,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 14.7,
+          "ic_mean": -0.1546,
+          "t_nw_asymptotic": -2.31,
+          "wild_cluster_p": 0.013,
+          "ci95_block_boot": [
+            -0.2958,
+            -0.0102
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 19,
+          "n_eff": 10.9,
+          "ic_mean": -0.1374,
+          "t_nw_asymptotic": -2.46,
+          "wild_cluster_p": 0.029,
+          "ci95_block_boot": [
+            -0.2426,
+            0.0162
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 25.0,
+          "ic_mean": -0.1038,
+          "t_nw_asymptotic": -2.16,
+          "wild_cluster_p": 0.035,
+          "ci95_block_boot": [
+            -0.2058,
+            -0.0102
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 36,
+          "n_eff": 20.7,
+          "ic_mean": -0.152,
+          "t_nw_asymptotic": -2.71,
+          "wild_cluster_p": 0.003,
+          "ci95_block_boot": [
+            -0.2483,
+            -0.0247
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 6.1,
+          "ic_mean": -0.1576,
+          "t_nw_asymptotic": -2.12,
+          "wild_cluster_p": 0.0525,
+          "ci95_block_boot": [
+            -0.2617,
+            0.0489
+          ],
+          "block": 3,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 34,
+          "n_eff": 34.0,
+          "ic_mean": -0.0329,
+          "t_nw_asymptotic": -0.87,
+          "wild_cluster_p": 0.4273,
+          "ci95_block_boot": [
+            -0.118,
+            0.0416
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 43,
+          "n_eff": 28.2,
+          "ic_mean": -0.1326,
+          "t_nw_asymptotic": -2.64,
+          "wild_cluster_p": 0.005,
+          "ci95_block_boot": [
+            -0.2279,
+            -0.0315
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 19,
+          "n_eff": 13.1,
+          "ic_mean": -0.0459,
+          "t_nw_asymptotic": -0.84,
+          "wild_cluster_p": 0.3808,
+          "ci95_block_boot": [
+            -0.1559,
+            0.0774
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 18,
+          "n_eff": 13.5,
+          "ic_mean": -0.0886,
+          "t_nw_asymptotic": -1.67,
+          "wild_cluster_p": 0.1534,
+          "ci95_block_boot": [
+            -0.1995,
+            0.0225
+          ],
+          "block": 3,
+          "status": "underpowered"
+        }
+      }
+    },
+    "mom_12_1": {
+      "y_5d": {
+        "unconditional": {
+          "n_months": 76,
+          "n_eff": 61.1,
+          "ic_mean": -0.0424,
+          "t_nw_asymptotic": -1.21,
+          "wild_cluster_p": 0.2019,
+          "ci95_block_boot": [
+            -0.1153,
+            0.0255
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": 0.1177,
+          "t_nw_asymptotic": 2.76,
+          "wild_cluster_p": 0.0735,
+          "ci95_block_boot": [
+            0.0559,
+            0.2144
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 24.6,
+          "ic_mean": -0.0719,
+          "t_nw_asymptotic": -1.6,
+          "wild_cluster_p": 0.1284,
+          "ci95_block_boot": [
+            -0.1665,
+            0.0096
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 21,
+          "n_eff": 14.8,
+          "ic_mean": -0.007,
+          "t_nw_asymptotic": -0.09,
+          "wild_cluster_p": 0.9215,
+          "ci95_block_boot": [
+            -0.1793,
+            0.1285
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 19,
+          "n_eff": 19.0,
+          "ic_mean": -0.1256,
+          "t_nw_asymptotic": -1.85,
+          "wild_cluster_p": 0.1214,
+          "ci95_block_boot": [
+            -0.2386,
+            0.0262
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 36,
+          "n_eff": 36.0,
+          "ic_mean": -0.0771,
+          "t_nw_asymptotic": -1.79,
+          "wild_cluster_p": 0.1464,
+          "ci95_block_boot": [
+            -0.1658,
+            0.0051
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 5.7,
+          "ic_mean": -0.0575,
+          "t_nw_asymptotic": -0.54,
+          "wild_cluster_p": 0.5437,
+          "ci95_block_boot": [
+            -0.2858,
+            0.1009
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 30,
+          "n_eff": 18.6,
+          "ic_mean": 0.0042,
+          "t_nw_asymptotic": 0.08,
+          "wild_cluster_p": 0.925,
+          "ci95_block_boot": [
+            -0.1062,
+            0.0868
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 41,
+          "n_eff": 25.5,
+          "ic_mean": -0.0145,
+          "t_nw_asymptotic": -0.29,
+          "wild_cluster_p": 0.7416,
+          "ci95_block_boot": [
+            -0.118,
+            0.0853
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 18,
+          "n_eff": 18.0,
+          "ic_mean": -0.0737,
+          "t_nw_asymptotic": -1.1,
+          "wild_cluster_p": 0.3743,
+          "ci95_block_boot": [
+            -0.2006,
+            0.0666
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 17,
+          "n_eff": 17.0,
+          "ic_mean": -0.0767,
+          "t_nw_asymptotic": -1.33,
+          "wild_cluster_p": 0.2929,
+          "ci95_block_boot": [
+            -0.1814,
+            0.0258
+          ],
+          "block": 2,
+          "status": "underpowered"
+        }
+      },
+      "y_20d": {
+        "unconditional": {
+          "n_months": 75,
+          "n_eff": 63.3,
+          "ic_mean": -0.0517,
+          "t_nw_asymptotic": -1.57,
+          "wild_cluster_p": 0.1299,
+          "ci95_block_boot": [
+            -0.1148,
+            0.0105
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": 0.1045,
+          "t_nw_asymptotic": 1.85,
+          "wild_cluster_p": 0.1494,
+          "ci95_block_boot": [
+            0.0305,
+            0.2281
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 17.4,
+          "ic_mean": -0.1115,
+          "t_nw_asymptotic": -1.94,
+          "wild_cluster_p": 0.0545,
+          "ci95_block_boot": [
+            -0.22,
+            0.0053
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 20,
+          "n_eff": 17.4,
+          "ic_mean": -0.1146,
+          "t_nw_asymptotic": -1.86,
+          "wild_cluster_p": 0.073,
+          "ci95_block_boot": [
+            -0.2309,
+            0.0037
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 19,
+          "n_eff": 19.0,
+          "ic_mean": 0.0142,
+          "t_nw_asymptotic": 0.28,
+          "wild_cluster_p": 0.8501,
+          "ci95_block_boot": [
+            -0.0929,
+            0.1114
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 35,
+          "n_eff": 32.1,
+          "ic_mean": -0.0957,
+          "t_nw_asymptotic": -1.73,
+          "wild_cluster_p": 0.0975,
+          "ci95_block_boot": [
+            -0.1969,
+            0.0243
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": -0.0564,
+          "t_nw_asymptotic": -0.81,
+          "wild_cluster_p": 0.4878,
+          "ci95_block_boot": [
+            -0.2184,
+            0.0571
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 30,
+          "n_eff": 30.0,
+          "ic_mean": 0.0012,
+          "t_nw_asymptotic": 0.03,
+          "wild_cluster_p": 0.978,
+          "ci95_block_boot": [
+            -0.086,
+            0.0755
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 40,
+          "n_eff": 38.8,
+          "ic_mean": -0.0047,
+          "t_nw_asymptotic": -0.1,
+          "wild_cluster_p": 0.9165,
+          "ci95_block_boot": [
+            -0.0982,
+            0.0861
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 18,
+          "n_eff": 16.7,
+          "ic_mean": -0.117,
+          "t_nw_asymptotic": -1.89,
+          "wild_cluster_p": 0.074,
+          "ci95_block_boot": [
+            -0.2192,
+            0.0197
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 17,
+          "n_eff": 17.0,
+          "ic_mean": -0.093,
+          "t_nw_asymptotic": -1.55,
+          "wild_cluster_p": 0.1874,
+          "ci95_block_boot": [
+            -0.1994,
+            0.0289
+          ],
+          "block": 2,
+          "status": "underpowered"
+        }
+      },
+      "y_60d": {
+        "unconditional": {
+          "n_months": 74,
+          "n_eff": 32.6,
+          "ic_mean": -0.0692,
+          "t_nw_asymptotic": -1.65,
+          "wild_cluster_p": 0.029,
+          "ci95_block_boot": [
+            -0.1521,
+            0.0134
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": 0.0985,
+          "t_nw_asymptotic": 3.13,
+          "wild_cluster_p": 0.0425,
+          "ci95_block_boot": [
+            0.0325,
+            0.1573
+          ],
+          "block": 3,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 11.5,
+          "ic_mean": -0.0622,
+          "t_nw_asymptotic": -0.86,
+          "wild_cluster_p": 0.2709,
+          "ci95_block_boot": [
+            -0.2006,
+            0.0938
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 19,
+          "n_eff": 9.4,
+          "ic_mean": -0.1934,
+          "t_nw_asymptotic": -3.32,
+          "wild_cluster_p": 0.0025,
+          "ci95_block_boot": [
+            -0.3201,
+            -0.0757
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 19,
+          "n_eff": 9.5,
+          "ic_mean": -0.0429,
+          "t_nw_asymptotic": -0.49,
+          "wild_cluster_p": 0.5472,
+          "ci95_block_boot": [
+            -0.1879,
+            0.1567
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 34,
+          "n_eff": 18.7,
+          "ic_mean": -0.0993,
+          "t_nw_asymptotic": -1.66,
+          "wild_cluster_p": 0.055,
+          "ci95_block_boot": [
+            -0.2074,
+            0.0371
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 5.4,
+          "ic_mean": -0.1623,
+          "t_nw_asymptotic": -2.21,
+          "wild_cluster_p": 0.044,
+          "ci95_block_boot": [
+            -0.3229,
+            -0.0164
+          ],
+          "block": 3,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 30,
+          "n_eff": 21.7,
+          "ic_mean": -0.0041,
+          "t_nw_asymptotic": -0.08,
+          "wild_cluster_p": 0.9315,
+          "ci95_block_boot": [
+            -0.1011,
+            0.0972
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 40,
+          "n_eff": 26.3,
+          "ic_mean": -0.0514,
+          "t_nw_asymptotic": -1.08,
+          "wild_cluster_p": 0.2334,
+          "ci95_block_boot": [
+            -0.1389,
+            0.05
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 17,
+          "n_eff": 11.5,
+          "ic_mean": -0.0924,
+          "t_nw_asymptotic": -1.23,
+          "wild_cluster_p": 0.1894,
+          "ci95_block_boot": [
+            -0.2193,
+            0.0772
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 17,
+          "n_eff": 13.0,
+          "ic_mean": -0.088,
+          "t_nw_asymptotic": -1.4,
+          "wild_cluster_p": 0.1814,
+          "ci95_block_boot": [
+            -0.1981,
+            0.0664
+          ],
+          "block": 3,
+          "status": "underpowered"
+        }
+      }
+    },
+    "rev_1m": {
+      "y_5d": {
+        "unconditional": {
+          "n_months": 82,
+          "n_eff": 82.0,
+          "ic_mean": -0.0655,
+          "t_nw_asymptotic": -2.15,
+          "wild_cluster_p": 0.052,
+          "ci95_block_boot": [
+            -0.1224,
+            -0.0003
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": -0.0932,
+          "t_nw_asymptotic": -1.74,
+          "wild_cluster_p": 0.3148,
+          "ci95_block_boot": [
+            -0.2215,
+            -0.0086
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 26.0,
+          "ic_mean": -0.0992,
+          "t_nw_asymptotic": -1.9,
+          "wild_cluster_p": 0.2054,
+          "ci95_block_boot": [
+            -0.2068,
+            -0.0141
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 21,
+          "n_eff": 13.9,
+          "ic_mean": -0.0173,
+          "t_nw_asymptotic": -0.29,
+          "wild_cluster_p": 0.7631,
+          "ci95_block_boot": [
+            -0.1194,
+            0.1103
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 25.0,
+          "ic_mean": -0.0597,
+          "t_nw_asymptotic": -1.06,
+          "wild_cluster_p": 0.3398,
+          "ci95_block_boot": [
+            -0.1603,
+            0.0668
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 38,
+          "n_eff": 38.0,
+          "ic_mean": -0.0984,
+          "t_nw_asymptotic": -2.41,
+          "wild_cluster_p": 0.051,
+          "ci95_block_boot": [
+            -0.1658,
+            -0.0076
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 6.5,
+          "ic_mean": -0.0148,
+          "t_nw_asymptotic": -0.14,
+          "wild_cluster_p": 0.8821,
+          "ci95_block_boot": [
+            -0.1824,
+            0.2275
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 34,
+          "n_eff": 34.0,
+          "ic_mean": -0.0435,
+          "t_nw_asymptotic": -0.87,
+          "wild_cluster_p": 0.4193,
+          "ci95_block_boot": [
+            -0.1407,
+            0.0555
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 44,
+          "n_eff": 44.0,
+          "ic_mean": -0.0605,
+          "t_nw_asymptotic": -1.63,
+          "wild_cluster_p": 0.1834,
+          "ci95_block_boot": [
+            -0.1278,
+            0.0174
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 20,
+          "n_eff": 20.0,
+          "ic_mean": -0.0801,
+          "t_nw_asymptotic": -1.07,
+          "wild_cluster_p": 0.3353,
+          "ci95_block_boot": [
+            -0.2365,
+            0.0501
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 18,
+          "n_eff": 18.0,
+          "ic_mean": -0.0612,
+          "t_nw_asymptotic": -0.99,
+          "wild_cluster_p": 0.3853,
+          "ci95_block_boot": [
+            -0.1998,
+            0.048
+          ],
+          "block": 2,
+          "status": "underpowered"
+        }
+      },
+      "y_20d": {
+        "unconditional": {
+          "n_months": 81,
+          "n_eff": 69.8,
+          "ic_mean": -0.039,
+          "t_nw_asymptotic": -1.17,
+          "wild_cluster_p": 0.2504,
+          "ci95_block_boot": [
+            -0.101,
+            0.0304
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": -0.238,
+          "t_nw_asymptotic": -2.86,
+          "wild_cluster_p": 0.0535,
+          "ci95_block_boot": [
+            -0.4075,
+            -0.1072
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 26.0,
+          "ic_mean": -0.0256,
+          "t_nw_asymptotic": -0.55,
+          "wild_cluster_p": 0.6372,
+          "ci95_block_boot": [
+            -0.1285,
+            0.0594
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 20,
+          "n_eff": 15.1,
+          "ic_mean": 0.0026,
+          "t_nw_asymptotic": 0.03,
+          "wild_cluster_p": 0.969,
+          "ci95_block_boot": [
+            -0.1232,
+            0.1667
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 22.5,
+          "ic_mean": -0.0066,
+          "t_nw_asymptotic": -0.12,
+          "wild_cluster_p": 0.9065,
+          "ci95_block_boot": [
+            -0.1107,
+            0.0916
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 37,
+          "n_eff": 35.8,
+          "ic_mean": -0.0387,
+          "t_nw_asymptotic": -0.81,
+          "wild_cluster_p": 0.4338,
+          "ci95_block_boot": [
+            -0.1246,
+            0.0559
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 9.6,
+          "ic_mean": -0.0205,
+          "t_nw_asymptotic": -0.2,
+          "wild_cluster_p": 0.8486,
+          "ci95_block_boot": [
+            -0.1819,
+            0.2161
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 34,
+          "n_eff": 30.1,
+          "ic_mean": -0.0447,
+          "t_nw_asymptotic": -0.85,
+          "wild_cluster_p": 0.4028,
+          "ci95_block_boot": [
+            -0.147,
+            0.0537
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 43,
+          "n_eff": 43.0,
+          "ic_mean": -0.0398,
+          "t_nw_asymptotic": -0.96,
+          "wild_cluster_p": 0.3568,
+          "ci95_block_boot": [
+            -0.1178,
+            0.0446
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 20,
+          "n_eff": 10.7,
+          "ic_mean": -0.0361,
+          "t_nw_asymptotic": -0.43,
+          "wild_cluster_p": 0.6497,
+          "ci95_block_boot": [
+            -0.2064,
+            0.1332
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 18,
+          "n_eff": 12.2,
+          "ic_mean": -0.0403,
+          "t_nw_asymptotic": -0.55,
+          "wild_cluster_p": 0.5612,
+          "ci95_block_boot": [
+            -0.2186,
+            0.0768
+          ],
+          "block": 2,
+          "status": "underpowered"
+        }
+      },
+      "y_60d": {
+        "unconditional": {
+          "n_months": 80,
+          "n_eff": 80.0,
+          "ic_mean": -0.0072,
+          "t_nw_asymptotic": -0.3,
+          "wild_cluster_p": 0.7841,
+          "ci95_block_boot": [
+            -0.0543,
+            0.0444
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": -0.0441,
+          "t_nw_asymptotic": -0.65,
+          "wild_cluster_p": 0.6642,
+          "ci95_block_boot": [
+            -0.1645,
+            0.1307
+          ],
+          "block": 3,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 26.0,
+          "ic_mean": -0.0195,
+          "t_nw_asymptotic": -0.53,
+          "wild_cluster_p": 0.6792,
+          "ci95_block_boot": [
+            -0.1054,
+            0.0417
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 19,
+          "n_eff": 14.6,
+          "ic_mean": 0.0464,
+          "t_nw_asymptotic": 1.05,
+          "wild_cluster_p": 0.4123,
+          "ci95_block_boot": [
+            -0.0349,
+            0.1621
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 25.0,
+          "ic_mean": -0.0205,
+          "t_nw_asymptotic": -0.6,
+          "wild_cluster_p": 0.5887,
+          "ci95_block_boot": [
+            -0.0844,
+            0.0358
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 36,
+          "n_eff": 35.8,
+          "ic_mean": 0.0101,
+          "t_nw_asymptotic": 0.27,
+          "wild_cluster_p": 0.7986,
+          "ci95_block_boot": [
+            -0.0543,
+            0.0906
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 7.4,
+          "ic_mean": 0.0399,
+          "t_nw_asymptotic": 0.56,
+          "wild_cluster_p": 0.7391,
+          "ci95_block_boot": [
+            -0.0685,
+            0.2611
+          ],
+          "block": 3,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 34,
+          "n_eff": 34.0,
+          "ic_mean": -0.0395,
+          "t_nw_asymptotic": -1.33,
+          "wild_cluster_p": 0.3448,
+          "ci95_block_boot": [
+            -0.1031,
+            0.0361
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 43,
+          "n_eff": 38.4,
+          "ic_mean": 0.0093,
+          "t_nw_asymptotic": 0.34,
+          "wild_cluster_p": 0.7501,
+          "ci95_block_boot": [
+            -0.0434,
+            0.0688
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 19,
+          "n_eff": 19.0,
+          "ic_mean": 0.0198,
+          "t_nw_asymptotic": 0.31,
+          "wild_cluster_p": 0.7826,
+          "ci95_block_boot": [
+            -0.0743,
+            0.1685
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 18,
+          "n_eff": 7.5,
+          "ic_mean": -0.0753,
+          "t_nw_asymptotic": -0.9,
+          "wild_cluster_p": 0.2474,
+          "ci95_block_boot": [
+            -0.254,
+            0.0578
+          ],
+          "block": 3,
+          "status": "underpowered"
+        }
+      }
+    },
+    "vol_60": {
+      "y_5d": {
+        "unconditional": {
+          "n_months": 82,
+          "n_eff": 82.0,
+          "ic_mean": -0.0327,
+          "t_nw_asymptotic": -1.05,
+          "wild_cluster_p": 0.3113,
+          "ci95_block_boot": [
+            -0.0953,
+            0.0301
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": 0.0492,
+          "t_nw_asymptotic": 0.78,
+          "wild_cluster_p": 0.5152,
+          "ci95_block_boot": [
+            -0.037,
+            0.1922
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 23.2,
+          "ic_mean": -0.0209,
+          "t_nw_asymptotic": -0.38,
+          "wild_cluster_p": 0.6937,
+          "ci95_block_boot": [
+            -0.1264,
+            0.0873
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 21,
+          "n_eff": 20.7,
+          "ic_mean": -0.0206,
+          "t_nw_asymptotic": -0.29,
+          "wild_cluster_p": 0.7821,
+          "ci95_block_boot": [
+            -0.1656,
+            0.1109
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 25.0,
+          "ic_mean": -0.0878,
+          "t_nw_asymptotic": -1.74,
+          "wild_cluster_p": 0.1404,
+          "ci95_block_boot": [
+            -0.1929,
+            0.0071
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 38,
+          "n_eff": 38.0,
+          "ic_mean": -0.0645,
+          "t_nw_asymptotic": -1.42,
+          "wild_cluster_p": 0.1924,
+          "ci95_block_boot": [
+            -0.159,
+            0.0282
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 8.2,
+          "ic_mean": -0.0445,
+          "t_nw_asymptotic": -0.58,
+          "wild_cluster_p": 0.5567,
+          "ci95_block_boot": [
+            -0.2118,
+            0.0786
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 34,
+          "n_eff": 34.0,
+          "ic_mean": 0.0063,
+          "t_nw_asymptotic": 0.14,
+          "wild_cluster_p": 0.8976,
+          "ci95_block_boot": [
+            -0.0893,
+            0.0876
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 44,
+          "n_eff": 43.1,
+          "ic_mean": -0.0129,
+          "t_nw_asymptotic": -0.31,
+          "wild_cluster_p": 0.7676,
+          "ci95_block_boot": [
+            -0.0951,
+            0.0673
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 20,
+          "n_eff": 20.0,
+          "ic_mean": -0.0511,
+          "t_nw_asymptotic": -0.82,
+          "wild_cluster_p": 0.4743,
+          "ci95_block_boot": [
+            -0.1797,
+            0.0746
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 18,
+          "n_eff": 18.0,
+          "ic_mean": -0.0606,
+          "t_nw_asymptotic": -1.03,
+          "wild_cluster_p": 0.3863,
+          "ci95_block_boot": [
+            -0.1445,
+            0.0672
+          ],
+          "block": 2,
+          "status": "underpowered"
+        }
+      },
+      "y_20d": {
+        "unconditional": {
+          "n_months": 81,
+          "n_eff": 81.0,
+          "ic_mean": -0.0698,
+          "t_nw_asymptotic": -2.64,
+          "wild_cluster_p": 0.027,
+          "ci95_block_boot": [
+            -0.125,
+            -0.0224
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": -0.0189,
+          "t_nw_asymptotic": -0.26,
+          "wild_cluster_p": 0.8481,
+          "ci95_block_boot": [
+            -0.1286,
+            0.1382
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 26.0,
+          "ic_mean": -0.0581,
+          "t_nw_asymptotic": -1.39,
+          "wild_cluster_p": 0.2669,
+          "ci95_block_boot": [
+            -0.1479,
+            0.0167
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 20,
+          "n_eff": 20.0,
+          "ic_mean": -0.0823,
+          "t_nw_asymptotic": -1.22,
+          "wild_cluster_p": 0.2939,
+          "ci95_block_boot": [
+            -0.2256,
+            0.0456
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 25.0,
+          "ic_mean": -0.0923,
+          "t_nw_asymptotic": -2.1,
+          "wild_cluster_p": 0.0655,
+          "ci95_block_boot": [
+            -0.1757,
+            -0.0053
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 37,
+          "n_eff": 37.0,
+          "ic_mean": -0.1212,
+          "t_nw_asymptotic": -3.33,
+          "wild_cluster_p": 0.011,
+          "ci95_block_boot": [
+            -0.1942,
+            -0.0492
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": -0.0089,
+          "t_nw_asymptotic": -0.11,
+          "wild_cluster_p": 0.919,
+          "ci95_block_boot": [
+            -0.1873,
+            0.1172
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 34,
+          "n_eff": 34.0,
+          "ic_mean": -0.0318,
+          "t_nw_asymptotic": -0.77,
+          "wild_cluster_p": 0.4613,
+          "ci95_block_boot": [
+            -0.1126,
+            0.0558
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 43,
+          "n_eff": 43.0,
+          "ic_mean": -0.0508,
+          "t_nw_asymptotic": -1.4,
+          "wild_cluster_p": 0.2959,
+          "ci95_block_boot": [
+            -0.1145,
+            0.0264
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 20,
+          "n_eff": 16.7,
+          "ic_mean": -0.0782,
+          "t_nw_asymptotic": -1.36,
+          "wild_cluster_p": 0.1819,
+          "ci95_block_boot": [
+            -0.1796,
+            0.0456
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 18,
+          "n_eff": 18.0,
+          "ic_mean": -0.106,
+          "t_nw_asymptotic": -2.38,
+          "wild_cluster_p": 0.1019,
+          "ci95_block_boot": [
+            -0.1823,
+            -0.0085
+          ],
+          "block": 2,
+          "status": "underpowered"
+        }
+      },
+      "y_60d": {
+        "unconditional": {
+          "n_months": 80,
+          "n_eff": 37.1,
+          "ic_mean": -0.1047,
+          "t_nw_asymptotic": -2.93,
+          "wild_cluster_p": 0.0005,
+          "ci95_block_boot": [
+            -0.1767,
+            -0.036
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 4.3,
+          "ic_mean": -0.0558,
+          "t_nw_asymptotic": -0.44,
+          "wild_cluster_p": 0.5667,
+          "ci95_block_boot": [
+            -0.269,
+            0.1904
+          ],
+          "block": 3,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 9.3,
+          "ic_mean": -0.0713,
+          "t_nw_asymptotic": -1.39,
+          "wild_cluster_p": 0.0725,
+          "ci95_block_boot": [
+            -0.1717,
+            0.024
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 19,
+          "n_eff": 9.8,
+          "ic_mean": -0.1787,
+          "t_nw_asymptotic": -2.37,
+          "wild_cluster_p": 0.0105,
+          "ci95_block_boot": [
+            -0.3441,
+            -0.0743
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 13.6,
+          "ic_mean": -0.1027,
+          "t_nw_asymptotic": -1.85,
+          "wild_cluster_p": 0.033,
+          "ci95_block_boot": [
+            -0.2255,
+            0.0143
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 36,
+          "n_eff": 23.8,
+          "ic_mean": -0.1099,
+          "t_nw_asymptotic": -2.83,
+          "wild_cluster_p": 0.0045,
+          "ci95_block_boot": [
+            -0.1972,
+            -0.0368
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": -0.0735,
+          "t_nw_asymptotic": -1.66,
+          "wild_cluster_p": 0.2989,
+          "ci95_block_boot": [
+            -0.1873,
+            -0.0064
+          ],
+          "block": 3,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 34,
+          "n_eff": 13.5,
+          "ic_mean": -0.1084,
+          "t_nw_asymptotic": -1.79,
+          "wild_cluster_p": 0.025,
+          "ci95_block_boot": [
+            -0.2171,
+            0.0057
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 43,
+          "n_eff": 28.9,
+          "ic_mean": -0.0844,
+          "t_nw_asymptotic": -2.17,
+          "wild_cluster_p": 0.029,
+          "ci95_block_boot": [
+            -0.1657,
+            -0.0098
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 19,
+          "n_eff": 18.9,
+          "ic_mean": -0.1303,
+          "t_nw_asymptotic": -3.33,
+          "wild_cluster_p": 0.015,
+          "ci95_block_boot": [
+            -0.2251,
+            -0.0457
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 18,
+          "n_eff": 14.4,
+          "ic_mean": -0.126,
+          "t_nw_asymptotic": -2.08,
+          "wild_cluster_p": 0.066,
+          "ci95_block_boot": [
+            -0.2729,
+            -0.0142
+          ],
+          "block": 3,
+          "status": "underpowered"
+        }
+      }
+    },
+    "pbr_z": {
+      "y_5d": {
+        "unconditional": {
+          "n_months": 82,
+          "n_eff": 72.1,
+          "ic_mean": -0.0668,
+          "t_nw_asymptotic": -2.15,
+          "wild_cluster_p": 0.029,
+          "ci95_block_boot": [
+            -0.123,
+            -0.0057
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 5.6,
+          "ic_mean": -0.0605,
+          "t_nw_asymptotic": -1.1,
+          "wild_cluster_p": 0.2324,
+          "ci95_block_boot": [
+            -0.1794,
+            0.0474
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 25.1,
+          "ic_mean": -0.0438,
+          "t_nw_asymptotic": -0.86,
+          "wild_cluster_p": 0.3968,
+          "ci95_block_boot": [
+            -0.1501,
+            0.0432
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 21,
+          "n_eff": 21.0,
+          "ic_mean": -0.0582,
+          "t_nw_asymptotic": -0.84,
+          "wild_cluster_p": 0.4333,
+          "ci95_block_boot": [
+            -0.2015,
+            0.067
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 17.6,
+          "ic_mean": -0.1005,
+          "t_nw_asymptotic": -1.66,
+          "wild_cluster_p": 0.0805,
+          "ci95_block_boot": [
+            -0.2061,
+            0.034
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 38,
+          "n_eff": 38.0,
+          "ic_mean": -0.0338,
+          "t_nw_asymptotic": -0.71,
+          "wild_cluster_p": 0.4853,
+          "ci95_block_boot": [
+            -0.1347,
+            0.0642
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 6.2,
+          "ic_mean": -0.1447,
+          "t_nw_asymptotic": -1.39,
+          "wild_cluster_p": 0.2009,
+          "ci95_block_boot": [
+            -0.3453,
+            0.0623
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 34,
+          "n_eff": 24.7,
+          "ic_mean": -0.0808,
+          "t_nw_asymptotic": -2.13,
+          "wild_cluster_p": 0.046,
+          "ci95_block_boot": [
+            -0.159,
+            -0.0153
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 44,
+          "n_eff": 44.0,
+          "ic_mean": -0.0585,
+          "t_nw_asymptotic": -1.62,
+          "wild_cluster_p": 0.1479,
+          "ci95_block_boot": [
+            -0.1255,
+            0.0148
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 20,
+          "n_eff": 20.0,
+          "ic_mean": -0.0411,
+          "t_nw_asymptotic": -0.65,
+          "wild_cluster_p": 0.5492,
+          "ci95_block_boot": [
+            -0.1727,
+            0.0819
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 18,
+          "n_eff": 18.0,
+          "ic_mean": -0.1156,
+          "t_nw_asymptotic": -1.95,
+          "wild_cluster_p": 0.098,
+          "ci95_block_boot": [
+            -0.2252,
+            -0.0073
+          ],
+          "block": 2,
+          "status": "underpowered"
+        }
+      },
+      "y_20d": {
+        "unconditional": {
+          "n_months": 81,
+          "n_eff": 81.0,
+          "ic_mean": -0.0631,
+          "t_nw_asymptotic": -2.08,
+          "wild_cluster_p": 0.0555,
+          "ci95_block_boot": [
+            -0.126,
+            -0.0013
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": -0.0875,
+          "t_nw_asymptotic": -1.67,
+          "wild_cluster_p": 0.2424,
+          "ci95_block_boot": [
+            -0.1782,
+            0.0266
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 25.7,
+          "ic_mean": -0.1181,
+          "t_nw_asymptotic": -2.15,
+          "wild_cluster_p": 0.044,
+          "ci95_block_boot": [
+            -0.2405,
+            -0.0234
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 20,
+          "n_eff": 20.0,
+          "ic_mean": -0.0791,
+          "t_nw_asymptotic": -1.3,
+          "wild_cluster_p": 0.2559,
+          "ci95_block_boot": [
+            -0.2067,
+            0.027
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 25.0,
+          "ic_mean": 0.0166,
+          "t_nw_asymptotic": 0.29,
+          "wild_cluster_p": 0.7841,
+          "ci95_block_boot": [
+            -0.0922,
+            0.1425
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 37,
+          "n_eff": 37.0,
+          "ic_mean": -0.0911,
+          "t_nw_asymptotic": -1.87,
+          "wild_cluster_p": 0.1,
+          "ci95_block_boot": [
+            -0.1914,
+            0.0053
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 7.8,
+          "ic_mean": -0.1124,
+          "t_nw_asymptotic": -1.57,
+          "wild_cluster_p": 0.1444,
+          "ci95_block_boot": [
+            -0.2658,
+            0.0125
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 34,
+          "n_eff": 34.0,
+          "ic_mean": -0.0182,
+          "t_nw_asymptotic": -0.47,
+          "wild_cluster_p": 0.6712,
+          "ci95_block_boot": [
+            -0.0937,
+            0.0648
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 43,
+          "n_eff": 43.0,
+          "ic_mean": -0.0562,
+          "t_nw_asymptotic": -1.6,
+          "wild_cluster_p": 0.1954,
+          "ci95_block_boot": [
+            -0.1277,
+            0.0085
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 20,
+          "n_eff": 14.1,
+          "ic_mean": -0.0557,
+          "t_nw_asymptotic": -0.75,
+          "wild_cluster_p": 0.4148,
+          "ci95_block_boot": [
+            -0.2066,
+            0.088
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 18,
+          "n_eff": 18.0,
+          "ic_mean": -0.0879,
+          "t_nw_asymptotic": -1.34,
+          "wild_cluster_p": 0.2279,
+          "ci95_block_boot": [
+            -0.2081,
+            0.031
+          ],
+          "block": 2,
+          "status": "underpowered"
+        }
+      },
+      "y_60d": {
+        "unconditional": {
+          "n_months": 80,
+          "n_eff": 31.5,
+          "ic_mean": -0.1056,
+          "t_nw_asymptotic": -2.74,
+          "wild_cluster_p": 0.0005,
+          "ci95_block_boot": [
+            -0.1812,
+            -0.0327
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 8.6,
+          "ic_mean": -0.1308,
+          "t_nw_asymptotic": -3.61,
+          "wild_cluster_p": 0.0065,
+          "ci95_block_boot": [
+            -0.1934,
+            -0.0612
+          ],
+          "block": 3,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 26,
+          "n_eff": 11.5,
+          "ic_mean": -0.1445,
+          "t_nw_asymptotic": -2.55,
+          "wild_cluster_p": 0.002,
+          "ci95_block_boot": [
+            -0.2625,
+            -0.051
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 19,
+          "n_eff": 11.6,
+          "ic_mean": -0.1812,
+          "t_nw_asymptotic": -3.78,
+          "wild_cluster_p": 0.005,
+          "ci95_block_boot": [
+            -0.3013,
+            -0.0833
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 10.5,
+          "ic_mean": 0.0024,
+          "t_nw_asymptotic": 0.03,
+          "wild_cluster_p": 0.9615,
+          "ci95_block_boot": [
+            -0.1519,
+            0.1565
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 36,
+          "n_eff": 22.2,
+          "ic_mean": -0.1052,
+          "t_nw_asymptotic": -2.41,
+          "wild_cluster_p": 0.0115,
+          "ci95_block_boot": [
+            -0.208,
+            -0.0413
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 10,
+          "n_eff": 6.6,
+          "ic_mean": -0.206,
+          "t_nw_asymptotic": -3.23,
+          "wild_cluster_p": 0.0135,
+          "ci95_block_boot": [
+            -0.3337,
+            -0.055
+          ],
+          "block": 3,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 34,
+          "n_eff": 14.9,
+          "ic_mean": -0.0765,
+          "t_nw_asymptotic": -1.39,
+          "wild_cluster_p": 0.0665,
+          "ci95_block_boot": [
+            -0.173,
+            0.0353
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 43,
+          "n_eff": 28.4,
+          "ic_mean": -0.091,
+          "t_nw_asymptotic": -2.23,
+          "wild_cluster_p": 0.017,
+          "ci95_block_boot": [
+            -0.1827,
+            -0.0145
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 19,
+          "n_eff": 9.7,
+          "ic_mean": -0.1178,
+          "t_nw_asymptotic": -1.77,
+          "wild_cluster_p": 0.0405,
+          "ci95_block_boot": [
+            -0.2613,
+            -0.003
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 18,
+          "n_eff": 12.4,
+          "ic_mean": -0.1277,
+          "t_nw_asymptotic": -2.16,
+          "wild_cluster_p": 0.023,
+          "ci95_block_boot": [
+            -0.2378,
+            -0.0242
+          ],
+          "block": 3,
+          "status": "underpowered"
+        }
+      }
+    },
+    "per_z": {
+      "y_5d": {
+        "unconditional": {
+          "n_months": 72,
+          "n_eff": 50.2,
+          "ic_mean": -0.0447,
+          "t_nw_asymptotic": -1.11,
+          "wild_cluster_p": 0.2334,
+          "ci95_block_boot": [
+            -0.121,
+            0.0375
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 5.4,
+          "ic_mean": -0.0373,
+          "t_nw_asymptotic": -0.38,
+          "wild_cluster_p": 0.6897,
+          "ci95_block_boot": [
+            -0.2,
+            0.1496
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 20,
+          "n_eff": 19.2,
+          "ic_mean": -0.1061,
+          "t_nw_asymptotic": -1.57,
+          "wild_cluster_p": 0.1414,
+          "ci95_block_boot": [
+            -0.2204,
+            0.0458
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 17,
+          "n_eff": 7.0,
+          "ic_mean": -0.0003,
+          "t_nw_asymptotic": -0.0,
+          "wild_cluster_p": 0.9985,
+          "ci95_block_boot": [
+            -0.203,
+            0.2341
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 25.0,
+          "ic_mean": -0.0287,
+          "t_nw_asymptotic": -0.55,
+          "wild_cluster_p": 0.6397,
+          "ci95_block_boot": [
+            -0.1409,
+            0.0665
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 33,
+          "n_eff": 33.0,
+          "ic_mean": -0.1,
+          "t_nw_asymptotic": -1.97,
+          "wild_cluster_p": 0.0865,
+          "ci95_block_boot": [
+            -0.2084,
+            -0.0069
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 6,
+          "n_eff": 4.3,
+          "ic_mean": 0.3985,
+          "t_nw_asymptotic": 3.21,
+          "wild_cluster_p": 0.06,
+          "ci95_block_boot": [
+            0.1798,
+            0.6993
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 33,
+          "n_eff": 30.6,
+          "ic_mean": -0.07,
+          "t_nw_asymptotic": -1.52,
+          "wild_cluster_p": 0.1414,
+          "ci95_block_boot": [
+            -0.1525,
+            0.026
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 41,
+          "n_eff": 41.0,
+          "ic_mean": -0.026,
+          "t_nw_asymptotic": -0.54,
+          "wild_cluster_p": 0.6207,
+          "ci95_block_boot": [
+            -0.1182,
+            0.0769
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 18,
+          "n_eff": 18.0,
+          "ic_mean": 0.0049,
+          "t_nw_asymptotic": 0.08,
+          "wild_cluster_p": 0.9335,
+          "ci95_block_boot": [
+            -0.0959,
+            0.1382
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 13,
+          "n_eff": 13.0,
+          "ic_mean": -0.1725,
+          "t_nw_asymptotic": -2.11,
+          "wild_cluster_p": 0.053,
+          "ci95_block_boot": [
+            -0.3079,
+            0.0014
+          ],
+          "block": 2,
+          "status": "underpowered"
+        }
+      },
+      "y_20d": {
+        "unconditional": {
+          "n_months": 71,
+          "n_eff": 58.7,
+          "ic_mean": -0.0381,
+          "t_nw_asymptotic": -1.1,
+          "wild_cluster_p": 0.2549,
+          "ci95_block_boot": [
+            -0.1121,
+            0.0261
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 10.0,
+          "ic_mean": 0.0232,
+          "t_nw_asymptotic": 0.38,
+          "wild_cluster_p": 0.8116,
+          "ci95_block_boot": [
+            -0.0634,
+            0.1611
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 20,
+          "n_eff": 16.1,
+          "ic_mean": -0.1056,
+          "t_nw_asymptotic": -2.22,
+          "wild_cluster_p": 0.0345,
+          "ci95_block_boot": [
+            -0.2057,
+            -0.0042
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 16,
+          "n_eff": 13.7,
+          "ic_mean": -0.0074,
+          "t_nw_asymptotic": -0.08,
+          "wild_cluster_p": 0.936,
+          "ci95_block_boot": [
+            -0.206,
+            0.1745
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 25.0,
+          "ic_mean": -0.0284,
+          "t_nw_asymptotic": -0.54,
+          "wild_cluster_p": 0.6007,
+          "ci95_block_boot": [
+            -0.1382,
+            0.0604
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 32,
+          "n_eff": 23.2,
+          "ic_mean": -0.0789,
+          "t_nw_asymptotic": -1.45,
+          "wild_cluster_p": 0.1259,
+          "ci95_block_boot": [
+            -0.1968,
+            0.0279
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 6,
+          "n_eff": 6.0,
+          "ic_mean": 0.058,
+          "t_nw_asymptotic": 0.52,
+          "wild_cluster_p": 0.6087,
+          "ci95_block_boot": [
+            -0.0416,
+            0.3192
+          ],
+          "block": 2,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 33,
+          "n_eff": 32.8,
+          "ic_mean": -0.0161,
+          "t_nw_asymptotic": -0.34,
+          "wild_cluster_p": 0.7411,
+          "ci95_block_boot": [
+            -0.1121,
+            0.0682
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 40,
+          "n_eff": 35.1,
+          "ic_mean": -0.0143,
+          "t_nw_asymptotic": -0.29,
+          "wild_cluster_p": 0.7716,
+          "ci95_block_boot": [
+            -0.1271,
+            0.0632
+          ],
+          "block": 2,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 18,
+          "n_eff": 18.0,
+          "ic_mean": -0.0504,
+          "t_nw_asymptotic": -1.47,
+          "wild_cluster_p": 0.2014,
+          "ci95_block_boot": [
+            -0.1229,
+            0.0115
+          ],
+          "block": 2,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 13,
+          "n_eff": 13.0,
+          "ic_mean": -0.0944,
+          "t_nw_asymptotic": -1.0,
+          "wild_cluster_p": 0.3408,
+          "ci95_block_boot": [
+            -0.2619,
+            0.1047
+          ],
+          "block": 2,
+          "status": "underpowered"
+        }
+      },
+      "y_60d": {
+        "unconditional": {
+          "n_months": 70,
+          "n_eff": 41.3,
+          "ic_mean": 0.0053,
+          "t_nw_asymptotic": 0.11,
+          "wild_cluster_p": 0.9,
+          "ci95_block_boot": [
+            -0.0995,
+            0.0986
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "macro_regime=Overheat": {
+          "n_months": 10,
+          "n_eff": 7.5,
+          "ic_mean": 0.213,
+          "t_nw_asymptotic": 1.76,
+          "wild_cluster_p": 0.1099,
+          "ci95_block_boot": [
+            0.0883,
+            0.5119
+          ],
+          "block": 3,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "macro_regime=Recovery": {
+          "n_months": 20,
+          "n_eff": 16.5,
+          "ic_mean": -0.0683,
+          "t_nw_asymptotic": -1.02,
+          "wild_cluster_p": 0.3338,
+          "ci95_block_boot": [
+            -0.1764,
+            0.0895
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "macro_regime=Reflation": {
+          "n_months": 15,
+          "n_eff": 9.2,
+          "ic_mean": 0.0001,
+          "t_nw_asymptotic": 0.0,
+          "wild_cluster_p": 0.999,
+          "ci95_block_boot": [
+            -0.2376,
+            0.2443
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "macro_regime=Slowdown": {
+          "n_months": 25,
+          "n_eff": 15.8,
+          "ic_mean": -0.0159,
+          "t_nw_asymptotic": -0.25,
+          "wild_cluster_p": 0.7806,
+          "ci95_block_boot": [
+            -0.1566,
+            0.0938
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "krw_regime=KRW_neutral": {
+          "n_months": 31,
+          "n_eff": 23.7,
+          "ic_mean": -0.0604,
+          "t_nw_asymptotic": -1.28,
+          "wild_cluster_p": 0.2699,
+          "ci95_block_boot": [
+            -0.1636,
+            0.0437
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "krw_regime=KRW_strong": {
+          "n_months": 6,
+          "n_eff": 6.0,
+          "ic_mean": 0.2893,
+          "t_nw_asymptotic": 2.8,
+          "wild_cluster_p": 0.059,
+          "ci95_block_boot": [
+            0.201,
+            0.3776
+          ],
+          "block": 3,
+          "status": "INSUFFICIENT(n<12)"
+        },
+        "krw_regime=KRW_weak": {
+          "n_months": 33,
+          "n_eff": 15.5,
+          "ic_mean": 0.0153,
+          "t_nw_asymptotic": 0.19,
+          "wild_cluster_p": 0.7996,
+          "ci95_block_boot": [
+            -0.1224,
+            0.1844
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "flow_regime=flow_neutral": {
+          "n_months": 40,
+          "n_eff": 27.3,
+          "ic_mean": 0.0399,
+          "t_nw_asymptotic": 0.66,
+          "wild_cluster_p": 0.4418,
+          "ci95_block_boot": [
+            -0.0832,
+            0.1462
+          ],
+          "block": 3,
+          "status": "powered"
+        },
+        "flow_regime=flow_sell": {
+          "n_months": 17,
+          "n_eff": 16.3,
+          "ic_mean": -0.0304,
+          "t_nw_asymptotic": -0.57,
+          "wild_cluster_p": 0.7716,
+          "ci95_block_boot": [
+            -0.1806,
+            0.1535
+          ],
+          "block": 3,
+          "status": "underpowered"
+        },
+        "flow_regime=flow_strong_buy": {
+          "n_months": 13,
+          "n_eff": 9.9,
+          "ic_mean": -0.0548,
+          "t_nw_asymptotic": -0.71,
+          "wild_cluster_p": 0.4453,
+          "ci95_block_boot": [
+            -0.1708,
+            0.0983
+          ],
+          "block": 3,
+          "status": "underpowered"
+        }
+      }
+    }
+  },
+  "fdr_family": {
+    "m": 102,
+    "q": 0.1,
+    "by_factor": 5.207,
+    "bonferroni_alpha": 0.00049,
+    "survivors_BY": [],
+    "raw_p_min": 0.0005,
+    "raw_p_min_key": "vol_60__y_60d__uncond"
+  },
+  "family_2_signflip": {
+    "n_flips": 14,
+    "flips": [
+      {
+        "signal": "mom_12_1",
+        "horizon": "y_5d",
+        "axis": "krw_regime",
+        "positive": [
+          "krw_regime=KRW_weak"
+        ],
+        "negative": [
+          "krw_regime=KRW_neutral"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      },
+      {
+        "signal": "mom_12_1",
+        "horizon": "y_20d",
+        "axis": "macro_regime",
+        "positive": [
+          "macro_regime=Slowdown"
+        ],
+        "negative": [
+          "macro_regime=Recovery",
+          "macro_regime=Reflation"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      },
+      {
+        "signal": "mom_12_1",
+        "horizon": "y_20d",
+        "axis": "krw_regime",
+        "positive": [
+          "krw_regime=KRW_weak"
+        ],
+        "negative": [
+          "krw_regime=KRW_neutral"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      },
+      {
+        "signal": "rev_1m",
+        "horizon": "y_20d",
+        "axis": "macro_regime",
+        "positive": [
+          "macro_regime=Reflation"
+        ],
+        "negative": [
+          "macro_regime=Recovery",
+          "macro_regime=Slowdown"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      },
+      {
+        "signal": "rev_1m",
+        "horizon": "y_60d",
+        "axis": "macro_regime",
+        "positive": [
+          "macro_regime=Reflation"
+        ],
+        "negative": [
+          "macro_regime=Recovery",
+          "macro_regime=Slowdown"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      },
+      {
+        "signal": "rev_1m",
+        "horizon": "y_60d",
+        "axis": "krw_regime",
+        "positive": [
+          "krw_regime=KRW_neutral"
+        ],
+        "negative": [
+          "krw_regime=KRW_weak"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      },
+      {
+        "signal": "rev_1m",
+        "horizon": "y_60d",
+        "axis": "flow_regime",
+        "positive": [
+          "flow_regime=flow_neutral",
+          "flow_regime=flow_sell"
+        ],
+        "negative": [
+          "flow_regime=flow_strong_buy"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      },
+      {
+        "signal": "vol_60",
+        "horizon": "y_5d",
+        "axis": "krw_regime",
+        "positive": [
+          "krw_regime=KRW_weak"
+        ],
+        "negative": [
+          "krw_regime=KRW_neutral"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      },
+      {
+        "signal": "pbr_z",
+        "horizon": "y_20d",
+        "axis": "macro_regime",
+        "positive": [
+          "macro_regime=Slowdown"
+        ],
+        "negative": [
+          "macro_regime=Recovery",
+          "macro_regime=Reflation"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      },
+      {
+        "signal": "pbr_z",
+        "horizon": "y_60d",
+        "axis": "macro_regime",
+        "positive": [
+          "macro_regime=Slowdown"
+        ],
+        "negative": [
+          "macro_regime=Recovery",
+          "macro_regime=Reflation"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      },
+      {
+        "signal": "per_z",
+        "horizon": "y_5d",
+        "axis": "flow_regime",
+        "positive": [
+          "flow_regime=flow_sell"
+        ],
+        "negative": [
+          "flow_regime=flow_neutral",
+          "flow_regime=flow_strong_buy"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      },
+      {
+        "signal": "per_z",
+        "horizon": "y_60d",
+        "axis": "macro_regime",
+        "positive": [
+          "macro_regime=Reflation"
+        ],
+        "negative": [
+          "macro_regime=Recovery",
+          "macro_regime=Slowdown"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      },
+      {
+        "signal": "per_z",
+        "horizon": "y_60d",
+        "axis": "krw_regime",
+        "positive": [
+          "krw_regime=KRW_weak"
+        ],
+        "negative": [
+          "krw_regime=KRW_neutral"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      },
+      {
+        "signal": "per_z",
+        "horizon": "y_60d",
+        "axis": "flow_regime",
+        "positive": [
+          "flow_regime=flow_neutral"
+        ],
+        "negative": [
+          "flow_regime=flow_sell",
+          "flow_regime=flow_strong_buy"
+        ],
+        "note": "regime 따라 부호 갈림 → family_2 interaction 후보 (rejected 박제 전 검정 의무)"
+      }
+    ]
+  },
+  "family_2_interaction": {
+    "dummy": "krw_regime=KRW_neutral",
+    "horizon_days": 20,
+    "method": "pooled panel, month-clustered SE",
+    "results": [
+      {
+        "signal": "mom_6",
+        "b_main": -0.0311,
+        "t_main": -0.76,
+        "b_interaction": -0.1035,
+        "t_interaction": -1.63,
+        "n_obs": 1702,
+        "n_months": 81,
+        "verdict": "interaction 비유의"
+      },
+      {
+        "signal": "mom_12_1",
+        "b_main": -0.0128,
+        "t_main": -0.33,
+        "b_interaction": -0.0869,
+        "t_interaction": -1.33,
+        "n_obs": 1564,
+        "n_months": 75,
+        "verdict": "interaction 비유의"
+      },
+      {
+        "signal": "rev_1m",
+        "b_main": -0.034,
+        "t_main": -0.75,
+        "b_interaction": -0.0053,
+        "t_interaction": -0.08,
+        "n_obs": 1717,
+        "n_months": 81,
+        "verdict": "interaction 비유의"
+      },
+      {
+        "signal": "vol_60",
+        "b_main": -0.026,
+        "t_main": -0.67,
+        "b_interaction": -0.0947,
+        "t_interaction": -1.58,
+        "n_obs": 1711,
+        "n_months": 81,
+        "verdict": "interaction 비유의"
+      }
+    ]
+  },
+  "walk_forward_oos_krw_neutral": {
+    "regime": "krw_regime=KRW_neutral",
+    "split": "IS 2019-22 / OOS 2023-26",
+    "signals": {
+      "mom_6__y_20d": {
+        "is_ic": -0.0843,
+        "is_n": 13,
+        "oos_ic": -0.1564,
+        "oos_n": 24,
+        "sign_hold": true,
+        "verdict": "✅부호유지"
+      },
+      "mom_6__y_60d": {
+        "is_ic": -0.1558,
+        "is_n": 13,
+        "oos_ic": -0.1499,
+        "oos_n": 23,
+        "sign_hold": true,
+        "verdict": "✅부호유지"
+      },
+      "vol_60__y_20d": {
+        "is_ic": -0.1362,
+        "is_n": 14,
+        "oos_ic": -0.1196,
+        "oos_n": 24,
+        "sign_hold": true,
+        "verdict": "✅부호유지"
+      },
+      "vol_60__y_60d": {
+        "is_ic": -0.0453,
+        "is_n": 14,
+        "oos_ic": -0.1527,
+        "oos_n": 23,
+        "sign_hold": true,
+        "verdict": "✅부호유지"
+      },
+      "pbr_z__y_20d": {
+        "is_ic": -0.0871,
+        "is_n": 14,
+        "oos_ic": -0.0902,
+        "oos_n": 24,
+        "sign_hold": true,
+        "verdict": "✅부호유지"
+      },
+      "pbr_z__y_60d": {
+        "is_ic": -0.1176,
+        "is_n": 14,
+        "oos_ic": -0.0887,
+        "oos_n": 23,
+        "sign_hold": true,
+        "verdict": "✅부호유지"
+      }
+    }
+  }
+}

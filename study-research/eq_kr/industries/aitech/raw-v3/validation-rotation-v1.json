@@ -1,0 +1,585 @@
+{
+  "meta": {
+    "industry": "aitech",
+    "method": "AItech 업종 rotation: primary=고유 cycle 직접신호(AI capex/금리/나스닥/반도체) + secondary=momentum(raw+residualized)",
+    "prior_signs": {
+      "rate_10y": "음",
+      "nasdaq_qqq": "양",
+      "ai_capex_nvda": "양",
+      "soxx_semi": "양"
+    },
+    "residualize": "업종 월수익 ~ {d_usdkrw, foreign_flow, semi_ppi_yoy} OLS 잔차 = idiosyncratic (공통인자 재포장 점검)",
+    "zombie_mask": "가격 패널 amt==0 OR 연속동일종가≥10일 NaN (G-C audit, 셀바스AI 284일 halt)",
+    "horizons_months": {
+      "y_20d": 1,
+      "y_60d": 3
+    },
+    "oos_split": "2023-01-01",
+    "t_breakeven": 2.802,
+    "n_months": 88
+  },
+  "primary_cycle": {
+    "ai_capex_nvda_d3__y_20d": {
+      "label": "aitech__cycle_ai_capex_nvda_d3__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.1091,
+      "t_power_mde": 1.02,
+      "wild_cluster_p": 0.2899,
+      "ci95_block_boot_prod": [
+        -0.02495,
+        0.00783
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": 0.0359,
+        "rho_oos": -0.2233,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "prior_sign": "양",
+      "obs_sign": "음",
+      "prior_match": false
+    },
+    "ai_capex_nvda_d3__y_60d": {
+      "label": "aitech__cycle_ai_capex_nvda_d3__y_60d",
+      "n": 86,
+      "n_eff": 28.7,
+      "spearman_rho": -0.2108,
+      "t_power_mde": 1.13,
+      "wild_cluster_p": 0.0625,
+      "ci95_block_boot_prod": [
+        -0.04158,
+        0.00765
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": 0.0672,
+        "rho_oos": -0.6056,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "prior_sign": "양",
+      "obs_sign": "음",
+      "prior_match": false
+    },
+    "ai_capex_nvda_yoy__y_20d": {
+      "label": "aitech__cycle_ai_capex_nvda_yoy__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.0282,
+      "t_power_mde": 0.26,
+      "wild_cluster_p": 0.8016,
+      "ci95_block_boot_prod": [
+        -0.01808,
+        0.01293
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": 0.0651,
+        "rho_oos": -0.0156,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "prior_sign": "양",
+      "obs_sign": "음",
+      "prior_match": false
+    },
+    "ai_capex_nvda_yoy__y_60d": {
+      "label": "aitech__cycle_ai_capex_nvda_yoy__y_60d",
+      "n": 86,
+      "n_eff": 36.9,
+      "spearman_rho": -0.0268,
+      "t_power_mde": 0.16,
+      "wild_cluster_p": 0.7846,
+      "ci95_block_boot_prod": [
+        -0.02336,
+        0.01969
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": 0.0127,
+        "rho_oos": 0.0502,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "prior_sign": "양",
+      "obs_sign": "음",
+      "prior_match": false
+    },
+    "nasdaq_qqq_d3__y_20d": {
+      "label": "aitech__cycle_nasdaq_qqq_d3__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.0845,
+      "t_power_mde": 0.79,
+      "wild_cluster_p": 0.4533,
+      "ci95_block_boot_prod": [
+        -0.02387,
+        0.01014
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": 0.0017,
+        "rho_oos": -0.185,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "prior_sign": "양",
+      "obs_sign": "음",
+      "prior_match": false
+    },
+    "nasdaq_qqq_d3__y_60d": {
+      "label": "aitech__cycle_nasdaq_qqq_d3__y_60d",
+      "n": 86,
+      "n_eff": 31.5,
+      "spearman_rho": -0.1176,
+      "t_power_mde": 0.66,
+      "wild_cluster_p": 0.3203,
+      "ci95_block_boot_prod": [
+        -0.03525,
+        0.01605
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": 0.0827,
+        "rho_oos": -0.401,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "prior_sign": "양",
+      "obs_sign": "음",
+      "prior_match": false
+    },
+    "nasdaq_qqq_yoy__y_20d": {
+      "label": "aitech__cycle_nasdaq_qqq_yoy__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": 0.1099,
+      "t_power_mde": 1.03,
+      "wild_cluster_p": 0.2929,
+      "ci95_block_boot_prod": [
+        -0.00569,
+        0.02636
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": 0.1166,
+        "rho_oos": 0.0645,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "prior_sign": "양",
+      "obs_sign": "양",
+      "prior_match": true
+    },
+    "nasdaq_qqq_yoy__y_60d": {
+      "label": "aitech__cycle_nasdaq_qqq_yoy__y_60d",
+      "n": 86,
+      "n_eff": 31.4,
+      "spearman_rho": 0.1613,
+      "t_power_mde": 0.9,
+      "wild_cluster_p": 0.1229,
+      "ci95_block_boot_prod": [
+        -0.01073,
+        0.03955
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": 0.1818,
+        "rho_oos": 0.1721,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "prior_sign": "양",
+      "obs_sign": "양",
+      "prior_match": true
+    },
+    "rate_10y_d3__y_20d": {
+      "label": "aitech__cycle_rate_10y_d3__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.082,
+      "t_power_mde": 0.77,
+      "wild_cluster_p": 0.4448,
+      "ci95_block_boot_prod": [
+        -0.02458,
+        0.01015
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.0642,
+        "rho_oos": -0.064,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "prior_sign": "음",
+      "obs_sign": "음",
+      "prior_match": true
+    },
+    "rate_10y_d3__y_60d": {
+      "label": "aitech__cycle_rate_10y_d3__y_60d",
+      "n": 86,
+      "n_eff": 32.5,
+      "spearman_rho": -0.1994,
+      "t_power_mde": 1.14,
+      "wild_cluster_p": 0.0835,
+      "ci95_block_boot_prod": [
+        -0.04147,
+        0.00756
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.2541,
+        "rho_oos": -0.0743,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "prior_sign": "음",
+      "obs_sign": "음",
+      "prior_match": true
+    },
+    "rate_10y_yoy__y_20d": {
+      "label": "aitech__cycle_rate_10y_yoy__y_20d",
+      "n": 88,
+      "n_eff": 80.5,
+      "spearman_rho": -0.1522,
+      "t_power_mde": 1.37,
+      "wild_cluster_p": 0.1604,
+      "ci95_block_boot_prod": [
+        -0.03119,
+        0.00433
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.1321,
+        "rho_oos": -0.0388,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "prior_sign": "음",
+      "obs_sign": "음",
+      "prior_match": true
+    },
+    "rate_10y_yoy__y_60d": {
+      "label": "aitech__cycle_rate_10y_yoy__y_60d",
+      "n": 86,
+      "n_eff": 32.7,
+      "spearman_rho": -0.273,
+      "t_power_mde": 1.56,
+      "wild_cluster_p": 0.014,
+      "ci95_block_boot_prod": [
+        -0.04882,
+        0.00204
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.2181,
+        "rho_oos": -0.2901,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "prior_sign": "음",
+      "obs_sign": "음",
+      "prior_match": true
+    },
+    "soxx_semi_d3__y_20d": {
+      "label": "aitech__cycle_soxx_semi_d3__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.1051,
+      "t_power_mde": 0.99,
+      "wild_cluster_p": 0.3563,
+      "ci95_block_boot_prod": [
+        -0.02597,
+        0.01073
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": 0.0327,
+        "rho_oos": -0.2553,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "prior_sign": "양",
+      "obs_sign": "음",
+      "prior_match": false
+    },
+    "soxx_semi_d3__y_60d": {
+      "label": "aitech__cycle_soxx_semi_d3__y_60d",
+      "n": 86,
+      "n_eff": 34.2,
+      "spearman_rho": -0.1745,
+      "t_power_mde": 1.02,
+      "wild_cluster_p": 0.1374,
+      "ci95_block_boot_prod": [
+        -0.03631,
+        0.01214
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": 0.0433,
+        "rho_oos": -0.48,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "prior_sign": "양",
+      "obs_sign": "음",
+      "prior_match": false
+    },
+    "soxx_semi_yoy__y_20d": {
+      "label": "aitech__cycle_soxx_semi_yoy__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": 0.0468,
+      "t_power_mde": 0.44,
+      "wild_cluster_p": 0.6702,
+      "ci95_block_boot_prod": [
+        -0.01175,
+        0.0222
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": 0.1068,
+        "rho_oos": -0.0916,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "prior_sign": "양",
+      "obs_sign": "양",
+      "prior_match": true
+    },
+    "soxx_semi_yoy__y_60d": {
+      "label": "aitech__cycle_soxx_semi_yoy__y_60d",
+      "n": 86,
+      "n_eff": 33.1,
+      "spearman_rho": 0.0666,
+      "t_power_mde": 0.38,
+      "wild_cluster_p": 0.5487,
+      "ci95_block_boot_prod": [
+        -0.01727,
+        0.03461
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": 0.1771,
+        "rho_oos": -0.1421,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "prior_sign": "양",
+      "obs_sign": "양",
+      "prior_match": true
+    }
+  },
+  "secondary_momentum": {
+    "raw_mom_3__y_20d": {
+      "label": "aitech__mom_raw_mom_3__y_20d",
+      "n": 85,
+      "n_eff": 85.0,
+      "spearman_rho": 0.0675,
+      "t_power_mde": 0.62,
+      "wild_cluster_p": 0.5612,
+      "ci95_block_boot_prod": [
+        -0.01151,
+        0.02264
+      ],
+      "walk_forward_oos": {
+        "is_n": 45,
+        "oos_n": 40,
+        "rho_is": 0.0995,
+        "rho_oos": -0.0366,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered"
+    },
+    "raw_mom_3__y_60d": {
+      "label": "aitech__mom_raw_mom_3__y_60d",
+      "n": 83,
+      "n_eff": 40.7,
+      "spearman_rho": 0.0255,
+      "t_power_mde": 0.16,
+      "wild_cluster_p": 0.8241,
+      "ci95_block_boot_prod": [
+        -0.01971,
+        0.02929
+      ],
+      "walk_forward_oos": {
+        "is_n": 45,
+        "oos_n": 38,
+        "rho_is": 0.1011,
+        "rho_oos": -0.2036,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered"
+    },
+    "raw_mom_6__y_20d": {
+      "label": "aitech__mom_raw_mom_6__y_20d",
+      "n": 82,
+      "n_eff": 82.0,
+      "spearman_rho": -0.0197,
+      "t_power_mde": 0.18,
+      "wild_cluster_p": 0.8591,
+      "ci95_block_boot_prod": [
+        -0.01897,
+        0.01747
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 40,
+        "rho_is": 0.0187,
+        "rho_oos": -0.3148,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered"
+    },
+    "raw_mom_6__y_60d": {
+      "label": "aitech__mom_raw_mom_6__y_60d",
+      "n": 80,
+      "n_eff": 33.0,
+      "spearman_rho": -0.0268,
+      "t_power_mde": 0.15,
+      "wild_cluster_p": 0.8176,
+      "ci95_block_boot_prod": [
+        -0.02699,
+        0.02682
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 38,
+        "rho_is": 0.0419,
+        "rho_oos": -0.5286,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered"
+    },
+    "resid_mom_3__y_20d": {
+      "label": "aitech__mom_resid_mom_3__y_20d",
+      "n": 84,
+      "n_eff": 84.0,
+      "spearman_rho": -0.0797,
+      "t_power_mde": 0.73,
+      "wild_cluster_p": 0.4913,
+      "ci95_block_boot_prod": [
+        -0.02443,
+        0.0112
+      ],
+      "walk_forward_oos": {
+        "is_n": 44,
+        "oos_n": 40,
+        "rho_is": -0.0171,
+        "rho_oos": -0.2038,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered"
+    },
+    "resid_mom_3__y_60d": {
+      "label": "aitech__mom_resid_mom_3__y_60d",
+      "n": 82,
+      "n_eff": 43.0,
+      "spearman_rho": -0.1242,
+      "t_power_mde": 0.81,
+      "wild_cluster_p": 0.2669,
+      "ci95_block_boot_prod": [
+        -0.03325,
+        0.01397
+      ],
+      "walk_forward_oos": {
+        "is_n": 44,
+        "oos_n": 38,
+        "rho_is": 0.0599,
+        "rho_oos": -0.4159,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered"
+    },
+    "resid_mom_6__y_20d": {
+      "label": "aitech__mom_resid_mom_6__y_20d",
+      "n": 81,
+      "n_eff": 81.0,
+      "spearman_rho": -0.1691,
+      "t_power_mde": 1.52,
+      "wild_cluster_p": 0.1329,
+      "ci95_block_boot_prod": [
+        -0.03067,
+        0.0042
+      ],
+      "walk_forward_oos": {
+        "is_n": 41,
+        "oos_n": 40,
+        "rho_is": 0.0066,
+        "rho_oos": -0.3188,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered"
+    },
+    "resid_mom_6__y_60d": {
+      "label": "aitech__mom_resid_mom_6__y_60d",
+      "n": 79,
+      "n_eff": 36.6,
+      "spearman_rho": -0.2115,
+      "t_power_mde": 1.28,
+      "wild_cluster_p": 0.057,
+      "ci95_block_boot_prod": [
+        -0.04148,
+        0.00628
+      ],
+      "walk_forward_oos": {
+        "is_n": 41,
+        "oos_n": 38,
+        "rho_is": -0.0125,
+        "rho_oos": -0.6008,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered"
+    }
+  },
+  "fdr_all_single": {
+    "m": 24,
+    "by_factor": 3.776,
+    "survivors_BY": [],
+    "raw_p_min": 0.014,
+    "raw_p_min_key": "cyc_rate_10y_yoy__y_60d",
+    "bonferroni_alpha": 0.00208
+  }
+}

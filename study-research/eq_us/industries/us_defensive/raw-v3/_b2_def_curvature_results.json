@@ -1,0 +1,102 @@
+{
+  "meta": {
+    "H": 12,
+    "note": "own-curvature confound 결정검정. linear-basis vs +z²-basis incr IC + FM coef + VIF."
+  },
+  "DEF-2": {
+    "incr_linear": {
+      "ic_mean": 0.0647,
+      "n": 184,
+      "n_eff": 55.9,
+      "block_G": 62,
+      "t_nw": 3.43,
+      "fixed_b_cv": 2.08,
+      "fixed_b_sig": true,
+      "wild_p": 0.0005,
+      "sign": 1
+    },
+    "incr_curvature": {
+      "ic_mean": 0.0594,
+      "n": 184,
+      "n_eff": 60.2,
+      "block_G": 62,
+      "t_nw": 2.78,
+      "fixed_b_cv": 2.08,
+      "fixed_b_sig": true,
+      "wild_p": 0.0073,
+      "sign": 1
+    },
+    "fm_coef_linear": {
+      "ic_mean": 0.012,
+      "n": 183,
+      "n_eff": 54.5,
+      "block_G": 46,
+      "t_nw": 3.23,
+      "fixed_b_cv": 2.09,
+      "fixed_b_sig": true,
+      "wild_p": 0.0033,
+      "sign": 1
+    },
+    "fm_coef_curvature": {
+      "ic_mean": 0.0195,
+      "n": 183,
+      "n_eff": 54.4,
+      "block_G": 46,
+      "t_nw": 3.54,
+      "fixed_b_cv": 2.09,
+      "fixed_b_sig": true,
+      "wild_p": 0.0013,
+      "sign": 1
+    },
+    "mean_vif_inter_linear": 1.27,
+    "mean_vif_inter_curvature": 2.4
+  },
+  "DEF-1": {
+    "incr_linear": {
+      "ic_mean": -0.0757,
+      "n": 185,
+      "n_eff": 47.8,
+      "block_G": 37,
+      "t_nw": -3.01,
+      "fixed_b_cv": 2.12,
+      "fixed_b_sig": true,
+      "wild_p": 0.0055,
+      "sign": -1
+    },
+    "incr_curvature": {
+      "ic_mean": -0.0852,
+      "n": 185,
+      "n_eff": 51.7,
+      "block_G": 47,
+      "t_nw": -4.0,
+      "fixed_b_cv": 2.09,
+      "fixed_b_sig": true,
+      "wild_p": 0.0001,
+      "sign": -1
+    },
+    "fm_coef_linear": {
+      "ic_mean": -0.0095,
+      "n": 184,
+      "n_eff": 49.1,
+      "block_G": 31,
+      "t_nw": -1.66,
+      "fixed_b_cv": 2.15,
+      "fixed_b_sig": false,
+      "wild_p": 0.1339,
+      "sign": -1
+    },
+    "fm_coef_curvature": {
+      "ic_mean": -0.006,
+      "n": 184,
+      "n_eff": 45.9,
+      "block_G": 31,
+      "t_nw": -0.87,
+      "fixed_b_cv": 2.15,
+      "fixed_b_sig": false,
+      "wild_p": 0.4288,
+      "sign": -1
+    },
+    "mean_vif_inter_linear": 1.36,
+    "mean_vif_inter_curvature": 1.89
+  }
+}

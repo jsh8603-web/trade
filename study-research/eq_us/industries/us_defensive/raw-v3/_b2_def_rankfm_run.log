@@ -1,0 +1,6 @@
+DEF-2 pred=+1 sign_match=True
+  full   coef=0.19339 t=2.68 fb_sig=True wildP=0.0105 n_eff=57.9
+  in≤21  coef=0.13788 t=1.63 fb_sig=False | OOS coef=0.38701 t=3.13 fb_sig=True
+DEF-1 pred=+1 sign_match=False
+  full   coef=-0.20748 t=-2.15 fb_sig=True wildP=0.0494 n_eff=50.8
+  in≤21  coef=-0.17755 t=-1.53 fb_sig=False | OOS coef=-0.3126 t=-2.39 fb_sig=False

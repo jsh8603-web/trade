@@ -1,0 +1,63 @@
+{
+  "meta": {
+    "signal": "low_vol = -idio_vol (BAB, sector-neutral within-demean)",
+    "family": "us_equity_exploratory_v1",
+    "caveat": "자문 Claude: within-demean 이 cross-sector low-vol 제거 → 구조적 약화"
+  },
+  "3M": {
+    "label": "low_vol_3M",
+    "ic_mean": -0.0365,
+    "n": 126,
+    "hac_lag": 3,
+    "t_nw": -1.49,
+    "n_eff": 52.3,
+    "underpowered": false,
+    "fixed_b_cv": 2.1,
+    "fixed_b_b": 0.024,
+    "fixed_b_sig": false,
+    "asymptotic_sig": false,
+    "p_wild_cluster": 0.1535
+  },
+  "6M": {
+    "label": "low_vol_6M",
+    "ic_mean": -0.0591,
+    "n": 123,
+    "hac_lag": 5,
+    "t_nw": -1.74,
+    "n_eff": 34.5,
+    "underpowered": false,
+    "fixed_b_cv": 2.19,
+    "fixed_b_b": 0.041,
+    "fixed_b_sig": false,
+    "asymptotic_sig": false,
+    "p_wild_cluster": 0.1166
+  },
+  "12M": {
+    "label": "low_vol_12M",
+    "ic_mean": -0.0571,
+    "n": 117,
+    "hac_lag": 8,
+    "t_nw": -1.29,
+    "n_eff": 29.2,
+    "underpowered": true,
+    "fixed_b_cv": 2.34,
+    "fixed_b_b": 0.068,
+    "fixed_b_sig": false,
+    "asymptotic_sig": false,
+    "p_wild_cluster": 0.2474
+  },
+  "24M": {
+    "label": "low_vol_24M",
+    "ic_mean": -0.0349,
+    "n": 105,
+    "hac_lag": 11,
+    "t_nw": -0.66,
+    "n_eff": 24.5,
+    "underpowered": true,
+    "fixed_b_cv": 2.51,
+    "fixed_b_b": 0.105,
+    "fixed_b_sig": false,
+    "asymptotic_sig": false,
+    "p_wild_cluster": 0.5779
+  }
+}

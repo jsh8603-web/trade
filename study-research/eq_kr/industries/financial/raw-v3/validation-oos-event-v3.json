@@ -1,0 +1,95 @@
+{
+  "walk_forward_oos": {
+    "bank_pbr_z_y60d": {
+      "signal": "pbr_z",
+      "horizon_d": 60,
+      "n_codes": 11,
+      "IS_ic": null,
+      "IS_n": 0,
+      "OOS_ic": -0.1614,
+      "OOS_n": 27,
+      "sign_hold": false,
+      "verdict": "OOS 부호반전/약화"
+    },
+    "bank_mom12_1_y60d": {
+      "signal": "mom_12_1",
+      "horizon_d": 60,
+      "n_codes": 11,
+      "IS_ic": -0.0543,
+      "IS_n": 36,
+      "OOS_ic": 0.2278,
+      "OOS_n": 38,
+      "sign_hold": false,
+      "verdict": "OOS 부호반전/약화"
+    },
+    "bank_rev1m_y5d": {
+      "signal": "rev_1m",
+      "horizon_d": 5,
+      "n_codes": 11,
+      "IS_ic": -0.0557,
+      "IS_n": 42,
+      "OOS_ic": -0.1733,
+      "OOS_n": 40,
+      "sign_hold": true,
+      "verdict": "OOS 부호유지"
+    },
+    "secur_pbr_z_y60d": {
+      "signal": "pbr_z",
+      "horizon_d": 60,
+      "n_codes": 10,
+      "IS_ic": null,
+      "IS_n": 0,
+      "OOS_ic": 0.1464,
+      "OOS_n": 28,
+      "sign_hold": false,
+      "verdict": "OOS 부호반전/약화"
+    },
+    "ratePOS_rev1m_y20d": {
+      "signal": "rev_1m",
+      "horizon_d": 20,
+      "n_codes": 24,
+      "IS_ic": -0.0613,
+      "IS_n": 42,
+      "OOS_ic": -0.055,
+      "OOS_n": 39,
+      "sign_hold": true,
+      "verdict": "OOS 부호유지"
+    }
+  },
+  "value_up_event_study": {
+    "valueup_1st_20240226": {
+      "event_date": "2024-02-26",
+      "n_low_pbr": 8,
+      "n_high_pbr": 8,
+      "short_-5_+5": {
+        "low_pbr_caar": -0.0767,
+        "low_pbr_se": 0.0383,
+        "high_pbr_caar": 0.0059,
+        "spread_low_minus_high": -0.0826
+      },
+      "mid_+1_+60": {
+        "low_pbr_caar": -0.0539,
+        "low_pbr_se": 0.0464,
+        "high_pbr_caar": -0.009,
+        "spread_low_minus_high": -0.0449
+      }
+    },
+    "valueup_2nd_20240502": {
+      "event_date": "2024-05-02",
+      "n_low_pbr": 9,
+      "n_high_pbr": 9,
+      "short_-5_+5": {
+        "low_pbr_caar": 0.0135,
+        "low_pbr_se": 0.0085,
+        "high_pbr_caar": -0.003,
+        "spread_low_minus_high": 0.0164
+      },
+      "mid_+1_+60": {
+        "low_pbr_caar": 0.0342,
+        "low_pbr_se": 0.0149,
+        "high_pbr_caar": -0.0419,
+        "spread_low_minus_high": 0.0761
+      }
+    }
+  }
+}

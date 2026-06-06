@@ -1,0 +1,154 @@
+{
+  "meta": {
+    "H_months": 12,
+    "neff_floor": 30,
+    "wild_B": 9999,
+    "z_method": "sector-neutral",
+    "data_range": "2010-01-04~2026-05-28",
+    "n_tickers": 48,
+    "note": "raw stat only, FDR X(team-lead). cheap-dir: ep_yield 고=cheap(+z). stable: -earnings_cv/-vol(저=stable)."
+  },
+  "DEF-1": {
+    "spec": "net_issuance x ep_yield",
+    "predicted_sign": 1,
+    "two_sided_review": true,
+    "raw_interaction_ic": {
+      "label": "DEF-1_raw",
+      "ic_mean": -0.0454,
+      "n": 185,
+      "hac_lag": 4,
+      "t_nw": -1.92,
+      "n_eff": 51.4,
+      "underpowered": false,
+      "fixed_b_cv": 2.09,
+      "fixed_b_b": 0.022,
+      "fixed_b_sig": false,
+      "asymptotic_sig": false,
+      "p_wild_cluster": 0.0686
+    },
+    "incremental_ic": {
+      "label": "DEF-1_incr",
+      "ic_mean": -0.0757,
+      "n": 185,
+      "hac_lag": 5,
+      "t_nw": -3.01,
+      "n_eff": 47.8,
+      "underpowered": false,
+      "fixed_b_cv": 2.12,
+      "fixed_b_b": 0.027,
+      "fixed_b_sig": true,
+      "asymptotic_sig": true,
+      "p_wild_cluster": 0.0055
+    }
+  },
+  "DEF-2": {
+    "spec": "dividend_yield(고) x op_prof(고)",
+    "predicted_sign": 1,
+    "raw_interaction_ic": {
+      "label": "DEF-2_raw",
+      "ic_mean": 0.0686,
+      "n": 185,
+      "hac_lag": 3,
+      "t_nw": 3.93,
+      "n_eff": 74.6,
+      "underpowered": false,
+      "fixed_b_cv": 2.08,
+      "fixed_b_b": 0.016,
+      "fixed_b_sig": true,
+      "asymptotic_sig": true,
+      "p_wild_cluster": 0.0
+    },
+    "incremental_ic": {
+      "label": "DEF-2_incr",
+      "ic_mean": 0.0647,
+      "n": 184,
+      "hac_lag": 3,
+      "t_nw": 3.43,
+      "n_eff": 55.9,
+      "underpowered": false,
+      "fixed_b_cv": 2.08,
+      "fixed_b_b": 0.016,
+      "fixed_b_sig": true,
+      "asymptotic_sig": true,
+      "p_wild_cluster": 0.0005
+    }
+  },
+  "DEF-3": {
+    "spec": "earnings_cv(저) x vol_60(저) stable교집합",
+    "predicted_sign": 1,
+    "raw_interaction_ic": {
+      "label": "DEF-3_raw",
+      "ic_mean": 0.0477,
+      "n": 172,
+      "hac_lag": 3,
+      "t_nw": 2.79,
+      "n_eff": 59.4,
+      "underpowered": false,
+      "fixed_b_cv": 2.08,
+      "fixed_b_b": 0.017,
+      "fixed_b_sig": true,
+      "asymptotic_sig": true,
+      "p_wild_cluster": 0.0058
+    },
+    "incremental_ic": {
+      "label": "DEF-3_incr",
+      "ic_mean": 0.0287,
+      "n": 172,
+      "hac_lag": 3,
+      "t_nw": 1.62,
+      "n_eff": 59.2,
+      "underpowered": false,
+      "fixed_b_cv": 2.08,
+      "fixed_b_b": 0.017,
+      "fixed_b_sig": false,
+      "asymptotic_sig": false,
+      "p_wild_cluster": 0.1098
+    },
+    "m_eff_note": "earnings_cv·vol_60 near-duplicate 가능 → corr 점검"
+  },
+  "DEF-5": {
+    "spec": "ep_yield x gross_prof anti-value quality decomp",
+    "predicted_sign": 1,
+    "raw_interaction_ic": {
+      "label": "DEF-5_raw",
+      "ic_mean": -0.0158,
+      "n": 176,
+      "hac_lag": 4,
+      "t_nw": -0.6,
+      "n_eff": 51.3,
+      "underpowered": false,
+      "fixed_b_cv": 2.1,
+      "fixed_b_b": 0.023,
+      "fixed_b_sig": false,
+      "asymptotic_sig": false,
+      "p_wild_cluster": 0.5688
+    },
+    "incremental_ic": {
+      "label": "DEF-5_incr",
+      "ic_mean": -0.0136,
+      "n": 172,
+      "hac_lag": 4,
+      "t_nw": -0.57,
+      "n_eff": 49.6,
+      "underpowered": false,
+      "fixed_b_cv": 2.1,
+      "fixed_b_b": 0.023,
+      "fixed_b_sig": false,
+      "asymptotic_sig": false,
+      "p_wild_cluster": 0.5908
+    }
+  },
+  "DEF-4": {
+    "spec": "ep_yield IC_t ~ Δreal_rate slope",
+    "predicted_sign": -1,
+    "tier": 2,
+    "ep_main_ic": -0.056,
+    "slope_beta": 0.0151,
+    "slope_t_hac": 0.27,
+    "n": 185,
+    "fixed_b_cv": 2.12,
+    "slope_fixed_b_sig": false,
+    "sign_match": false,
+    "slope_p_wild": 0.7922
+  }
+}

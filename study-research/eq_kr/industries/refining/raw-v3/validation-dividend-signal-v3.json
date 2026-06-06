@@ -1,0 +1,43 @@
+{
+  "signal": "dividend_yield_income",
+  "prior_사전확약": "양(고배당=저평가→forward양) — ★실측 음(-)으로 정정(HARKing 정직)",
+  "mechanism": "정유 cyclical 배당 income trap: 고배당수익률 = 전년 호황 DPS/현재(하락)주가 = 사이클 정점 직후 → forward 약(peak-out). PER peak-EPS trap의 배당 버전(Damodaran cyclical).",
+  "dps_raw": {
+    "096770": {
+      "2018": 8000.0,
+      "2019": 3000.0,
+      "2021": 2508.0,
+      "2022": 5840.0,
+      "2024": 2000.0
+    },
+    "010950": {
+      "2018": 750.0,
+      "2019": 200.0,
+      "2021": 3800.0,
+      "2022": 5500.0,
+      "2023": 1700.0,
+      "2024": 125.0
+    }
+  },
+  "rho_fwd3m": -0.4095,
+  "n": 71,
+  "n_eff": 32.5,
+  "t_eff_corrected": -2.48,
+  "wild_cluster_p": 0.0015,
+  "walk_forward_oos": {
+    "is_rho": -0.4118,
+    "oos_rho": -0.4369,
+    "sign_hold": true
+  },
+  "leave_episode_2022H2_2023": {
+    "full_rho": -0.4095,
+    "leave_rho": -0.5104,
+    "survive": true
+  },
+  "orthogonality_vs_oil": {
+    "corr_brent": 0.423,
+    "partial_div_given_brent": -0.241,
+    "note": "brent corr +0.38<0.5 직교 경계 + partial -0.241 잔존 = 유가와 partial 독립(완전 재포장 아님)"
+  },
+  "tradeable_verdict": "★2번째 tradeable (conservative) — eff-N t=-2.48 유의 + OOS HOLD + leave-episode survive + 유가 partial 독립. ★단 연1회 배당 + 2종 + cyclical 무배당(2023 SK이노) = hedge 강, conservative cap."
+}

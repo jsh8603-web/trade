@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "panel": [
+      "096770",
+      "010950"
+    ],
+    "purpose": "M5 valuation — cross-sectional INSUFFICIENT 박제 + 시계열 PBR cycle",
+    "cross_sectional_verdict": "★INSUFFICIENT — strict2 = 2종, 횡단면 PBR/PER IC(min 8) ⛔불가.",
+    "per_verdict": "★PER 무효 확정 — net_income 적자 빈발(SK이노2024 -2.4조/S-Oil 2020·24·25 적자) + FY만(연1회). peak-EPS trap + 음수EPS = PER cross-sectional·시계열 둘 다 무효."
+  },
+  "pbr_timeseries": {
+    "096770": {
+      "mean": 1.2,
+      "min": 0.381,
+      "max": 3.012,
+      "last": 0.524,
+      "n": 85
+    },
+    "010950": {
+      "mean": 1.273,
+      "min": 0.703,
+      "max": 2.12,
+      "last": 1.42,
+      "n": 85
+    }
+  },
+  "pbr_industry_mean_forward": {
+    "pbr_level": {
+      "label": "pbr_level__fwd3",
+      "n": 82,
+      "n_eff": 25.5,
+      "spearman_rho": -0.173,
+      "p_param": 0.1202,
+      "wild_cluster_p": 0.1084,
+      "t_naive": -1.57,
+      "t_eff_corrected": -0.85,
+      "status": "powered"
+    },
+    "pbr_zscore_band": {
+      "label": "pbr_zscore_band__fwd3",
+      "n": 71,
+      "n_eff": 20.9,
+      "spearman_rho": 0.1781,
+      "p_param": 0.1374,
+      "wild_cluster_p": 0.0815,
+      "t_naive": 1.5,
+      "t_eff_corrected": 0.79,
+      "status": "powered"
+    }
+  },
+  "walk_forward_oos": {
+    "pbr_level": {
+      "is_rho": -0.1632,
+      "is_n": 44,
+      "oos_rho": -0.3879,
+      "oos_n": 38,
+      "sign_hold": true
+    },
+    "pbr_zscore_band": {
+      "is_rho": 0.1715,
+      "is_n": 33,
+      "oos_rho": 0.0925,
+      "oos_n": 38,
+      "sign_hold": true
+    }
+  }
+}

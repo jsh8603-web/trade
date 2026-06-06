@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "D:\projects\Inv\study-research\eq_us\industries\us_cyclical\raw-v3\_b2_cyclical_interactions.py", line 277, in <module>
+    main()
+  File "D:\projects\Inv\study-research\eq_us\industries\us_cyclical\raw-v3\_b2_cyclical_interactions.py", line 260, in main
+    print("=" * 84)
+ValueError: I/O operation on closed file.

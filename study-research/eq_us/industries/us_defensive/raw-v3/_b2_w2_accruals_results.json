@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "signal": "accruals (NI-CFO)/assets, Sloan 부호 음",
+    "family": "us_equity_exploratory_v1"
+  },
+  "3M": {
+    "label": "accruals_3M",
+    "ic_mean": -0.0145,
+    "n": 194,
+    "n_eff": 92.8,
+    "underpowered": false,
+    "t_nw": -1.02,
+    "fixed_b_cv": 2.08,
+    "fixed_b_sig": false,
+    "p_wild_cluster": 0.362
+  },
+  "6M": {
+    "label": "accruals_6M",
+    "ic_mean": -0.0152,
+    "n": 191,
+    "n_eff": 62.4,
+    "underpowered": false,
+    "t_nw": -1.0,
+    "fixed_b_cv": 2.08,
+    "fixed_b_sig": false,
+    "p_wild_cluster": 0.3156
+  },
+  "12M": {
+    "label": "accruals_12M",
+    "ic_mean": -0.006,
+    "n": 185,
+    "n_eff": 51.6,
+    "underpowered": false,
+    "t_nw": -0.3,
+    "fixed_b_cv": 2.12,
+    "fixed_b_sig": false,
+    "p_wild_cluster": 0.757
+  },
+  "24M": {
+    "label": "accruals_24M",
+    "ic_mean": 0.0409,
+    "n": 173,
+    "n_eff": 40.6,
+    "underpowered": false,
+    "t_nw": 1.3,
+    "fixed_b_cv": 2.26,
+    "fixed_b_sig": false,
+    "p_wild_cluster": 0.2533
+  }
+}

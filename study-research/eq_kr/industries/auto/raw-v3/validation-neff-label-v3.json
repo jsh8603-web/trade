@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "purpose": "effective-N + AR(1) 보정 라벨 (G-C remediation 2, hedge 강화)"
+  },
+  "signals": {
+    "capex_ratio__y_20d": {
+      "ic_mean": -0.075,
+      "n_months": 83,
+      "ar1": 0.087,
+      "eff_n_ar1": 69.7,
+      "eff_n_full_autocorr": 71.7,
+      "t_naive_iid": -2.66,
+      "t_eff_ar1_corrected": -2.43,
+      "t_eff_full_corrected": -2.47
+    },
+    "capex_ratio__y_60d": {
+      "ic_mean": -0.1031,
+      "n_months": 82,
+      "ar1": 0.426,
+      "eff_n_ar1": 33.0,
+      "eff_n_full_autocorr": 39.7,
+      "t_naive_iid": -3.61,
+      "t_eff_ar1_corrected": -2.29,
+      "t_eff_full_corrected": -2.52
+    },
+    "pbr_z__y_20d": {
+      "ic_mean": -0.0359,
+      "n_months": 83,
+      "ar1": 0.01,
+      "eff_n_ar1": 81.4,
+      "eff_n_full_autocorr": 81.6,
+      "t_naive_iid": -1.19,
+      "t_eff_ar1_corrected": -1.18,
+      "t_eff_full_corrected": -1.18
+    },
+    "pbr_z__y_60d": {
+      "ic_mean": -0.1109,
+      "n_months": 82,
+      "ar1": 0.494,
+      "eff_n_ar1": 27.8,
+      "eff_n_full_autocorr": 34.2,
+      "t_naive_iid": -3.72,
+      "t_eff_ar1_corrected": -2.16,
+      "t_eff_full_corrected": -2.4
+    }
+  }
+}

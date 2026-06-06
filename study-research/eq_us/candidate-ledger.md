@@ -316,3 +316,118 @@ basis_raw:
 - **defensive v2 yaml = ★P0 재검증 대상** (합성 의심) — 그대로 채택 금지, H1~H4 실측 재실행 의무
 
 <state intent="eq_us candidate-ledger 작성 (자문/이론/M3 후보 + 채택/이연/미채택 + 사유 1파일 집약)" risk="direction.md 미작성 상태 = 거의 모든 채택 후보 'pending injection' 정직 박제" uncertainty="low">
+
+---
+
+## ★다변량 조건부 가설 11종 전수 검증 결과 (2026-06-04, BW8)
+
+> SSOT: [REWORK-prereg-11hypotheses-20260604.md](./REWORK-prereg-11hypotheses-20260604.md) §검증 결과. 단일 FDR family `us_equity_2way_v1` BY q=0.10. one-sided pre-commit(wrong-sign=부호탈락). 실행=team-lead 직접(teammate echo-stall). json: cyclical `_b2_cyclical_interactions_results.json` / defensive `_b2_defensive_interactions_results.json`.
+
+| id | spec | decision | 사유 |
+|---|---|---|---|
+| **DEF-2** | dividend_yield(고)×op_prof(고) | ★**CONFIRM** | incr+0.065 wild p0.0005, fixed-b+size-valid, BY r1 생존. yield-trap 분리 입증(고DY×고quality=sustainable). ★factor×factor>단일 실증 |
+| **DEF-1** | net_issuance×ep_yield | ★**TENTATIVE** | incr−0.076 wild p0.0055 유의·incremental BY r2 생존, but ★PW방향(AMP prior+ 반대=발행페널티 cheap 집중). two_sided_review→manual. flip-sign 신규 pre-reg+OOS 필요 |
+| CYC-3 | op_prof(고)×asset_growth(저) | REJECT(wrong-sign) | incr−0.039 p0.013 유의이나 pred+ 역부호. 경제적=사이클정점 reversal. 추격금지(HARKing). flip 후보 |
+| CYC-4 | ep_yield×residual_mom | REJECT(wrong-sign) | incr−0.048 p0.038 유의 역부호. cheap+mom=정점 reversal. 동상 |
+| DEF-3 | earnings_cv(저)×vol_60(저) | NOT_INCREMENTAL | raw+0.048 p0.006 유의이나 incr 소멸(p0.11)=stability proxy 중복(near-dup 예측 적중) |
+| CYC-5 | ep_yield×idio_vol(저) | NULL | incr−0.026 p0.17 |
+| DEF-5 | ep_yield×gross_prof | NULL | incr−0.014 p0.59, anti-value quality-decomp 무 |
+| CYC-1 | ev_ebitda(저)×gross_prof(고) | NULL | incr+0.019 p0.68, Novy-Marx 방향 맞으나 비유의 |
+| CYC-6 | [capex×ep_yield]~Δbaa Tier2 | NULL | slope t−0.51 p0.65 (capex EDGAR fetch 성공) |
+| DEF-4 | ep_yield~Δreal_rate Tier2 | NULL | slope t0.27 p0.79, anti-value의 rate-state 의존 없음 |
+| CYC-2 | PER-cheap divergence | NULL | raw−0.035 p0.15, incr 소멸 p0.88 |
+
+**종합**: 11 中 BY 생존 2(DEF-2 CONFIRM + DEF-1 TENTATIVE). cyclical interaction 6개 = value(pbr/ev #7 CONFIRM) 위 incremental 0(null 4 + wrong-sign-reject 2). 사용자 "지표간 관점" = noise 아님 정직 검증(DEF-2 = factor×factor>단일 실증 / CYC-3·4 = 유의 reversal 신호이나 부호규율로 reject). 잔여 안전장치(e-process OOS/placebo/Harvey-Liu/turnover)=DEF-1/2 한정 G-C 재audit(BW7).
+
+### ★자문 검증 후 정정 (2026-06-04, /gemini-web+/claude-web 수렴 + curvature 결정검정)
+- **DEF-2 = CONFIRM 확정 (격상)**: own-curvature(z² basis) + Fama-MacBeth 전체회귀 이중통제에도 incr IC +0.059(p0.007) / FM coef +0.020(t3.54) 전부 생존, VIF 1.3 = collinearity 무. ★11 가설 中 유일 robust 발견.
+- **DEF-1 = TENTATIVE → WEAK_RANK_ARTIFACT (격하)**: Spearman rank-IC −0.076(p0.0055) 유의가 ★Fama-MacBeth 선형 교호계수서 비유의(−0.0095 t−1.66 / +곡률 t−0.87). 자문 경고 "FWL 선형직교화+rank 불일치" 실증 = PW-reversal 이 rank척도/꼬리 주도 artifact. net_issuance **단독** PARTIAL_CONFIRMED 는 유지, ep_yield 교호는 미입증.
+- 방법론 codify(차기): interaction primary=FM 계수(rank 병기) + 직교화 z²곡률 의무 + n_eff floor=gradient + right-sign-null 동일엄격 + spec-modulation=SCA/multiverse|이론고정+pristine OOS only.
+
+### ★독립검증 후 재정정 (2026-06-04, 사용자 "자문 적용 타당성 별도 검증" 지적)
+- **DEF-2 = CONFIRM → TENTATIVE 재격하**: 독립 방법(2×2 double-sort DiD t1.65 p0.11 / hand-built FM raw곱 t1.82 p0.083) 전부 marginal. ★내 구현 `cs_z(z1*z2)` 교호항 sector-neutral 재-z 가 유의도 인플레(표준 FM raw 곱은 비유의). 방향은 4방법 전부 +(yield-trap 분리 방향성 신뢰), 유의도 spec 의존. nonlinear 가능성 잔존(rank 강·linear marginal).
+- **DEF-1 = WEAK 확정**: 표준 FM/double-sort 전부 비유의(t−1.5~−1.9).
+- ★**11 가설 中 robust CONFIRM = 0개**. DEF-2 최강이나 marginal. (단일 신호 value pbr/ev #7 + net_issuance PARTIAL 은 재-z 무관, 유지.) ⚠️**SUPERSEDED → §over-kill 정정: DEF-2 = CONFIRM 복원 (rank-FM 척도 통일), robust CONFIRM 1개**.
+- codify: interaction 교호항 재-z 금지(raw 곱) + primary=double-sort DiD+hand-built FM + 자문 차용 후 구현 독립검증(assumption-light) 의무.
+
+---
+
+## ★11 시나리오 검증 과정 전수 기록 (2026-06-04, 사용자 "시나리오별 과정 남겨")
+
+> 본 미국 사이클에서 11 다변량 조건부 가설(CYC-1~6 + DEF-1~5)이 거친 검증 단계 + 단계별 수치·verdict 변화 전수. ★결론보다 "과정"이 핵심 — 매 층이 verdict 를 깎음.
+
+### 적용한 검증 층 (순서 = 강도 누적)
+1. **pre-reg** (데이터 접촉 전 one-sided 부호·neff_floor·incremental_req 박제)
+2. **unconditional interaction** (rank-IC + FWL incremental) — ★결함: 교호항 `cs_z(z1*z2)` 재-z (후술)
+3. **단일 FDR family** BY q0.10 m=11 보수적
+4. **split-sample OOS** (≤2021 vs 2022~, 유의분만)
+5. **외부 자문 2채널** (/gemini-web + /claude-web 수렴 → curvature confound 결함 지목)
+6. **curvature 통제** (직교화 basis 에 z² 추가)
+7. **★독립 double-sort DiD + hand-built FM(raw 곱)** = 구현 무관 재검 (사용자 "자문 이론≠적용 타당성")
+8. **regime 조건부** (연속 slope size-valid + split 진단)
+9. **★재-z 결함 발견** (양방향: DEF-2/CYC-4 인플레 ↔ CYC-1 억압)
+
+### 시나리오별 과정 (단계별 수치 → 최종)
+| id | spec | unconditional rank-IC | FDR | split-OOS | curvature | 독립 double-sort/FM(raw) | regime | ★최종 disposition |
+|---|---|---|---|---|---|---|---|---|
+| **DEF-2** | div_yield(고)×op_prof(고) | +0.065 p0.0005 ✅ | ★생존 r1 | 양분 fixed-b sig | 생존 | ★**DS t1.65 p0.11 / FM t1.82 p0.083 marginal** (재-z 인플레 들통) | ★dollar slope t2.22 p0.044(Bonf 후 탈락) | **TENTATIVE** = dollar-conditional suggestive. ★pristine-OOS 후보 |
+| **DEF-1** | net_iss×ep_yield | −0.076 p0.0055 ✅ | ★생존 r2 | 양분 음 robust | rank만 생존 | ★**FM t−1.56 p0.148 비유의** | dollar t−2.48 | **WEAK** (rank-artifact, FM 비유의). net_iss 단독 PARTIAL 은 별개 유지 |
+| **CYC-1** | ev_ebitda(저)×gross_prof(고) | +0.019 **p0.68 null** | 미생존 | — | — | ★**DS t1.63 p0.13 / FM t1.75 p0.11 정방향**(재-z 가 억압했던 것!) | rate10y t3.44 p0.014 | ★**THEORY-PINNED 후보**(Novy-Marx+method 안정 marginal). pristine-OOS 최우선 |
+| **CYC-3** | op_prof(고)×asset_gr(저) | −0.039 p0.013 ✅ wrong-sign | 부호탈락 | 양분 −0.04 안정 | — | ★DS t−0.98 p0.34 null / FM t−2.39 p0.028 = **불일치 UNSTABLE** | vix t−3.84 p0.0009 | **REJECT**(wrong-sign+method 불안정). flip 우선순위 최하 |
+| **CYC-4** | ep_yield×residual_mom | −0.048 p0.038 ✅ wrong-sign | 부호탈락 | in약 OOS주도 | — | ★DS t−4.03 p0.0003 / FM t−0.33 p0.77 = **불일치(nonlinear/꼬리)** | dollar t−3.16 | **REJECT/UNSTABLE** |
+| **CYC-5** | ep_yield×idio_vol(저) | −0.026 p0.17 | 미생존 | — | — | ★DS −0.04 / FM +0.009 = **부호 flip** | vix t−4.98 p0.0018 | **NULL**(부호 불안정) |
+| **DEF-3** | earnings_cv(저)×vol_60(저) | raw+0.048 p0.006 / incr+0.029 p0.11 | 미생존 | — | — | — | — | **NOT_INCREMENTAL**(raw 유의=stability 존재하나 incr 소멸=main 각각 포착) |
+| **CYC-6** | [capex×ep]~Δbaa Tier2 | slope t−0.51 p0.65 | 미생존 | — | — | — | — | **NULL**(capex EDGAR fetch 성공) |
+| **DEF-4** | ep_yield~Δreal_rate Tier2 | slope t0.27 p0.79 | 미생존 | — | — | — | — | **NULL**(anti-value의 rate-state 의존 무) |
+| **DEF-5** | ep_yield×gross_prof | incr−0.014 p0.59 | 미생존 | — | — | — | — | **NULL**(anti-value quality-decomp 무) |
+| **CYC-2** | PER-cheap divergence | raw−0.035 p0.15 / incr p0.88 | 미생존 | — | — | — | — | **NULL**(incr 소멸) |
+| mega | (n≈8) | — cross-section 불가 | — | — | — | — | — | exposure overlay 확정 |
+
+### ★과정에서 얻은 메타 교훈
+> ⚠️ **1~5 = over-kill 정정 전 기록 (SUPERSEDED)**. ★최종 = 아래 §over-kill 정정 (rank-FM 척도 통일 → DEF-2 CONFIRM 복원). 1~5 의 "재-z artifact 격하 / robust 0" 은 discovery·kill 척도 불일치(forking-paths) 산물.
+1. **재-z 결함 = 양방향 오염**: 교호항 `cs_z(z1*z2)` 재-z 가 DEF-2/CYC-4 유의도 인플레 ↔ CYC-1 억압. → 원래 `_b2_*_interactions_results.json`(재-z 기반) = 오염, 깨끗한 double-sort/FM(raw)·regime 재검이 대체. ★codify: 교호항 raw 곱 사용, primary=double-sort+hand-FM.
+2. **방법 불일치 = robust 아님**: double-sort↔linear-FM 갈리면(CYC-3/4/5) nonlinear/꼬리/artifact. 한 방법 유의로 주장 금지.
+3. **자문 이론 ≠ 적용 타당성**: 자문(curvature/FM) 차용을 코드화한 게 또 구현 artifact(재-z FM t3.23 vs raw FM t1.82) → 구현 독립검증(assumption-light) 의무.
+4. **regime = forking-paths**: 4 regime 검색 post-hoc, Bonferroni 후 다 탈락. size-valid slope 도 사전등록 X면 후보일 뿐.
+5. **최종**: unconditional robust 교호 = 0. pristine-OOS 후보 2(CYC-1 theory-pinned / DEF-2 dollar-cond). 단일 value(pbr/ev)·net_issuance(PARTIAL) 유지. ⏳독립 G-C audit 진행 중(결과 반영 예정).
+
+### ★over-kill 정정 (2채널 자문 수렴 + rank-FM 결정 중재, 2026-06-04)
+> 사용자 "다 죽었다 자문하고 잘못한 거 없나 다시 봐". Gemini Pro + Claude Opus 4.8 병렬 + ★Rank-based Fama-MacBeth(discovery·kill 척도 통일). json `_b2_def_rankfm_results.json`/`_b2_cyc_rankfm_results.json`. SSOT = REWORK-prereg §over-kill 최종 정정.
+
+| 가설 | rank-FM full | fixed-b | wild p | n_eff | OOS | ★정정 verdict |
+|---|---|---|---|---|---|---|
+| **DEF-2** div_yield×op_prof | coef+0.193 t2.68 | **sig** | **0.0105** | 57.9 | t3.13(n_eff14.1 UP) | ★**CONFIRM 복원** (이전 TENTATIVE 격하 = over-kill) |
+| **DEF-1** net_iss×ep | coef−0.207 t−2.15 | sig | 0.049 | 50.8 | t−2.39 | **TENTATIVE PW** (WEAK_RANK_ARTIFACT 격하 정정 — 척도 통일서도 wrong-sign 지속 = PW 진짜 신호) |
+| **CYC-1** ev(저)×gross_prof | coef+0.416 t2.28 | **미통과** | 0.046 | 31.3 | t5.1 | **TENTATIVE theory-pinned** (over-kill 아님, full fixed-b 미통과 정직 marginal) |
+| CYC-3/4/5 | wrong-sign 또는 n.s. | 미통과 | — | — | — | REJECT/NULL 유지 (CYC-4 = "stably wrong-signed" 라벨 교정) |
+
+**핵심 오류 (양채널 정합)**: ★발견은 재-z rank-IC 로, 사살은 raw 곱 FM 으로 = **discovery/kill 척도 불일치 = garden-of-forking-paths**. 더 보수적 구성이 매번 이기게 설계 → robust 0 = false-negative. 재-z 는 **균일 inflator 아님**(DEF-2 강화 ↔ CYC-1 억압, 신호마다 반대) = "raw 정답" 전제 자기-반증. audit: 재-z 는 FM-t 만 인플레(SE~1.70× 축소), **rank-IC 는 monotone-rescale-invariant 라 무관** → DEF-2 격하 근거 붕괴.
+
+**★최종 (over-kill 정정 후)**: robust **CONFIRM = 1 (DEF-2)** + TENTATIVE 2 (CYC-1 theory-pinned / DEF-1 PW) + 단일 value(pbr/ev #7)·net_issuance(PARTIAL) 유지. ★"robust 0" = 점추정 prior 박제 금지 위반(underpowered≠null). codify⑥ 정정 = rank-FM primary / median double-sort 보조. ⏳G-C 재audit(BW7).
+
+---
+
+## ★Phase W — 약신호 보강 (value 외 독립 alpha 탐색, 2026-06-04)
+
+> 사용자 "약한 부분 추가탐구 + 사망판정 다른각도 재검". /gemini-web+/claude-web 수렴(quality 1순위/기존데이터>>신규/exploratory family 분리/등가중 stacking) → ★실측이 자문 prior 반증(advisory-protocol: 본인 시뮬 verification). exploratory FDR family `us_equity_exploratory_v1`. json `_b2_quality_single_results.json`/`_b2_w2_accruals_results.json`/`_b2_w4_lowvol_results.json`. SSOT=REWORK §Phase W.
+
+| 후보 축 | cyclical | defensive | 판정 |
+|---|---|---|---|
+| **W1 quality**(gross/op_prof) 단일 | IC−0.054 t−1.71 음·비유의 | IC−0.012 t−0.59 null | ★**reject** (alpha 부재 양 sleeve) |
+| **W1 value+quality stacking** | IR 4.16→1.475 희석 ❌ | IR 3.514→4.128 +17%(IC 0.082→0.070 하락) | cyclical 무익 / defensive 약 분산효과(alpha 신규 아님) |
+| **W1 value↔quality 직교성** | cross-corr −0.023 ≈0 | net_iss↔quality −0.042 ≈0 | ★자문 "QMJ 강음상관" 미실현 |
+| **W2 accruals**(Sloan) 3~24M | — | 전부 fb 미통과 wild p>0.25, 24M 부호flip | ★**null** (완전성 마감) |
+| **W4 low-vol/BAB** 3~24M | IC 음(역방향) 비유의 12/24M UP | — | ★**null** (within-demean이 BAB 죽임 + cyclical risk-on) |
+
+**★Phase W 종합**: value 외 독립 alpha 축(quality/accruals/low-vol) = 미국 cyclical/defensive 전부 robust 부재. ★**value 1축 편중 = 측정 누락 아닌 데이터 본질** 실측 확인. ⛔ quality/low-vol/accruals 점추정 prior 박제 금지(전부 null). exploratory family 생존 0. **보류**: SUE/PEAD(고회전 별 sleeve) / mega forward(무료 PIT 불가). mega 표현 = "alpha=0" → "N=11 검출불능+무료 PIT불가 탐색종료"(REWORK 반영, sleeve yaml 잔여).
+
+---
+
+## ★매매 파이프라인 연결 (3-subagent 검토, 2026-06-04)
+
+> 사용자 "이대로 매매 불가, 그냥 못 넘어간다 — 우리 코드/reference repo/중복개발 subagent 검토". 3 subagent 종합. SSOT=architecture.md + stock/value_trigger.py + stock/data/{french_factors,sector_multiples}.py + consult-brief-r2-execution-layer-20260603.md.
+
+- **★매매 로직 이미 구현 (중복개발 무)**: reference=`jsh8603-web/coin`(BTC 자동매매 v1.29.0) 일반화(architecture.md:90 "새로 만들지 말 것") + `_refs/` 22 repo. 타이밍=점수제+5단계 레짐적응형(buy_score≥70 / sell 레짐차등 bull85↑·bear40↓ / 트레일링 -15%~-1.5% / 이중손절 / Kelly). 주식=`value_trigger.py` 2단게이트(가격급락 AND 내재가치갭→Claude value-trap veto). 전 체인 signal→FHCard→value_trigger→sizing→risk_gate(우회불가)→kis_client.order(NAS/NYS).
+- **★value 연구의 진짜 역할**: `french_factors.py`(FF5 PIT vintage) + `sector_multiples.py`(★French49 49산업 peer 상대저평가)=value_trigger "내재가치갭" valuation 타이밍 입력. ★우리 value(PBR/EV cross-sectional IC robust 입증)=value_trigger 게이트 sector-relative valuation 신호 ★정당화/캘리브레이션. = "value 1축이라 매매불가"는 ★구조 오해(타이밍은 French49 sector-relative+레짐적응형 이미 설계, factor 다양성=sizing tilt 별 레이어). ★indicator-ledger `sector_relative_multiple` candidate(line 127)와 직결.
+- **★"매매 불가" 실체 = 실행 wire 3갭**: ①cross-sectional selection 레이어 부재(universe 횡단면 spread→종목픽 변환부, own-history 시계열분위만) ②`sector_multiples.py` French49 라이브 fetch 이연(N-T1-SECTORMULT) ③`GatedOrderRouter`→`KisClient` 조립부 미배선(verdict만 반환). = factor 부족 아닌 wire 미완.
+- **다음(사용자 1-3 전부 지시)**: wire 3갭 메우기. go-live 경계(README-unattended-safety D1~D5 사람게이트). ★레저 박제 우선 완료 후 진입.

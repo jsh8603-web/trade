@@ -1,0 +1,74 @@
+{
+  "china_mchi_yoy": {
+    "rho_full": 0.4582,
+    "rho_nonoverlap_s3": 0.5034,
+    "nonoverlap_sign_hold": true,
+    "placebo_p": 0.002,
+    "loy": {
+      "2019": 0.487,
+      "2020": 0.369,
+      "2021": 0.449,
+      "2022": 0.522,
+      "2023": 0.485,
+      "2024": 0.506,
+      "2025": 0.337,
+      "2026": 0.441
+    },
+    "loy_sign_consistent": true,
+    "prior": "양"
+  },
+  "china_fxi_yoy": {
+    "rho_full": 0.3468,
+    "rho_nonoverlap_s3": 0.4483,
+    "nonoverlap_sign_hold": true,
+    "placebo_p": 0.002,
+    "loy": {
+      "2019": 0.386,
+      "2020": 0.346,
+      "2021": 0.31,
+      "2022": 0.375,
+      "2023": 0.381,
+      "2024": 0.414,
+      "2025": 0.191,
+      "2026": 0.321
+    },
+    "loy_sign_consistent": true,
+    "prior": "양"
+  },
+  "spread_demand_minus_cost": {
+    "rho_full": 0.4496,
+    "rho_nonoverlap_s3": 0.5517,
+    "nonoverlap_sign_hold": true,
+    "placebo_p": 0.002,
+    "loy": {
+      "2019": 0.486,
+      "2020": 0.332,
+      "2021": 0.454,
+      "2022": 0.488,
+      "2023": 0.476,
+      "2024": 0.544,
+      "2025": 0.32,
+      "2026": 0.431
+    },
+    "loy_sign_consistent": true,
+    "prior": "양"
+  },
+  "naphtha_yoy": {
+    "rho_full": -0.3747,
+    "rho_nonoverlap_s3": -0.4498,
+    "nonoverlap_sign_hold": true,
+    "placebo_p": 0.002,
+    "loy": {
+      "2019": -0.458,
+      "2020": -0.15,
+      "2021": -0.418,
+      "2022": -0.385,
+      "2023": -0.434,
+      "2024": -0.43,
+      "2025": -0.303,
+      "2026": -0.382
+    },
+    "loy_sign_consistent": true,
+    "prior": "음"
+  }
+}

@@ -1,0 +1,382 @@
+{
+  "meta": {
+    "method": "auto 업종 eq-weight(17종) forward return vs 거시 driver time-series Spearman. v2 rotation 방법론 미러.",
+    "unit": "★종목 selection 아닌 업종 OW/UW timing (rotation)",
+    "theory_source": "/tmp/auto-rotation-result.txt (Gemini, P-Q-C 프레임워크 + Stovall early-cycle)",
+    "priors": {
+      "global_auto_d3": "양",
+      "global_auto_yoy": "양",
+      "usdkrw_d3": "양",
+      "cli_chg6": "양",
+      "dgs2_d3": "음",
+      "jpykrw_d3": "음",
+      "iron_ore_d3": "음"
+    },
+    "horizons_months": {
+      "y_20d": 1,
+      "y_60d": 3
+    },
+    "oos_split": "2023-01-01",
+    "v2_baseline": "global_auto_d3 = v2 STRONG (y_20d rho=0.222 wc_p=0.0335 / y_60d 0.261 wc_p=0.0245). 본 측정 = 재검증 + 고유 driver 심화."
+  },
+  "signals": {
+    "global_auto_d3": {
+      "prior_부호": "양",
+      "horizons": {
+        "y_20d": {
+          "label": "auto_rot_global_auto_d3__y_20d",
+          "n": 88,
+          "n_eff": 83.5,
+          "spearman_rho": 0.2221,
+          "t_power_mde": 2.03,
+          "mde_rho": 0.307,
+          "wild_cluster_p": 0.0335,
+          "ci95_block_boot": [
+            0.00095,
+            0.03541
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 40,
+            "rho_is": 0.1551,
+            "rho_oos": 0.2499,
+            "eligible": true,
+            "verdict": "OOS 부호+mag 유지"
+          },
+          "status": "powered"
+        },
+        "y_60d": {
+          "label": "auto_rot_global_auto_d3__y_60d",
+          "n": 86,
+          "n_eff": 31.9,
+          "spearman_rho": 0.2613,
+          "t_power_mde": 1.48,
+          "mde_rho": 0.496,
+          "wild_cluster_p": 0.0245,
+          "ci95_block_boot": [
+            0.00047,
+            0.04736
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 38,
+            "rho_is": 0.1769,
+            "rho_oos": 0.2997,
+            "eligible": true,
+            "verdict": "OOS 부호+mag 유지"
+          },
+          "status": "powered"
+        }
+      }
+    },
+    "global_auto_yoy": {
+      "prior_부호": "양",
+      "horizons": {
+        "y_20d": {
+          "label": "auto_rot_global_auto_yoy__y_20d",
+          "n": 88,
+          "n_eff": 88.0,
+          "spearman_rho": 0.0774,
+          "t_power_mde": 0.73,
+          "mde_rho": 0.299,
+          "wild_cluster_p": 0.5167,
+          "ci95_block_boot": [
+            -0.0124,
+            0.0251
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 40,
+            "rho_is": 0.0329,
+            "rho_oos": 0.06,
+            "eligible": true,
+            "verdict": "OOS 부호+mag 유지"
+          },
+          "status": "powered"
+        },
+        "y_60d": {
+          "label": "auto_rot_global_auto_yoy__y_60d",
+          "n": 86,
+          "n_eff": 32.9,
+          "spearman_rho": 0.0914,
+          "t_power_mde": 0.52,
+          "mde_rho": 0.489,
+          "wild_cluster_p": 0.4248,
+          "ci95_block_boot": [
+            -0.01593,
+            0.03377
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 38,
+            "rho_is": 0.094,
+            "rho_oos": -0.0682,
+            "eligible": true,
+            "verdict": "OOS flip"
+          },
+          "status": "powered"
+        }
+      }
+    },
+    "usdkrw_d3": {
+      "prior_부호": "양",
+      "horizons": {
+        "y_20d": {
+          "label": "auto_rot_usdkrw_d3__y_20d",
+          "n": 88,
+          "n_eff": 47.6,
+          "spearman_rho": 0.014,
+          "t_power_mde": 0.1,
+          "mde_rho": 0.406,
+          "wild_cluster_p": 0.8911,
+          "ci95_block_boot": [
+            -0.01787,
+            0.01871
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 40,
+            "rho_is": -0.2308,
+            "rho_oos": 0.3319,
+            "eligible": true,
+            "verdict": "OOS flip"
+          },
+          "status": "powered"
+        },
+        "y_60d": {
+          "label": "auto_rot_usdkrw_d3__y_60d",
+          "n": 86,
+          "n_eff": 34.4,
+          "spearman_rho": -0.1472,
+          "t_power_mde": 0.86,
+          "mde_rho": 0.478,
+          "wild_cluster_p": 0.2009,
+          "ci95_block_boot": [
+            -0.0366,
+            0.01203
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 38,
+            "rho_is": -0.3601,
+            "rho_oos": 0.1435,
+            "eligible": true,
+            "verdict": "OOS flip"
+          },
+          "status": "powered"
+        }
+      }
+    },
+    "cli_chg6": {
+      "prior_부호": "양",
+      "horizons": {
+        "y_20d": {
+          "label": "auto_rot_cli_chg6__y_20d",
+          "n": 88,
+          "n_eff": 88.0,
+          "spearman_rho": 0.2433,
+          "t_power_mde": 2.28,
+          "mde_rho": 0.299,
+          "wild_cluster_p": 0.0315,
+          "ci95_block_boot": [
+            0.00266,
+            0.0393
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 40,
+            "rho_is": 0.2569,
+            "rho_oos": 0.1614,
+            "eligible": true,
+            "verdict": "OOS 부호+mag 유지"
+          },
+          "status": "powered"
+        },
+        "y_60d": {
+          "label": "auto_rot_cli_chg6__y_60d",
+          "n": 86,
+          "n_eff": 25.9,
+          "spearman_rho": 0.2982,
+          "t_power_mde": 1.52,
+          "mde_rho": 0.55,
+          "wild_cluster_p": 0.0065,
+          "ci95_block_boot": [
+            0.00346,
+            0.04954
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 38,
+            "rho_is": 0.3592,
+            "rho_oos": -0.0835,
+            "eligible": true,
+            "verdict": "OOS flip"
+          },
+          "status": "powered"
+        }
+      }
+    },
+    "dgs2_d3": {
+      "prior_부호": "음",
+      "horizons": {
+        "y_20d": {
+          "label": "auto_rot_dgs2_d3__y_20d",
+          "n": 88,
+          "n_eff": 88.0,
+          "spearman_rho": -0.0421,
+          "t_power_mde": 0.39,
+          "mde_rho": 0.299,
+          "wild_cluster_p": 0.6982,
+          "ci95_block_boot": [
+            -0.01878,
+            0.01065
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 40,
+            "rho_is": -0.0388,
+            "rho_oos": -0.0083,
+            "eligible": true,
+            "verdict": "OOS 부호유지(약화)"
+          },
+          "status": "powered"
+        },
+        "y_60d": {
+          "label": "auto_rot_dgs2_d3__y_60d",
+          "n": 86,
+          "n_eff": 51.8,
+          "spearman_rho": -0.1259,
+          "t_power_mde": 0.91,
+          "mde_rho": 0.389,
+          "wild_cluster_p": 0.2059,
+          "ci95_block_boot": [
+            -0.03041,
+            0.00804
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 38,
+            "rho_is": -0.1302,
+            "rho_oos": -0.0613,
+            "eligible": true,
+            "verdict": "OOS 부호유지(약화)"
+          },
+          "status": "powered"
+        }
+      }
+    },
+    "jpykrw_d3": {
+      "prior_부호": "음",
+      "horizons": {
+        "y_20d": {
+          "label": "auto_rot_jpykrw_d3__y_20d",
+          "n": 88,
+          "n_eff": 83.3,
+          "spearman_rho": -0.1118,
+          "t_power_mde": 1.02,
+          "mde_rho": 0.307,
+          "wild_cluster_p": 0.2659,
+          "ci95_block_boot": [
+            -0.02591,
+            0.00735
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 40,
+            "rho_is": -0.2515,
+            "rho_oos": 0.0508,
+            "eligible": true,
+            "verdict": "OOS flip"
+          },
+          "status": "powered"
+        },
+        "y_60d": {
+          "label": "auto_rot_jpykrw_d3__y_60d",
+          "n": 86,
+          "n_eff": 51.1,
+          "spearman_rho": -0.118,
+          "t_power_mde": 0.84,
+          "mde_rho": 0.392,
+          "wild_cluster_p": 0.2754,
+          "ci95_block_boot": [
+            -0.03175,
+            0.01107
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 38,
+            "rho_is": -0.2331,
+            "rho_oos": -0.0021,
+            "eligible": true,
+            "verdict": "OOS 부호유지(약화)"
+          },
+          "status": "powered"
+        }
+      }
+    },
+    "iron_ore_d3": {
+      "prior_부호": "음",
+      "horizons": {
+        "y_20d": {
+          "label": "auto_rot_iron_ore_d3__y_20d",
+          "n": 88,
+          "n_eff": 88.0,
+          "spearman_rho": 0.1853,
+          "t_power_mde": 1.74,
+          "mde_rho": 0.299,
+          "wild_cluster_p": 0.054,
+          "ci95_block_boot": [
+            0.00196,
+            0.02932
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 40,
+            "rho_is": 0.1218,
+            "rho_oos": 0.3608,
+            "eligible": true,
+            "verdict": "OOS 부호+mag 유지"
+          },
+          "status": "powered"
+        },
+        "y_60d": {
+          "label": "auto_rot_iron_ore_d3__y_60d",
+          "n": 86,
+          "n_eff": 43.8,
+          "spearman_rho": 0.3764,
+          "t_power_mde": 2.49,
+          "mde_rho": 0.424,
+          "wild_cluster_p": 0.0015,
+          "ci95_block_boot": [
+            0.0135,
+            0.05056
+          ],
+          "walk_forward_oos": {
+            "is_n": 48,
+            "oos_n": 38,
+            "rho_is": 0.2858,
+            "rho_oos": 0.5492,
+            "eligible": true,
+            "verdict": "OOS 부호+mag 유지"
+          },
+          "status": "powered"
+        }
+      }
+    }
+  },
+  "fdr_family": {
+    "m": 14,
+    "by_factor": 3.252,
+    "survivors_BY": [
+      "iron_ore_d3__y_60d"
+    ],
+    "raw_p_min": 0.0015,
+    "raw_p_min_key": "iron_ore_d3__y_60d"
+  },
+  "placebo_global_auto_d3_y20d": {
+    "real_rho": 0.2221,
+    "placebo_exceed_frac": 0.03,
+    "n_perm": 500,
+    "verdict": "placebo 통과 (real > 95% shuffle)"
+  }
+}

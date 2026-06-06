@@ -150,3 +150,61 @@
 | H8 PER value premium | (skip, DART 시간 부족) | ★INSUFFICIENT 처리 |
 
 > theory-notes 작성: 2026-05-30, 자체 정독 + 학술 reference 인용. round-2 (자문 보강) skip — 본 라운드는 이론 + 실측 위주.
+
+---
+
+## §6. S2 conditional IC surface — 부호 사전확약 (★측정 前 동결, 2026-06-05)
+
+> dispatch 원의도 본체 = `IC(지표, regime, horizon)`. 측정(measure_conditional.py) 진입 前 부호 one-sided 사전확약
+> (data-snooping/HARKing 방지). 학습 가설 = FDR family 카운트. ★frame v3 §M.12 정정(24M degenerate / small-n
+> haircut / peak-EPS = earnings-cycle) 사전 반영.
+
+### 6.1 신호별 부호 사전확약 (가설 동결)
+
+| 신호 | 학술 근거 | 사전확약 부호 | regime conditional 가설 |
+|---|---|---|---|
+| **per_z** (저PER value) | Fama-French value premium / asset_stable primary | **음** (저PER→고forward) | ★sub-sector 의존 — 화장품(中cyclical) value 작동 / 음식료(defensive·peak-EPS 약) 무신호 가설 |
+| **pbr_z** (저PBR value) | Asness QMJ / book-value 안정 | **음** (저PBR→고forward) | flow_neutral 국면 value 강 가설 |
+| **mom_6 / mom_12_1** | Jegadeesh-Titman momentum | **양 or 무** | ★asset_stable 방어주 = 모멘텀 약 prior (battery growth 양 대조) |
+| **rev_1m** (단기 reversal) | Lehmann 1990 short-term reversal | **음** (1M 급등→되돌림) | ★KRW_weak 국면 reversal 증폭 가설 (원화약세 = 변동성↑) |
+| **vol_60** (저변동성) | Ang 2006 low-vol anomaly | **음** (저변동→고forward) | flow_strong_buy 국면 (외국인 대형주 선호) |
+
+### 6.2 ★A-4 sub-sector 부호 이질 사전확약 (소비재 핵심 = financial cancel 교훈)
+
+소비재 sub-cluster = **음식료(food, defensive·내수) vs 화장품(cosmetics, 中의존 cyclical·수출) vs 유통(retail, 내수)
+vs 의류(apparel) vs 음료(beverage)**. frame A-4: archetype 공통 레벨 학습 효율 ↔ sub-sector별 신호 적합도 차이를
+**데이터로 판정**. ★financial(XLF 부호반대 sub-sleeve cancel) 교훈 = sub-cluster eq-weight 시 factor β cancel 위험.
+
+- **사전확약**: 화장품 = 中소비/면세/따이공 cyclical → valuation(per) 작동 + 환율 노출 강 (수출). 음식료 = defensive
+  내수 → valuation 약(peak-EPS earnings cycle, §M.12) + momentum 약. **둘 부호 갈리면 sub-sector 분리 트리거**(A-4).
+- **theory 근거**: 화장품 4사(아모레/LG생건/한국콜마/코스맥스) = 중국 매출 30-50% (사드·코로나·따이공 cycle). 음식료 =
+  내수 sticky price(Nakamura-Steinsson 4-7M lag) + K-food 수출형(삼양/오리온) 분리. **같은 "소비재" 라벨이나 driver 이질.**
+
+### 6.3 측정 결과 요약 (validation-conditional-v3.json, 2026-06-05 측정완료)
+
+★측정 = `measure_conditional.py` (G-F 7항 헤더 선언) → `validation-conditional-v3.json`. raw 재현 가능.
+
+- **★A-4 sub-sector 부호 CANCEL = 전 6 신호 검출** (★분리 트리거 발동): per_z = **화장품 IC=-0.258**(n=19,
+  wc_p=0.047, t_obs=-2.19) vs **음식료 IC=-0.019**(wc_p=0.76 무신호) vs 유통 +0.035 → **부호·강도 정반대**.
+  = 화장품 sub-sector 에서만 저PER value premium 작동. 음식료·유통은 무신호. **sub-cluster eq-weight 시 cancel**
+  (전체 per_z uncond IC -0.077 = 화장품 강신호가 음식료 무신호에 희석). ★financial XLF cancel 교훈 실증.
+  - ★단 화장품 n_codes=4 small-n: leave-episode(최강 5개월 제외) IC -0.071(wc_p=0.58 비유의) = single-episode
+    의존 노출 / within-period 음비율 71%(2021/2024 양) 부호 불일관 / 60d OOS FLIP = **TENTATIVE DIRECTIONAL**
+    (방향 약 prior, magnitude 50-70% haircut 의무 §M.12). but A-4 cancel 발견 자체는 robust(전 신호 부호 갈림).
+- **conditional IC (rev_1m)**: KRW_weak 국면 IC=-0.082(wc_p=0.0625, t_obs=-1.98) vs KRW_neutral +0.078 =
+  ★사전확약(원화약세 reversal 증폭) 부호 일치. family_2 interaction term t=-2.36 **유의**(main t=+1.29 비유의)
+  = "국면 따라 부호 갈림" 입증(rejected 박제 前 family_2 충족, G-B). walk-forward OOS KRW_weak 부호유지(✓).
+- **momentum 무신호**: mom_6/mom_12_1 uncond IC ≈0 (wc_p>0.7) = ★asset_stable 방어주 모멘텀 약 prior 정합
+  (battery growth momentum CONFIRMED 대조). family_2 interaction 비유의.
+- **FDR family BY survivors=0** (m=105 단일 family, raw_p_min=0.0005 vol_60 y_60d Slowdown) = small-n + 36셀
+  multiplicity artifact. ★G-G v2: powered cell 中 |t_obs_eff|>2.802 (well-powered) = **0개** → 전 신호 underpowered
+  = "신호 본질 약" 단정 불가(미생존=정보없음). but OOS 부호유지 신호(rev_1m KRW_weak / cosmetics per_z) = eligibility 후보.
+- **common factor**: dollar β=-1.19(t=-2.57, n=35) 유의 = 원화약세→소비재 약세(수입원가↑/내수위축). credit β -0.032
+  (t=-1.28) 비유의. = battery(credit/oil)·financial(무)·consumer(dollar) 산업별 risk factor 상이.
+
+### 6.4 sub-cluster 분류 sanity 한계 (정직 기록, §M.11 화이트리스트 결함)
+
+- food 9 中 코웨이(021240=렌탈/생활가전)·실리콘투(257720=K-beauty 유통)·미스토홀딩스(081660=생활용품 도매) =
+  엄밀히 food 아님(분류 노이즈). retail 10 中 큐렉소(060280=의료로봇) = ★소비재 아님 오분류 / 신세계인터(031430) =
+  apparel/cosmetics 성격. ★단 **화장품 4사 = 순수**(아모레/LG생건/한국콜마/코스맥스) → A-4 핵심 발견(화장품 per_z)
+  영향 없음. retail/food 노이즈 = 그쪽 IC 약신호라 결론 불변. PIT 화이트리스트 정밀화 = collector_plan(통합단계).

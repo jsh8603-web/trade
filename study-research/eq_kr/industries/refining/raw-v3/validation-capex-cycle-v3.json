@@ -1,0 +1,92 @@
+{
+  "meta": {
+    "purpose": "dispatch ★★최우선 capex 가설 — 정유 초자산집약(capex_ratio 0.33~0.64) capex cycle",
+    "panel_core": [
+      "096770",
+      "010950",
+      "002960",
+      "014530"
+    ],
+    "strict2": [
+      "096770",
+      "010950"
+    ],
+    "cross_sectional_verdict": "★INSUFFICIENT — 코어 strict2 = 2종(SK이노/S-Oil), 횡단면 IC(min 8종) 불가. capex cross-sectional 측정 불능(정직 박제, deferral 아님).",
+    "approach": "(A) cross-sectional=INSUFFICIENT 박제 / (B) 산업 시계열 capex cycle 측정 (Cooper-Gulen-Schill 2008 aggregate 버전)"
+  },
+  "capex_ratio_by_firm": {
+    "096770": {
+      "mean": 0.424,
+      "min": 0.331,
+      "max": 0.537,
+      "n_months": 85
+    },
+    "010950": {
+      "mean": 0.553,
+      "min": 0.454,
+      "max": 0.642,
+      "n_months": 85
+    },
+    "002960": {
+      "mean": 0.147,
+      "min": 0.115,
+      "max": 0.196,
+      "n_months": 85
+    },
+    "014530": {
+      "mean": 0.324,
+      "min": 0.239,
+      "max": 0.421,
+      "n_months": 85
+    }
+  },
+  "industry_capex_cycle": {
+    "level_mean": 0.362,
+    "level_range": [
+      0.314,
+      0.431
+    ],
+    "yoy_mean": 0.0393,
+    "note": "정유 코어 패널 평균 capex_ratio(유형자산/총자산). level 0.4~0.5 = 자동차(0.2~0.3)보다 초자산집약."
+  },
+  "forward": {
+    "capex_ratio_level": {
+      "label": "capex_ratio_level__fwd3",
+      "n": 82,
+      "n_eff": 25.5,
+      "spearman_rho": 0.4744,
+      "p_param": 0.0,
+      "wild_cluster_p": 0.0005,
+      "t_naive": 4.82,
+      "t_eff_corrected": 2.61,
+      "status": "powered"
+    },
+    "capex_ratio_yoy": {
+      "label": "capex_ratio_yoy__fwd3",
+      "n": 70,
+      "n_eff": 20.9,
+      "spearman_rho": 0.4789,
+      "p_param": 0.0,
+      "wild_cluster_p": 0.001,
+      "t_naive": 4.5,
+      "t_eff_corrected": 2.37,
+      "status": "powered"
+    }
+  },
+  "walk_forward_oos": {
+    "capex_ratio_level": {
+      "is_rho": 0.4905,
+      "is_n": 44,
+      "oos_rho": 0.4563,
+      "oos_n": 38,
+      "sign_hold": true
+    },
+    "capex_ratio_yoy": {
+      "is_rho": 0.5667,
+      "is_n": 32,
+      "oos_rho": 0.4258,
+      "oos_n": 38,
+      "sign_hold": true
+    }
+  }
+}

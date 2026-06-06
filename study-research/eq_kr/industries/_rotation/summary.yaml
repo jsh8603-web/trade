@@ -1,0 +1,286 @@
+# summary.yaml — 12산업 ROTATION TIMING (산업 자체 비중 timing, plan §10 S5.5)
+# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge 어휘, BY 보정, OOS/non-overlap).
+# ★임무 = "어느 산업을 현재 국면에 살지" = rotation (종목selection capsule 12개와 별 차원).
+# raw 재현: v1=measure_rotation.py+robust+valband / ★v2(자문 spec)=measure_rotation_v2.py(고유cycle primary)
+#   + collect_industry_cycle.py + measure_selfcheck.py → validation-rotation-v2.json + selfcheck/v1 json
+# ★theory-notes.md = 이론(산업동향 fundamental) 부호 사전확약 (S1, 통계는 이론 검증 도구).
+
+scope: eq_kr_rotation_timing       # 2층 동적 rotation (plan §8 static PCA sleeve 와 결합 = 2층 완성)
+asset_scope: [equity.kr.industry_panel]
+unit: industry_eq_weight_panel     # ★분석 unit = 산업 eq-weight 패널 (종목 cross-section 아님)
+as_of: "2026-05-29"
+measured_at: "2026-06-05"
+panel_window: "2019-01 ~ 2026-05 (88 월, 일간 prices 재사용 → 월간 resample)"
+
+# ════════════════════════════════════════════════════════════════════
+# ★★v2 보강 (자문 2R 확정 spec + 사용자 파이프라인 = 이론→통계검증→판정)
+# 신호 위계: primary=산업 고유 cycle 직접신호 / secondary=momentum(공통인자 residualize 후) / tertiary=valband
+# verdict: STRONG(이론+통계) / TENTATIVE(이론+통계약) / REJECTED(이론반증) / data-mining의심(이론없이 통계만)
+# ════════════════════════════════════════════════════════════════════
+v2_pipeline_verdict:
+  철학: "★어느 업종 살까 = 산업동향(이론·fundamental) 관점. 이론을 통계가 검증. 가격통계 단독=data mining. theory-notes.md 부호 사전확약."
+  # ── PRIMARY: 산업 고유 cycle 직접신호 (이론 부호 사전확약 vs 실측 대조) ──
+  primary_cycle_signals:
+    - {industry: steel, signal: iron_ore_d3, horizon: y_60d, rho: 0.341, prior_sign: "양(철광석 모멘텀=철강 업황 cycle)", match: true, wc_p: 0.001, oos: "IS+0.351→OOS+0.399", verdict: "★STRONG (이론+통계 둘 다, raw_p_min)"}
+    - {industry: battery, signal: lithium_yoy, horizon: y_60d, rho: 0.274, prior_sign: "양(리튬=EV 수요 cycle)", match: true, wc_p: 0.01, oos: "IS+0.228→OOS+0.460(강화)", verdict: "★STRONG"}
+    - {industry: refining, signal: gasoline_crack_d3, horizon: y_60d, rho: 0.241, prior_sign: "양(crack=정유 마진)", match: "★폐기", wc_p: 0.033, oos: "IS+0.182→OOS+0.388", verdict: "★★폐기(가스 오염, refining-analyst 적발) — v2 디렉토리 전체 패널 11종(정유2+가스9). crack 신호 출처=가스/LPG 에너지베타. 정유 strict2(SK이노/S-Oil) 단독=crack 무신호(-0.014 OOS flip). ★진짜 refining=유가 mean-rev(음)+배당 income trap(음, peak-out). rotation-integration.md §0"}
+    - {industry: auto, signal: global_auto_d3, horizon: y_60d, rho: 0.261, prior_sign: "양(글로벌 신차=수출차)", match: true, wc_p: 0.0245, oos: "IS+0.177→OOS+0.300", verdict: "★STRONG"}
+    - {industry: chemical, signal: wti_naphtha_yoy, horizon: y_60d, rho: -0.367, prior_sign: "음(유가=나프타 cost-push 마진압박)", match: true, wc_p: 0.003, oos: "IS약→OOS-0.21(약화)", verdict: "TENTATIVE (이론 명확+부호일치, OOS 약화)"}
+    - {industry: semiconductor, signal: soxx_d3, horizon: y_60d, rho: 0.171, prior_sign: "양(글로벌 반도체 cycle)", match: true, wc_p: 0.1294, oos: "IS+0.158→OOS+0.211", verdict: "TENTATIVE (부호일치, 통계 약. 종목선택 primary)"}
+    - {industry: shipbuilding, signal: baltic_dry_yoy, horizon: y_60d, rho: -0.102, prior_sign: "양(운임=수주 cycle)", match: false, wc_p: 0.3388, oos: "OOS-0.075", verdict: "★REJECTED (이론 반증 — BDRY 운임↑→조선↑ 가설 미성립. ★신조선가가 진짜 driver=미수집, BDRY proxy 부적합)"}
+  # ── SECONDARY: momentum (공통인자 residualize 후 잔존 = data-mining 차단, 자문 Q-a) ──
+  secondary_momentum_residualized:
+    핵심: "★대부분 산업 momentum이 residualize(외국인flow/USDKRW/글로벌cyclical 제거) 후 소멸 = 공통인자 재포장 = data-mining 의심(채택불가)."
+    소멸_data_mining의심:    # raw 강하나 resid 후 절반 이하 = market momentum×beta (자문 A 입증)
+      - {industry: semiconductor, raw: "mom_3 +0.215", resid: "+0.079", verdict: "소멸=공통인자 재포장(채택불가)"}
+      - {industry: auto, raw: "mom_3 +0.238", resid: "+0.136", verdict: "소멸"}
+      - {industry: financial, raw: "mom_3 +0.298", resid: "+0.144", verdict: "소멸"}
+      - {industry: battery, raw: "mom_3 +0.277", resid: "+0.161", verdict: "소멸(cycle 신호 lithium 이 primary)"}
+      - {industry: steel, raw: "mom_3 +0.211", resid: "+0.098", verdict: "소멸(cycle iron_ore 가 primary)"}
+    잔존_idiosyncratic:      # resid 후에도 유지/강화 = 진짜 산업 고유 (이론=방어주 reversal)
+      - {industry: consumer, raw: "mom_6 -0.251", resid: "-0.361(강화)", wc_p: 0.0005, verdict: "★잔존=진짜 idiosyncratic. 이론=내수 방어 reversal. STRONG-resid"}
+      - {industry: telecom, raw: "mom_6 -0.051", resid: "-0.204", verdict: "잔존(방어주 idiosyncratic). 단 자문=carry tilt primary"}
+      - {industry: aitech, raw: "mom_6 -0.027", resid: "-0.211", verdict: "잔존(방어 IT)"}
+      - {industry: chemical, raw: "mom_6 +0.296", resid: "+0.211", verdict: "잔존(추세, cycle wti 와 일관)"}
+  # ── 본인검증 (자문 §4 advisory-protocol) ──
+  selfcheck:
+    cell_collapse_36: "★L2 rotation(industry-month): 89월 25셀 occupied, N≥24 powered=0/25, collapse 100%. Gemini '36셀 과적합'(L2 표본) 입증 / Claude estimand 정합(L3=stock×month 별 차원). → L2 rotation=36셀 hard 부적합, single-axis+partial-pooling 정당."
+    n_eff: "★raw N_eff(participation ratio)=3.02 → residual N_eff=3.51. pairwise corr 0.502→0.445. 자문 Q-b '진짜 독립차원 ~3-4' 입증 = 12산업 개별 rotation=false breadth(N_eff~3-4 bet)."
+  data_gate_한계박제:    # 고유 cycle 직접 무료 부재 (이연 아님 = 가용 부재 명시)
+    telecom: "ARPU/5G 무료 API 부재 → momentum/carry proxy. 자문=dividend-carry tilt primary"
+    bio: "FDA/임상 = 종목 idiosyncratic event, 산업 cycle 시계열 무료 부재 → 이론상 산업 timing 부재(부호 사전확약 없음)"
+    consumer: "소매판매/K-food 수출 무료 월별 KR 직접 부재(관세청 API 미연동) → momentum proxy(resid 잔존=방어 reversal)"
+    financial: "금리커브(regime_series ktb10y/3y) 보유 = cycle 대용. cli_chg(경기)=시장 timing"
+
+# ════════════════════════════════════════════════════════════════════
+# ★핵심 발견 (rotation 본체)
+# ════════════════════════════════════════════════════════════════════
+key_findings:
+  - finding: "한국 12산업 = 공통 macro 인자(외국인flow/USDKRW) 지배 → 진짜 rotation = 산업 고유 신호"
+    evidence:
+      mean_pairwise_corr: 0.502      # 12산업 월수익 평균 상관
+      pc1_var_ratio: 0.553           # PC1(공통인자) 분산 55.3% 지배
+      n_eff_eigen_entropy: 5.31      # /12 산업 (가짜 분산 = plan §1 prior 데이터 입증)
+    implication: >
+      ★cli_chg(경기선행)·usdkrw·foreign_flow 같은 macro 신호는 12산업에서 거의 동일하게 작동 =
+      산업 rotation 이 아니라 **시장 전체 timing**(N_eff≈1 베팅). 진짜 rotation(산업 비중 차등)은
+      산업 고유 신호 = ① 산업 자체 momentum/reversal(mom_3/mom_6) ② cross-industry 상대모멘텀
+      reversal(rel_mom_6) ③ 산업별 cycle 민감도 차이(semi_ppi 에 IT/통신 음·반도체 양). G-G v2
+      N_eff orthogonality 와 정합 — 12산업 macro 신호 합산 ≠ breadth 12.
+  - finding: "★약신호 산업(종목선택 불가)일수록 rotation 이 진짜 활로 — 데이터 입증"
+    evidence:
+      refining: "rel_mom_6 reversal rho=-0.360 (OOS -0.38 강화, non-overlap -0.39, placebo p=0.0015) = 종목선택 0(정유 strict 2종)인데 rotation 부활 ✅"
+      telecom: "semi_ppi_yoy rho=-0.334 (OOS -0.60!) + foreign_flow -0.24 (OOS -0.39) + mom_12_1 +0.28 = service 3사 cross-sectional 불가인데 rotation 부활 ✅"
+      shipbuilding: "rel_mom_3 reversal + foreign_flow (OOS 부호유지) = 약하지만 rotation 살아있음"
+    implication: "자문(gemini+claude) 수렴 = 과점 산업 sector timing overlay 부활 가설 데이터 지지. bio 만 rotation 0(monitor-only)."
+
+# ════════════════════════════════════════════════════════════════════
+# ★산업별 rotation 판정 (G-G v2: eligibility=OOS 부호유지 / conviction=FDR·non-overlap)
+# tier: PASS-strong / PASS-conditional / FAIL(monitor-only). 점추정 박제X = OOS/CI/placebo 동반.
+# ════════════════════════════════════════════════════════════════════
+rotation_by_industry:
+  # ── 산업 고유 rotation 강 (PASS-conditional, small-n) ──
+  - industry: chemical
+    tier: PASS-conditional
+    best_signal: {id: mom_3, type: 산업고유, horizon: y_60d, rho: 0.359,
+                  oos: "IS +0.309 → OOS +0.391 (강화)", non_overlap: 0.450, placebo_p: 0.0005,
+                  wc_p: 0.001, loy_sign_consistent: true, status: underpowered}
+    secondary: {id: mom_6, rho: 0.297, non_overlap: 0.406}
+    direction: "화학 산업 3개월 momentum persistence(+) → forward 60d 강세. 유가/중국PMI cycle 산업이라 추세 지속."
+    verdict: "★rotation tradeable (산업 momentum persistence). non-overlap 강화 = overlap artifact 아님. BY 미생존(small-n) = conservative cap."
+  - industry: refining
+    tier: PASS-conditional
+    best_signal: {id: rel_mom_6, type: 산업고유, horizon: y_60d, rho: -0.360,
+                  oos: "IS -0.377 → OOS -0.384 (유지)", non_overlap: -0.388, placebo_p: 0.0015,
+                  wc_p: 0.0005, loy_sign_consistent: true, status: underpowered}
+    secondary: {id: rel_mom_3, rho: -0.244, non_overlap: -0.275}
+    macro_confirm: {id: cli_chg, rho: 0.407, oos: "IS +0.29 → OOS +0.48", note: "경기선행 → 정유 forward(시장 timing 성분)"}
+    direction: >
+      ★상대모멘텀 reversal: 정유가 12산업 평균 대비 강했으면(rel_mom_6 高) → forward 60d 약세(부호 음).
+      = 자문 '유가 mean-reversion' 정합(정유 outperform = 유가 강세 끝물 → 되돌림). ★종목선택 영구불가(strict 2종)인 정유의 rotation 활로.
+    verdict: "★rotation 부활 = 종목선택 0 산업의 sector-timing overlay. gated 설계(아래) 필수."
+  - industry: consumer
+    tier: PASS-conditional
+    best_signal: {id: rel_mom_6, type: 산업고유, horizon: y_60d, rho: -0.328,
+                  oos: "IS -0.184 → OOS -0.571 (강화)", non_overlap: -0.333, placebo_p: 0.0035,
+                  wc_p: 0.0035, loy_sign_consistent: true, status: underpowered}
+    secondary: {id: mom_6, rho: -0.251, note: "내수 6M momentum reversal"}
+    direction: "내수·소비재 상대모멘텀 reversal(-) → 강세 후 되돌림. OOS 강화 = 견고."
+    verdict: "★rotation tradeable (상대 reversal). non-overlap 일관."
+  - industry: telecom
+    tier: PASS-conditional
+    best_signal: {id: semi_ppi_yoy, type: cycle민감(방어), horizon: y_60d, rho: -0.334,
+                  oos: "IS -0.164 → OOS -0.602 (강화)", non_overlap: -0.422, placebo_p: 0.0025,
+                  wc_p: 0.002, loy_sign_consistent: true, status: underpowered}
+    secondary: [{id: foreign_flow, rho: -0.243, oos: "IS -0.12 → OOS -0.39"},
+                {id: mom_12_1, rho: 0.284, oos: "IS +0.15 → OOS +0.36"}]
+    direction: >
+      ★반도체 PPI yoy(글로벌 반도체 cycle) 음의 forward = 반도체 cycle 강할 때 통신 약세/약할 때 강세 = 방어주 rotation.
+      외국인 매수기 통신 약세(flow -). = service 3사 cross-sectional 불가인데 산업 rotation 부활.
+    dividend_carry_note: >
+      ★자문(claude) 권고: 통신은 연속 macro timing 보다 dividend-carry/quality 정적 tilt 가 더 방어가능
+      (안정 배당 + payout/FCF coverage) + 규제 event(요금인하 결정 window) blackout overlay. 배당데이터 미수집
+      = ⏳collector_plan(배당수익률 DART). rotation timing(semi_ppi/flow) = 보조, carry tilt = primary 권고.
+    verdict: "★rotation 부활 (cycle 방어 + flow). 단 carry tilt 우선 권고 (자문). PASS-conditional."
+  - industry: battery
+    tier: PASS-conditional
+    best_signal: {id: mom_3, type: 산업고유, horizon: y_60d, rho: 0.277,
+                  oos: "IS +0.20 → OOS +0.36 (강화)", non_overlap: 0.146, placebo_p: 0.012,
+                  wc_p: 0.006, loy_sign_consistent: true, status: underpowered}
+    direction: "2차전지 3M momentum persistence(+). non-overlap 약화(0.15) = overlap 일부 inflated, hedge."
+    verdict: "rotation tradeable (momentum). non-overlap 약화로 magnitude tentative."
+  - industry: auto
+    tier: PASS-conditional
+    best_signal: {id: mom_3, type: 산업고유, horizon: y_60d, rho: 0.238,
+                  oos: "IS +0.12 → OOS +0.32", non_overlap: 0.144, placebo_p: 0.0315,
+                  wc_p: 0.026, loy_sign_consistent: true, status: underpowered}
+    secondary: {id: cli_chg, rho: 0.334, horizon: y_20d, note: "경기 민감(macro 공통)"}
+    direction: "자동차 3M momentum + 경기선행 민감. non-overlap 약화 hedge."
+    verdict: "rotation tradeable (momentum). magnitude tentative."
+  - industry: semiconductor
+    tier: PASS-conditional
+    best_signal: {id: mom_3, type: 산업고유, horizon: y_60d, rho: 0.215,
+                  oos: "IS +0.07 → OOS +0.35 (강화)", non_overlap: 0.118, placebo_p: 0.048,
+                  wc_p: 0.076, loy_sign_consistent: true, status: underpowered}
+    note: >
+      ★반도체 = 종목선택(capsule)이 강신호(PBR value BY 생존). rotation 은 산업 momentum persistence(+)
+      약하게 tradeable. 종목+산업 둘 다 활용(plan §10 "종목선택 PASS-strong 산업도 rotation 병행").
+    verdict: "rotation 약 tradeable (산업 momentum). 종목선택이 primary, rotation 보조."
+  # ── macro 공통 = 시장 timing (rotation 차등 약, 대조군) ──
+  - industry: financial
+    tier: PASS-conditional
+    best_signal: {id: cli_chg, type: macro공통(시장timing), horizon: y_60d, rho: 0.482,
+                  oos: "IS +0.34 → OOS +0.36 (유지)", non_overlap: 0.565, placebo_p: 0.0005,
+                  wc_p: 0.0005, loy_sign_consistent: true, status: powered}
+    by_survivor: true            # ★단일 FDR BY 생존 (유일, m=1)
+    direction: >
+      경기선행 Δ(+) → 금융주 forward 60d 강세 = 경기·금리 민감(NIM/대손). powered + BY 생존 + non-overlap +0.565 강.
+      ★단 cli_chg = 12산업 공통 macro = 금융 고유 rotation 이라기보다 경기 cyclical 노출. 금융 = 종목선택(capsule)도 PBR/ROE.
+    verdict: "★유일 powered+BY 생존 신호. 단 macro 공통(N_eff 중복) = 시장 cyclical timing 성분. 금융 비중 timing 으로 활용 가능."
+  - industry: steel
+    tier: PASS-conditional
+    best_signal: {id: foreign_flow, type: macro공통, horizon: y_60d, rho: -0.251,
+                  oos: "IS -0.28 → OOS -0.20 (유지)", non_overlap: -0.282, placebo_p: 0.0215,
+                  wc_p: 0.0205, loy_sign_consistent: true, status: underpowered}
+    secondary: {id: mom_3, rho: 0.211, note: "산업 momentum 약"}
+    warning: "cli_chg OOS flip(IS +0.33 → OOS -0.30) = eligible=False 로 걸러짐(게이트 작동). foreign_flow 만 견고."
+    direction: "외국인 순매수기 철강 약세(flow -, 외국인 비선호 업종). foreign_flow rotation."
+    verdict: "rotation tradeable (foreign_flow). cli_chg 는 OOS flip 으로 기각."
+  - industry: aitech
+    tier: PASS-conditional
+    best_signal: {id: semi_ppi_yoy, type: cycle민감, horizon: y_60d, rho: -0.333,
+                  oos: "IS -0.244 → OOS -0.350 (유지)", non_overlap: -0.455, placebo_p: 0.0015,
+                  wc_p: 0.0025, loy_sign_consistent: true, status: underpowered}
+    warning: "usdkrw_yoy(rho -0.364) + cli_chg = OOS flip/약화 = eligible=False 기각. semi_ppi 만 견고."
+    direction: "반도체 PPI 음 forward = 반도체 cycle 강세 끝물 AI/IT 되돌림(또는 약세기 방어). non-overlap -0.455 강."
+    verdict: "rotation tradeable (semi_ppi cycle). 산업 고유 momentum 약."
+  # ── rotation 부재 (FAIL = monitor-only) ──
+  - industry: bio
+    tier: FAIL_monitor_only
+    best_signal: {id: d_usdkrw, rho: -0.136, oos: "IS -0.08 → OOS -0.22", wc_p: 0.195, status: underpowered}
+    note: >
+      ★rotation tradeable 0 = 강한 OOS-eligible 신호 부재. cli_chg(rho 0.27)는 OOS flip(0.29→0.01),
+      d_usdkrw 는 wc_p>0.10. bio = 임상 이벤트 idiosyncratic 지배(공통 cycle 약) → 산업 timing 어려움.
+    verdict: "★FAIL = monitor-only(rotation 비중 0). over-trade 차단(약신호 강제투입 금지, G-G v2). bio 종목선택(capsule) 별도 활용."
+
+# ════════════════════════════════════════════════════════════════════
+# ★gated 설계 (자문 gemini+claude 수렴 — over-trade 차단, plan §10 S5.5)
+# ════════════════════════════════════════════════════════════════════
+gated_design:
+  rationale: "rotation 신호 대부분 underpowered(small-n) + BY 미생존 = 약신호. 강제 투입 = over-trade. 자문 gated 설계로 sizing 보수화."
+  components:
+    - {name: default_weight_zero, desc: "rotation 신호 무발현 시 산업 비중 = static sleeve 기본(rotation tilt 0). 약신호=무포지션=무거래."}
+    - {name: hysteresis_dead_band, desc: "상단 진입(신호 강) · 하단 이탈(신호 약) 비대칭 임계 → 중립대 whipsaw 차단. rank-space 히스테리시스(거래 빈도 억제)."}
+    - {name: cost_aware_no_trade, desc: "★net-alpha gate(return-space): 기대 rotation α > k×roundtrip_cost 일 때만 rebalance. thin KR name 고비용이 marginal trade 자연 억제. dead-band 와 별 공간(결합 운용)."}
+    - {name: live_oos_falsification, desc: "Rank-IC e-CUSUM / precision drift → sleeve weight downward-only attenuation 연동. 죽은 신호 자동 0 수렴."}
+    - {name: telecom_dividend_carry, desc: "★통신 = timing 보다 dividend-carry/quality 정적 tilt primary(자문) + 규제 event blackout. rotation timing 은 보조."}
+  net_cost:
+    roundtrip_bps: 23.0            # STT_sell 0.20% + 편도수수료 0.015%×2 (KR 비대칭, 매도측 STT)
+    monthly_cost_bps: 11.5        # turnover 0.5/월 가정 (rotation=sleeve-level, 종목선택보다 낮음)
+    note: "rotation tilt magnitude |rho| 0.2~0.36 = 약~중. net-alpha 보존 marginal → cost-aware no-trade 필수. sqrt impact = 통합단계."
+  ⛔미접촉: "weight 차등·sizing·배선(WIRE5) = supervisor 통합단계(study_session.yaml). 본 capsule = 측정+gated 설계 권고만. go-live 미접촉."
+
+# ════════════════════════════════════════════════════════════════════
+# ★valuation-band track (team-lead 명시 + plan "지표 이연 금지" 이행, measure_rotation_valband.py)
+# 산업 aggregate PBR(PIT, Σ시총/Σequity rcept_dt 이후) → rolling z(24M) → forward 예측.
+# ════════════════════════════════════════════════════════════════════
+valuation_band:
+  method: "산업 aggregate PBR = Σ(price×shares_approx) / Σ(equity, DART rcept_dt 이후 PIT) → rolling z(24M) → forward"
+  caveat: "★shares_approx = Marcap/최근종가 근사(PIT shares 부재 = collector_plan) → PBR level 절대값보다 z-score(상대) 신뢰."
+  tradeable_oos_eligible:   # OOS 부호유지 산업만 (rotation valuation 신호)
+    - {industry: chemical, horizon: y_60d, rho: 0.448, oos: "IS +0.49 → OOS +0.58 (강화)", direction: "★양 = PBR 高→forward 강세 = mean-reversion 아닌 성장/추세 프리미엄(mom_3 양과 일관). status: underpowered"}
+    - {industry: steel, horizon: y_60d, rho: -0.145, oos: "IS -0.03 → OOS -0.29", direction: "음 = valuation mean-reversion(비싸면 약세). underpowered"}
+    - {industry: consumer, horizon: y_60d, rho: -0.092, oos: "IS -0.12 → OOS -0.14", direction: "음 = 내수 valuation reversion. 약. underpowered"}
+    - {industry: battery, horizon: y_60d, rho: 0.196, oos: "IS +0.32 → OOS +0.38", direction: "양 = 성장 프리미엄. underpowered"}
+  rejected_oos_flip:        # OOS 부호 불안정 (valuation band 부적합 산업)
+    - {industry: telecom, note: "y_60d IS-0.59→OOS+0.61 flip = valuation band 부적합(통신=carry tilt 권고와 정합)"}
+    - {industry: aitech, note: "IS+0.52→OOS-0.23 flip"}
+    - {industry: shipbuilding, note: "IS-0.63→OOS-0.08 약화 flip"}
+    - {industry: auto, note: "IS+0.27→OOS-0.41 flip"}
+    - {industry: financial, note: "INSUFFICIENT = 은행 equity 특성상 PBR 부적합 + 데이터 부족(pbr n<36)"}
+  verdict: >
+    ★valuation-band = 일부 산업만 OOS 견고(chemical 양/steel·consumer 음). 다수 OOS flip(telecom/aitech/shipbuilding/auto)
+    = 산업별 valuation 부호 불안정 = momentum/rel_mom 대비 약신호. FDR 생존 0(전부 underpowered). ★chemical 은
+    valuation(양)+momentum(양) 일관 = 추세 산업. = valuation-band 는 momentum/rel_mom 의 보조 confirm 용도(독립 primary 아님).
+  fdr_valband: {m_powered: 0, survivors_BY: [], note: "powered cell 0 = 전부 underpowered (small-n + 60d overlap)"}
+
+# ════════════════════════════════════════════════════════════════════
+# ★단일 FDR family (G-F §3, plan §10 "12산업×지표 multiplicity 큼, BY 엄격")
+# ════════════════════════════════════════════════════════════════════
+fdr_family_single:
+  m_powered: 1                    # powered cell(t_obs≥2.802 AND n≥24 AND n_eff≥6) = financial cli_chg 1개만
+  survivors_BY: [financial__cli_chg__y_60d]
+  raw_p_min: 0.0005
+  by_note: >
+    ★powered 게이트(MDE breakeven t_obs≥2.802) 통과 = financial cli_chg 1개. 나머지 rotation 신호는
+    underpowered(small-n, 60d overlap eff_N 작음) = BY family 미진입. ★G-G v2 핵심: underpowered ≠ 신호부재 =
+    MDE/power artifact. OOS 부호유지(eligibility) + non-overlap 견고 + placebo<0.05 = tradeable 후보(conviction 약).
+  ⛔주의: "60d horizon overlapping → asymptotic t 과대 위험. non-overlap sub-sample IC(stride=3M)로 교차검증 = 부호 일관 확인 완료(robustness)."
+
+# ════════════════════════════════════════════════════════════════════
+# verdict (산업별 종합)
+# ════════════════════════════════════════════════════════════════════
+verdict_summary:
+  # ★v2 = 이론 부호 사전확약 + 통계검증 판정 (사용자 파이프라인)
+  STRONG_이론_통계_둘다: [steel, battery, refining, auto]    # 고유 cycle 직접신호 + 부호일치 + OOS 견고
+  TENTATIVE_이론명확_통계약: [chemical, semiconductor, consumer]  # chemical/semi=cycle OOS약, consumer=resid momentum
+  REJECTED_이론반증: [shipbuilding]                          # BDRY 운임↑→조선↑ 가설 미성립(신조선가 미수집)
+  carry_tilt_or_proxy: [telecom, aitech]                    # 방어주 resid momentum 잔존 + 자문 carry tilt
+  data_gate_부족: [bio, financial]                          # bio=산업 cycle 부재 / financial=cli_chg 시장 timing(고유 cycle 약)
+  핵심: >
+    ★v2 (이론→통계검증→판정) = STRONG 4(steel 철광석/battery 리튬/refining crack/auto 글로벌차 = 고유 cycle 직접신호
+    이론 부호 사전확약 일치 + OOS 견고). ★자문 A 입증: 산업 momentum 대부분 residualize 후 소멸(공통인자 재포장=
+    data-mining 의심) = 진짜 alpha 는 고유 cycle. consumer/telecom/aitech 방어주 momentum 은 resid 잔존(idiosyncratic).
+    ★shipbuilding REJECTED(이론 반증, 정직). 약신호 산업(refining)은 crack 으로 STRONG 부활.
+  정직단서: >
+    (1) ★전 cycle 신호 여전히 underpowered(t_obs<2.802, FDR 미생존 0) = magnitude tentative, 부호·방향 한정.
+        단 ★이론 부호 사전확약 일치 + OOS 견고 = data-mining 아님(STRONG 라벨 정당).
+    (2) chemical cycle(wti_naphtha) OOS 약화 = TENTATIVE 격하. semiconductor cycle 통계 약(종목선택 primary).
+    (3) ★L2 rotation 36셀 collapse 100% (N≥24=0/25) → single-axis + partial-pooling 정당(자문). residual N_eff 3.51.
+    (4) shipbuilding 신조선가(Clarkson) + telecom 배당 + bio 임상 = collector_plan(무료 부재 명시, 이연 아님).
+    (5) rotation = static residual-PCA sleeve(plan §8 S6, residual N_eff 3.51 입력)와 결합 = 2층 완성. WIRE5=통합단계.
+
+# ── collector_plan (이연 아님 = 다음 보강 후보) ──
+collector_plan:
+  - {missing: "산업별 고유 cycle 지표 직접(유가/crack=refining, 리튬/EV=battery, 철광석/중국조강=steel, 운임=shipbuilding)",
+     source: "yfinance/FRED 무료 proxy(crack ETF, LME, SCFI). refining 은 collect_refining_cycle.py 기존 보유.", priority: medium,
+     note: "현 측정 = 공통 macro(cli/usdkrw/foreign/semi_ppi) + 산업 자체 momentum/rel_mom. 산업 고유 cycle 지표 = forward 예측력 추가 검증 여지."}
+  - {missing: "산업 aggregate 배당수익률(telecom dividend-carry tilt = 자문 primary 권고)", source: "DART 배당 + 시총", priority: medium}
+  - {missing: "산업 aggregate valuation band(PBR/PER z rolling) → forward (mean-reversion)",
+     source: "capsule dart_financials.parquet(equity) + 시총 PIT → 산업 PBR 시계열", priority: low, note: "각 산업 capsule 이미 종목 cross-sectional PBR 측정. 산업 aggregate band 는 추가 산출 여지."}
+
+# ── Hard-fail 4 (B C D I) self-check ──
+hard_fail_self_check:
+  B_real_data: {status: PASS, note: "합성 0%. pykrx OHLCV 실측 12산업 prices.parquet 재사용(2019~2026 88월) + regime_series(CLI/USDKRW/foreign/semi_ppi FRED+ECOS). measure_rotation.py 재현."}
+  C_traceability: {status: PASS, note: "전 수치 = validation-rotation-v1.json + validation-rotation-robust-v1.json key 매핑. raw=각 capsule data/*.parquet."}
+  D_pit:
+    status: PASS
+    note: >
+      ★가격신호(mom/rel_mom/rev) = forward shift PIT-safe. ★macro driver = 발표지연 lag 적용
+      (CLI_PUB_LAG=2, SEMI_PPI_LAG=1, usdkrw/foreign=일별 실시간 lag불필요). ⛔초기 lag 미적용 시
+      cli_chg lookahead leakage 발견·수정(rho 0.555→0.482) = D축 작동 입증.
+  I_survivor_bias:
+    status: PARTIAL
+    note: >
+      산업 패널 = 각 capsule universe(현재 생존 종목 eq-weight). delisted/편출 종목 누락 = 생존편향 잔존
+      (capsule 공통 한계, I_survivor PARTIAL 상속). 단 산업 패널 평균은 개별종목 생존편향에 cross-sectional 보다 덜 민감(aggregate).

@@ -1,0 +1,164 @@
+{
+  "common_factor_exposure": {
+    "VIX": {
+      "beta": -0.0145,
+      "se": 0.0073,
+      "t": -2.0,
+      "ci95": [
+        -0.0288,
+        -0.0003
+      ],
+      "contemporaneous": true
+    },
+    "dollar": {
+      "beta": -1.3317,
+      "se": 1.2149,
+      "t": -1.1,
+      "ci95": [
+        -3.7128,
+        1.0495
+      ],
+      "contemporaneous": true
+    },
+    "oil": {
+      "beta": 0.1307,
+      "se": 0.1913,
+      "t": 0.68,
+      "ci95": [
+        -0.2442,
+        0.5056
+      ],
+      "contemporaneous": true
+    },
+    "rate": {
+      "beta": 0.014,
+      "se": 0.0572,
+      "t": 0.25,
+      "ci95": [
+        -0.098,
+        0.1261
+      ],
+      "contemporaneous": true
+    },
+    "credit": {
+      "beta": -0.0209,
+      "se": 0.0627,
+      "t": -0.33,
+      "ci95": [
+        -0.1438,
+        0.102
+      ],
+      "contemporaneous": true
+    },
+    "_meta": {
+      "n": 35,
+      "r2": 0.204,
+      "note": "HAC(maxlags=3). credit=US HY OAS proxy(KR HY 부재). contemporaneous risk 노출."
+    }
+  },
+  "customer_supplier_momentum": {
+    "bdry_dry_bulk_freight": {
+      "lag0": {
+        "corr": -0.057,
+        "p": 0.603,
+        "n": 85
+      },
+      "lag1": {
+        "corr": -0.032,
+        "p": 0.775,
+        "n": 84
+      },
+      "lag2": {
+        "corr": 0.005,
+        "p": 0.966,
+        "n": 83
+      },
+      "lag3": {
+        "corr": -0.103,
+        "p": 0.359,
+        "n": 82
+      }
+    },
+    "oil_offshore_tanker_demand": {
+      "lag0": {
+        "corr": -0.116,
+        "p": 0.291,
+        "n": 85
+      },
+      "lag1": {
+        "corr": -0.19,
+        "p": 0.084,
+        "n": 84
+      },
+      "lag2": {
+        "corr": -0.103,
+        "p": 0.355,
+        "n": 83
+      },
+      "lag3": {
+        "corr": -0.109,
+        "p": 0.33,
+        "n": 82
+      }
+    },
+    "boat_global_shipping_shipbuild": {
+      "lag0": {
+        "corr": 0.005,
+        "p": 0.974,
+        "n": 54
+      },
+      "lag1": {
+        "corr": -0.11,
+        "p": 0.434,
+        "n": 53
+      },
+      "lag2": {
+        "corr": -0.073,
+        "p": 0.608,
+        "n": 52
+      },
+      "lag3": {
+        "corr": -0.115,
+        "p": 0.42,
+        "n": 51
+      }
+    },
+    "_note": "글로벌 운임(BDRY)/유가(CL=F)/글로벌조선해운(BOAT) lagged 3M momentum → 한국 조선 forward 1M. alpha 후보 = 측정 후 IC→weight. 동조성분은 RegimeGlasso Ω 자동흡수(이중라우팅 X). ★조선 신조선 수주(Clarkson)/SCFI 운임 직접지표 = 유료 → ETF proxy(collector_plan)."
+  },
+  "pit_reporting_delay": {
+    "available": true,
+    "annual_report_delay": [
+      {
+        "year": 2021,
+        "n": 9,
+        "median_delay_days": 120,
+        "max_delay_days": 120
+      },
+      {
+        "year": 2022,
+        "n": 23,
+        "median_delay_days": 108,
+        "max_delay_days": 119
+      },
+      {
+        "year": 2023,
+        "n": 20,
+        "median_delay_days": 114,
+        "max_delay_days": 118
+      },
+      {
+        "year": 2024,
+        "n": 8,
+        "median_delay_days": 120,
+        "max_delay_days": 120
+      },
+      {
+        "year": 2025,
+        "n": 3,
+        "median_delay_days": 120,
+        "max_delay_days": 120
+      }
+    ],
+    "note": "사업보고서 제출 median delay ~85-120일(FY-end 후). PIT: 펀더멘털 신호는 rcept_dt 이후만 사용 의무. 본 v3 가격신호는 PIT-safe(보고지연 무관)."
+  }
+}

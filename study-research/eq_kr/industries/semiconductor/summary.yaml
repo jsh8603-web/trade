@@ -148,6 +148,110 @@ collector_plan_industry:
     source: "DRAMeXchange/TrendForce 유료 → SOXX/SMH yoy proxy. 외국인 flow = KRX 인증 또는 ETF flow proxy"
     priority: medium
 
+# ════════════════════════════════════════════════════════════════════
+# ── ★★CONDITIONAL IC SURFACE (dispatch 원의도 본체, S2 신규 2026-06-05) ──
+# IC(지표, regime, horizon) = "어느 국면에 어느 지표가 forward return 예측하나".
+# 측정: raw-v3/measure_conditional.py (G-F 7항 헤더 선언) → validation-conditional-v3.json
+# regime: Macro(FRED CLI amplitude-adj 4) × KRW(DEXKOUS yoy 3) × flow(ECOS 외국인순매수 28d z 3)
+# horizon: y_5d/y_20d(메인)/y_60d 일간 forward. per-cell = wild-cluster bootstrap p + n_eff + block-boot CI.
+# ════════════════════════════════════════════════════════════════════
+conditional_ic_surface:
+  cell_collapse: >
+    ★36셀 full(Macro4×KRW3×flow3) N>=24 cell = 0개(실측, 최대 N=13) → INSUFFICIENT.
+    측정 = 단일축(Macro 4 / KRW 3 / flow 3 각각) conditional IC + family_2 interaction. 2축 merge = 통합단계.
+  fdr_family:
+    m_naive: 90               # powered cell 수 (단일 FDR family, G-F §3)
+    m_eff_signal: 3.0         # ★Li-Ji M_eff (가격4신호 상관보정: mom_6↔mom_12_1=0.58 등). naive 6신호 → 유효 3
+    by_survivors: []          # naive m=90 BY 보정 후 0 (raw_p_min=0.0005 > BY_thresh 0.00022)
+    bonferroni_note: "Bonferroni α/90=0.00056 로는 pbr_z KRW_weak(0.0005) 1건 생존. m=90 과대(M_eff 미통합)."
+    note: "★M_eff 통합 보정 = supervisor 통합단계(M.7 분담). 산업 = naive + M_eff_signal 박제."
+  # ── ★핵심 발견: regime별 IC 증폭/반전 (y_20d 메인, wild-cluster p) ──
+  key_findings:
+    - finding: "KRW_weak regime = 신호 증폭축"
+      cells:
+        - {signal: pbr_z, horizon: y_5d, regime: "krw=KRW_weak", ic: -0.1005, wc_p: 0.0005, n: 34, status: powered}
+        - {signal: mom_6, horizon: y_20d, regime: "krw=KRW_weak", ic: -0.0962, wc_p: 0.0055, n: 34, status: powered}
+        - {signal: rev_1m, horizon: y_20d, regime: "krw=KRW_weak", ic: -0.0914, wc_p: 0.0025, n: 34, status: powered}
+      mechanism: "원화약세기(수출 cycle stress) value/reversal 증폭. theory-notes M4(USDKRW)+M1(reversal) 정합."
+    - finding: "pbr_z value premium = 전 horizon robust (unconditional)"
+      cells:
+        - {signal: pbr_z, horizon: y_5d, ic: -0.0609, wc_p: 0.001, n_eff: 82}
+        - {signal: pbr_z, horizon: y_20d, ic: -0.0495, wc_p: 0.0045, n_eff: 68.6}
+        - {signal: pbr_z, horizon: y_60d, ic: -0.0594, wc_p: 0.0025, n_eff: 31.6}
+      mechanism: "cyclical value premium horizon 무관 robust. theory M2(PBR○) 정합. ★단 BY 보정 후 비유의(small-n hedge)."
+    - finding: "flow_strong_buy regime → momentum 부호 반전/소멸"
+      cells:
+        - {signal: mom_6, horizon: y_20d, regime: "flow=flow_strong_buy", ic: 0.0065, status: underpowered}
+      mechanism: "외국인 강매수 regime = passive 지배 → 개별신호 IC 감소. theory M3(Choe-Kho-Stulz) 정합."
+  # ── ★★family_2 interaction (G-B 의무, rejected 박제 前 = frame A-5) ──
+  # ★measure_conditional.measure_interaction_terms() 정식 통합 → validation-conditional-v3.json:family_2_interaction
+  family_2_interaction:
+    method: "pooled panel: ret_rank ~ sig_rank + sig_rank×KRW_weak_dummy, month-clustered SE (자유도 보존, split 보다 power↑)"
+    results:
+      - {signal: mom_6, horizon: y_20d, b_main: 0.0184, t_main: 0.74, b_interaction: -0.1181, t_interaction: -2.95, n_months: 81, verdict: "interaction 유의"}
+      - {signal: rev_1m, horizon: y_20d, b_main: -0.0092, t_main: -0.44, b_interaction: -0.0805, t_interaction: -2.33, n_months: 81, verdict: "interaction 유의"}
+      - {signal: mom_12_1, horizon: y_20d, b_main: -0.0039, t_main: -0.16, b_interaction: -0.0478, t_interaction: -1.14, n_months: 81, verdict: "interaction 비유의"}
+      - {signal: vol_60, horizon: y_20d, b_main: -0.0357, t_main: -1.28, b_interaction: -0.0153, t_interaction: -0.36, n_months: 81, verdict: "interaction 비유의"}
+    interpretation: >
+      ★mom_6/rev_1m: main effect 비유의인데 interaction term 유의(t=-2.95/-2.33) = "국면 따라 신호 효과 갈림"(frame A-5 정의) 입증.
+      = 신호가 약한 게 아니라 **conditional**. unconditional momentum 약(-0.029)이 KRW_weak regime 에서 reversal 로 명확 발현.
+      ★mom_12_1/vol_60 = interaction 비유의(정직 보고) → KRW_weak conditional 은 mom_6·rev_1m 한정.
+      ⛔ G-B "신호 약함" 단정 부적합 — family_2 (mom_6·rev_1m) 살아있음. sign-flip 13건.
+  gb_status:
+    trigger_check: "BY 생존 0 AND raw_p_min(0.0005) > 2×BY_thresh(0.000437) = 트리거 충족(간발)"
+    verdict: >
+      ★"약함" 아님 = (a) Bonferroni 1건 생존 (b) family_2 interaction 유의(t=-2.95) (c) m=105 과대(M_eff 미통합).
+      → G-B 자동자문 발동 여부 = supervisor 판단(보고). 산업 판정 = "conditional 강함, unconditional+naive-FDR 약" = 동적가중 정당화.
+  # ── ★비판검토 실측 (2차 리서치 반증조건 데이터 검정, S6 방어) ──
+  critique_validation:
+    - critique: "Q6: PBR value premium = size factor 위장 아닌가? (Asness 2013 방법)"
+      test: "Fama-MacBeth: ret_rank ~ PBR_rank + Size_rank, y_20d, 매월 cross-section 회귀 → 계수 시계열 t-test"
+      result: "PBR univariate b=-0.051 t=-3.15 → PBR|Size 통제후 b=-0.043 t=-2.47 유의유지. Size|PBR b=-0.018 t=-0.99 비유의."
+      verdict: "★기각(PBR 독립 alpha) = size 위장 아님. value premium robust."
+    - critique: "Q10: HBM/AI cycle(2023-26) 표본 지배 → episode 종속? (Bai-Perron 1998)"
+      test: "sub-period IC: pre-HBM(2019-2022) vs HBM(2023-2026) 부호 일관성"
+      result: "mom_6(-0.005/-0.055) rev_1m(-0.062/-0.025) pbr_z(-0.034/-0.071) = 3신호 부호 일관(structural break 없음)"
+      verdict: "★기각(episode 종속 아님). 단 각 기간 단독 약(small-n) = full/conditional 적합."
+    - critique: "Q5: momentum reversal = 대형주(삼성/SK) 의존? (Hou-Xue-Zhang 2020)"
+      test: "기존 leave-episode(ex-peak 생존) + cap-weighted IC -0.092(대형주서 강)"
+      verdict: "부분 점검(대형주서 더 강 = artifact 아님). ⏳삼성/SK 각각 제외 LOO = falsifier 후속."
+  # ── ★S5 역공격 (최강 반증 직접 투척 → 수렴, dispatch lifecycle) ──
+  adversarial_s5:
+    target: "KRW_weak conditional (family_2 핵심)"
+    attacks:
+      - {attack: "단일 원화약세 episode 종속?", test: "KRW_weak 38개월 시간분포", result: "2019-21 12개월 + 2022-26 26개월 = 여러해 분산", verdict: "부분 기각"}
+      - {attack: "stress regime(risk-off) 대리?", test: "VIX 대조", result: "KRW_weak VIX 21.5 vs 전체 20.2 = 거의 동일", verdict: "기각(진짜 환율 효과, theory M4)"}
+      - {attack: "★2022 단일 episode 제거시 소멸?", test: "leave-2022-out family_2", result: "mom_6 t=-2.95→-3.41(강화) / rev_1m t=-2.73→-2.47 = 부호+유의 생존", verdict: "★결정적 기각(episode 종속 아님)"}
+    attacks_walk_forward:  # ★team-lead: S5 역공격 "2022 episode 종속?" = walk-forward OOS가 직접 답
+      - {attack: "★KRW_weak conditional = 2022 단일 episode 종속? (walk-forward 직접 검정)", test: "IS(2019-22 = 2022 포함)/OOS(2023-26) split", result: "OOS에서 mom_6 -0.155/rev_1m -0.064/pbr_z -0.050 부호+magnitude 유지 + mom_6 interaction OOS t=-2.69 유의", verdict: "★결정적 기각 — OOS(2022 제외 기간)서 conditional 생존 = episode 종속 아님"}
+    convergence: "KRW_weak conditional = 반증 4종(시간분포+VIX+leave-2022-out+walk-forward OOS) 모두 방어 = ★in-sample artifact 아님(OOS 검증 완료). S5 수렴."
+
+# ── ★신규 cycle 지표 (재고/CAPEX/R&D, ★이연 금지 = 측정완료, 2026-06-05) ──
+# 측정: collect_dart_extended.py(DART 재고/유형/무형자산 PIT) → measure_fundamentals_cycle.py → validation-fundamentals-cycle-v3.json
+fundamentals_cycle:
+  source: "DART dart_extended.parquet (85종 2077rows, coverage inv 79%/ppe 100%/intangible 77%). PIT rcept_dt."
+  measured: "★사용자 박제 '이연 금지' 이행 — 불확실해도 지금 측정 + verdict 박제."
+  indicators:
+    - {id: ppe_yoy, family: asset_growth, prior: 음, ic_y60d: -0.034, wc_p_y60d: 0.0155, oos: "IS -0.042 → OOS -0.028 부호유지", verdict: "TENTATIVE DIRECTIONAL (Cooper-Gulen-Schill asset growth anomaly 정합, prior 음 일치, 장기 horizon, ★BY 미생존)"}
+    - {id: inv_ratio, family: inventory, prior: 음, ic_y60d: 0.0454, wc_p_y60d: 0.002, oos: "IS +0.031 → OOS +0.063 부호유지(양)", verdict: "★prior 반증 — 일관되게 양(prior 음 반대). 재고순환 가설 반대. 메커니즘 재해석: 재고/자산 高=성장·생산확대 종목 prox"}
+    - {id: capex_ratio, family: asset_growth, prior: 음, ic_y20d: 0.010, verdict: "INSUFFICIENT (비유의, OOS 약화)"}
+    - {id: inv_yoy, family: inventory, prior: 음, ic_y20d: 0.003, verdict: "INSUFFICIENT (비유의)"}
+    - {id: rnd_ratio, family: rnd, prior: 양, ic_y20d: -0.004, verdict: "INSUFFICIENT (비유의, prior 양과 약하게 반대)"}
+    - {id: dram_asp_ppi, family: industry_cycle_timing, prior: "양(동행)/음(forward 정점되돌림)", measure: "반도체 PPI yoy → 산업 eq-weight forward (timing, cross-sectional 아님)", result: "forward 1M -0.073/3M -0.102/6M -0.205(p=0.071) / contemp -0.069", verdict: "INSUFFICIENT (timing forward 비유의, 6M 약 음 근접 = cyclical peak 되돌림 방향). ★regime conditioning 변수로 더 적합(cross-sectional 신호 부적합 = 산업 공통 시계열)"}
+    - {id: size_orth_pbr, family: value, prior: 음, measure: "Fama-MacBeth ret~PBR_rank+Size_rank (Q6 size 위장 점검)", result: "PBR|Size 통제후 b=-0.043 t=-2.47 유의유지 / Size|PBR b=-0.018 비유의", verdict: "★PBR 독립 alpha 입증 (size 위장 아님). value premium robust (단 in-sample)"}
+  verdict: >
+    ★신규지표 대부분 약/비유의 = 가격(mom/rev)·valuation(PBR) 보다 현저히 약. ppe_yoy(CAPEX)만 TENTATIVE(부호 정합+OOS 생존).
+    inv_ratio = prior 반증(메커니즘 재해석 후보). = 정직 박제(over-claim 0). 사용자 "이연 금지" 이행.
+  fdr_family_merged:  # ★team-lead 순서3: 단일 FDR family 합산 (garden-of-forking-paths)
+    m_total: 183
+    composition: "conditional 105 + fundamentals 78"
+    survivors_BY: 0
+    raw_p_min: 0.0005
+    raw_p_min_keys: "pbr_z KRW_weak / ppe_yoy KRW_neutral (동률)"
+    note: "★신규지표 추가시 family m 커져 BY 더 엄격 = garden-of-forking-paths 차단 정확 작동. M_eff 통합보정=supervisor."
+  data_gate:
+    종목레벨_외국인flow: "★DATA-GATE(deferral 아님) — KRX 종목별 차단 = 데이터 부재. 시장레벨 ECOS flow는 측정완료."
+
 # ── ★cross (분석 단위 간 상관) — §M.3 3소비자 라우팅 (산업=보고만) ──
 cross:
   common_factor_exposure:
@@ -296,3 +400,61 @@ verdict_note: >
   cyclical archetype 지지(사이클 peak 되돌림). 방향 안정적(CI 0배제+CPCV 1.00+within 100%) 하나 BY/Bonferroni 미생존 =
   battery 보다 신호 약 + 다중검정 후 비유의 → hedge. valuation 횡단면 = §10(DART). archetype cyclical = ev_ebitda primary
   (EV-EBITDA 미산출 = collector_plan high, PBR/PER 만 §10). pilot 결론: cyclical 산업은 momentum 이 reversal 로 발현 = 부호 검증의 가치 시사.
+
+# ── ★S2 conditional 차원 verdict (dispatch 원의도 본체, 2026-06-05, ★walk-forward OOS 확정) ──
+verdict_conditional:
+  status: "★conditional CONFIRMED (tentative, n<30) — walk-forward OOS 부호+magnitude 유지"
+  핵심: >
+    ★unconditional 약신호(mom_6 -0.029, BY naive 미생존)가 **conditional 로 명확 발현** = dispatch 원의도.
+    (a) KRW_weak regime: pbr_z y_5d wc_p=0.0005 / mom_6 -0.096 / rev_1m -0.091 증폭.
+    (b) family_2 interaction: mom_6 t=-2.95 / rev_1m t=-2.33 유의(main 비유의) = "국면 따라 부호 갈림"(frame A-5).
+    (c) flow_strong_buy: momentum 소멸(외국인 강매수→passive 지배).
+  walk_forward_oos:  # ★team-lead 지시 = verdict 확정 근거 (IS 2019-22 / OOS 2023-26)
+    # ★신호별 is_n 차이 주석 (G-C audit 확인): KRW_weak 총 38월이나 forward(20d)+신호 lookback 동시 유효월이 신호마다 다름.
+    #   mom_6/pbr = 6M lookback → 2019 상반기 결측 → IS 21~22월 / rev_1m = 1M lookback → 결측 적음 → IS 24월. raw 재계산 확인.
+    mom_6_KRW_weak: {is_ic: -0.0599, is_n: 21, oos_ic: -0.1547, oos_n: 13, verdict: "✅부호유지+magnitude(강화)"}
+    rev_1m_KRW_weak: {is_ic: -0.1168, is_n: 24, oos_ic: -0.0641, oos_n: 13, verdict: "✅부호유지+magnitude (is_n=24 = rev_1m 1M lookback 결측 적음, mom_6의 21과 다름 = 정상)"}
+    pbr_z_KRW_weak: {is_ic: -0.0509, is_n: 22, oos_ic: -0.0502, oos_n: 13, verdict: "✅부호유지(거의 동일)"}
+    family_2_interaction: {mom_6: "IS t=-2.09 → OOS t=-2.69 (둘 다 유의)", rev_1m: "IS t=-2.26 → OOS t=-1.28 (부호유지, OOS 약화)"}
+    결론: >
+      ★3신호 KRW_weak conditional 전부 OOS 부호+magnitude 유지 + mom_6 interaction OOS 유의(t=-2.69) =
+      **in-sample artifact 아님**. = conditional CONFIRMED(★tentative, OOS n=13 small-n magnitude hedge).
+      rev_1m interaction OOS 약화(t=-1.28) = PARTIAL. = 미래 데이터 불필요한 현 walk-forward 검증.
+  verdict_확정:
+    mom_6_KRW_weak: "★CONFIRMED (tentative, n<30) — OOS 부호+magnitude+interaction 유의"
+    pbr_z_KRW_weak: "★CONFIRMED (tentative, n<30) — OOS 거의 동일"
+    rev_1m_KRW_weak: "PARTIAL — OOS 부호유지하나 interaction 약화"
+  gb_판정: >
+    ★G-B 자동자문 = supervisor skip 판정(family_2가 '약함 단정' 반증 = conditional 제3분기). "약함" 부적합.
+    BY naive m=105 미생존은 M_eff 미통합 + small-n. = 동적가중 정당화. ★OOS 검증 완료 = in-sample only hedge 해소(부호·방향 한정, magnitude tentative).
+  비판검토: "Q6 PBR size위장 기각(Fama-MacBeth) + Q10 episode종속 기각(sub-period 일관) + S5 leave-2022-out 생존 = 기존 결과 견고."
+  정직단서: "OOS n=13 small-n → magnitude tentative(부호·방향만) / M_eff 통합 supervisor / 종목레벨 외국인flow 이연(KRX 차단) / 재고·CAPEX·R&D = 측정중(이연 아님)."
+
+# ════════════════════════════════════════════════════════════════════
+# ── ★ROTATION TIMING (반도체 업종 자체 비중 timing, 2026-06-05) ──
+# 종목 selection(위 conditional_ic_surface)과 다른 차원 = "어느 국면에 반도체 업종 OW/UW".
+# 측정: raw-v3/measure_rotation_semi.py → validation-rotation-semi-v1.json. rotation-signals.md 상세.
+# rotation-analyst soxx 약신호(+0.171)를 fundamental 심화(PPI/수출/재고/CLI). 후보 8개 검토.
+# ════════════════════════════════════════════════════════════════════
+rotation_timing:
+  unit: "반도체 업종 eq-weight 패널 forward return (93% 집중 → eq-weight 필수). 종목 cross-section 아님."
+  pipeline: "이론(증권사 cycle)→부호 사전확약(측정前)→통계검증(forward IC+OOS+G-G v2)→판정"
+  candidates_checked: 8   # ppi_yoy/ppi_d3/export_yoy/inv_yoy/soxx_d3/usdkrw_yoy/cli_chg/ind_mom_6
+  signals:
+    - {id: cli_chg, prior: 양, fwd_ic: 0.225, wc_p: 0.018, oos: "+0.295→+0.245 sign_hold", tradeable: true,
+       verdict: "★TENTATIVE 채택 — 경기선행 상승국면 반도체 OW. OOS 부호+magnitude 유지(유일). t_obs 1.05<2.802 underpowered → conservative cap"}
+    - {id: export_yoy, prior: 음, fwd_ic: -0.255, wc_p: 0.017, oos: "-0.436→-0.018 sign_hold", tradeable: true,
+       verdict: "★TENTATIVE 채택 — 수출 yoy 음(선행 변곡, 정점매도/바닥매수). OOS 부호유지 but magnitude 붕괴(HBM 디커플링?) → 부호·방향만"}
+    - {id: soxx_d3, prior: 양동행, fwd_ic: 0.161, contemp_ic: 0.476, tradeable: false,
+       verdict: "동행 지표(rotation 아님) — contemp +0.476 >> forward +0.161 = 동행성 입증(rotation-analyst soxx 약신호 정체). regime conditioning/risk monitor 변수"}
+    - {id: inv_yoy, prior: 양, fwd_ic: -0.310, oos: "-0.223→-0.268 sign_hold", tradeable: conditional,
+       verdict: "★메커니즘 재해석 — 재고 yoy 음(prior 양 반대, 종목 capsule inv_ratio 동일패턴). OOS 부호유지하나 이론 미정합 → monitor"}
+    - {id: usdkrw_yoy, prior: 양, fwd_ic: -0.211, tradeable: conditional, verdict: "음(급격 원화약세=위험회피). 종목 capsule KRW_weak과 다른 차원"}
+    - {id: ppi_yoy, prior: 음, fwd_ic: -0.092, tradeable: false, verdict: "약(t_obs 0.5) 부호 정합 INSUFFICIENT"}
+    - {id: ppi_d3, prior: 음, fwd_ic: -0.052, tradeable: false, verdict: "OOS flip = artifact REJECTED"}
+  momentum_residualize: {raw_ic: 0.125, resid_ic: 0.158, verdict: "잔존(공통인자 재포장 아님) but 약신호 — rotation-analyst cross-industry 소멸과 다름(unit 차이)"}
+  fdr_family: {m: 16, by_factor: 3.381, survivors_BY: 0, raw_p_min: 0.017, raw_p_min_key: export_yoy__y_60d}
+  verdict: >
+    ★PASS-conditional (tradeable ≥1, low confidence): cli_chg(경기선행 양) + export_yoy(수출 선행변곡 음) = 이론+통계(OOS 부호유지) 통과 TENTATIVE 채택.
+    soxx=동행지표(rotation 아님). 전 신호 underpowered(t_obs<2.802) + BY 미생존 = magnitude tentative 부호·방향만. WIRE5·gated·sizing = supervisor 통합(rotation-analyst 조율).
+  honest: "rotation(cli_chg/export 경기·수출 cycle) ≠ selection(KRW_weak mom/pbr 환율 regime) = 다른 차원. export OOS magnitude 붕괴=HBM 디커플링 가능. SOXX 동행 입증."

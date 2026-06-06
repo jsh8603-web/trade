@@ -1,0 +1,127 @@
+{
+  "split": {
+    "IS": [
+      "2019-01-01",
+      "2022-12-31"
+    ],
+    "OOS": [
+      "2023-01-01",
+      "2026-12-31"
+    ]
+  },
+  "note": "battery momentum 양 continuation + flow_strong_buy interaction 음 flip 의 walk-forward OOS 검정.",
+  "unconditional": {
+    "mom_6__y_60d": {
+      "is_ic": 0.078,
+      "is_n": 42,
+      "oos_ic": 0.072,
+      "oos_n": 38,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    },
+    "mom_6__y_20d": {
+      "is_ic": 0.0261,
+      "is_n": 42,
+      "oos_ic": 0.0055,
+      "oos_n": 39,
+      "sign_hold": true,
+      "verdict": "✅부호유지 (magnitude 약화)"
+    },
+    "mom_12_1__y_60d": {
+      "is_ic": 0.0156,
+      "is_n": 36,
+      "oos_ic": 0.0932,
+      "oos_n": 38,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    },
+    "mom_12_1__y_20d": {
+      "is_ic": -0.0064,
+      "is_n": 36,
+      "oos_ic": 0.0517,
+      "oos_n": 39,
+      "sign_hold": false,
+      "verdict": "❌부호반전(artifact) +magnitude"
+    },
+    "rev_1m__y_60d": {
+      "is_ic": 0.0182,
+      "is_n": 42,
+      "oos_ic": 0.0259,
+      "oos_n": 38,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    },
+    "rev_1m__y_20d": {
+      "is_ic": -0.0403,
+      "is_n": 42,
+      "oos_ic": -0.0176,
+      "oos_n": 39,
+      "sign_hold": true,
+      "verdict": "✅부호유지 (magnitude 약화)"
+    }
+  },
+  "regime_cell": {
+    "mom_6__y_60d__flow_neutral": {
+      "is_ic": 0.1315,
+      "is_n": 24,
+      "oos_ic": 0.1129,
+      "oos_n": 19,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    },
+    "mom_6__y_20d__flow_neutral": {
+      "is_ic": 0.1256,
+      "is_n": 24,
+      "oos_ic": 0.0384,
+      "oos_n": 19,
+      "sign_hold": true,
+      "verdict": "✅부호유지 (magnitude 약화)"
+    },
+    "mom_12_1__y_60d__flow_neutral": {
+      "is_ic": 0.0482,
+      "is_n": 21,
+      "oos_ic": 0.1703,
+      "oos_n": 19,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    },
+    "mom_12_1__y_20d__flow_neutral": {
+      "is_ic": 0.0503,
+      "is_n": 21,
+      "oos_ic": 0.1065,
+      "oos_n": 19,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    }
+  },
+  "interaction": {
+    "mom_6__flow_strong_buy": {
+      "IS": {
+        "b_interaction": -0.2227,
+        "t_interaction": -2.64,
+        "n_months": 42,
+        "status": "ok"
+      },
+      "OOS": {
+        "b_interaction": -0.0969,
+        "t_interaction": -1.03,
+        "n_months": 39,
+        "status": "ok"
+      }
+    },
+    "mom_12_1__flow_strong_buy": {
+      "IS": {
+        "b_interaction": -0.1618,
+        "t_interaction": -1.91,
+        "n_months": 36,
+        "status": "ok"
+      },
+      "OOS": {
+        "b_interaction": -0.2282,
+        "t_interaction": -2.59,
+        "n_months": 39,
+        "status": "ok"
+      }
+    }
+  }
+}

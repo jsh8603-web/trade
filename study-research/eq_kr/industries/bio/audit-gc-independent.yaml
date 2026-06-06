@@ -1,0 +1,99 @@
+# bio G-C 독립 audit (author≠auditor, opus-1m). 직접 재계산이 유일 근거. self-audit 신뢰 X.
+evaluation_by: bio-auditor-independent
+date: 2026-06-05
+evaluator_model: opus-1m
+axes_source:
+  primary: D:/projects/Inv/study-research/AUDIT-GUIDE.md
+  application: D:/projects/Inv/study-research/eq_kr/evaluation-axes.md
+
+industries:
+  - industry: kr_bio
+    verdict: 부분   # PARTIAL — conditional(flow_sell) 부분 지지, unconditional OOS artifact, 생존편향+좀비데이터
+    provenance:
+      raw_scripts_rerun: true    # measure_conditional.py / measure_oos.py 직접 재실행, yaml 수치 정확 일치
+      synthetic_fingerprint_check: true  # 2020-03 코로나 폭락 실재(삼바 674k->532k), 주말공백, DART 948rows 실재
+      yaml_to_raw_traceable: true  # flow_sell interaction t=-2.90/-2.92/-2.29 + FDR m=105 BY=[] 재현 일치
+    axes_12:
+      A: PASS    # 부호 사전확약(theory-notes §6) declared_at 명시
+      B: PASS    # 합성 0%, pykrx+DART+FRED+ECOS 실재 재현
+      C: PASS    # yaml->json key 매핑 재현 일치
+      D: PARTIAL # ★self-audit PASS를 PARTIAL 로 격하 — 좀비데이터(거래정지 carry-forward) 누설 발견
+      E: PASS
+      F: PASS    # unconditional/KRW interaction REJECTED 다수 정직 기각
+      G: PASS    # underpowered 라벨 정직(cell n<24)
+      H: PASS
+      I: PARTIAL # ★PARTIAL 유지 적정 (FAIL 격상 불요) — 편의 방향 정확, 크기 18%로 무효화 아님
+      J: PASS
+      K: PASS    # m=105 단일 FDR family 사전고정, BY survivors=[] 정직
+      L: N/A     # supervisor 통합단계
+    hard_fail_count: 0   # B/C PASS, D PARTIAL(좀비-data, 약화이지 무효 아님), I PARTIAL(편의 18%)
+    tier: structural_prior_low_confidence
+    system_fit:
+      current_skeleton_fits: true
+      pipeline_upgrade_needed: true
+      upgrade_plan: >
+        (1) ★최우선 = prices 거래정지 carry-forward 좀비데이터 제거: 코오롱티슈진(950160) 47.8% flat
+        + 케어젠(214370) 19% flat 구간을 NaN 마스킹(거래대금=0 또는 동일종가 연속 N일+ -> NaN).
+        현 측정은 좀비 fwd return=0 + vol 과소측정이 IC에 누설(D축).
+        (2) PIT universe 멤버십(delisted/상폐 코오롱티슈진은 존재하나 carry, 신라젠 215600/헬릭스미스 084990
+        원본 185종에도 누락) = KRX PIT 멤버십 collector_plan high.
+    remediation:
+      - "D PARTIAL: 좀비데이터(거래정지 carry-forward) NaN 마스킹 후 재측정. 현 prices 는 거래정지 종가 forward-fill = vol_60 저변동성 오측정 + forward=0 IC 누설. self-audit '코오롱티슈진 누락' 은 부정확(실제=존재하되 좀비)."
+      - "I PARTIAL 유지: 편의 방향(과대평가) 시뮬 지지 + 크기 vol_60 IC 18%(-0.074->-0.061 추정)/conditional 9% = 신호 무효화 아님. 신라젠/헬릭스미스 원본 누락은 진짜 생존편향이나 핵심신호 robustness 입증으로 hard-fail 회피 적정."
+    flag_dynamic_path_check:
+      affects_indicator_present: true   # confidence_hooks affects_indicator 명시
+      affects_edge_present: true
+
+# ── 최우선 임무별 독립 재계산 결과 ──
+priority_findings:
+  flow_sell_conditional_genuine:   # 최우선1 + 최우선2
+    verdict: "GENUINE (data-mining 아님), but low confidence"
+    reproduced:
+      interaction_t: {mom_6: -2.90, mom_12_1: -2.92, per_z: -2.29, rev_1m: -1.84(비유의), vol_60: -0.77(비유의)}
+      main_effect: "전 신호 t_main < 1.4 = 비유의 (interaction 유의는 conditional 발현 = 약함 아님)"
+      fdr: "m=105 BY_survivors=[] (정직 보고 확인, raw_p_min=0.0025)"
+      flow_sell_distribution: "IS 10개월(2019-2022) / OOS 12개월(2023-2026) = 전기간 분산, 단일episode 아님"
+    oos_survival_mechanism: >
+      ★핵심 발견: OOS interaction(t -2.5~-3.06)이 IS(t -1.26~+1.21)보다 강한 것은 'flow_sell 신호 강화'가
+      아니라 'unconditional(non-flow_sell)이 OOS 부호반전(artifact)으로 무신호화 -> 차분(interaction) 확대'.
+      flow_sell conditional 직접 IC 는 IS(-0.14)->OOS(-0.16) 안정적. = unconditional artifact 의 거울상,
+      conditional 생존은 실재. self-audit 의 'IS약->OOS강 regime shift tentative' 라벨은 메커니즘 부정확하나
+      방향(conditional 생존) 결론은 정합.
+    s5_attack_reproduced: "(a)8해 분산 pass (b)VIX 21.9~=20.1 pass (c)leave-2021-out mom_6 t=-2.94 생존 pass"
+    robustness_kollon_drop: "코오롱티슈진 제외(37종): interaction mom_6 -2.90->-2.75, mom_12_1 -2.92->-2.75 = 생존(좀비종목 무관)"
+    caveat: "★cell n 극소: flow_sell conditional IS n=7~9, OOS n=11. monitor-only + regime gate 적정. magnitude 단정 금지."
+
+  unconditional_oos_reversal:   # 최우선2
+    verdict: "격하 정당 (artifact, event_driven 정합)"
+    reproduced: "mom_6 IS-0.055->OOS+0.009 / pbr_z -0.061->+0.043 / per_z -0.004->+0.061 = 부호반전. vol_60 -0.119->-0.008 magnitude 붕괴."
+    judgment: "unconditional 가격/valuation OOS 부호반전 = in-sample artifact = 격하 정당. conditional 만 생존이 data-mining 아님은 위 메커니즘+S5+robustness 로 입증."
+
+  survivorship_I_axis:   # ★최우선3 (hard-fail 직결)
+    verdict: "I = PARTIAL (적정, FAIL 격상 불요)"
+    survivorship_real:
+      delisted_in_universe: 0   # prices 38종 거래끊김 0종 = FDR 현재스냅샷 생존자
+      truly_missing: "신라젠(215600)/헬릭스미스(084990) = 원본 185종에도 누락 = 진짜 상폐 생존편향"
+      zombie_present: "코오롱티슈진(950160)/케어젠(214370) = 존재하나 거래정지 carry-forward = D축 문제"
+    bias_direction_check: >
+      ★self-audit '누락->vol_60 과대평가' 방향 = 시뮬레이션 지지. 합성 상폐종목(고변동성+폭락+상폐) 5개
+      추가 20회 시뮬: vol_60 uncond IC -0.074->-0.061 (편의 +0.013 = 현재가 진짜보다 더 음 = 과대).
+      conditional -0.120->-0.109. 방향 정확.
+    bias_magnitude: "vol_60 uncond 편의 = |IC|의 18% / conditional 편의 = 9% = 무효화 아님(신호 생존)"
+    fail_vs_partial: >
+      ★FAIL 격상 불요 근거: (1) 편의 방향은 신호를 약화(누락시 IC 강해짐)가 아니라 강화 쪽이나 크기 18%로
+      부호/유의성 불변 (2) 핵심신호 flow_sell conditional 은 좀비종목 제외해도 robust (3) self-audit 이
+      편의 방향 명시 = over-claim 회피. = PARTIAL + 좀비데이터 마스킹 remediation 이 적정. AUDIT-GUIDE I축
+      'hard-fail=무효화' 기준 미충족(신호 무효화 안 됨).
+    but_d_axis_escalation: >
+      ★단 self-audit 이 D=PASS 박제한 것은 과함. 거래정지 carry-forward(코오롱 47.8%/케어젠 19%)가
+      forward return=0 + vol 과소측정으로 IC 에 누설 = D(PIT/거래정지) PARTIAL 로 격하 의무.
+      self-audit 'D PASS: 거래정지 처리' 미흡. 좀비 마스킹 후 재측정 = 최우선 remediation.
+
+summary:
+  total_industries: 1
+  verdict_counts: {충실: 0, 부분: 1, 불충분: 0}
+  hard_fail_industries: []   # hard-fail 0 (D/I PARTIAL = 약화이지 무효 아님)
+  overall_recommendation: >
+    통합 진행 (conditional flow_sell low-confidence tradeable 1개 + structural_prior 라벨). 단 D축 좀비데이터
+    NaN 마스킹 후 재측정 = 최우선 보강(코오롱티슈진/케어젠 거래정지 carry-forward 제거). self-audit I=PARTIAL
+    적정(편의 방향 정확/크기 18% 무효화 아님), but self-audit D=PASS 는 PARTIAL 격하 의무.

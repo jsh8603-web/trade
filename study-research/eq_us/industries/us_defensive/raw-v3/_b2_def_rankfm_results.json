@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "method": "rank-based Fama-MacBeth, H=12, B=9999"
+  },
+  "DEF-2": {
+    "pred": 1,
+    "full": {
+      "coef": 0.19339,
+      "n": 184,
+      "n_eff": 57.9,
+      "t_nw": 2.68,
+      "fixed_b_cv": 2.08,
+      "fixed_b_sig": true,
+      "wild_p": 0.0105,
+      "sign": 1
+    },
+    "in_sample": {
+      "coef": 0.13788,
+      "n": 143,
+      "n_eff": 46.7,
+      "t_nw": 1.63,
+      "fixed_b_cv": 2.09,
+      "fixed_b_sig": false,
+      "wild_p": 0.1129,
+      "sign": 1
+    },
+    "oos": {
+      "coef": 0.38701,
+      "n": 41,
+      "n_eff": 14.1,
+      "t_nw": 3.13,
+      "fixed_b_cv": 2.48,
+      "fixed_b_sig": true,
+      "wild_p": 0.0126,
+      "sign": 1
+    },
+    "sign_match": true
+  },
+  "DEF-1": {
+    "pred": 1,
+    "full": {
+      "coef": -0.20748,
+      "n": 185,
+      "n_eff": 50.8,
+      "t_nw": -2.15,
+      "fixed_b_cv": 2.12,
+      "fixed_b_sig": true,
+      "wild_p": 0.0494,
+      "sign": -1
+    },
+    "in_sample": {
+      "coef": -0.17755,
+      "n": 144,
+      "n_eff": 39.8,
+      "t_nw": -1.53,
+      "fixed_b_cv": 2.16,
+      "fixed_b_sig": false,
+      "wild_p": 0.1619,
+      "sign": -1
+    },
+    "oos": {
+      "coef": -0.3126,
+      "n": 41,
+      "n_eff": 13.3,
+      "t_nw": -2.39,
+      "fixed_b_cv": 2.48,
+      "fixed_b_sig": false,
+      "wild_p": 0.0477,
+      "sign": -1
+    },
+    "sign_match": false
+  }
+}

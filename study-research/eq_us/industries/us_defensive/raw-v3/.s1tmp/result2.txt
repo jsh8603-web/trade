@@ -1,0 +1,43 @@
+This deep-dive addresses the quantitative implementation of your defensive equity sleeve.
+
+### A. Shareholder Yield (EDGAR XBRL)
+The BMRR (2007) formula is `(Dividends + Repurchases - Issuance) / Market Cap`.
+*   **XBRL Tags:**
+    *   Dividends: `PaymentsOfDividendsCommonStock` (or `DividendsCash`)
+    *   Repurchases: `PaymentsForRepurchaseOfCommonStock`
+    *   Issuance: `ProceedsFromIssuanceOfCommonStock`
+*   **Signal Quality:** Dividend yield is "cleaner" but captures only the visible cash-payout path. Defensive utilities are yield-constrained by regulators; they rarely repurchase. Staples/Healthcare use repurchases for capital structure optimization. **Recommendation:** Use Net Payout Yield. In sectors with low buyback activity, dividend yield is a sufficient proxy for the "payout" factor, but the inclusion of repurchases adds information density for the non-utility components.
+*   **Crowding/Decay:** The "dividend anomaly" (high yield = alpha) largely collapsed post-2010 due to the "Reach for Yield" induced by ZIRP (Greenwood/Vayanos 2014, *JFE*). Post-2015, high yield is often a distress proxy. The signal now shows better IC when filtered for "Payout Quality" (i.e., earnings sustainability).
+
+### B. Earnings Stability
+*   **Measurement:** Coefficient of Variation (CV) of Net Income (StdDev / Mean) over 20 quarters is standard. However, **Earnings Persistence** (AR1 coefficient of ROE) is empirically more robust as it filters out "noisy" but healthy growth.
+*   **Evidence:** The "Quality" factor (Novy-Marx 2013, *JFE*) posits that gross profitability is the primary driver, but earnings stability is the secondary "defensive" guardrail. *Ball/Gerakos/Linnainmaa/Nikolov (2015, JFE)* find that "Defensive" (low-vol of earnings) is essentially a proxy for operating quality that predicts lower tail risk, not necessarily higher average returns in bull regimes. 
+
+### C. PER vs. Earnings Yield (E/P)
+*   **Handling Negative Earnings:** **Never use PER.** Use **E/P (Earnings Yield)**. When earnings are negative, E/P provides a monotonic rank (deeply negative E/P is the "cheapest" for distressed-value plays). 
+*   **Metric Choice:** For defensive stocks, **FCF/EV (Free Cash Flow Yield)** is superior to E/P. Defensive firms (Utilities/Staples) are CAPEX-heavy; E/P can be distorted by D&A, while FCF/EV measures the cash actually available to shareholders. 
+*   **PBR vs PER:** In your universe, PBR is a noise-trap due to share buybacks depressing book value. Use EV/EBITDA or FCF/EV.
+
+### D. Rate-Duration Signal
+*   **The Signal:** Estimate $\beta_{rate} = \text{cov}(R_{stock}, \Delta \text{DGS10}) / \text{var}(\Delta \text{DGS10})$.
+*   **Implementation:** Gormsen-Lazarus (2023, *JF*) suggest duration is a risk factor. In a cross-sectional model, **unconditional IC is near zero.** It is a *conditional* signal. 
+*   **Logic:** If you expect rates to rise, short (or underweight) high-duration stocks. If rates are stable/falling, high-duration (utilities) captures the "duration premium." Do not include this as a static cross-sectional alpha factor; include it as a **Risk Control / Tilt** constraint.
+
+### E. FDR / Survival & Standardizations
+*   **Survival:** Based on 49 stocks (a very small panel), your power to detect signals is low. Use **Sector-Neutral Standardization** (demean within the 4 sub-sectors). 
+*   **Reasoning:** If you universe-demean, the model will just identify "Utilities are cheaper than Healthcare." You want to identify the cheapest Utility *among* Utilities. 
+*   **Expected Robustness (BY-FDR prioritized):**
+    1.  **Quality/Gross Profitability:** (Highest survival, most persistent).
+    2.  **Short-term Reversal:** (Works in small panels, high frequency, independent of fundamental regime).
+    3.  **Low-Vol:** (Needs to be residualized against Beta to avoid picking up pure rate-sensitivity).
+    4.  **Value (FCF/EV):** (Needs sector-neutrality to work).
+
+### F. Sub-sector Heterogeneity (Crucial)
+*   **Sign Flip Warning:** Dividend Yield is an "Alpha" signal in Healthcare/Staples (signals cash-generative maturity) but a "Risk" signal in Utilities (regulated, capital-intensive). 
+*   **Advice:** If you use a single model for all 49 stocks, the **dividend yield coefficient will likely be near zero** because the signals cancel each other out across sectors. 
+*   **Solution:** Use a **Multi-Factor model with Sector Interaction Terms** or separate signal-weights by sector. Do not force a universal slope on payout yield.
+
+**Summary Reference:** 
+*   *Novy-Marx (2013), "The Other Side of Value: The Gross Profitability Premium," JFE 108.*
+*   *Ball et al. (2015), "Defensive Equity," JFE 119.*
+*   *Gormsen & Lazarus (2023), "Duration-Driven Returns," Journal of Finance (forthcoming).*

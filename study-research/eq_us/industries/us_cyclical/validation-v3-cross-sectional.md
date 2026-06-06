@@ -1,5 +1,7 @@
 # validation-v3-cross-sectional.md — us_cyclical sleeve §M v3
 
+> ⛔ **STALE (2026-06-03 재작업 supersede)** — 본 파일 = 1차(universe-z, PER○, EDGAR 27637행) 버전. ★재작업 SSOT = `summary.yaml`(sector-neutral z) + `15axis-audit.md`(G-A 3컬럼 + mechanism) + `validation-metrics-v3.json`. 핵심 변경: universe-demean→sector-neutral z(BY 0→8) / PBR·EV-EBITDA CONFIRMED(PER○ 아님, shares 47종 artifact) / EDGAR 12 concept 94650행. §0 데이터 소스만 유효.
+
 > frame v3 §M.1~M.7. raw 재현: `raw-v3/{collect, measure}.py` + data/{prices, edgar_fundamentals, macro, universe}.parquet.
 > ★미국 1단계 = EDGAR/yfinance/FRED 파이프라인 검증. ★PER○ 발견(한국 auto PER✗ peak-EPS 와 반대). 한국 산업 미러.
 

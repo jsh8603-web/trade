@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "panel": [
+      "096770",
+      "010950"
+    ],
+    "purpose": "S5 역공격 — 유가 forward 음 반증 3종"
+  },
+  "attacks": {
+    "ATK1_price_reversal": {
+      "self_mom3_fwd3_rho": 0.0151,
+      "p": 0.892,
+      "n": 83,
+      "verdict": "정유 자체 reversal 약/무 → 유가 forward 음은 가격 reversal 위장 아님"
+    },
+    "ATK2_market_beta": {
+      "brent_fwd3_raw_rho": -0.368,
+      "brent_fwd3_partial_on_market_rho": -0.3817,
+      "n": 85,
+      "verdict": "★시장 통제 후에도 유가 forward 음 잔존 → 유가 고유 신호(mean-reversion robust)"
+    },
+    "ATK3_capex_detrend": {
+      "d_capex_fwd3_rho": 0.1993,
+      "p": 0.0744,
+      "capex_fwd3_partial_on_brent_rho": 0.2919,
+      "n": 81,
+      "verdict": "capex 통제 후 잔존 → REJECTION 재검 필요"
+    }
+  }
+}

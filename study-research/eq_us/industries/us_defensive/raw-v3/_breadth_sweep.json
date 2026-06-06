@@ -1,0 +1,422 @@
+{
+  "design": "breadth 전수 B″ sweep (신규 6 + 기존 ep/idio/rmom). 단일 FDR family fixed-b size-valid.",
+  "candidates_measured": [
+    "ep_yield",
+    "idio_vol",
+    "residual_mom",
+    "net_issuance",
+    "high_52w",
+    "amihud",
+    "op_profitability",
+    "roe",
+    "accruals"
+  ],
+  "deferred": {
+    "SUE_PEAD": "8-K Item 2.02 furnish date anchor 필요 = EDGAR 8-K 파싱 별도 작업(데이터게이트). 이번 제외."
+  },
+  "indicators": {
+    "ep_yield__12M": {
+      "ic_mean": -0.056,
+      "t_nw": -2.6,
+      "n": 185,
+      "n_eff": 51.8,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": true,
+      "asymptotic_sig": true,
+      "p_value_eff": 0.0122,
+      "avg_universe_n": 42.2,
+      "coverage_cells": 8369
+    },
+    "ep_yield__6M": {
+      "ic_mean": -0.0484,
+      "t_nw": -2.27,
+      "n": 191,
+      "n_eff": 58.9,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": true,
+      "asymptotic_sig": true,
+      "p_value_eff": 0.0269,
+      "avg_universe_n": 42.4,
+      "coverage_cells": 8369
+    },
+    "ep_yield__3M": {
+      "ic_mean": -0.0385,
+      "t_nw": -2.4,
+      "n": 194,
+      "n_eff": 82.7,
+      "fixed_b_cv": 2.08,
+      "size_valid_sig": true,
+      "asymptotic_sig": true,
+      "p_value_eff": 0.0187,
+      "avg_universe_n": 42.4,
+      "coverage_cells": 8369
+    },
+    "idio_vol__12M": {
+      "ic_mean": 0.0198,
+      "t_nw": 0.73,
+      "n": 171,
+      "n_eff": 47.5,
+      "fixed_b_cv": 2.1,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.4691,
+      "avg_universe_n": 47.4,
+      "coverage_cells": 8682
+    },
+    "idio_vol__6M": {
+      "ic_mean": 0.0095,
+      "t_nw": 0.46,
+      "n": 177,
+      "n_eff": 59.0,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.6472,
+      "avg_universe_n": 47.4,
+      "coverage_cells": 8682
+    },
+    "idio_vol__3M": {
+      "ic_mean": 0.0105,
+      "t_nw": 0.56,
+      "n": 180,
+      "n_eff": 86.4,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.5769,
+      "avg_universe_n": 47.4,
+      "coverage_cells": 8682
+    },
+    "residual_mom__12M": {
+      "ic_mean": 0.0394,
+      "t_nw": 2.55,
+      "n": 173,
+      "n_eff": 59.1,
+      "fixed_b_cv": 2.1,
+      "size_valid_sig": true,
+      "asymptotic_sig": true,
+      "p_value_eff": 0.0134,
+      "avg_universe_n": 47.4,
+      "coverage_cells": 8778
+    },
+    "residual_mom__6M": {
+      "ic_mean": 0.0295,
+      "t_nw": 1.82,
+      "n": 179,
+      "n_eff": 67.5,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.0733,
+      "avg_universe_n": 47.4,
+      "coverage_cells": 8778
+    },
+    "residual_mom__3M": {
+      "ic_mean": 0.0276,
+      "t_nw": 1.76,
+      "n": 182,
+      "n_eff": 104.6,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.0814,
+      "avg_universe_n": 47.4,
+      "coverage_cells": 8778
+    },
+    "net_issuance__12M": {
+      "ic_mean": 0.0824,
+      "t_nw": 3.31,
+      "n": 185,
+      "n_eff": 50.6,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": true,
+      "asymptotic_sig": true,
+      "p_value_eff": 0.0017,
+      "avg_universe_n": 42.6,
+      "coverage_cells": 8436
+    },
+    "net_issuance__6M": {
+      "ic_mean": 0.0732,
+      "t_nw": 4.18,
+      "n": 191,
+      "n_eff": 61.6,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": true,
+      "asymptotic_sig": true,
+      "p_value_eff": 0.0001,
+      "avg_universe_n": 42.7,
+      "coverage_cells": 8436
+    },
+    "net_issuance__3M": {
+      "ic_mean": 0.0617,
+      "t_nw": 4.4,
+      "n": 194,
+      "n_eff": 109.7,
+      "fixed_b_cv": 2.08,
+      "size_valid_sig": true,
+      "asymptotic_sig": true,
+      "p_value_eff": 0.0,
+      "avg_universe_n": 42.8,
+      "coverage_cells": 8436
+    },
+    "high_52w__12M": {
+      "ic_mean": 0.0196,
+      "t_nw": 1.04,
+      "n": 180,
+      "n_eff": 64.0,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.3023,
+      "avg_universe_n": 47.4,
+      "coverage_cells": 9114
+    },
+    "high_52w__6M": {
+      "ic_mean": 0.0052,
+      "t_nw": 0.27,
+      "n": 186,
+      "n_eff": 72.7,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.7879,
+      "avg_universe_n": 47.5,
+      "coverage_cells": 9114
+    },
+    "high_52w__3M": {
+      "ic_mean": -0.0023,
+      "t_nw": -0.15,
+      "n": 189,
+      "n_eff": 111.3,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.881,
+      "avg_universe_n": 47.5,
+      "coverage_cells": 9114
+    },
+    "amihud__12M": {
+      "ic_mean": 0.0779,
+      "t_nw": 1.98,
+      "n": 184,
+      "n_eff": 43.8,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": true,
+      "p_value_eff": 0.0542,
+      "avg_universe_n": 47.4,
+      "coverage_cells": 9306
+    },
+    "amihud__6M": {
+      "ic_mean": 0.0547,
+      "t_nw": 1.8,
+      "n": 190,
+      "n_eff": 50.9,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.0779,
+      "avg_universe_n": 47.5,
+      "coverage_cells": 9306
+    },
+    "amihud__3M": {
+      "ic_mean": 0.0381,
+      "t_nw": 1.86,
+      "n": 193,
+      "n_eff": 69.3,
+      "fixed_b_cv": 2.08,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.0672,
+      "avg_universe_n": 47.5,
+      "coverage_cells": 9306
+    },
+    "op_profitability__12M": {
+      "ic_mean": -0.0116,
+      "t_nw": -0.59,
+      "n": 185,
+      "n_eff": 52.7,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.5578,
+      "avg_universe_n": 35.7,
+      "coverage_cells": 7061
+    },
+    "op_profitability__6M": {
+      "ic_mean": -0.003,
+      "t_nw": -0.18,
+      "n": 191,
+      "n_eff": 76.7,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.8576,
+      "avg_universe_n": 35.8,
+      "coverage_cells": 7061
+    },
+    "op_profitability__3M": {
+      "ic_mean": 0.0007,
+      "t_nw": 0.05,
+      "n": 194,
+      "n_eff": 119.8,
+      "fixed_b_cv": 2.08,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.9602,
+      "avg_universe_n": 35.8,
+      "coverage_cells": 7061
+    },
+    "roe__12M": {
+      "ic_mean": -0.0131,
+      "t_nw": -0.92,
+      "n": 185,
+      "n_eff": 61.5,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.3612,
+      "avg_universe_n": 38.4,
+      "coverage_cells": 7610
+    },
+    "roe__6M": {
+      "ic_mean": -0.0054,
+      "t_nw": -0.34,
+      "n": 191,
+      "n_eff": 70.8,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.7349,
+      "avg_universe_n": 38.5,
+      "coverage_cells": 7610
+    },
+    "roe__3M": {
+      "ic_mean": -0.0096,
+      "t_nw": -0.65,
+      "n": 194,
+      "n_eff": 122.4,
+      "fixed_b_cv": 2.08,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.5169,
+      "avg_universe_n": 38.6,
+      "coverage_cells": 7610
+    },
+    "accruals__12M": {
+      "ic_mean": -0.006,
+      "t_nw": -0.3,
+      "n": 185,
+      "n_eff": 51.6,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.7654,
+      "avg_universe_n": 44.3,
+      "coverage_cells": 8756
+    },
+    "accruals__6M": {
+      "ic_mean": -0.0152,
+      "t_nw": -1.0,
+      "n": 191,
+      "n_eff": 62.4,
+      "fixed_b_cv": 2.09,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.3212,
+      "avg_universe_n": 44.3,
+      "coverage_cells": 8756
+    },
+    "accruals__3M": {
+      "ic_mean": -0.0145,
+      "t_nw": -1.02,
+      "n": 194,
+      "n_eff": 92.8,
+      "fixed_b_cv": 2.08,
+      "size_valid_sig": false,
+      "asymptotic_sig": false,
+      "p_value_eff": 0.3104,
+      "avg_universe_n": 44.4,
+      "coverage_cells": 8756
+    }
+  },
+  "single_fdr_family_BY": {
+    "m_raw": 27,
+    "m_eff": 19.0,
+    "by_factor": 3.548,
+    "survivors_BY": [
+      "net_issuance__3M",
+      "net_issuance__6M",
+      "net_issuance__12M"
+    ],
+    "raw_p_min": 3e-05,
+    "raw_p_min_key": "net_issuance__3M",
+    "rank1_threshold": 0.001484,
+    "n_tests": 27,
+    "note": "★전 breadth 후보 단일 alpha budget. M_eff 재계산."
+  },
+  "size_valid_survivors_BY": [
+    "net_issuance__3M",
+    "net_issuance__6M",
+    "net_issuance__12M"
+  ],
+  "size_valid_individual": [
+    "ep_yield__12M",
+    "ep_yield__6M",
+    "ep_yield__3M",
+    "residual_mom__12M",
+    "net_issuance__12M",
+    "net_issuance__6M",
+    "net_issuance__3M"
+  ],
+  "net_issuance_orthogonalize": {
+    "note": "★advisory §1 직교화: net_issuance 를 ep_yield/payout 에 residualize 후 fixed-b size-valid 잔존 = incremental.",
+    "results": {
+      "12M": {
+        "orthog_ep": {
+          "ic": 0.0842,
+          "t": 3.71,
+          "fixedb_CV": 2.09,
+          "size_valid": true
+        },
+        "orthog_payout": {
+          "ic": 0.0554,
+          "t": 2.41,
+          "fixedb_CV": 2.09,
+          "size_valid": true
+        }
+      },
+      "6M": {
+        "orthog_ep": {
+          "ic": 0.0707,
+          "t": 4.03,
+          "fixedb_CV": 2.09,
+          "size_valid": true
+        },
+        "orthog_payout": {
+          "ic": 0.0553,
+          "t": 3.18,
+          "fixedb_CV": 2.09,
+          "size_valid": true
+        }
+      },
+      "3M": {
+        "orthog_ep": {
+          "ic": 0.0616,
+          "t": 4.4,
+          "fixedb_CV": 2.08,
+          "size_valid": true
+        },
+        "orthog_payout": {
+          "ic": 0.052,
+          "t": 3.41,
+          "fixedb_CV": 2.08,
+          "size_valid": true
+        }
+      }
+    },
+    "verdict": "INCREMENTAL — ⊥ep_yield 잔존(12M IC+0.084 t3.71 size-valid) + ⊥payout 잔존(12M IC+0.055 t2.41 size-valid). buyback-aversion specific 채널.",
+    "payout_corr": -0.531,
+    "ep_corr": -0.064
+  }
+}

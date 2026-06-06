@@ -1,0 +1,122 @@
+{
+  "meta": {
+    "H": 12,
+    "family": "us_equity_exploratory_v1 (★value confirmatory 와 별 family)",
+    "note": "quality 단일축 + value 등가중 stacking. 직교성 cross-corr. raw IC + fixed-b + IR proxy."
+  },
+  "gross_prof": {
+    "size_valid": {
+      "label": "gross_prof",
+      "ic_mean": -0.0535,
+      "n": 125,
+      "hac_lag": 6,
+      "t_nw": -1.71,
+      "n_eff": 33.1,
+      "underpowered": false,
+      "fixed_b_cv": 2.23,
+      "fixed_b_b": 0.048,
+      "fixed_b_sig": false,
+      "asymptotic_sig": false,
+      "p_wild_cluster": 0.1307
+    },
+    "ir": {
+      "ir_raw": -0.331,
+      "ir_neff": -1.903,
+      "n_eff": 33.1
+    }
+  },
+  "op_prof": {
+    "size_valid": {
+      "label": "op_prof",
+      "ic_mean": 0.0034,
+      "n": 125,
+      "hac_lag": 6,
+      "t_nw": 0.14,
+      "n_eff": 33.6,
+      "underpowered": false,
+      "fixed_b_cv": 2.23,
+      "fixed_b_b": 0.048,
+      "fixed_b_sig": false,
+      "asymptotic_sig": false,
+      "p_wild_cluster": 0.8971
+    },
+    "ir": {
+      "ir_raw": 0.027,
+      "ir_neff": 0.157,
+      "n_eff": 33.6
+    }
+  },
+  "quality_comp": {
+    "size_valid": {
+      "label": "quality_comp",
+      "ic_mean": -0.0364,
+      "n": 125,
+      "hac_lag": 5,
+      "t_nw": -1.43,
+      "n_eff": 34.7,
+      "underpowered": false,
+      "fixed_b_cv": 2.19,
+      "fixed_b_b": 0.04,
+      "fixed_b_sig": false,
+      "asymptotic_sig": false,
+      "p_wild_cluster": 0.1916
+    },
+    "ir": {
+      "ir_raw": -0.258,
+      "ir_neff": -1.518,
+      "n_eff": 34.7
+    }
+  },
+  "value_comp": {
+    "size_valid": {
+      "label": "value_comp",
+      "ic_mean": 0.1172,
+      "n": 125,
+      "hac_lag": 5,
+      "t_nw": 3.91,
+      "n_eff": 34.0,
+      "underpowered": false,
+      "fixed_b_cv": 2.19,
+      "fixed_b_b": 0.04,
+      "fixed_b_sig": true,
+      "asymptotic_sig": true,
+      "p_wild_cluster": 0.0013
+    },
+    "ir": {
+      "ir_raw": 0.713,
+      "ir_neff": 4.16,
+      "n_eff": 34.0
+    }
+  },
+  "value+quality_stack": {
+    "size_valid": {
+      "label": "value+quality_stack",
+      "ic_mean": 0.0393,
+      "n": 125,
+      "hac_lag": 4,
+      "t_nw": 1.48,
+      "n_eff": 37.8,
+      "underpowered": false,
+      "fixed_b_cv": 2.15,
+      "fixed_b_b": 0.032,
+      "fixed_b_sig": false,
+      "asymptotic_sig": false,
+      "p_wild_cluster": 0.1578
+    },
+    "ir": {
+      "ir_raw": 0.24,
+      "ir_neff": 1.475,
+      "n_eff": 37.8
+    }
+  },
+  "orthogonality": {
+    "value_quality_cross_corr": -0.0234,
+    "gross_op_cross_corr": 0.3823,
+    "note": "value↔quality 음상관이면 등가중 stacking 분산 이득(결합 IR↑)"
+  },
+  "stacking_gain": {
+    "value_only_ir_neff": 4.16,
+    "stack_ir_neff": 1.475,
+    "note": "stack IR > value IR 이면 quality 추가 분산 이득 실증"
+  }
+}

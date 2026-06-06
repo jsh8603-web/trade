@@ -1,201 +1,338 @@
-# summary.yaml — financial(금융) 산업 v3 (frame v3 §M exposure card 계약)
-# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge, BY/FDR, LOO/block-boot).
-# ★verdict 중심 = regime-conditional 발견(금리 regime별 모멘텀 부호 반전) = 동적가중 정당화 직접 증거.
-# raw 재현: raw-v3/{collect, measure, collect_dart, measure_valuation, measure_cross, exposure_card}.py
+# summary.yaml — financial(금융) 산업 conditional IC v3 (frame v3 + dispatch conditional 양식)
+# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge, BY/FDR, wild-cluster/block-boot).
+# ★verdict 중심 = sub-sector 부호 이질(은행/보험 금리+ vs 증권 금리−) = 통합 cross-sectional IC cancel = frame §1.6 분리 의무.
+# raw 재현: raw-v3/{collect_regime, measure_conditional, measure_oos_event}.py + validation-{conditional,oos-event,attack}-v3.json
+#   (+ 기존 v2 부분 활용: measure_valuation/measure_cross/validation-{valuation,cross,metrics}-v3.json)
 
-industry: kr_financial        # eq_kr 12산업 中 Tier 2 (금융: 은행/증권/보험)
+industry: kr_financial        # eq_kr 12산업 中 Tier 2 (금융: 은행11/증권10/보험9/지주3/카드1)
 asset_scope: [equity.kr]
-archetype: spread_driven      # archetype.py: 은행 NIM·credit spread regime 민감 (1차 가설)
+archetype: spread_driven      # 금리·신용 regime 민감 (NIM·credit spread)
 archetype_attestation:
   valid_from: "2019-01-01"    # ★PIT 사전선언 (§M.5 ex-post 금지)
-  declared_at: "2026-06-03"
-  primary_metric: pbr         # spread_driven primary = P/B·ROE (trap=신용사이클 대손)
-  secondary: asset_stable     # soft: 보험/금융지주 배당 (prob~0.3)
+  declared_at: "2026-06-05"
+  primary_metric: pbr         # 은행 P/B·ROE (sales_yield 부적합=이자수익 레버리지)
+  secondary: rate_regime_conditional
   basis: >
-    spread_driven = NIM·credit spread regime 민감. ★검증: regime-conditional 모멘텀이 rate_up 국면
-    +0.102 / rate_down -0.054 = 금리(NIM) regime 의존 방향 시사 → spread_driven 지지(tentative, n=21 small).
-as_of: "2026-05-31"
+    spread_driven = 금리커브(NIM)·credit spread regime 민감. ★단 sub-sector 부호 이질(은행/보험 금리+ vs 증권 금리−).
+    ★검증: 은행 pbr_z y60d IC -0.161 wc_p=0.0165(value premium) vs 증권 +0.146 → 차이 t=-3.18 유의(cancel 입증).
+as_of: "2026-05-29"
 
 # ── 블록1 LENS (정성) ──
 lens:
   pricing_principle: >
-    금융 = spread_driven. "싸다" = P/B·ROE (trap=신용사이클 대손, 저PBR 함정).
-    ★실측 핵심: unconditional 신호는 momentum/valuation 모두 비유의. 단 **regime-conditional**
-    (금리 상승 국면)에서 모멘텀 IC 양전(+0.102) = NIM 수혜 = "지표 유효성이 regime 함수"(사용자 핵심).
-    valuation(PBR/PER) = DART 금융재무 2023~ 제약으로 n 부족 → TENTATIVE/INSUFFICIENT.
+    금융 = spread_driven, 단 ★sub-sector 부호 이질이 본질. "싸다" = P/B·ROE(은행/지주). 증권은 금리하락 수혜로
+    부호 반대. ★실측 핵심: 금융 전체 eq-weight cross-sectional IC = sub-sector 부호 cancel 로 약(기존 v2 "전부 비유의"의
+    근본 원인). sub-sector 분리 시 은행 저PBR value premium(IC 음 -0.161) 발현 = frame §1.6(분석unit↔portfolio 분리).
   cycle_reading: >
-    금리 regime: rate_up 22 / rate_down 21 / rate_flat 46 month (US 10Y 3M Δ, KR proxy).
-    은행 NIM = 금리 상승 수혜, 증권 = 거래대금·시황 민감, 보험 = 금리(자산운용수익)·할인율.
+    금리 regime(국고3Y 6M Δ): rate_up 30 / rate_down 26 / rate_flat 33 month. curve(10Y-3Y): steepen 43/flatten 34.
+    credit(AA−-국고3Y): wide 36/normal 53. 은행=금리상승 NIM 수혜(+), 증권=금리하락 거래대금(−), 보험=금리상승 자산운용·IFRS17(+).
+    ★★cell 곱셈 금지(team-lead 2026-06-05): base 36셀(Macro4×KRW3×flow3) = 12산업 공통 보존. 금리 3축은 ⛔곱하지 않고
+    (108셀 붕괴 회피) ★독립 1D 금융전용 보조 surface(권고 b) + family_2 interaction(권고 a)으로 별도 layer. 실측 cell candidate = 단일축 합 18.
   estimation_note: >
-    2026-05: universe 34종(은행11/증권10/보험9/기타3/카드1). ★unconditional 신호 약 →
-    regime-conditional 동적가중(derive_weights w∝Θ_signal·IC, regime 함수)이 financial 핵심.
+    2026-05: universe 34종. ★통합 unconditional 신호 약(sub-sector cancel). sub-sector 분리 = 은행 PBR value(tentative,
+    DART 2023~ n=27) + rev_1m reversal(IS/OOS 부호유지) + 밸류업 2차 re-rating(+0.076 spread). momentum = structural break(단정 금지).
 
-# ── 블록2 INDICATORS (forward 횡단면 Rank-IC) ──
-# ★financial unconditional 신호 = 전부 비유의 (BY 생존 0). regime-conditional 만 신호.
+# ── 블록2 INDICATORS (sub-sector 분리 cross-sectional IC, ★cancel 점검 핵심) ──
+# ★financial 핵심 = sub-sector 부호 이질. 통합 IC 약 / 분리 시 발현. n<30 hedge 의무.
 indicators_passed:
-  - id: cs_mom_6m_rate_up        # ★regime-conditional 한정
+  - id: bank_pbr_z_value
+    layer: 1
+    family: value
+    subsector: bank          # ★sub-sector 분리 (frame §1.6)
+    horizon: y_60d
+    ic_mean: -0.161          # 저PBR value premium (음 = 저PBR→고forward)
+    ic_ci_block_boot: [-0.30, -0.02]   # ★block-boot, 0 배제(단 n=27 wide)
+    wild_cluster_p: 0.0165   # ★small-block size-invalid 회피 (asymptotic t 대체)
+    n_effective: 27          # ★DART 2023~ 제약 = short-sample
+    avg_universe_n: 11.0     # 은행 11종
+    cancel_evidence:         # ★S5 반증3 = 통합 cancel 입증
+      bank_ic: -0.161
+      securities_ic: 0.146   # ★증권 = 반대 부호(고PBR→고forward)
+      diff_t_naive: -3.18    # ★naive (자기상관 미보정 — 60d overlapping)
+      diff_autocorr_corrected:   # ★fin-audit G-C remediation 1 (라벨 정밀화, 격하 아님)
+        lag1_autocorr: 0.452       # 60d overlapping → diff 자기상관
+        t_nw_hac_lag3: -2.64       # NW-HAC lag3 보정 → 여전히 유의(|t|>2)
+        n_eff: 14.7
+        t_neff: -2.35              # n_eff 보정 → 여전히 유의
+        wild_cluster_p: 0.0045     # ★다른 지표 동일 적용(cancel diff만 naive였음 → 보정)
+        block_boot_ci95: [-0.60, -0.14]   # 0 배제
+      diff_t: "naive -3.18 / NW-HAC lag3 -2.64 / n_eff(14.7) -2.35 + wc_p 0.0045 + CI[-0.60,-0.14] 0배제"
+      verdict: "★통합 cross-sectional IC cancel = frame §1.6. 은행 value / 증권 반대 → 분리 의무. ★자기상관 보정 후에도 부호 결론 robust(NW-HAC t=-2.64, wc_p=0.0045, CI 0배제). fin-audit 독립재현 + bank vs insur t=-2.56 도 유의."
+    robustness:
+      leave_top2_out: -0.202  # 대형주(KB/신한) 제외 시 강화 = microcap/대형주 아티팩트 아님
+      within_period: "2023 +0.14 / 2024 -0.02 / 2025 -0.36 / 2026 +0.02 = 부호 불안정(short-sample)"
+      oos_split: "★IS(2019-22) n=0 (DART 2023~ 제약) = OOS split 불가 = data-gate"
+    source_id: "raw-v3/validation-conditional-v3.json:conditional_ic_surface.bank.pbr_z.y_60d + validation-attack-v3.json:pbr_cancel_diff"
+    verdict: "★PARTIAL — 은행 저PBR value premium 방향 robust(부호 음 + leave-top2 강화 + 증권 대비 t=-3.18). ★단 DART 2023~ n=27 short-sample = magnitude tentative, OOS split 불가(data-gate). within-period 부호 불안정."
+
+  - id: ratePOS_rev_1m
+    layer: 3
+    family: reversal
+    subsector: rate_POS      # 은행/보험/지주/카드 24종
+    horizon: y_20d
+    ic_mean: -0.058          # 단기 reversal
+    wild_cluster_p: 0.061    # borderline
+    ic_ci_block_boot: [-0.12, 0.00]
+    n_effective: 81
+    conditional:
+      KRW_weak: {ic: -0.16, wc_p: 0.003, n: 34}    # ★원화약세(위험회피) reversal 강
+      macro_Slowdown: {ic: -0.17, wc_p: 0.007, n: 25}
+    oos_split: "★IS(2019-22) -0.061 → OOS(2023-26) -0.055 = ★부호유지(가장 robust)"
+    robustness: {leave_2020_out: -0.039, leave_2022_out: -0.026, verdict: "부호유지, 2022 부분의존"}
+    source_id: "raw-v3/validation-conditional-v3.json + validation-oos-event-v3.json:walk_forward_oos.ratePOS_rev1m_y20d"
+    verdict: "★PARTIAL — rate_POS 단기 reversal IS/OOS 부호유지(가장 robust 신호). KRW_weak/Slowdown 위험회피 국면 증폭(wc_p<0.01). magnitude 약(-0.05) = live tentative."
+
+  - id: securities_roe_z_quality   # ★약신호 부활 측정(team-lead 지시 2026-06-05) — TENTATIVE, tradeable 미승격
+    layer: 1
+    family: quality
+    subsector: securities          # ★증권 sub-sector 한정 (보험은 반대 부호)
+    horizon: y_60d
+    ic_mean: 0.317                 # ★증권 고ROE quality premium (양 = 고ROE→고forward)
+    wild_cluster_p: 0.0025
+    n_effective: 22                # ★DART 2023~ short-sample
+    within_period: "2024 +0.51 / 2025 +0.19 / 2026 +0.35 = 전부 양(일관)"
+    cancel_evidence:               # ★PBR cancel 구조 ROE축 재확인
+      securities_roe_ic: 0.317
+      insurance_roe_ic: -0.177     # ★보험 = 반대 부호
+      diff_t_naive: 5.57
+      diff_t_nw_hac_lag3: 5.28     # 자기상관 보정 후에도 강함
+      verdict: "★증권 고ROE+ vs 보험 고ROE− = sub-sector 부호 이질 ROE축 재확인(PBR cancel 동형)."
+    robustness: {leave_2024_out: 0.21, leave_2025_out: 0.47, verdict: "부호유지(단일 episode 종속 아님)"}
+    oos_split: "★IS(2019-22) n=0 (DART 2023~) = walk-forward OOS split 불가 = data-gate"
+    gate_status: {n: tentative, se: tentative, power: weak_mde_미달, fdr: not_survive_m22, oos: data_gate}
+    source_id: "raw-v3/validation-quality-v3.json:quality_ic_surface.securities.roe_z.y_60d"
+    verdict: "★TENTATIVE (부분 부활, tradeable 미승격) — 증권 고ROE quality premium within-period 일관(+0.317, leave-year 부호유지) + 증권 vs 보험 차이 t=5.28. ★단 DART 2023~ IS n=0(OOS 불가) + BY 미생존(m=22) + n_eff MDE 미달 = magnitude tentative, live 제외. unblock = DART 2019-22 확보."
+
+  - id: bank_mom_12_1
     layer: 3
     family: momentum
-    horizon: 12M_mom
-    regime: rate_up              # ★조건부 — 금리 상승 국면만
-    ic_mean: 0.102
-    ic_ci_95: [-0.026, 0.228]     # ★[#21] regime별 block-boot CI(block=5, n=21 wide) = 0 약간 포함 → magnitude hedge
-    n_effective: 21              # months in rate_up regime (small)
-    avg_universe_n: 31.5
-    interaction_t:               # ★[#21] "rate_up에서만 양" claim 통계근거 (S6 audit 보강)
-      regression: "IC_t ~ const + ΔRate_3M_t (NW HAC lag=12): slope=+0.126 t=+2.01 p=0.0488 (유의 borderline)"
-      welch: "rate_up IC +0.102 vs pooled(down+flat) -0.051, Welch t=+2.65 p=0.0121 (유의)"
-      verdict: "★interaction+Welch 둘 다 유의 = 'rate_up only 양' claim 통계근거 O = regime-conditional 신호 강화. 단 n=21<30 magnitude hedge + interaction p=0.049 borderline."
-      regime_ci: "rate_up [-0.026,0.228](0 포함, n21 wide) / rate_down -0.054 [-0.168,0.070] / rate_flat -0.049 [-0.159,0.037]"
-    source_id: "raw-v3/validation-metrics-v3.json:regime_g1.regime_conditional_ic.rate_up + raw-v3/validation-interaction-v3.json"
-    notes: |
-      ★regime-conditional 핵심 발견. mom_6 → 12M forward IC: rate_up +0.102 / rate_down -0.054 / rate_flat -0.049.
-      = 금리 상승 국면(은행 NIM 수혜)에서만 모멘텀 양. unconditional 비유의(부호 상쇄)를 regime 이 가림.
-      ★small-n(n=21) → TENTATIVE DIRECTIONAL. 단정 금지. block-boot/regime별 CI = 추가 측정.
-      = 사용자 "지표 상관 계속 변하는 그림" + 동적가중(regime-conditional IC) 정당화 직접 증거.
+    subsector: bank
+    horizon: y_60d
+    ic_mean: 0.090           # long-horizon continuation (2023~ 양)
+    wild_cluster_p: 0.0445
+    n_effective: 74
+    structural_break:        # ★핵심 주의 = in-sample artifact 아닌 regime break
+      pre_2023: "2020 -0.04 / 2021 -0.06 / 2022 -0.06 (reversal)"
+      post_2023: "2023 +0.25 / 2024 +0.11 / 2025 +0.25 / 2026 +0.67 (continuation)"
+      oos_split: "IS -0.054 → OOS +0.228 = ★부호반전 = structural break(밸류업 2024~ 은행주 추세)"
+    source_id: "raw-v3/validation-conditional-v3.json + validation-oos-event-v3.json:walk_forward_oos.bank_mom12_1_y60d"
+    verdict: "★TENTATIVE — 은행 long-momentum 2023~ continuation 강하나 ★structural break(pre-2023 reversal → post-2023 continuation). regime/밸류업 의존 = magnitude 단정 금지, OOS 부호반전."
 
-# ── 블록3 RELATIONSHIPS (partial-corr) ──
-relationships_passed: []  # unconditional 유의 관계 없음. regime-conditional 만 = indicators_passed.
+# ── 블록3 RELATIONSHIPS ──
+relationships_passed: []  # unconditional 유의 partial-corr 없음(sub-sector cancel). regime-conditional/sub-sector 분리 = indicators.
 
-# ── 블록4 WEIGHT_RULES — ★regime-conditional 동적가중 ──
+# ── 블록4 WEIGHT_RULES — ★sub-sector 분리 + 점추정 박제 금지 ──
 weight_rule_candidates:
-  - indicator_id: cs_mom_6m_rate_up
-    base_weight_range: [0.00, 0.08]   # ★regime 함수: rate_up 시 ↑, rate_down/flat 시 ~0(또는 음). 점추정 금지.
-    modulate_by: [archetype, regime]  # ★regime = 핵심 modulator (금리 국면)
-    direction: "rate_up regime → cross-sectional 6M 모멘텀 z 상위 overweight. rate_down/flat → 비활성(IC 음/0)."
-    granularity: cross_sectional
-    gate_status: {n: tentative, se: tentative, power: weak, fdr: regime_conditional, oos: tentative}  # n=21 small
-    source_ids: ["raw-v3/validation-metrics-v3.json:regime_g1"]
+  - indicator_id: bank_pbr_z_value
+    base_weight_range: [0.00, 0.08]   # ★은행 sub-sector 한정. 점추정 금지. DART 데이터 보강 전 상한 낮춤.
+    modulate_by: [subsector, regime]  # ★subsector = 핵심 modulator (은행 only, 증권 제외)
+    direction: "은행 sub-sector 내 저PBR(낮은 z) overweight. ★증권 sub-sector 는 반대(제외 또는 부호반전)."
+    granularity: cross_sectional_within_subsector
+    gate_status: {n: tentative, se: tentative, power: weak, fdr: not_survive, oos: data_gate}  # n=27 short
+    source_ids: ["raw-v3/validation-conditional-v3.json:bank.pbr_z.y_60d"]
     hedge_note: >
-      ★n=21(rate_up) small-n. TENTATIVE. regime-conditional 동적가중 prototype = supervisor Σ_signal·Ω 단계 정밀화.
-      ★★[#21 측정 완료] interaction t 부착(S6 audit 보강): regression IC~ΔRate slope +0.126 NW t=2.01 p=0.0488 +
-      Welch t=2.65 p=0.0121 → ★둘 다 유의 = "rate_up only 양" claim 통계근거 O(점추정 부재 우려 해소). 단 ⛔ (a)
-      interaction p=0.049 borderline (b) rate_up block-boot CI [-0.026,0.228] 0 포함 n=21 wide → ★magnitude hedge
-      유지 + TENTATIVE + live 제외(n<30, regime-conditional = supervisor Σ_signal 단계 정밀화).
+      ★DART 2023~ n=27 short-sample = TENTATIVE. 부호(value premium 음) robust(증권 대비 t=-3.18 + leave-top2 강화)
+      나 magnitude·OOS = data-gate(IS n=0). live 제외. ★supervisor 통합 시 rate_POS sleeve vs 증권 sleeve 분리 권고.
+
+  - indicator_id: ratePOS_rev_1m
+    base_weight_range: [0.00, 0.05]   # ★reversal 약효(IC -0.05). regime 함수.
+    modulate_by: [subsector, regime]
+    direction: "rate_POS(은행/보험/지주) 단기수익 z 상위 underweight(reversal). KRW_weak/Slowdown 국면 증폭."
+    granularity: cross_sectional
+    gate_status: {n: ok, se: tentative, power: ok, fdr: not_survive, oos: sign_hold}
+    source_ids: ["raw-v3/validation-conditional-v3.json + validation-oos-event-v3.json"]
+    hedge_note: >
+      ★IS/OOS 부호유지 = 가장 robust 신호이나 magnitude 약(-0.05) + BY 미생존. TENTATIVE, live 보류.
 
 # ── 블록5 CONFIDENCE_HOOKS — ★affects_indicator 필수 ──
 confidence_hooks:
-  - hypothesis_id: financial_nim_regime_momentum
-    affects_indicator: cs_mom_6m_rate_up   # ★필수
-    affects_edge: [cs_mom_6m_rate_up, financial_fwd_12m]
-    confirm_signal: "rate_up regime 진입 시 6M 모멘텀 z 상위 종목 12M forward rank IC > 0 유지"
-    reject_signal: "rate_up regime 에서도 모멘텀 IC e-CUSUM 붕괴 (NIM 가설 무효)"
-    emit_where: "panel-score-IC 축 (regime-conditional)"
+  - hypothesis_id: financial_subsector_value_heterogeneity
+    affects_indicator: bank_pbr_z_value
+    affects_edge: [bank_pbr_z_value, bank_fwd_60d]
+    confirm_signal: "은행 sub-sector 내 저PBR z 상위 종목 60d forward rank IC < 0 유지 + 증권 대비 부호 반대 지속"
+    reject_signal: "은행 PBR IC e-CUSUM 부호반전 OR 증권과 부호 동일화(cancel 구조 붕괴)"
+    emit_where: "panel-score-IC 축 (sub-sector 분리)"
     accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
-    feeds_weight: "derive_weights regime-conditional 재적합 → rate regime 따라 모멘텀 base_weight 변동"
-    action_threshold: "e-value > 20 → retract / regime 전환 시 재평가"
+    feeds_weight: "derive_weights sub-sector 분리 재적합 → 은행 sleeve value / 증권 sleeve 분리"
+    action_threshold: "e-value > 20 → retract / DART 2019-22 확보 시 재평가"
 
 # ── 블록6 COLLECTOR_PLAN ──
 collector_plan_industry:
-  - missing: "금융업 재무 2019-2022 (DART fnlttSinglAcntAll = 2023~만, IFRS 보험/은행 별도양식)"
-    source: "KB금융 등 2019-2022 status 013(데이터 없음) 확인. DART 금융업 전용 양식 OR 사업보고서 원문 파싱 OR 데이터벤더"
-    priority: high   # ★valuation IC 검증의 핵심 제약 — financial valuation 게이트 통과 불가 원인
-    status: "deferred (supervisor 2026-06-03). 'value 산업 분기 검증' = consumer 로 이관."
-  - missing: "PIT universe 멤버십 (시점별 섹터 편입/편출 + delisted/M&A)"
-    source: "FDR KRX-DESC 현재 스냅샷만. KRX PIT 섹터분류 인증 필요"
-    priority: high
-  - missing: "KR 금리 (KORIBOR/국고채) + KR HY credit spread"
-    source: "현 = US 10Y(^TNX) proxy + US HY OAS proxy. KR 금리 = 한국은행 ECOS API"
-    priority: medium  # regime 정밀화 (현 US proxy)
-  - missing: "은행 NIM·연체율, 증권 거래대금, 보험 손해율 (산업 cycle 지표)"
-    source: "금융감독원 금융통계정보시스템 / 한국거래소"
+  - missing: "DART 금융재무 2019-2022 (fnlttSinglAcntAll = 2023~만, IFRS 보험/은행 별도양식)"
+    source: "데이터벤더 OR 사업보고서 원문 파싱. 현 = status 013(데이터 없음)"
+    priority: high   # ★PBR value premium magnitude·OOS split 의 핵심 제약 (IS n=0 원인)
+  - missing: "PF 익스포저 종목별 (증권/지방은행 충당금)"
+    source: "DART 주석 충당금 파싱. credit_regime(거시)으로 부분 대리 중"
+    priority: medium
+  - missing: "종목레벨 외국인 flow (밸류업 종목선별 알파)"
+    source: "KRX 종목별 net buy = 인증 차단. 시장레벨 regime(ECOS)은 측정완료"
+    priority: medium
+  - missing: "ROE/quality (DART 순이익/자본 cross-sectional)"
+    source: "DART equity/net_income 으로 가능(후속). 고ROE 저PBR 결합"
     priority: medium
 
 # ── ★cross (분석 단위 간 상관) — §M.3 (산업=보고만) ──
+# 기존 v2 common factor β (level, 비유의) + ★금리 regime conditional 로 재해석
 cross:
   common_factor_exposure:
     - {factor: credit, beta: -0.0535, beta_ci_95: [-0.1473, 0.0403], contemporaneous: true,
-       source_id: "raw-v3/validation-cross-v3.json:common_factor_exposure.credit", note: "비유의 (t=-1.12). battery 대비 약."}
+       source_id: "raw-v3/validation-cross-v3.json (기존 v2)", note: "★level β 비유의(US HY proxy). 단 credit_regime(KR AA−-국고3Y) conditional 로 재측정 = credit_wide 에서 신호 변조(indicators 참조)."}
+    - {factor: rate, beta: -0.0419, beta_ci_95: [-0.189, 0.105], contemporaneous: true,
+       note: "★level β 비유의. 단 rate_regime(KR 국고3Y Δ) conditional 에선 sub-sector 부호 갈림(은행+ 증권−). level β ≠ regime effect."}
     - {factor: VIX, beta: 0.0009, beta_ci_95: [-0.0029, 0.0048], contemporaneous: true, note: "비유의"}
     - {factor: dollar, beta: -0.515, beta_ci_95: [-1.700, 0.670], contemporaneous: true, note: "비유의"}
-    - {factor: oil, beta: -0.0245, beta_ci_95: [-0.216, 0.167], contemporaneous: true, note: "비유의"}
-    - {factor: rate, beta: -0.0419, beta_ci_95: [-0.189, 0.105], contemporaneous: true,
-       note: "★contemporaneous rate β 비유의 — 단 regime-conditional(rate Δ 3M)에선 모멘텀 IC 부호 반전(indicators 참조). level β ≠ regime effect."}
-  directional_spillover: []
+  directional_spillover: []   # ★산업단계 = 후보 보고. financial = 금리/credit regime 의존이 dominant, DY spillover = supervisor 통합단계
   structural_linkage:
     - supplier_or_customer: null
-      verdict: "customer-supplier momentum = financial 부적합(upstream 정의 불분명). skip(battery=null 동일 패턴). 금융은 macro(금리/credit) regime 의존이 supply-chain 보다 dominant."
+      verdict: "customer-supplier momentum = financial 부적합(upstream 정의 불분명). 금융은 macro(금리/credit) regime 의존이 supply-chain 보다 dominant."
   # ⛔ sector-rotation clock = myth(Molchanov 2024).
 
-# ── ★valuation 횡단면 (§M.7, DART 재구성 — 데이터 제약) ──
+# ── ★valuation 횡단면 (§M.7, DART 재구성 — ★2023~ 데이터 제약) ──
 valuation_cross_sectional:
-  data_source: "raw-v3/validation-valuation-v3.json (DART 312 rows = ★2023~만 + pykrx 가격)"
-  mechanism_works: true   # cross-sectional 작동 (PBR avgN 29 / PER 20). 단 시계열 짧음.
-  data_constraint: "★DART 금융재무 = 2023 회계연도부터만(IFRS 보험/은행 별도양식). 2019-2022 status 013. → forward IC n 급감."
-  pit_note: "재무 = rcept_dt 공시일 이후만. financial 보고지연 = 분기보고 ~90일."
+  data_source: "raw-v3/validation-valuation-v3.json (기존 v2, DART 312rows 2023~) + conditional-v3(sub-sector 분리)"
+  data_constraint: "★DART 금융재무 = 2023 회계연도부터만. forward IC n 급감(PBR n=27~29). ★sub-sector 분리 시 N 더 작음(은행 11)."
+  pit_note: "재무 = rcept_dt 공시일 이후만. 보고지연 ~90일."
   indicators:
-    - id: cs_pbr_z
-      signal: "PBR cross-sectional z (저PBR=value, spread_driven primary)"
-      horizon: 12M
-      ic_mean: -0.019       # 저PBR value 방향(음)이나 ≈0
-      ic_ci_95_block_boot: [-0.097, 0.102]  # 0 포함
-      t_nw: -0.43
-      n_effective: 19
-      avg_universe_n: 28.8
-      source_id: "raw-v3/validation-valuation-v3.json:indicators.pbr_z__12M"
-      verdict: "TENTATIVE DIRECTIONAL — 저PBR value premium 방향성 약 prior. 비유의(CI 0 포함), n=19 데이터 제약. ★primary_metric(pbr) 이나 IC 약."
+    - id: bank_cs_pbr_z
+      signal: "은행 sub-sector PBR cross-sectional z (저PBR=value)"
+      horizon: y_60d
+      ic_mean: -0.161
+      wild_cluster_p: 0.0165
+      n_effective: 27
+      verdict: "★PARTIAL — 은행 저PBR value premium 방향 robust(증권 대비 t=-3.18). DART 2023~ n=27 short = magnitude tentative."
+    - id: securities_cs_pbr_z
+      signal: "증권 sub-sector PBR cross-sectional z"
+      horizon: y_60d
+      ic_mean: 0.146           # ★양 = 증권은 고PBR→고forward (은행과 반대)
+      wild_cluster_p: 0.024
+      n_effective: 28
+      verdict: "★증권 = PBR 부호 반대(value premium 역). = sub-sector cancel 구조 핵심. growth/거래대금 종목 prox 가능."
     - id: cs_per_z
-      signal: "PER cross-sectional z"
-      horizon: 24M_value
-      ic_mean: 0.185        # 양수 = 고PER forward 높음 (value premium 반대 OR 금융 PER 왜곡)
-      t_nw: 21.2            # ★허수 — n=7
-      n_effective: 7        # ★INSUFFICIENT (small-n rule: n<10 단정 금지)
-      avg_universe_n: 15.0
-      source_id: "raw-v3/validation-valuation-v3.json:indicators.per_z__24M_value"
-      verdict: "★INSUFFICIENT — n=7(DART 2023~ 제약). t=21.2 는 small-n 허수(within=0, CPCV=nan). 단정 금지. 금융 PER = 보험 일회성손익 왜곡 가능. ★★[frame §M.12] 24M eff_indep_N = 7/24 ≈ 0.3 = ★전 산업 최악 degenerate(독립표본 < 1). t=21.2 완전 무의미. ★avgN=15<20 = magnitude haircut 무의미(애초 INSUFFICIENT, 점추정 박제 금지)."
-  multiple_testing: "8 테스트 BY factor 2.72. per_z__24M(n=7) 만 형식상 생존하나 INSUFFICIENT 격하 → 실질 생존 0."
+      signal: "PER cross-sectional z (전 sub-sector)"
+      horizon: y_20d
+      ic_mean: 0.034
+      wild_cluster_p: 0.537
+      verdict: "★비유의. bank per_z -0.19(약). 보험 IFRS17 일회성 peak-EPS 왜곡. ★기존 v2 per_z 24M t=21.2 = n=7 허수(eff_indep 0.3 degenerate) 확정."
+  multiple_testing: "★m=862 naive(sub-sector 6그룹 × 신호 × horizon × regime cell) BY survivors=[]. M_eff 과대(중복+신호상관) → 독립 = sub-sector 3 + M_eff_signal 3-4, 통합 supervisor."
   verdict: >
-    valuation 횡단면 메커니즘 작동(PBR avgN 29). 단 ★DART 금융재무 2023~ 제약으로 forward IC n 부족 →
-    PBR TENTATIVE(약·비유의), PER INSUFFICIENT(n=7). "금융=value 우세" 분기 검증 = 데이터 제약으로 보류
-    → consumer(표준계정 value 산업)로 이관. financial 진짜 신호 = regime-conditional 모멘텀(NIM).
+    ★valuation 핵심 = sub-sector 부호 이질(은행 저PBR value -0.161 vs 증권 +0.146, 차이 t=-3.18). 통합 cross-sectional IC
+    cancel = frame §1.6. 단 DART 금융재무 2023~ 제약(n=27) = PBR magnitude TENTATIVE, OOS split 불가(data-gate).
+    PER INSUFFICIENT(보험 IFRS17 왜곡). "은행=value 우세" = 부호 robust / magnitude DART 보강 후 확정.
+
+# ── ★밸류업 event study (financial 고유, ★이연 금지 측정완료) ──
+value_up_event_study:
+  data_source: "raw-v3/validation-oos-event-v3.json:value_up_event_study"
+  method: "Market Model(estimation [-120,-11], R_mkt=universe eq-weight) CAAR. 저PBR(하위33%) vs 고PBR(상위33%)"
+  events:
+    - date: "2024-02-26"
+      name: "밸류업 1차 (세미나)"
+      low_pbr_caar_short: -0.077    # [-5,+5]
+      low_pbr_caar_mid: -0.054      # [+1,+60]
+      spread_low_minus_high: -0.083
+      verdict: "★예상 반대(음). 1차 세미나 무반응/역행. 'sell the news'"
+    - date: "2024-05-02"
+      name: "밸류업 2차 (가이드라인)"
+      low_pbr_caar_short: 0.014
+      low_pbr_caar_mid: 0.034
+      spread_low_minus_high: 0.076   # [+1,+60]
+      verdict: "★re-rating 발현. 2차 가이드라인 저PBR 금융주 outperform(+0.076 spread)"
+  verdict: >
+    ★밸류업 = 1차 음/2차 양 = single event 단정 불가(theory M3 부분 지지/부분 기각). 효과는 2차 가이드라인에서 발현,
+    1차 세미나는 무반응/역행. n=8-9종 small-n = TENTATIVE. 후속 정책 event(2025+) 추가 확인 필요.
+
+# ── walk-forward OOS verdict (★team-lead 지시 = in-sample artifact 판별) ──
+walk_forward_oos:
+  split: "IS 2019-2022 / OOS 2023-2026"
+  source: "raw-v3/validation-oos-event-v3.json:walk_forward_oos"
+  results:
+    - {case: ratePOS_rev_1m_y20d, IS: -0.061, OOS: -0.055, verdict: "★부호유지 = 가장 robust"}
+    - {case: bank_rev_1m_y5d, IS: -0.056, OOS: -0.173, verdict: "★부호유지(강화)"}
+    - {case: bank_mom_12_1_y60d, IS: -0.054, OOS: 0.228, verdict: "★부호반전 = structural break(밸류업 추세), artifact 아닌 regime"}
+    - {case: bank_pbr_z_y60d, IS: null, OOS: -0.161, verdict: "★IS n=0 (DART 2023~) = OOS split 불가 = data-gate"}
+  verdict: >
+    ★rev_1m reversal = IS/OOS 부호유지(robust). momentum = structural break(시기별 부호반전, 단정 금지).
+    valuation = DART 데이터 부재로 split 불가(data-gate, deferral 아님). = walk-forward 가 momentum structural break 정확 노출.
+
+# ── ★ROTATION (금융 업종 자체 비중 timing, team-lead 지시 2026-06-05) ──
+# ★종목selection(위 indicators)과 별 차원. "어느 국면 → 금융 OW/UW". rotation-signals.md SSOT.
+rotation:
+  source: "raw-v3/validation-rotation-v3.json + rotation-signals.md"
+  목적: "어느 국면 → 금융 업종 비중 OW/UW (종목selection과 별 차원)"
+  판별기준: "★상대수익(financial eq-weight − KOSPI) 예측=금융고유 / 절대만=시장timing / 이론없이=data mining"
+  이론: "Q1 term spread+ (Flannery-James 1984) / Q2 credit spread− (Merton 1974) / Q3 loan growth+ / Q4 침체− cyclical / Q5 momentum=market×beta"
+  results:
+    - {signal: term_spread_d3, abs_60d: 0.292, rel_60d: -0.216, 이론부호: "+", 판정: "★시장 timing (금융 고유 반증 — 상대수익 이론과 부호 반대, 은행만도 -0.21)"}
+    - {signal: credit_spread_d3, abs_60d: -0.169, rel_60d: -0.085, 판정: "★시장 timing (상대 미예측, OOS flip)"}
+    - {signal: loan_growth_yoy, abs_60d: -0.148, rel_60d: 0.157, oos: 0.398, wc_p: 0.22, 판정: "TENTATIVE (이론 부호+ 일치 + OOS 부호유지, 단 비유의 + by_year 불안정 = monitor-only)"}
+    - {signal: mom_3, abs_60d: 0.298, rel_60d: -0.080, 판정: "★data mining (market momentum×beta 재포장, 상대 무 + OOS flip)"}
+    - {signal: mom_6, abs_60d: 0.229, rel_60d: -0.049, 판정: "★data mining (market×beta)"}
+    - {signal: base_rate_d3, rel_60d: 0.146, 판정: "약 (기준금리 상승→금융 상대 약양, 비유의 = 시장 cyclical)"}
+    - {signal: turnover_yoy, rel_60d: 0.004, 판정: "무 (KOSPI 거래대금=증권 driver이나 금융 전체 상대 무=sub-sector cancel)"}
+    - {signal: 연체율_부동산PF, 판정: "data-gate (ECOS 연체율/PF 종목별 미수집, credit_regime 부분 대리)"}
+  후보_8개: "term_spread/credit_spread/loan_growth/base_rate/turnover/mom_3/mom_6/연체율-PF(data-gate) = 전수 enumerate"
+  tradeable_채택: ["credit_spread_d6 (금융 고유 대손 UW, wc_p 0.0155 + non-overlap -0.21 + leave-year 전부 음 + placebo 0.013, 조건부 OOS underpowered)"]
+  tentative_보조: ["loan_growth_yoy (이론+ OOS유지, wc_p 0.22 비유의)"]
+  tradeable_판정: "★1개(credit_spread_d6) + TENTATIVE 보조 1개(loan_growth). credit_spread=이론 Q2 대손− 일치 + robust(non-overlap/leave-year/placebo). ★비대칭: 금리커브(NIM term_spread)=시장timing 반증인데 신용위험(credit_spread 대손)=금융 고유 살아남음(Merton 정합). term_spread/cli_chg/mom 제외. financial primary=종목selection, rotation=credit_spread overlay 1개(gated default 0)."
+  fdr: "m=20 BY survivors=[] raw_p_min=0.0045(mom_3 절대=시장 momentum)"
+  verdict: >
+    ★금융 rotation = tradeable 1개(credit_spread_d6, 금융 고유 대손 UW) + TENTATIVE 보조(loan_growth). ★핵심 비대칭:
+    금리커브(NIM, term_spread)는 절대수익 강 예측하나 상대수익(vs KOSPI) 미예측/부호반대 = 시장 timing(NIM 프리미엄 <
+    시장 cyclical 동조, Flannery-James 한국 반증). ★반면 신용위험(credit_spread, 대손)은 상대수익 −0.250 wc_p=0.0155 +
+    non-overlap/leave-year/placebo robust = 금융 고유 살아남음(Merton 정합) = "금융은 금리 상방(NIM) 시장 동조하나 하방
+    (신용위험) 금융 차별 노출". momentum/cli_chg = market×beta/MACRO 제외. ★supervisor 권고 = credit_spread overlay 1개
+    (gated default 0, credit_wide 국면 금융 UW). financial primary alpha = 종목selection(sub-sector 분리 value + rev_1m).
+  이론반증_정직보고: >
+    ★Flannery-James 1984(term spread → 은행 상대수익 +) 미국 학술 prior 가 한국(2019-2026)에서 부호 반대 반증.
+    무비판 채택 안 함(team-lead "이론을 통계가 검증"). single-source(미국 학술) 단정 금지. small-n(n=86~88) underpowered.
 
 # ── robustness_checks ──
 robustness_checks:
-  - indicator_id: cs_mom_6m_rate_up
-    leave_episode: null          # n=21 small, regime-conditional → leave-episode 부적합
-    within_period: null          # regime subsample 자체가 sub-split
-    partial_corr_ratio: null
-    net_sharpe_ratio: null
-    forward_vs_contemp: "forward present (regime-conditional only)"
-    family_neutralized_ic: null
-    eff_n_tier: Weak             # n=21 (30-50 Weak 미만) → 사실상 Weak/INSUFFICIENT 경계
-  - indicator_id: cs_pbr_z
-    leave_episode: null
-    within_period: "fail (0.67, n=19)"
-    eff_n_tier: Weak             # n=19 (데이터 제약)
-    forward_vs_contemp: "forward present (weak, 비유의)"
+  - indicator_id: bank_pbr_z_value
+    leave_largest_out: "leave-top2-out -0.202 (강화, 대형주 의존 아님)"
+    within_period: "2023-2026 부호 불안정(short-sample)"
+    oos_split: "data-gate (IS n=0)"
+    subsector_cancel: "은행 -0.161 vs 증권 +0.146 차이 t=-3.18 유의"
+    eff_n_tier: Weak           # n=27 short-sample
+  - indicator_id: ratePOS_rev_1m
+    leave_episode: "leave-2020 -0.039 / leave-2022 -0.026 (부호유지)"
+    oos_split: "IS -0.061 → OOS -0.055 (부호유지)"
+    eff_n_tier: OK             # n=81
 
 # ── horizon_verdict ──
 horizon_verdict:
-  best_horizon: "12M (regime-conditional rate_up)"
-  forward_alpha_present: true   # ★단 regime-conditional 한정 (unconditional 부재)
+  best_horizon: "y_60d (은행 PBR value) / y_20d (rev_1m reversal)"
+  forward_alpha_present: true   # ★단 sub-sector 분리 한정 (통합 cancel)
   note: >
-    unconditional forward alpha = 부재(momentum/valuation 비유의). ★regime-conditional(rate_up) 에서만 present.
-    = §D falsifier 정직 적용: "regime = refinement 도구". financial 은 unconditional 단독 베팅 근거 부족,
-    금리 regime 조건부 + valuation(데이터 보강 후) 결합 필요.
+    ★통합 unconditional forward alpha = cancel(sub-sector 부호 이질). sub-sector 분리 시 은행 PBR value(60d) +
+    rate_POS rev_1m(20d) present. = financial 은 통합 단독 베팅 부적합, sub-sector 분리 + 금리 regime conditional 필수.
 
 # ── Hard-fail 4 (B C D I) self-check ──
 hard_fail_self_check:
-  B_real_data: {status: PASS, note: "합성 0%. pykrx OHLCV 34종 + yfinance(^TNX/factors) + DART 312 rows + FDR. raw-v3/*.py 재현."}
-  C_traceability: {status: PASS, note: "모든 yaml 수치 = validation-metrics-v3 / valuation-v3 / cross-v3.json key 매핑."}
+  B_real_data: {status: PASS, note: "합성 0%. pykrx OHLCV 34종 + ECOS 국고채/회사채/외국인flow 일별 + FRED CLI/USDKRW + DART 312rows. 합성지문 PASS(USDKRW 2022-10 1440.3 / KTB10Y 금리쇼크 4.632 / credit spread 레고랜드 1.77). raw-v3/*.py 재현."}
+  C_traceability: {status: PASS, note: "yaml 수치 = validation-conditional/oos-event/attack-v3.json key 매핑. sub-sector cancel t=-3.18 = validation-attack-v3.json:pbr_cancel_diff."}
   D_pit:
     status: PASS
-    note: "가격 PIT-safe(forward shift). valuation = DART rcept_dt 공시일 이후만. regime = ex-ante 금리 Δ(진입시점 관측)."
+    note: "가격 PIT-safe(forward shift). valuation = DART rcept_dt 공시일 이후만. ★금리 regime = ex-ante(일별 시장금리 = 발표지연 無). Macro CLI = 2M pub lag. event study = estimation window 과거만."
   I_survivor_bias:
     status: PARTIAL
-    note: "universe = FDR 현재 스냅샷(생존 종목). delisted/M&A 누락(금융 = 합병 잦음, 외환은행/하나 등 = 생존편향 잔존). 34종 中 3종 부분 이력. PIT 멤버십 = collector_plan high."
+    note: "universe = FDR 현재 스냅샷(생존 종목). delisted/M&A 누락(금융 = 합병 잦음, 외환은행/하나 등). PIT 멤버십 = collector_plan. ★정직 격하(PARTIAL 라벨), over-claim 회피."
 
-# ── verdict (small-n rule) ── ★regime-conditional 중심
-verdict_label: TENTATIVE   # ★전체 = TENTATIVE (regime-conditional 발견은 의미있으나 n small + valuation 데이터 제약)
+# ── verdict (small-n rule) ── ★sub-sector 분리 중심
+verdict_label: TENTATIVE   # ★전체 = TENTATIVE (sub-sector cancel 발견은 강하나 n short + DART 2023~ 제약)
 verdict_detail:
-  cs_mom_6m_rate_up: "★TENTATIVE DIRECTIONAL (regime-conditional 핵심) — rate_up 모멘텀 IC +0.102 vs pooled -0.051. ★[#21] interaction t 통계근거 O(regression p=0.049 + Welch t=2.65 p=0.012 둘 다 유의) = 'rate_up only 양' claim 지지, NIM 가설 정합. 단 n=21<30 + interaction borderline + block-boot CI 0포함 = magnitude hedge, live 제외. = 동적가중 정당화 정황."
-  cs_mom_unconditional: "비유의 (BY 생존 0, mom_6→12M IC -0.006). ★battery(CONFIRMED +0.086) 정반대 = 산업별 신호 상이 = 동적가중 근거."
-  valuation_pbr: "TENTATIVE DIRECTIONAL (저PBR value 방향, 비유의, n=19 데이터 제약)"
-  valuation_per: "★INSUFFICIENT (n=7, DART 금융재무 2023~ 제약. t=21.2 허수)"
-  common_factor: "전부 비유의 (battery는 credit/oil 유의 — financial 은 macro factor 약)"
+  bank_pbr_z_value: "★PARTIAL — 은행 저PBR value premium 방향 robust(증권 대비 t=-3.18 + leave-top2 강화). DART 2023~ n=27 = magnitude tentative, OOS data-gate."
+  subsector_cancel: "★핵심 발견 — 은행(-0.161) vs 증권(+0.146) PBR 부호 반대 차이 = 통합 cross-sectional IC cancel = frame §1.6 sleeve 분리 의무. ★자기상관 보정: naive t=-3.18 / NW-HAC lag3 t=-2.64 / wc_p=0.0045 / CI[-0.60,-0.14] 0배제 = 부호 robust(fin-audit 독립재현, bank vs insur t=-2.56 도 유의)."
+  ratePOS_rev_1m: "★PARTIAL — rate_POS 단기 reversal IS/OOS 부호유지(가장 robust). magnitude 약(-0.05) = live tentative."
+  bank_mom_12_1: "★TENTATIVE — structural break(pre-2023 reversal → post-2023 continuation). 밸류업 추세 의존, 단정 금지."
+  securities_roe_z_quality: "★TENTATIVE (약신호 부활) — 증권 고ROE quality premium +0.317 within-period 일관 + 증권 vs 보험 차이 t=5.28(ROE축 cancel 재확인). DART 2023~ IS n=0 = OOS 불가 + BY 미생존 = tradeable 미승격, unblock=DART 2019-22."
+  value_up_event: "★TENTATIVE — 1차(2024-02) 음/2차(2024-05) 양. 2차 가이드라인 re-rating(+0.076). single event 단정 불가."
+  per_z: "★INSUFFICIENT — 비유의. 보험 IFRS17 peak-EPS 왜곡. 기존 v2 24M t=21.2 = n=7 허수."
+  common_factor: "level β 전부 비유의. 단 금리 regime conditional 로 재측정 = sub-sector 부호 갈림(rate effect)."
 verdict_note: >
-  ★financial 핵심 = regime-conditional 모멘텀(금리 상승 국면만 양). unconditional 신호 비유의(momentum
-  battery 대조 + valuation 데이터 제약). = 사용자 "지표 상관 변하는 그림" + 동적가중(regime-conditional IC)
-  정당화 직접 증거. "금융=value 우세" 가설은 DART 금융재무 2023~ 제약으로 검증 보류 → consumer 이관.
-  ★pilot 분기 학습: 산업마다 (a) 유효 신호 다름(battery=momentum / financial=regime-conditional)
-  (b) 데이터 양식 다름(제조=fnlttSinglAcntAll 충분 / 금융=2023~ 부족) → 산업별 측정·universe 화이트리스트 필수.
+  ★financial 핵심 = sub-sector 부호 이질(은행/보험 금리+ vs 증권 금리−) → 통합 cross-sectional IC cancel(frame §1.6,
+  ERROR-202605302245 anchor). 은행 저PBR value(IC -0.161 wc_p=0.0165) vs 증권 반대(+0.146) 차이 = 통합 측정 부적합 입증
+  (★자기상관 보정 후 robust: naive t=-3.18 → NW-HAC lag3 t=-2.64 / wc_p=0.0045 / CI[-0.60,-0.14] 0배제, fin-audit 독립재현). = financial 진짜 산출 = "신호 강도"가 아닌 "sub-sector 분리 구조". rev_1m reversal IS/OOS 부호유지(robust).
+  밸류업 2차 가이드라인 저PBR re-rating(+0.076, tentative). momentum = structural break(밸류업 추세). ★DART 금융재무 2023~
+  제약이 valuation magnitude·OOS 의 근본 한계 = collector_plan high. ★supervisor 통합 시 rate_POS(은행/보험/지주) sleeve vs
+  증권 sleeve 분리 권고(portfolio label = frame §1.6).
+  ★pilot 분기 학습: 산업마다 유효 신호 다름(반도체=cyclical momentum reversal / financial=sub-sector value 이질).

@@ -1,0 +1,217 @@
+{
+  "as_of": "2026-05-31",
+  "n_universe": 26,
+  "standardization": "sector-neutral cross-sectional z = (x - semi_universe_mean)/std (local, R2-1 gap 메움)",
+  "signal_sign_note": "★반도체 momentum forward IC = 음(contrarian/cyclical reversal). 따라서 mom_6_z 상위 = forward 약(reversal) → selection 은 supervisor 가 IC 부호 반영(저 mom_z overweight).",
+  "note": "valuation(PBR/PER) z-score = measure_valuation.py(DART). supervisor 조립(score→target weight)은 dispatch 밖.",
+  "cards": [
+    {
+      "ticker": "018260",
+      "name": "삼성에스디에스",
+      "marcap_won": 19731339000000,
+      "mom_6_z": 2.703,
+      "mom_12_1_z": 0.27,
+      "vol_60_z": 1.655
+    },
+    {
+      "ticker": "181710",
+      "name": "NHN",
+      "marcap_won": 1616367409650,
+      "mom_6_z": 1.947,
+      "mom_12_1_z": 1.976,
+      "vol_60_z": 0.86
+    },
+    {
+      "ticker": "036570",
+      "name": "NC",
+      "marcap_won": 6086186215000,
+      "mom_6_z": 1.4,
+      "mom_12_1_z": 1.24,
+      "vol_60_z": -0.051
+    },
+    {
+      "ticker": "192080",
+      "name": "더블유게임즈",
+      "marcap_won": 1501198881200,
+      "mom_6_z": 1.135,
+      "mom_12_1_z": 0.13,
+      "vol_60_z": -0.554
+    },
+    {
+      "ticker": "012510",
+      "name": "더존비즈온",
+      "marcap_won": 3494865960000,
+      "mom_6_z": 1.101,
+      "mom_12_1_z": 1.982,
+      "vol_60_z": -2.32
+    },
+    {
+      "ticker": "263750",
+      "name": "펄어비스",
+      "marcap_won": 2630949662250,
+      "mom_6_z": 0.837,
+      "mom_12_1_z": 0.768,
+      "vol_60_z": 2.17
+    },
+    {
+      "ticker": "060250",
+      "name": "NHN KCP",
+      "marcap_won": 649397079870,
+      "mom_6_z": 0.483,
+      "mom_12_1_z": 2.857,
+      "vol_60_z": 1.106
+    },
+    {
+      "ticker": "053800",
+      "name": "안랩",
+      "marcap_won": 655351203400,
+      "mom_6_z": 0.198,
+      "mom_12_1_z": -0.232,
+      "vol_60_z": -0.85
+    },
+    {
+      "ticker": "259960",
+      "name": "크래프톤",
+      "marcap_won": 11903344194000,
+      "mom_6_z": 0.154,
+      "mom_12_1_z": -0.82,
+      "vol_60_z": -0.075
+    },
+    {
+      "ticker": "035420",
+      "name": "NAVER",
+      "marcap_won": 40865618648000,
+      "mom_6_z": 0.019,
+      "mom_12_1_z": -0.025,
+      "vol_60_z": -0.178
+    },
+    {
+      "ticker": "035600",
+      "name": "KG이니시스",
+      "marcap_won": 266175832440,
+      "mom_6_z": -0.067,
+      "mom_12_1_z": 0.234,
+      "vol_60_z": -0.955
+    },
+    {
+      "ticker": "950190",
+      "name": "고스트스튜디오",
+      "marcap_won": 110254489730,
+      "mom_6_z": -0.112,
+      "mom_12_1_z": -0.241,
+      "vol_60_z": -0.923
+    },
+    {
+      "ticker": "108860",
+      "name": "셀바스AI",
+      "marcap_won": 257305392400,
+      "mom_6_z": -0.222,
+      "mom_12_1_z": -0.249,
+      "vol_60_z": 1.915
+    },
+    {
+      "ticker": "030520",
+      "name": "한글과컴퓨터",
+      "marcap_won": 473681184960,
+      "mom_6_z": -0.322,
+      "mom_12_1_z": -0.524,
+      "vol_60_z": -0.269
+    },
+    {
+      "ticker": "078340",
+      "name": "컴투스",
+      "marcap_won": 319210663200,
+      "mom_6_z": -0.332,
+      "mom_12_1_z": -0.537,
+      "vol_60_z": -0.435
+    },
+    {
+      "ticker": "225570",
+      "name": "넥슨게임즈",
+      "marcap_won": 660577545220,
+      "mom_6_z": -0.485,
+      "mom_12_1_z": -0.448,
+      "vol_60_z": -0.94
+    },
+    {
+      "ticker": "251270",
+      "name": "넷마블",
+      "marcap_won": 3457638896200,
+      "mom_6_z": -0.498,
+      "mom_12_1_z": -0.325,
+      "vol_60_z": -0.218
+    },
+    {
+      "ticker": "095660",
+      "name": "네오위즈",
+      "marcap_won": 417367294110,
+      "mom_6_z": -0.612,
+      "mom_12_1_z": -0.544,
+      "vol_60_z": -0.073
+    },
+    {
+      "ticker": "112040",
+      "name": "위메이드",
+      "marcap_won": 623633632710,
+      "mom_6_z": -0.678,
+      "mom_12_1_z": -0.356,
+      "vol_60_z": 0.495
+    },
+    {
+      "ticker": "069080",
+      "name": "웹젠",
+      "marcap_won": 312762407500,
+      "mom_6_z": -0.694,
+      "mom_12_1_z": -0.509,
+      "vol_60_z": -0.748
+    },
+    {
+      "ticker": "067160",
+      "name": "SOOP",
+      "marcap_won": 563243583000,
+      "mom_6_z": -0.736,
+      "mom_12_1_z": -0.876,
+      "vol_60_z": -0.7
+    },
+    {
+      "ticker": "376300",
+      "name": "디어유",
+      "marcap_won": 534114135000,
+      "mom_6_z": -0.74,
+      "mom_12_1_z": -1.069,
+      "vol_60_z": 0.298
+    },
+    {
+      "ticker": "035720",
+      "name": "카카오",
+      "marcap_won": 17803111687400,
+      "mom_6_z": -0.785,
+      "mom_12_1_z": -0.06,
+      "vol_60_z": -0.099
+    },
+    {
+      "ticker": "047560",
+      "name": "이스트소프트",
+      "marcap_won": 127991062980,
+      "mom_6_z": -1.071,
+      "mom_12_1_z": -0.737,
+      "vol_60_z": 0.255
+    },
+    {
+      "ticker": "293490",
+      "name": "카카오게임즈",
+      "marcap_won": 832324664970,
+      "mom_6_z": -1.134,
+      "mom_12_1_z": -0.773,
+      "vol_60_z": -0.333
+    },
+    {
+      "ticker": "194480",
+      "name": "데브시스터즈",
+      "marcap_won": 180845626500,
+      "mom_6_z": -1.492,
+      "mom_12_1_z": -1.131,
+      "vol_60_z": 0.968
+    }
+  ]
+}

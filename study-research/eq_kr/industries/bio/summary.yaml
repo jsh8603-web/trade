@@ -1,201 +1,301 @@
-# summary.yaml — bio(바이오) 산업 v3 (frame v3 §M exposure card 계약)
+# summary.yaml — bio(제약·바이오) 산업 v3 (frame v3 §M exposure card 계약)
 # ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge, BY/FDR, LOO/block-boot).
-# ★event_driven 검증: 멀티플 부적합 가설 → 적자 분리 + 변동성(임상 risk) 신호 = 4번째 archetype 지지(부분).
-# raw 재현: raw-v3/{collect, measure, collect_dart, measure_valuation, measure_cross, exposure_card}.py
+# ★event_driven archetype + ★conditional IC surface(dispatch 본체, 2026-06-05 신규).
+# raw 재현: raw-v3/{collect, collect_dart, collect_regime, measure, measure_valuation,
+#                   measure_conditional, measure_oos}.py
 
 industry: kr_bio              # eq_kr Tier 3 (바이오: 신약/제약/바이오시밀러/CMO)
 asset_scope: [equity.kr]
-archetype: event_driven       # archetype.py: 파이프라인·임상 binary, 멀티플 무의미 (1차 가설)
+archetype: event_driven       # archetype.py: 파이프라인·임상 binary, 멀티플 무의미
 archetype_attestation:
   valid_from: "2019-01-01"
   declared_at: "2026-06-03"
-  primary_metric: pipeline    # ★event_driven = 멀티플 부적합 → R&D/파이프라인 가치 (PER 적자 종목 무의미)
-  secondary: cyclical         # soft: 흑자 제약사(유한/한미/녹십자) = value 성분 (prob~0.4)
+  primary_metric: pipeline    # ★event_driven = 멀티플 부적합 → R&D/파이프라인 (PER 적자 무의미)
+  secondary: cyclical         # soft: 흑자 제약사(유한/한미/녹십자) value 성분 (prob~0.4)
   basis: >
-    ★event_driven 검증 = 부분 지지: 적자 신약바이오(36% net_income<0) = PER 무의미 = 멀티플 부적합.
-    흑자 제약사(PER avgN 21)는 value premium 작동. = bio 가 적자 신약 / 흑자 제약 2그룹 분리.
+    ★event_driven 부분 지지: 적자 신약바이오(26/38종 net_income 한번이라도<0) = PER 무의미 = 멀티플 부적합.
+    흑자 제약사(PER avgN 21)는 value premium 작동(국면 의존). = 적자 신약 / 흑자 제약 2그룹 분리.
 
-as_of: "2026-05-31"
+as_of: "2026-06-05"
 
 # ── 블록1 LENS ──
 lens:
   pricing_principle: >
-    바이오 = event_driven. ★"싸다" 척도 분리: 흑자 제약사(PER value premium 작동) vs 적자 신약바이오
-    (멀티플 무의미 = 파이프라인/임상 이벤트 binary). ★실측 핵심: momentum 무신호 + valuation(PER) 흑자
-    한정 작동(적자 제외) + ★vol_60(저변동성) 신호 강(고변동성 신약 = 임상 risk = forward 낮음).
+    바이오 = event_driven. ★"싸다" 척도 분리: 흑자 제약사(PER value 국면 의존) vs 적자 신약바이오(멀티플
+    무의미 = 파이프라인/임상 binary). ★실측 핵심(2026-06-05 conditional): unconditional 가격/valuation
+    신호는 OOS 약/반전(in-sample artifact 성격) → ★진짜 신호 = **conditional(외국인 순매도 flow_sell 국면
+    증폭)**. flow_sell 국면서 momentum/per_z 음 강화 = bio 고베타 성장주 risk-off 차별 매도 시 fundamental
+    분별력 회복.
   cycle_reading: >
-    bio cycle = 임상 binary 이벤트 + biotech 유동성(XBI/금리). XBI yoy regime: bull 31/bear 15/neutral 43.
-    VIX β=+0.011(t=6.03 강유의) = 고베타 성장주(risk-on 강세). 적자 신약 = high-vol 임상 베팅.
+    bio cycle = 임상 binary 이벤트 + biotech 유동성(XBI/금리/외국인flow). VIX β=+0.011(t=6.03 강유의)
+    = 고베타 성장주(risk-on 강세). flow_regime: flow_neutral 48/flow_sell 22/flow_strong_buy 19.
+    적자 신약 = high-vol 임상 베팅 = risk-off 국면 차별적 약세.
   estimation_note: >
-    2026-05: universe 38종(pharma 27/novel_drug 6/biosimilar_cmo 5). ★net_income 적자 36% =
-    event_driven. valuation(PER) = 흑자 한정 + vol(임상 risk) 신호 = 멀티플 단독 부적합 시사.
+    2026-06: universe 38종 floor-pass(pharma 27/novel_drug 6/biosimilar_cmo 5). ★net_income 적자
+    26/38종 = event_driven. ★conditional 발견: 외국인 순매도 국면(flow_sell)이 bio 신호 증폭축
+    (family_2 interaction t<-2.3). unconditional 약 ≠ conditional 약.
 
-# ── 블록2 INDICATORS ──
-# ★bio = vol(저변동성, 임상 risk) + PER(흑자 한정) borderline. momentum 무신호.
+# ── 블록2 INDICATORS (★conditional 중심 재배치) ──
+# ★bio = unconditional 약(OOS artifact) → conditional(flow_sell 증폭)이 본체.
 indicators_passed:
+  - id: cs_flow_sell_conditional
+    layer: 2                    # regime conditional
+    family: conditional_momentum_value
+    horizon: 20d
+    description: "외국인 순매도(flow_sell) 국면 conditional IC — bio 증폭축"
+    mechanism: "bio 고베타 성장주 → 외국인 risk-off 순매도 국면서 fundamental 신호(momentum/저PER) 분별력 회복"
+    cells:
+      - {signal: mom_6,    regime: flow_sell, ic: -0.149, n_months: 20, wc_p: 0.0175, status: underpowered, oos: "IS -0.141 -> OOS -0.156 부호+magnitude 유지"}
+      - {signal: mom_12_1, regime: flow_sell, ic: -0.134, n_months: 18, wc_p: 0.0185, status: underpowered, oos: "IS -0.143 -> OOS -0.129 부호+magnitude 유지"}
+      - {signal: per_z,    regime: flow_sell, ic: -0.092, n_months: 20, wc_p: 0.093,  status: underpowered, oos: "IS -0.101 -> OOS -0.085 부호유지"}
+      - {signal: vol_60,   regime: flow_sell, ic: -0.093, n_months: 20, wc_p: 0.045,  status: underpowered, oos: "IS -0.042 -> OOS -0.135 부호유지+강화"}
+    family_2_interaction:       # ★rejected 박제 前 의무, frame A-5
+      dummy: "flow_regime=flow_sell"
+      method: "pooled panel, month-clustered SE"
+      results:
+        - {signal: mom_6,    t_inter: -2.90, verdict: "유의(국면 따라 효과 갈림)"}
+        - {signal: mom_12_1, t_inter: -2.92, verdict: "유의"}
+        - {signal: per_z,    t_inter: -2.29, verdict: "유의"}
+        - {signal: rev_1m,   t_inter: -1.84, verdict: "비유의(약)"}
+      note: "main effect 대부분 비유의인데 interaction 유의 = 신호 conditional(약함 아님). KRW_weak interaction은 비유의 = bio 증폭축은 flow(반도체 KRW와 대조)."
+    source_id: "raw-v3/validation-conditional-v3.json + validation-oos-v3.json"
+    verdict: "PARTIAL-conditional (interaction 유의 + OOS 부호유지, but cell underpowered n<24 + IS t 약->OOS t 강 = 최근 발현/regime shift tentative)"
+
   - id: cs_lowvol
     layer: 3
-    family: low_volatility      # ★임상 risk proxy
-    horizon: 1M_PEAD
-    ic_mean: -0.078             # 음 = 고변동성 종목 forward 낮음 (저변동성 우위 = 임상 risk 회피)
-    ic_ci_95: [-0.125, -0.022]  # block-boot, ★0 배제 (유의)
-    ic_se_nw: null
-    t_nw: -3.02                 # p=0.003 (NW 기준 유의)
-    n_effective: 85
-    avg_universe_n: 34.0
-    cap_weighted_ic: -0.107     # ★대형 바이오에서 더 강 (cap-weighted)
+    family: low_volatility      # ★임상 risk proxy (bio archetype primary 후보)
+    horizon: 1M
+    ic_mean: -0.066             # unconditional, 음 = 고변동성 forward 낮음 (저변동성 우위)
+    ic_ci_95: [-0.125, -0.022]  # block-boot (기존 1M_PEAD 측정)
+    t_nw: -3.02
+    wc_p_y20d: 0.012
+    n_effective: 81
+    cap_weighted_ic: -0.107     # 대형 바이오에서 더 강
+    oos_verdict: "★IS -0.119 -> OOS -0.008 = 부호유지 but magnitude 대폭 약화(OOS 약) = IS 편중"
     source_id: "raw-v3/validation-metrics-v3.json:indicators.vol_60__1M_PEAD"
     notes: |
-      cross-sectional 변동성 z → 1M forward. 음 IC = 고변동성(임상 베팅 신약) forward 낮음 = 저변동성
-      (안정 제약) 우위. hi-ADV IC -0.091(대형주 강), cap-weighted -0.107. = ★임상 risk 회피 신호.
-      NW 유의(t=-3.02, p=0.003) but BY 보정(α/16=0.0031) raw_p=0.0033 미세 미달 → PARTIAL.
-  - id: cs_per_z_profitable
-    layer: 1
-    family: value
-    horizon: 6M
-    ic_mean: -0.088             # 음 = 저PER value (흑자 제약사 한정)
-    ic_ci_95: [-0.152, -0.020]  # block-boot 0 배제
-    t_nw: -2.32                 # p=0.023
-    n_effective: 79
-    avg_universe_n: 20.9        # ★PER = 흑자 종목만(적자 17종 제외) = PBR 33 대비 적음 = event_driven 특성
-    within_period: 0.86         # 12M 은 within 1.00
-    source_id: "raw-v3/validation-valuation-v3.json:indicators.per_z__6M"
-    notes: "저PER → 6M forward (흑자 제약사 한정 avgN 21). value premium 방향, borderline 유의. ★적자 신약 = PER 무의미 제외 = event_driven."
+      저변동성 우위(임상 risk 회피). unconditional NW 유의하나 ★OOS magnitude 붕괴 + ★생존편향 우려
+      (상폐된 고변동성 임상실패 신약 누락 -> 신호 과대평가). flow_sell 국면서는 OOS 강화(-0.042->-0.135).
+      = unconditional 보다 conditional 이 robust.
 
 # ── 블록3 RELATIONSHIPS ──
 relationships_passed:
-  - {node_a: cs_lowvol, node_b: bio_fwd_1m, lag_months: 0, corr: -0.078,
-     corr_ci_95: [-0.125, -0.022], conditioning_set: [], n: 85,
-     source_id: "raw-v3/validation-metrics-v3.json:indicators.vol_60__1M_PEAD",
-     note: "저변동성 우위 = 임상 risk 회피. block-boot 유의."}
+  - {node_a: cs_flow_sell_conditional, node_b: bio_fwd_20d, lag_months: 0,
+     conditioning_set: [flow_regime], n: 20,
+     source_id: "raw-v3/validation-conditional-v3.json:family_2_interaction",
+     note: "외국인 순매도 국면 = bio 신호 증폭축. interaction t=-2.90(mom_6). OOS 생존."}
 
-# ── 블록4 WEIGHT_RULES ──
+# ── 블록4 WEIGHT_RULES (점추정 박제 금지 = range + gate) ──
 weight_rule_candidates:
+  - indicator_id: cs_flow_sell_conditional
+    base_weight_range: [0.02, 0.08]   # conditional 신호, underpowered cell -> conservative
+    modulate_by: [regime, archetype]   # ★flow_regime=flow_sell 일 때만 activate
+    direction: "외국인 순매도 국면(flow_sell)에서 momentum 하위(저모멘텀)·저PER overweight. risk-off bio 차별 매도 시 fundamental 분별력."
+    granularity: cross_sectional
+    gate_status: {n: underpowered, se: marginal, power: weak, fdr: fail, oos: pass}  # ★cell n<24, BY 미생존, OOS 부호유지
+    confidence: low   # ★conditional + small-n + IS약->OOS강(regime shift tentative)
+    source_ids: ["raw-v3/validation-conditional-v3.json", "raw-v3/validation-oos-v3.json"]
+    hedge_note: >
+      ★PARTIAL-conditional. family_2 interaction 유의(t=-2.90) + OOS 부호유지 = conditional 살아있음(약함 아님).
+      단 (a) flow_sell cell n=18~20 underpowered (b) IS t 약->OOS t 강 = 최근(2023+) 발현/regime shift tentative
+      (c) BY 미생존(m=105). = monitor-only 또는 최소 weight + regime gate(flow_sell 시만). magnitude 단정 금지.
   - indicator_id: cs_lowvol
-    base_weight_range: [0.03, 0.10]   # IC -0.078 (저변동성 overweight) range
+    base_weight_range: [0.02, 0.06]   # ★OOS 약화 반영 하향(기존 [0.03,0.10] -> 축소)
     modulate_by: [archetype, regime]
-    direction: "저변동성 z 상위(안정 제약) overweight, 고변동성(임상 베팅 신약) underweight. 임상 risk 회피."
+    direction: "저변동성(안정 제약) overweight, 고변동성(임상 베팅 신약) underweight. 임상 risk 회피."
     granularity: cross_sectional
-    gate_status: {n: pass, se: pass, power: pass, fdr: marginal, oos: pass}  # NW 유의/BY 미세 미달
+    gate_status: {n: pass, se: pass, power: pass, fdr: marginal, oos: weak}  # ★oos magnitude 약화
+    confidence: low   # ★IS 편중 + 생존편향 과대평가 우려
     source_ids: ["raw-v3/validation-metrics-v3.json:indicators.vol_60__1M_PEAD"]
-    hedge_note: "★저변동성 신호 NW 유의(t=-3.02) but BY 미세 미달(raw_p 0.0033 vs α 0.0031). PARTIAL. event_driven = 멀티플보다 risk-factor 신호."
-  - indicator_id: cs_per_z_profitable
-    base_weight_range: [0.02, 0.08]   # 흑자 제약 한정 value
-    modulate_by: [archetype, profitability]  # ★흑자 종목 한정 조건
-    direction: "흑자 제약사 한정 저PER overweight. 적자 신약 = PER 무효 → 별 신호(파이프라인) 필요."
-    granularity: cross_sectional
-    gate_status: {n: pass, se: borderline, power: weak, fdr: marginal, oos: pass}
-    source_ids: ["raw-v3/validation-valuation-v3.json:indicators.per_z__6M"]
-    hedge_note: "★흑자 한정 value premium(avgN 21). 적자 신약 제외 = event_driven 멀티플 부적합 시사."
+    hedge_note: >
+      ★저변동성 unconditional NW 유의(t=-3.02) but OOS magnitude 붕괴(-0.119->-0.008) + ★생존편향
+      (상폐 임상실패 신약 = 고변동성 = 누락 -> 신호 과대평가 강 우려). conservative cap + monitor.
+      flow_sell 국면 conditional 에서는 OOS 강화 = conditional 우선.
 
 # ── 블록5 CONFIDENCE_HOOKS — ★affects_indicator 필수 ──
 confidence_hooks:
+  - hypothesis_id: bio_flow_sell_conditional_amplification
+    affects_indicator: cs_flow_sell_conditional   # ★필수
+    affects_edge: [cs_flow_sell_conditional, bio_fwd_20d]
+    confirm_signal: "live 외국인 순매도(flow z<-1) 국면서 momentum 하위/저PER 종목 forward rank IC < 0 유지"
+    reject_signal: "flow_sell 국면 interaction term e-CUSUM 부호 반전/소멸 (regime shift 종료)"
+    emit_where: "panel-score-IC 축 (flow_regime conditional)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "derive_weights 재적합 -> flow_sell conditional base_weight 변동"
+    action_threshold: "e-value > 20 -> retract / 회복 = score_ic_recovery_eprocess"
   - hypothesis_id: bio_lowvol_clinical_risk
-    affects_indicator: cs_lowvol      # ★필수
-    affects_edge: [cs_lowvol, bio_fwd_1m]
-    confirm_signal: "live 저변동성 z 상위(안정 제약) 종목 forward rank IC < 0 유지 (고변동성 신약 회피)"
-    reject_signal: "저변동성 IC e-CUSUM 부호 반전/소멸 (임상 risk 신호 무효)"
+    affects_indicator: cs_lowvol
+    affects_edge: [cs_lowvol, bio_fwd_20d]
+    confirm_signal: "live 저변동성 종목 forward rank IC < 0 유지 (고변동성 신약 회피)"
+    reject_signal: "저변동성 IC e-CUSUM 부호 반전/소멸"
     emit_where: "panel-score-IC 축"
     accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
-    feeds_weight: "derive_weights 재적합 → 저변동성 base_weight 변동"
-    action_threshold: "e-value > 20 → retract / 회복 = score_ic_recovery_eprocess"
+    feeds_weight: "derive_weights 재적합 -> 저변동성 base_weight 변동"
+    action_threshold: "e-value > 20 -> retract"
 
 # ── 블록6 COLLECTOR_PLAN ──
 collector_plan_industry:
   - missing: "★파이프라인/임상 단계 데이터 (event_driven primary — 멀티플 대체)"
-    source: "★bio 핵심 gap = 임상 phase/승인 이벤트 데이터(KFDA/clinicaltrials.gov). 멀티플 부적합 적자 신약 = 파이프라인 가치 평가 필요"
-    priority: high   # ★event_driven 산업의 진짜 신호 = 파이프라인/이벤트 (현 측정 = 변동성 proxy 까지)
+    source: "KFDA/clinicaltrials.gov 임상 phase/승인 이벤트. 적자 신약 = 파이프라인 가치 평가 필요"
+    priority: high
+  - missing: "★PIT universe 멤버십 (delisted/상폐) — ★bio I축 최악"
+    source: "FDR 현재 스냅샷만(거래 끊긴 종목 0 = delisted 완전 누락). 코오롱티슈진/신라젠/헬릭스미스 등 임상실패 상폐 누락. KRX PIT 멤버십"
+    priority: high   # ★bio = 생존편향 가장 심각 = 우선순위 최상
+  - missing: "종목레벨 외국인 flow (현 = ECOS 시장레벨 regime 만)"
+    source: "KRX 종목별 외국인 net buy = 인증 차단. flow_sell 증폭이 종목레벨이면 더 정밀"
+    priority: medium
   - missing: "R&D 비용/매출 비율 (적자 신약 burn-rate)"
     source: "DART 손익계산서 R&D 항목"
     priority: medium
-  - missing: "PIT universe 멤버십 (delisted/상폐, 바이오 = 상폐·관리종목 잦음)"
-    source: "FDR 현재 스냅샷만. KRX PIT"
-    priority: high
 
 # ── cross (§M.3 — 산업=보고만) ──
 cross:
   common_factor_exposure:
     - {factor: VIX, beta: 0.0109, beta_ci_95: [0.0073, 0.0144], contemporaneous: true,
        source_id: "raw-v3/validation-cross-v3.json:common_factor_exposure.VIX",
-       note: "★VIX β 강유의(t=6.03). bio = 고베타 성장주(risk-on 강세). ★battery=credit/oil, financial=무, consumer=dollar, bio=VIX = 산업별 risk factor 전부 상이."}
+       note: "★VIX β 강유의(t=6.03). bio = 고베타 성장주(risk-on 강세). ★산업별 risk factor 상이: battery=credit/oil, financial=무, consumer=dollar, bio=VIX."}
     - {factor: dollar, beta: -0.1235, beta_ci_95: [-1.352, 1.105], contemporaneous: true, note: "비유의 (CI 넓음)"}
     - {factor: oil, beta: null, contemporaneous: true, note: "측정(raw 참조)"}
     - {factor: rate, beta: null, contemporaneous: true, note: "측정(raw 참조), 금리=biotech 유동성 민감 가설"}
     - {factor: credit, beta: null, contemporaneous: true, note: "측정(raw 참조)"}
-  directional_spillover: []
+  directional_spillover: []   # DY = supervisor 통합단계 (산업=후보 보고만, bio dominant=임상 binary)
   structural_linkage:
     - supplier_or_customer: null
-      verdict: "customer-supplier momentum = bio 부적합(임상=binary 이벤트, supply-chain 무관). skip(battery/financial/consumer 동일 패턴). bio dominant = 임상 이벤트 + biotech 유동성."
-  # ⛔ sector-rotation clock = myth.
+      verdict: "customer-supplier momentum = bio 부적합(임상=binary 이벤트, supply-chain 무관). skip. bio dominant = 임상 이벤트 + biotech 유동성 + 외국인 flow."
 
-# ── ★valuation 횡단면 (§M.7 — event_driven 부분 작동) ──
+# ── ★valuation 횡단면 (§M.7 — event_driven 부분) ──
 valuation_cross_sectional:
-  data_source: "raw-v3/validation-valuation-v3.json (DART 948 rows 2019~ 완전 + pykrx 가격)"
-  mechanism_works: "partial"   # ★PBR 전종목(avgN 33) / PER 흑자한정(avgN 21, 적자 17종 제외)
-  event_driven_finding: "★net_income 적자 36%(270/741) = 적자 신약바이오 PER 무의미 → PER 흑자 한정 측정. = 멀티플 부적합(event_driven) 직접 정황."
+  data_source: "raw-v3/validation-valuation-v3.json (DART 948 rows 2019~ + pykrx 가격)"
+  mechanism_works: "conditional"   # ★unconditional 약 -> flow_sell 국면 conditional 작동
+  event_driven_finding: "★net_income 적자 26/38종 = 적자 신약바이오 PER 무의미 -> PER 흑자 한정. unconditional per_z = +0.027(value 반대) but flow_sell 국면 -0.092(interaction t=-2.29) = conditional value."
   pit_note: "재무 = rcept_dt 공시일 이후만. DART 2019~ 완전(표준계정)."
-  indicators:
-    - id: cs_per_z_profitable
-      signal: "PER cross-sectional z (흑자 제약사 한정 — 적자 신약 제외)"
-      horizon_results:
-        - {horizon: 6M, ic: -0.088, t_nw: -2.32, p: 0.023, n: 79, ci_block: [-0.152, -0.020], within: 0.86, verdict: "value premium borderline 유의(흑자 한정)"}
-        - {horizon: 12M, ic: -0.091, t_nw: -2.30, p: 0.024, n: 73, within: 1.00, verdict: "within 100%"}
-        - {horizon: 3M, ic: -0.061, t_nw: -1.77, p: 0.080, n: 82, within: 0.88}
-      avg_universe_n: 20.9     # ★흑자 한정 (PBR 33 대비)
-      verdict: "★흑자 제약사 PER value premium 작동(borderline 유의, within 높음). 단 적자 신약 = 무효 = event_driven 부분 멀티플."
-    - id: cs_pbr_z
-      signal: "PBR cross-sectional z (전종목)"
-      horizon_24m: {ic: -0.148, t_nw: -1.14, n: 61, avgN: 33, verdict: "value 방향(음) but NW 비유의, n 적음"}
-      verdict: "TENTATIVE — PBR 24M 방향 음(value)이나 비유의. 적자 신약 자본잠식 우려로 PBR 도 왜곡 가능. ★[frame §M.12] 24M eff_indep_N=61/24≈2.5 degenerate = 방향만. bio primary = cs_lowvol(변동성), valuation 보조라 영향 작음."
-  multiple_testing: "8 테스트 BY factor 2.72. raw_p_min=0.023(per_z 6M). BY 생존 0(borderline)."
   verdict: >
-    ★bio valuation = event_driven 부분 작동. PER = 흑자 제약사 한정 value premium(borderline 유의, within 높음),
-    적자 신약바이오(36%) = PER 무의미 제외. = 멀티플 단독 부적합(event_driven) 시사. ★진짜 신호 = 파이프라인/
-    임상 이벤트(collector_plan high) + 변동성(임상 risk) proxy. 멀티플 = 흑자 제약 sub-group 한정.
+    ★bio valuation = ★conditional event_driven. unconditional PER value 약/반전(OOS) -> 외국인 순매도(flow_sell)
+    국면서만 저PER 분별력(interaction t=-2.29). 적자 신약(26/38) PER 무효 = 멀티플 단독 부적합. ★진짜 신호 =
+    파이프라인/임상(collector_plan high, 미측정) + conditional(flow_sell 증폭).
 
 # ── robustness_checks ──
 robustness_checks:
+  - indicator_id: cs_flow_sell_conditional
+    leave_episode: "pass (leave-2021-out mom_6 interaction t=-2.94 생존, rev_1m/vol_60 약화)"
+    within_period: "IS/OOS 부호유지 (5신호 전부 flow_sell 국면 OOS 부호+magnitude 유지)"
+    s5_attack: "pass — (a)8개해 분산=단일episode 아님 (b)VIX 21.9 ~= 20.1 = risk-off 대리 아님 (c)leave-worst-out 생존"
+    forward_vs_contemp: "forward present (conditional)"
+    eff_n_tier: Tentative        # cell n=18~20 underpowered + IS약->OOS강
   - indicator_id: cs_lowvol
-    leave_episode: null
     within_period: "0.75 (1M)"
-    partial_corr_ratio: null
-    net_sharpe_ratio: null
-    forward_vs_contemp: "forward present (저변동성 우위)"
-    family_neutralized_ic: null
-    eff_n_tier: Validated        # n=85
-  - indicator_id: cs_per_z_profitable
-    within_period: "0.86 (6M) / 1.00 (12M)"
-    eff_n_tier: Tentative        # n=73-79 흑자 한정
-    forward_vs_contemp: "forward present (흑자 한정 value)"
+    oos: "★weak (IS -0.119 -> OOS -0.008 magnitude 붕괴)"
+    forward_vs_contemp: "forward present (저변동성)"
+    survivorship_caveat: "★고변동성 임상실패 신약 상폐 누락 -> 신호 과대평가 우려 강"
+    eff_n_tier: Tentative
 
 # ── horizon_verdict ──
 horizon_verdict:
-  best_horizon: "1M (저변동성 임상 risk) / 6-12M (흑자 PER value)"
-  forward_alpha_present: true   # ★변동성 + 흑자 PER 양쪽 present
+  best_horizon: "20d conditional(flow_sell) / 1M unconditional(저변동성, OOS 약)"
+  forward_alpha_present: true   # ★conditional 한정 present (unconditional OOS 약)
   note: >
-    ★bio = 변동성(임상 risk, 1M) + 흑자 PER value(6-12M) present. momentum 무신호.
-    ★event_driven 특수성: 적자 신약 = 멀티플 무효(파이프라인 필요) / 흑자 제약 = value 작동. 2그룹 분리.
+    ★bio = conditional(flow_sell 증폭) present + unconditional 약(OOS artifact). momentum unconditional 무신호,
+    flow_sell 국면서만 발현. event_driven 특수성: 적자 신약 멀티플 무효 / 흑자 제약 value 국면 의존.
+
+# ── ★ROTATION 신호 (업종 OW/UW timing, v2 data-gate 재검, 2026-06-06) ──
+# ⛔ 종목 selection(위 indicators)과 별개 = bio 업종 전체 timing. raw=rotation-signals.md
+industry_rotation:
+  v2_재검: "v2 rotation-analyst = bio NO_DIRECT_CYCLE + momentum OOS flip = FAIL/data-gate. ★재검 = 거시 overlay(금리 duration/글로벌바이오) v2 미측정 = 진짜 산업동향 부재 아님."
+  theory: "bio = growth/long-duration cashflow → discount-rate sensitive. 금리↓→OW / 글로벌바이오(XBI/IBB)↑→OW."
+  n_candidates: 10   # team-lead 요구 ≥8 충족
+  zombie_mask: "mask_trading_halt 적용(코오롱티슈진 47.8%/케어젠 19% carry-forward 제거). 패널 89개월."
+  signals:
+    - id: rate_overlay
+      definition: "-(US 10Y Δ3M z) = 미국 금리 하락 시 bio 업종 OW (growth duration)"
+      ic_y60d: 0.274
+      wc_p: 0.018
+      oos: "IS 0.004 -> OOS 0.209 (부호유지, IS약->OOS강 regime shift)"
+      leave_2022: "us_10y_d full -0.244 -> drop2022 -0.174 부호+OOS 유지(단일 episode 아님)"
+      prior_sign_match: true
+      status: underpowered    # t_power<2.802, BY 미생존
+      verdict: "PASS-conditional (이론+OOS 부호유지, low confidence)"
+    - id: bio_global_overlay
+      definition: "(XBI/SPY + IBB/NDX 상대모멘텀 z)/2 = 글로벌 바이오 강세 -> 한국 bio OW (섹터 전이)"
+      ic_y20d: 0.132
+      xbi_rel_mom_y20d: {ic: 0.153, oos: "0.131 -> 0.190 부호유지"}
+      ibb_rel_mom_y20d: {ic: 0.124, oos: "0.080 -> 0.178 부호유지"}
+      prior_sign_match: true
+      status: underpowered
+      verdict: "PASS-conditional (이론+OOS 부호유지, low confidence)"
+    - id: full_overlay
+      definition: "(rate_overlay + bio_global_overlay)/2 = 금리+글로벌바이오 합성"
+      ic_y20d: 0.180
+      oos: "0.074 -> 0.250 eligible(Y)"
+      leave_2022: "+0.234 wc_p=0.069 생존"
+      status: underpowered
+      verdict: "PASS-conditional (보조, OOS robust)"
+  theory_stat_match: "이론 부호 일치 10중 8(us_10y/kr_10y/us_curve/xbi_rel/ibb_rel/xbi_mom/credit_hy/fda_yoy). vix_level 반대(업종 timing 고베타 약), usdkrw 불확정(round-1 REJECTED 정합). = data-mining 아님."
+  tradeable_overall: >
+    ★bio 업종 rotation = PASS-conditional (v2 FAIL/data-gate 뒤집음). tradeable >=2 = (1) rate_overlay(US 금리 하락->OW)
+    (2) bio_global_overlay(글로벌바이오 상대강세->OW). ★국면 출력 가능: "미국 금리 하락+글로벌바이오 강세 -> bio 업종 OW".
+    ★한계(정직): underpowered(BY 미생존, t_pow<2.8) + IS약->OOS강(regime shift tentative) + bio 고유 cycle(임상) 무료부재
+    XBI/IBB proxy 대체. -> monitor + macro overlay(de-risk/tilt sizing prior)지 강 alpha 아님. conservative cap.
+  collector_plan:
+    - {missing: "임상 phase/파이프라인 monthly cycle (bio 고유 cycle 직접)", source: "KFDA/clinicaltrials.gov facet", priority: high}
+    - {missing: "한국 약가정책 이벤트(보험약가 cycle)", source: "HIRA/심평원", priority: medium}
+
+# ── G-G v2 tradeable signal 충분성 (2026-06-05) ──
+tradeable_signal_assessment:
+  # 2축: eligibility(OOS 부호유지+per-cell wc_p) / conviction(shrunk IC)
+  - signal: cs_flow_sell_conditional
+    eligibility: "pass (OOS 부호유지 5신호 + interaction OOS t<-2.5) but per-cell wc_p>0.01 일부(underpowered)"
+    conviction: "low (shrunk IC, cell n<24 + IS약->OOS강 regime shift)"
+    regime_condition: "★flow_regime=flow_sell (외국인 순매도) 국면 한정 activate"
+    net_alpha: "미산출(통합단계). turnover 高 = conditional 진입/이탈 잦음 -> net haircut 주의"
+    verdict: "PASS-conditional (tradeable 1개, low confidence) -> conservative cap + monitor + regime gate"
+  - signal: cs_lowvol
+    eligibility: "marginal (unconditional OOS magnitude 붕괴 = OOS-weak, 부호만 유지)"
+    conviction: "low (생존편향 과대평가 우려 + OOS 약)"
+    regime_condition: "unconditional (전 국면)"
+    net_alpha: "미산출"
+    verdict: "PASS-conditional (low, OOS 약) -> monitor-only"
+
+tradeable_signal_overall: >
+    ★bio G-G v2 = **PASS-conditional** (tradeable >=1 but 전부 low confidence). primary = flow_sell conditional
+    (interaction 유의 + OOS 부호유지) = ★국면 명시(외국인 순매도) 출력 가능. unconditional 신호는 OOS 약 ->
+    conservative cap + monitor + ★보강(파이프라인/PIT멤버십 collector_plan high). over-trade(약신호 강제투입) 차단.
+    ★FAIL 아님 = conditional 1개 OOS 생존. ★PASS-strong 아님 = BY 미생존 + underpowered + 생존편향.
 
 # ── Hard-fail 4 ──
 hard_fail_self_check:
-  B_real_data: {status: PASS, note: "합성 0%. pykrx OHLCV 38종 + yfinance(XBI/VIX/factors) + DART 948 rows(2019~) + FDR. raw-v3/*.py 재현."}
-  C_traceability: {status: PASS, note: "yaml 수치 = validation-metrics-v3 / valuation-v3 / cross-v3.json key 매핑."}
-  D_pit: {status: PASS, note: "가격 forward-shift safe. valuation = DART rcept_dt 공시일 이후만. regime = ex-ante XBI yoy."}
+  B_real_data: {status: PASS, note: "합성 0%. pykrx OHLCV 38종 + DART 948 rows(2019~) + FRED CLI/DEXKOUS + ECOS 외국인flow 일별 + yfinance(VIX/factors). raw-v3/*.py 재현."}
+  C_traceability: {status: PASS, note: "yaml 수치 = validation-conditional-v3/oos-v3/metrics-v3/valuation-v3/cross-v3.json key 매핑."}
+  D_pit:
+    status: "초안 PARTIAL -> 재측정 PASS"
+    note: >
+      ★bio-audit 발견(2026-06-05) = 거래정지 좀비 carry-forward 누설. 거래정지 종목(코오롱티슈진 950160
+      841일 flat 47.8% / 케어젠 214370 277일 19%) 직전종가 flat carry -> forward 20d +0.0000 IC 오염 +
+      vol_60 저변동성 오측정. ★remediation = mask_trading_halt(연속 동일종가>=10일 NaN, reject!=missing)
+      후 재측정 -> 핵심 결론 robust(interaction mom_6 t=-2.90->-2.85, vol_60 uncond -0.066->-0.069 안정,
+      flow_sell OOS 불변). 가격 forward-shift + valuation rcept_dt + CLI 2M lag 유지. 재측정 후 PASS.
   I_survivor_bias:
     status: PARTIAL
-    note: "★bio = 상폐·관리종목 잦음(임상 실패→상폐). universe = FDR 현재 스냅샷(생존 종목) = 생존편향 ★강함. 38종 中 7종 부분 이력. delisted bio 누락 = IC 상향 편의 우려. PIT 멤버십 = collector_plan high."
+    note: >
+      ★★bio = 생존편향 최악 축. universe = FDR 2026-05 스냅샷 = ★delisted 완전 누락(거래 끊긴 종목 0종).
+      코오롱티슈진/신라젠/헬릭스미스 등 임상실패 상폐·관리종목 누락. ★누락된 건 대부분 고변동성 임상실패 신약
+      -> vol_60(고변동성 회피) 신호 과대평가 우려 강. 신규상장 7종(2020+)=look-back gap(missing). PIT 멤버십
+      = collector_plan high(최우선). ★hard-fail 회피 = over-claim 아닌 정직 격하(PARTIAL + 신호별 caveat 명시).
 
-# ── verdict (small-n rule) ── ★event_driven 검증 중심
-verdict_label: PARTIAL   # ★event_driven 부분 지지 (저변동성 + 흑자 PER borderline)
+# ── verdict (small-n rule) ──
+verdict_label: PARTIAL   # ★conditional(flow_sell) 부분 지지 + unconditional 약 + 생존편향 강
 verdict_detail:
-  cs_lowvol: "★PARTIAL (event_driven 핵심) — 저변동성 IC -0.078 t=-3.02 NW 유의, block-boot CI 0배제, cap-weighted -0.107. 임상 risk 회피. BY 미세 미달(raw_p 0.0033 vs 0.0031). 멀티플 아닌 risk-factor 신호."
-  cs_per_z_profitable: "흑자 제약사 한정 value premium (IC -0.088 p=0.023, within 100%@12M, avgN 21). 적자 신약 제외 = 멀티플 부적합."
-  cs_pbr_z: "TENTATIVE (PBR 24M value 방향, 비유의. 자본잠식 왜곡 가능)"
-  momentum: "비유의 (BY 0). 모멘텀 무신호."
-  common_factor: "★VIX β 강유의(t=6.03) = 고베타 성장주. 산업별 risk factor 분기(battery credit/oil, financial 무, consumer dollar, bio VIX)."
+  cs_flow_sell_conditional: "★PARTIAL-conditional (핵심) — 외국인 순매도 국면 신호 증폭. family_2 interaction mom_6 t=-2.90/mom_12_1 t=-2.92/per_z t=-2.29 유의 + OOS 5신호 부호+magnitude 유지. but cell underpowered(n<24) + BY 미생존 + IS약->OOS강(regime shift tentative)."
+  cs_lowvol: "★PARTIAL->OOS약 — unconditional 저변동성 IC -0.066(★좀비 마스킹 후 -0.069 안정) wc_p=0.011 유의 but OOS magnitude 붕괴(-0.125->-0.008) + 생존편향 과대평가 우려. ★거래정지 carry-forward 마스킹 후에도 방향 robust(저변동성 신호 = 좀비 artifact 아님 재확인). flow_sell conditional 에서는 OOS 강화."
+  per_z: "unconditional value 약/반전(OOS) -> flow_sell 국면 conditional value(t=-2.29). 흑자 한정(적자 26/38 제외)."
+  momentum_unconditional: "비유의(BY 0). unconditional 무신호 -> flow_sell 국면서만 발현(conditional)."
+  common_factor: "★VIX β 강유의(t=6.03) = 고베타 성장주. 산업별 risk factor 분기(bio=VIX)."
 verdict_note: >
-  ★bio = event_driven 부분 지지 (4번째 archetype). 멀티플(PER) = 흑자 제약사 한정 작동 + 적자 신약(36%)
-  무의미 제외 = 멀티플 단독 부적합. ★진짜 신호 = 변동성(임상 risk, NW 유의) + 파이프라인/임상 이벤트
-  (collector_plan high, 현 미측정). VIX 고베타. 생존편향 ★강(임상 실패→상폐). = ★4 archetype 분기 완성:
-  battery momentum / financial regime-conditional / consumer valuation / bio 변동성+이벤트(멀티플 부분).
-  = 동적가중(산업별 유효 신호·risk·데이터 전부 상이) 정당화 + event_driven 의 멀티플 부적합 데이터 지지.
+  ★bio = event_driven archetype + ★conditional IC 본체 = **외국인 순매도(flow_sell) 국면 증폭축**(반도체 KRW_weak
+  과 대조). unconditional 가격/valuation 신호 = OOS 약/반전(in-sample artifact) -> 진짜 신호 = conditional
+  (flow_sell family_2 interaction 유의 + OOS 부호유지) + 저변동성(임상 risk, OOS 약). ★G-G v2 = PASS-conditional
+  (tradeable 1개 OOS 생존 but low confidence: underpowered+BY미생존+생존편향). ★생존편향 최악(임상실패 상폐
+  누락 = vol 신호 과대평가) = I PARTIAL 정직 격하. ★멀티플 = 흑자 제약 + flow_sell 국면 한정 = 멀티플 단독 부적합.
+  collector_plan high = 파이프라인/임상 + PIT 멤버십(최우선).
+  ★G-C 독립 audit 충실 PASS(hard-fail 0, flow_sell conditional genuine 재현). ★remediation 반영 = D축 좀비
+  carry-forward 누설(코오롱티슈진/케어젠 거래정지 flat carry) NaN 마스킹 재측정 = 결론 불변(interaction t=-2.85
+  유지, vol_60 -0.069 안정). 코드화 자격 충족(PARTIAL, conservative cap + monitor + regime gate).

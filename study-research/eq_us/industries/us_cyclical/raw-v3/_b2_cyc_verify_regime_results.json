@@ -1,0 +1,270 @@
+{
+  "meta": {
+    "H": 12,
+    "note": "CYC 교호 raw double-sort(재-z 없음)+hand-built FM+연속 regime. 재-z artifact 판별."
+  },
+  "CYC-1": {
+    "spec": "ev(저cheap)×gross_prof(고)",
+    "pred_sign": 1,
+    "quadrant_fwd": {
+      "HH": 0.3267,
+      "HL": 0.3025,
+      "LH": 0.1337,
+      "LL": 0.2014
+    },
+    "double_sort_DiD": {
+      "label": "CYC-1_DiD",
+      "mean": 0.09198,
+      "n": 125,
+      "n_eff": 33.4,
+      "t_nw": 1.63,
+      "fixed_b_cv": 2.19,
+      "fixed_b_sig": false,
+      "wild_p": 0.125,
+      "sign": 1
+    },
+    "hand_fm": {
+      "label": "CYC-1_FM",
+      "mean": 0.04191,
+      "n": 125,
+      "n_eff": 32.2,
+      "t_nw": 1.75,
+      "fixed_b_cv": 2.28,
+      "fixed_b_sig": false,
+      "wild_p": 0.1099,
+      "sign": 1
+    },
+    "regime_slope": {
+      "vix": {
+        "slope": -0.0045,
+        "t_hac": -0.48,
+        "n": 125,
+        "fixed_b_cv": 2.19,
+        "fixed_b_sig": false,
+        "wild_p": 0.7848
+      },
+      "baa_aaa": {
+        "slope": -0.12477,
+        "t_hac": -0.48,
+        "n": 125,
+        "fixed_b_cv": 2.19,
+        "fixed_b_sig": false,
+        "wild_p": 0.6607
+      },
+      "dollar": {
+        "slope": 0.02129,
+        "t_hac": 2.48,
+        "n": 125,
+        "fixed_b_cv": 2.19,
+        "fixed_b_sig": true,
+        "wild_p": 0.0812
+      },
+      "rate10y": {
+        "slope": 0.15058,
+        "t_hac": 3.44,
+        "n": 125,
+        "fixed_b_cv": 2.19,
+        "fixed_b_sig": true,
+        "wild_p": 0.0135
+      }
+    }
+  },
+  "CYC-3": {
+    "spec": "op_prof(고)×asset_growth(저)",
+    "pred_sign": 1,
+    "quadrant_fwd": {
+      "HH": 0.2435,
+      "HL": 0.2045,
+      "LH": 0.2847,
+      "LL": 0.2037
+    },
+    "double_sort_DiD": {
+      "label": "CYC-3_DiD",
+      "mean": -0.04189,
+      "n": 125,
+      "n_eff": 41.1,
+      "t_nw": -0.98,
+      "fixed_b_cv": 2.1,
+      "fixed_b_sig": false,
+      "wild_p": 0.3383,
+      "sign": -1
+    },
+    "hand_fm": {
+      "label": "CYC-3_FM",
+      "mean": -0.0571,
+      "n": 125,
+      "n_eff": 31.3,
+      "t_nw": -2.39,
+      "fixed_b_cv": 2.28,
+      "fixed_b_sig": true,
+      "wild_p": 0.0283,
+      "sign": -1
+    },
+    "regime_slope": {
+      "vix": {
+        "slope": -0.01717,
+        "t_hac": -3.84,
+        "n": 125,
+        "fixed_b_cv": 2.1,
+        "fixed_b_sig": true,
+        "wild_p": 0.0009
+      },
+      "baa_aaa": {
+        "slope": -0.27698,
+        "t_hac": -1.79,
+        "n": 125,
+        "fixed_b_cv": 2.1,
+        "fixed_b_sig": false,
+        "wild_p": 0.1061
+      },
+      "dollar": {
+        "slope": 0.00589,
+        "t_hac": 0.75,
+        "n": 125,
+        "fixed_b_cv": 2.1,
+        "fixed_b_sig": false,
+        "wild_p": 0.4656
+      },
+      "rate10y": {
+        "slope": 0.03891,
+        "t_hac": 0.79,
+        "n": 125,
+        "fixed_b_cv": 2.1,
+        "fixed_b_sig": false,
+        "wild_p": 0.4489
+      }
+    }
+  },
+  "CYC-4": {
+    "spec": "ep_yield(고)×residual_mom",
+    "pred_sign": 1,
+    "quadrant_fwd": {
+      "HH": 0.1837,
+      "HL": 0.245,
+      "LH": 0.2321,
+      "LL": 0.1848
+    },
+    "double_sort_DiD": {
+      "label": "CYC-4_DiD",
+      "mean": -0.1086,
+      "n": 89,
+      "n_eff": 44.7,
+      "t_nw": -4.03,
+      "fixed_b_cv": 2.16,
+      "fixed_b_sig": true,
+      "wild_p": 0.0003,
+      "sign": -1
+    },
+    "hand_fm": {
+      "label": "CYC-4_FM",
+      "mean": -0.00569,
+      "n": 89,
+      "n_eff": 28.7,
+      "t_nw": -0.33,
+      "fixed_b_cv": 2.28,
+      "fixed_b_sig": false,
+      "wild_p": 0.7666,
+      "sign": -1
+    },
+    "regime_slope": {
+      "vix": {
+        "slope": 0.00211,
+        "t_hac": 0.53,
+        "n": 89,
+        "fixed_b_cv": 2.16,
+        "fixed_b_sig": false,
+        "wild_p": 0.6087
+      },
+      "baa_aaa": {
+        "slope": -0.16561,
+        "t_hac": -1.94,
+        "n": 89,
+        "fixed_b_cv": 2.16,
+        "fixed_b_sig": false,
+        "wild_p": 0.055
+      },
+      "dollar": {
+        "slope": -0.00984,
+        "t_hac": -3.16,
+        "n": 89,
+        "fixed_b_cv": 2.16,
+        "fixed_b_sig": true,
+        "wild_p": 0.0134
+      },
+      "rate10y": {
+        "slope": -0.00632,
+        "t_hac": -0.3,
+        "n": 89,
+        "fixed_b_cv": 2.16,
+        "fixed_b_sig": false,
+        "wild_p": 0.7761
+      }
+    }
+  },
+  "CYC-5": {
+    "spec": "ep_yield(고)×idio_vol(저)",
+    "pred_sign": 1,
+    "quadrant_fwd": {
+      "HH": 0.1762,
+      "HL": 0.2739,
+      "LH": 0.2016,
+      "LL": 0.2574
+    },
+    "double_sort_DiD": {
+      "label": "CYC-5_DiD",
+      "mean": -0.04184,
+      "n": 117,
+      "n_eff": 41.5,
+      "t_nw": -1.58,
+      "fixed_b_cv": 2.11,
+      "fixed_b_sig": false,
+      "wild_p": 0.1265,
+      "sign": -1
+    },
+    "hand_fm": {
+      "label": "CYC-5_FM",
+      "mean": 0.00948,
+      "n": 117,
+      "n_eff": 54.0,
+      "t_nw": 0.59,
+      "fixed_b_cv": 2.11,
+      "fixed_b_sig": false,
+      "wild_p": 0.5698,
+      "sign": 1
+    },
+    "regime_slope": {
+      "vix": {
+        "slope": -0.01029,
+        "t_hac": -4.98,
+        "n": 117,
+        "fixed_b_cv": 2.11,
+        "fixed_b_sig": true,
+        "wild_p": 0.0018
+      },
+      "baa_aaa": {
+        "slope": -0.13362,
+        "t_hac": -1.2,
+        "n": 117,
+        "fixed_b_cv": 2.11,
+        "fixed_b_sig": false,
+        "wild_p": 0.2804
+      },
+      "dollar": {
+        "slope": 0.0021,
+        "t_hac": 0.36,
+        "n": 117,
+        "fixed_b_cv": 2.11,
+        "fixed_b_sig": false,
+        "wild_p": 0.7333
+      },
+      "rate10y": {
+        "slope": 0.0495,
+        "t_hac": 2.69,
+        "n": 117,
+        "fixed_b_cv": 2.11,
+        "fixed_b_sig": true,
+        "wild_p": 0.027
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "note": "★단일 FDR family 통합 합산 (가격/valuation conditional + 신규 펀더멘털 cycle). garden-of-forking-paths 차단.",
+  "family_composition": {
+    "conditional_powered": 102,
+    "fundamentals_powered": 78,
+    "total": 180
+  },
+  "merged_by_fdr": {
+    "m_total": 180,
+    "by_factor": 5.773,
+    "q": 0.1,
+    "bonferroni_alpha": 0.000278,
+    "survivors_BY": [],
+    "n_survivors": 0,
+    "raw_p_min": 0.0005,
+    "raw_p_min_key": "COND::vol_60__y_60d__unconditional",
+    "top5": [
+      [
+        "COND::vol_60__y_60d__unconditional",
+        0.0005
+      ],
+      [
+        "COND::pbr_z__y_60d__unconditional",
+        0.0005
+      ],
+      [
+        "FUND::capex_ratio__y_60d__uncond",
+        0.0005
+      ],
+      [
+        "FUND::capex_ratio__y_60d__krw_regime=KRW_neutral",
+        0.001
+      ],
+      [
+        "COND::mom_6__y_5d__krw_regime=KRW_neutral",
+        0.0015
+      ]
+    ]
+  },
+  "m_eff_caveat": "naive m_total 박제. M_eff 통합보정(신호상관) = supervisor 통합단계(M.7)."
+}

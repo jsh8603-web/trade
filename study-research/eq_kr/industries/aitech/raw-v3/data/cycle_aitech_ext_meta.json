@@ -1,0 +1,59 @@
+{
+  "source": "yfinance US-listed = 글로벌 cycle proxy (KR 직접 아님 한계)",
+  "base_4": [
+    "ai_capex_nvda",
+    "nasdaq_qqq",
+    "rate_10y",
+    "soxx_semi"
+  ],
+  "new": {
+    "power_demand_xlu": {
+      "ticker": "XLU",
+      "n": 2117,
+      "range": [
+        "2018-01-02",
+        "2026-06-04"
+      ]
+    },
+    "global_sw_igv": {
+      "ticker": "IGV",
+      "n": 2117,
+      "range": [
+        "2018-01-02",
+        "2026-06-04"
+      ]
+    },
+    "game_espo": {
+      "ticker": "ESPO",
+      "n": 1917,
+      "range": [
+        "2018-10-17",
+        "2026-06-04"
+      ]
+    },
+    "vix": {
+      "ticker": "^VIX",
+      "n": 2119,
+      "range": [
+        "2018-01-02",
+        "2026-06-05"
+      ]
+    },
+    "cloud_skyy": {
+      "ticker": "SKYY",
+      "n": 2117,
+      "range": [
+        "2018-01-02",
+        "2026-06-04"
+      ]
+    },
+    "hyperscaler_capex": {
+      "basket": [
+        "MSFT",
+        "GOOGL",
+        "AMZN"
+      ],
+      "n": 2117
+    }
+  }
+}

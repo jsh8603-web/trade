@@ -1,0 +1,27 @@
+universe 23 codes
+  [1/23] 005490 POSCO홀딩스 done rows=28
+  [2/23] 004020 현대제철 done rows=56
+  [3/23] 001430 세아베스틸지주 done rows=84
+  [4/23] 014620 성광벤드 done rows=112
+  [5/23] 023160 태광 done rows=140
+  [6/23] 044490 태웅 done rows=168
+  [7/23] 058650 세아홀딩스 done rows=196
+  [8/23] 016380 KG스틸 done rows=224
+  [9/23] 002240 고려제강 done rows=252
+  [10/23] 460860 동국제강 done rows=263
+  [11/23] 013030 하이록코리아 done rows=291
+  [12/23] 306200 세아제강 done rows=319
+  [13/23] 092790 넥스틸 done rows=329
+  [14/23] 002710 TCC스틸 done rows=357
+  [15/23] 058430 포스코스틸리온 done rows=385
+  [16/23] 009160 SIMPAC done rows=413
+  [17/23] 084010 대한제강 done rows=441
+  [18/23] 005010 휴스틸 done rows=469
+  [19/23] 004560 현대비앤지스틸 done rows=497
+  [20/23] 460850 동국씨엠 done rows=508
+  [21/23] 008970 KBI동양철관 done rows=536
+  [22/23] 002220 한일철강 done rows=564
+  [23/23] 014280 금강공업 done rows=592
+
+Saved D:\projects\Inv\study-research\eq_kr\industries\steel\raw-v3\data\dart_extended.parquet: 592 rows, 23 codes
+coverage: {'inventory': 0.82, 'ppe': 1.0, 'intangible': 0.74, 'cogs': 0.08}

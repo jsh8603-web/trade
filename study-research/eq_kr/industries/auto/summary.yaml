@@ -1,264 +1,397 @@
-# summary.yaml — auto(자동차) 산업 v3 (frame v3 §M exposure card 계약)
-# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge 어휘, BY 보정, LOO/block-boot).
-# 산출 범위 = §M.7 exposure card (측정 전용). battery/반도체 summary.yaml 미러.
-# raw 재현: raw-v3/{collect, measure, measure_cross, exposure_card, collect_dart, measure_valuation}.py
+# summary.yaml — auto(자동차) 산업 v3 conditional (frame v3 §M + dispatch 원의도 = conditional IC surface)
+# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge 어휘, BY 보정, LOO/block-boot, n<30 hedge).
+# ★본 산출 = conditional IC surface(지표×regime×horizon) = dispatch 본체. 반도체 summary.yaml conditional 미러.
+# raw 재현: raw-v3/{measure_conditional, measure_oos, measure_fundamentals_cycle, measure_critique, merge_fdr_family}.py
+#   + 기존 v3: {collect, measure, measure_cross, measure_valuation, collect_dart_extended}.py
+# regime 데이터 = collect_regime.py (FRED CLI/DEXKOUS + ECOS 외국인순매수, 반도체와 시장공통 재사용)
 
 industry: kr_auto             # eq_kr 12산업 中 Tier 2 (자동차)
 asset_scope: [equity.kr]
-archetype: cyclical           # 경기민감 (완성차/부품/타이어, 글로벌 자동차 수요 사이클)
+archetype: cyclical           # 경기민감 (완성차/부품/타이어, 판매량(volume) cycle — ★반도체 ASP(가격) cycle 과 원천 다름)
 archetype_attestation:
-  valid_from: "2019-01-01"    # ★PIT 사전선언 (§M.5 ex-post 금지). cyclical = 자동차 판매 사이클
+  valid_from: "2019-01-01"    # ★PIT 사전선언 (§M.5 ex-post 금지). cyclical = 자동차 판매량 사이클
   declared_at: "2026-06-03"   # 선언 시점 (사후편향 hazard 방지 attestation)
-  primary_metric: ev_ebitda   # cyclical primary (peak-EPS trap — 사이클 정점 EPS 高→PER 低 value trap)
+  primary_metric: ev_ebitda   # cyclical primary (peak-EPS trap — 자동차 = peak-EPS trap 대표산업)
   secondary: null
   basis: >
-    자동차 판매/생산 capex 사이클 1차 가설. ★실측 검증: 가격 momentum forward IC = 약 음(reversal 방향, 반도체와 동부호)
-    이나 ★전부 비유의(universe 17종 작음). customer momentum = 글로벌 자동차 수요(CARZ) contemporaneous 동조(lag0 유의)
-    but forward 부재 = cyclical 동조 패턴 지지. → cyclical 지지(가격신호 약, valuation 우위 예상).
+    ★실측 결론(conditional, 2026-06-05): 가격 momentum/reversal = unconditional 비유의 + ★conditional cell 거의 전부
+    walk-forward OOS 부호반전(in-sample artifact). PBR value premium(y_60d)만 OOS robust + capex_ratio(asset growth)
+    신규 신호 발견(OOS 강화, 통합 FDR 생존). PER peak-EPS trap 무신호 → cyclical archetype 지지(가격신호 약, valuation+자산성장 우위).
 as_of: "2026-05-31"
 
 # ── 블록1 LENS (정성) ──
 lens:
   pricing_principle: >
-    자동차 = cyclical. "싸다" = EV/EBITDA·P/B (★peak-EPS 함정: 사이클 정점 EPS 高 → PER 낮아 보임 = value trap).
-    primary_metric=ev_ebitda. ★실측 결론: 가격기반 cross-sectional momentum = 약 음(reversal 방향)·비유의 →
-    자동차는 가격 신호보다 valuation 횡단면(§10, DART)이 우위일 것(cyclical value, 완성차/부품 멀티플 분산).
+    자동차 = cyclical (판매량 cycle). "싸다" = EV/EBITDA·P/B (★peak-EPS 함정: 자동차 = peak-EPS trap 대표산업.
+    사이클 정점 판매량·EPS 극대 → 저PER 착시 → 인센티브↑·재고↑·마진희석으로 함정). primary_metric=ev_ebitda.
+    ★실측 핵심: ① 가격 momentum/reversal = conditional 측정 결과 OOS flip(in-sample artifact, 반도체보다 약) ②
+    PBR value(y_60d) = OOS robust(size 통제 후 독립) ③ ★capex_ratio(유형자산/총자산 asset growth) = 신규 진짜 신호(OOS 강화).
   cycle_reading: >
-    2019-2026 = COVID 공급망(2020-21 반도체 부족)→수요 회복(2022-23)→전동화 전환(2024-26). 글로벌 자동차 수요(CARZ)
-    contemporaneous 동조 강(lag0 corr +0.22 유의). 단 forward 예측 부재. 현대차/기아 시총 압도(universe 17종 中 cap 70%+).
+    2019-2026 = COVID 공급망(2020-21 차량반도체 부족)→수요회복(2022-23 생산정상화)→전동화 전환(2024-26).
+    regime 분포(2019~): Macro[Slowdown 31/Recovery 26/Reflation 22/Overheat 10] × KRW[neutral 41/weak 38/strong 10]
+    × flow[neutral 48/sell 22/strong_buy 19]. 글로벌 자동차 수요(CARZ) contemporaneous 동조 강(forward 부재).
   estimation_note: >
-    2026-05 시점: universe 17종(시총≥3000억 ∧ ADV≥30억, ★이름 화이트리스트=완성차3+부품12+타이어2, 조선/해운/보험/2차전지 배제).
-    avg N 15종(battery 26·반도체 73 대비 작음). 가격신호 약 = momentum 비유의 → valuation·regime-conditional 우위 가능. 본 산출 = 측정+peer-relative z card.
+    2026-05 시점: universe 17종(시총≥3000억 ∧ ADV≥30억, 완성차3+부품12+타이어2). avg N ~14-15종(반도체 73·battery 26 대비 작음).
+    ★universe 17종 협소 → magnitude 과대 위험 최대 = 부호·방향만, magnitude hedge. 본 산출 = conditional IC surface + peer z card.
+    ★현대차/기아/모비스 시총 ~70% (반도체 93% 보다 덜 극단, 부품주 분산) → eq-weight cross-sectional.
 
-# ── 블록2 INDICATORS (forward 횡단면 Rank-IC, horizon-tagged) ──
-# ★점추정 금지: ic_mean + ic_ci_95(block-boot ∧ NW) + n_effective + oos(CPCV)
-# ★자동차 = 가격신호 약·비유의 → indicators_passed 에 TENTATIVE 만 (BY 생존 0)
-indicators_passed:
-  # ★primary = cs_pbr_z_24m (valuation = 자동차 진짜 신호, momentum 무효 대체). 2026-06-03 측정.
-  - id: cs_pbr_z_24m
-    layer: 1                  # valuation (DART 펀더멘털)
-    family: value
-    horizon: 24M_value        # ★cyclical primary = PBR (PER 은 peak-EPS 무효)
-    ic_mean: -0.463           # 저PBR value premium 강. ★단 n=14 협소 magnitude 과대.
-    magnitude_haircut: "★[frame §M.12] n=14<20 cross-sectional Spearman = 협소 artifact. 50-70% haircut(EB/James-Stein shrinkage): 점추정 ρ=-0.463 → posterior -0.12~-0.20 권역. ⛔ -0.46 literal 인용 금지. breadth-adjusted IR = IC·√(breadth 14 × eff_indep_N 2.5) → 보수 = supervisor collector_plan."
-    ic_ci_95: [-0.336, -0.108]  # block-boot(12M). 0 배제. magnitude 신뢰 X(small-universe).
-    t_nw: -17.59              # ★허수 경계 — n=14 극단화 (haircut 후 posterior -0.12~-0.20)
-    n_effective: 61
-    avg_universe_n: 14.3
-    oos_ratio: 1.00
-    loo_robust: true          # ★LOO 17종 제외 IC [-0.537,-0.395] 전부 음
-    within_period: 1.00
-    source_id: "raw-v3/validation-valuation-v3.json:indicators.pbr_z__24M_value"
-    notes: |
-      저PBR cross-sectional z → 24M forward. ★자동차 진짜 신호(가격 momentum 무효 대체). value premium
-      방향 안정적(LOO 17종 전부 음, within 100%, BY 생존). ★magnitude(-0.46 t=-17.6) = n=14 협소 과대 = hedge.
-      ★PBR 만 작동(PER peak-EPS 무신호) = cyclical archetype 정합.
-      ★★[frame §M.12 정정] 24M overlap eff_indep_N = 61/24 ≈ 2.5 = degenerate. t=-17.6 = small-universe(17종)
-      × 24M overlap **이중 inflation**(역설: t 최대=증거 최약). ⛔ magnitude+significance 둘 다 보류, ★방향만.
-      primary 증거 = 3M/6M/12M(eff_N 높음), 24M_value = 보조(degenerate).
-      ★peak-EPS 메커니즘 정정: 1차 원인 = earnings cycle 진폭(흑자도 정점 EPS↑→저PER trap), 적자 = 2차 증폭.
-      ⛔시총 인과 귀속 금지(시총은 earnings 안정성 proxy일 뿐). PER → E/P(earnings yield) 대체 권고.
-  - id: cs_mom_6m_reversal_weak
-    layer: 3                  # 가격 cycle proxy (cross-sectional 모멘텀 → 약 reversal). ★비유의 = 보조.
-    family: momentum          # 부호 음(reversal 방향, 반도체 동부호) 단 비유의
-    horizon: 3M               # 가장 강(그래도 약): mom_6 → 3M forward
-    ic_mean: -0.064
-    ic_ci_95: [-0.141, 0.005]  # block-bootstrap. NW CI [-0.138, 0.010]. ★0 포함 = 비유의.
-    ic_se_nw: 0.0379
-    t_nw: -1.69
-    n_effective: 80           # months
-    oos_ratio: 0.87           # CPCV OOS hit=0.87 (부호 약 일관)
-    avg_universe_n: 14.9
-    source_id: "raw-v3/validation-metrics-v3.json:indicators.mom_6__3M"
-    notes: |
-      cross-sectional 6M 모멘텀 z → 3M forward = 약 음(reversal 방향, 반도체 동부호). ★p_NW=0.096 비유의.
-      within-period 0.75. cap-weighted -0.083 (대형주 reversal 방향, 동일가중 -0.064 보다 강) = 반도체 cyclical 패턴 유사.
-      ★BY 보정(16 테스트) raw_p_min=0.096 → 생존 0. ★전 16 신호 비유의 = 자동차 가격신호 무효 = TENTATIVE DIRECTIONAL.
-  - id: cs_mom_6m_reversal_6m
-    layer: 3
-    family: momentum
-    horizon: 6M_mom
-    ic_mean: -0.062
-    ic_ci_95: [-0.156, 0.019]  # block-boot 0 포함
-    ic_se_nw: 0.0528
-    t_nw: -1.18
-    n_effective: 77
-    oos_ratio: 0.73
-    avg_universe_n: 14.9
-    source_id: "raw-v3/validation-metrics-v3.json:indicators.mom_6__6M_mom"
-    notes: "6M 모멘텀 → 6M forward reversal 방향. within 0.57. cap-weighted -0.124(대형주 reversal 강). BY 미생존, 비유의. TENTATIVE."
+# ── ★블록2-A CONDITIONAL IC SURFACE (dispatch 원의도 본체, measure_conditional.py) ──
+# 측정 = IC(지표, regime 36셀, horizon) = "어느 국면에 어느 지표가 forward return 예측하나".
+# ★점추정 금지: ic_mean + wild_cluster_p(G-F §7) + n_months + n_eff + walk-forward OOS(IS/OOS split).
+conditional_ic_surface:
+  source: "raw-v3/validation-conditional-v3.json + validation-merged-fdr-v3.json + walk_forward_oos"
+  meta:
+    horizons_days: {y_5d: 5, y_20d: 20, y_60d: 60}
+    regime_axes: "Macro 4 × KRW 3 × flow 3 (36셀 full N>=24=0 → 단일축 측정, 2축 merge=supervisor)"
+    gf_contract: "measure_conditional.py 헤더 G-F 7항 선언 (regime/interaction/단일FDR/null-MDE/PIT/turnover/wild-cluster)"
+    calibration: "★small-block asymptotic NW t = size-invalid(Kiefer-Vogelsang) → wild-cluster bootstrap(Rademacher B=2000) per-cell p"
+    floor_censored_caveat: >
+      ★[G-C remediation 1, 2026-06-05] 통합 FDR survivors 5개 wc_p = 전부 0.0005 = wild-cluster bootstrap floor(1/(B+1)=1/2001)에 censored.
+      = "auto survivors=5 > 반도체/battery survivors=0" 는 ★방향성 우위(보정 후 생존 여부)는 맞으나 ★magnitude 비교는 floor-censored
+      (B↑ 시 0.0005 미만으로 더 작아질 수 있음, 5개 간 상대 강도 구분 불가). 산업 간 "얼마나 더 강한지" 정량 비교 금지, "생존 여부" 만 비교.
 
-# ── 블록3 RELATIONSHIPS (partial-corr) — RegimeGlasso 통합 단계 입력 ──
-relationships_passed:
-  - {node_a: cs_mom_6m_reversal_weak, node_b: auto_fwd_3m, lag_months: 0, corr: -0.064,
-     corr_ci_95: [-0.141, 0.005], conditioning_set: [], n: 80,
-     source_id: "raw-v3/validation-metrics-v3.json:indicators.mom_6__3M",
-     note: "본 corr = cross-sectional IC(unconditional, 약 음 reversal, 비유의). partial-corr = 통합 RegimeGlasso 단계."}
+  # ── 가격신호 (unconditional 비유의 + conditional OOS flip = in-sample artifact) ──
+  price_signals:
+    - id: mom_6
+      family: momentum
+      prior: "음(reversal), 반도체보다 약 (volume cycle)"
+      uncond: {horizon: y_20d, ic_mean: -0.0276, wc_p: 0.4168, n: 81, status: powered}
+      uncond_y60: {ic_mean: null, ic_y60_is: -0.1259, ic_y60_oos: -0.0022}   # uncond y_60d IS 음 강 but OOS 소멸
+      best_conditional: {cell: "krw_regime=KRW_weak (y_20d)", ic_mean: -0.0033, wc_p: 0.949, n: 34, note: "unconditional 약, KRW_weak 도 약"}
+      walk_forward_oos:
+        - {cell: "uncond y_20d", is_ic: -0.0529, oos_ic: -0.0004, sign_hold: true, note: "OOS 소멸(IS 약신호 → OOS ~0)"}
+        - {cell: "KRW_weak y_20d", is_ic: -0.0981, oos_ic: 0.1498, sign_hold: false, note: "★OOS 부호반전(+) = in-sample artifact"}
+        - {cell: "KRW_weak y_60d", is_ic: -0.1424, oos_ic: 0.0789, sign_hold: false, note: "★OOS flip"}
+      verdict: "TENTATIVE→REJECTED(OOS) — unconditional 비유의 + conditional cell OOS flip. 자동차 momentum 무효 확정(반도체보다 약)."
+    - id: mom_12_1
+      family: momentum
+      prior: "음(reversal)"
+      uncond: {horizon: y_20d, ic_mean: -0.0075, wc_p: 0.8046, n: 75, status: powered}
+      family_2_interaction: {dummy: "krw_regime=KRW_weak", b_inter: 0.1231, t_inter: 2.18, note: "★interaction 유의(t=2.18) but 부호 양(+) = KRW_weak서 momentum continuation, prior(reversal 음)와 반대"}
+      walk_forward_oos:
+        - {cell: "uncond y_20d", is_ic: -0.0815, oos_ic: 0.0609, sign_hold: false, note: "★OOS flip"}
+        - {cell: "KRW_weak y_60d", is_ic: -0.0354, oos_ic: 0.1516, sign_hold: false}
+      verdict: "REJECTED(OOS) — uncond+conditional 전부 OOS flip. family_2 interaction 유의하나 OOS 불안정."
+    - id: rev_1m
+      family: reversal
+      prior: "음(단기 reversal)"
+      uncond: {horizon: y_20d, ic_mean: 0.0200, wc_p: 0.5792, n: 81, status: powered}
+      walk_forward_oos:
+        - {cell: "uncond y_20d", is_ic: -0.0127, oos_ic: 0.0552, sign_hold: false}
+        - {cell: "KRW_weak y_20d", is_ic: -0.1213, oos_ic: 0.1969, sign_hold: false, note: "★IS 강 음 → OOS 강 양 = 극단 flip"}
+      verdict: "REJECTED(OOS) — IS 음 reversal → OOS 양 momentum 극단 flip = in-sample artifact 전형."
+    - id: vol_60
+      family: low_vol
+      prior: "음(low-vol anomaly) 또는 무"
+      uncond: {horizon: y_20d, ic_mean: 0.0051, wc_p: 0.8946, n: 81, status: powered}
+      family_2_interaction: {dummy: "krw_regime=KRW_weak", b_inter: 0.2268, t_inter: 2.75, note: "★interaction 유의(t=2.75) but OOS flip 동반 = 신뢰 불가"}
+      walk_forward_oos:
+        - {cell: "KRW_weak y_20d", is_ic: 0.0508, oos_ic: 0.2811, sign_hold: true, note: "부호유지(양)이나 magnitude 폭증 = 불안정"}
+      verdict: "TENTATIVE — uncond 무신호. KRW_weak interaction 유의하나 magnitude 불안정(OOS 0.28 폭증)."
 
-# ── 블록4 WEIGHT_RULES — derive_weights(w∝Θ_signal·IC) 입력 (range, 점추정 금지) ──
+  # ── ★valuation (PBR = OOS robust value premium / PER = peak-EPS trap 무신호) ──
+  valuation_signals:
+    - id: pbr_z
+      family: value
+      prior: "음(저PBR→고forward, value premium)"
+      uncond: {horizon: y_20d, ic_mean: -0.0331, wc_p: 0.2849, n: 81, status: powered}
+      uncond_y60: {ic_mean: -0.108, note: "y_60d uncond IS=-0.1084/OOS=-0.1173 = ★OOS robust"}
+      best_conditional:
+        - {cell: "y_60d uncond", ic_mean: -0.108, is_ic: -0.1084, oos_ic: -0.1173, sign_hold: true, note: "★OOS 부호+magnitude 유지"}
+        - {cell: "y_60d macro=Slowdown", ic_mean: -0.1839, wc_p: 0.0005, is_ic: -0.1742, oos_ic: -0.1839, sign_hold: true, note: "★raw_p_min, OOS 강화 = robust"}
+        - {cell: "y_60d flow_strong_buy", is_ic: -0.2051, oos_ic: -0.0817, sign_hold: true, note: "펀더멘털 자금 regime서 value 강(theory M3 정합), OOS 유지"}
+      size_orthogonal: {b_pbr: -0.1148, t_pbr: -2.67, b_size: -0.0185, t_size: -0.38, horizon: y_60d, note: "★Q6 기각: PBR|Size t=-2.67 유의, size 비유의 = value premium = size 위장 아님(Fama-MacBeth)"}
+      effective_n_label:   # ★[G-C remediation 2, 2026-06-05] y_60d 중첩 자기상관 보정
+        horizon: y_60d
+        ar1: 0.494           # PBR IC 시계열도 60d 중첩 강상관
+        n_months: 82
+        eff_n: 34.2          # effective-N (full autocorr)
+        t_naive_iid: -3.72
+        t_eff_corrected: -2.40   # ★eff-N 보정 t = -2.16~-2.40. 여전히 유의(|t|>2). Fama-MacBeth size-orth t=-2.67 도 eff-N 보정 시 약 -2.2 권역
+        note: "★y_60d PBR IC AR1=0.494 → eff-N=34.2. naive t=-3.72 → eff-N 보정 -2.16~-2.40. ★보정 후에도 유의. t 박제 시 eff-N 병기. source=validation-neff-label-v3.json"
+      tier: structural_prior_high_confidence   # ★[G-C 2026-06-05] OOS robust + size 독립 + eff-N 보정 후 유의. ⛔validated alpha 단정 보류
+      verdict: "PARTIAL CONFIRMED(tentative, OOS robust, tier=structural_prior_high_confidence) — PBR value premium y_60d = ★OOS 부호+magnitude 유지 + size 독립(t=-2.67). ★effective-N 보정 t=-2.40(여전히 유의). ★단 universe 17종 magnitude hedge(점추정 인용 금지, 방향+breadth-adj 권역만). validated alpha 단정 보류."
+    - id: per_z
+      family: value
+      prior: "무효(peak-EPS trap)"
+      uncond: {horizon: y_20d, ic_mean: -0.0001, wc_p: 1.00, n: 41, status: powered, note: "★IC≈0 = peak-EPS trap 확인"}
+      verdict: "INSUFFICIENT/무신호 — PER 횡단면 IC≈0 = ★peak-EPS trap(정점 EPS↑→저PER 왜곡). cyclical archetype 정의 데이터 지지. E/P·EV-EBITDA 대체 권고."
+
+  # ── ★신규 cycle 지표 (DART 재구성, ★이연 금지 이행) — capex_ratio = 자동차 진짜 신규 신호 ──
+  fundamental_cycle_signals_source: "raw-v3/validation-fundamentals-cycle-v3.json (DART dart_extended.parquet, rcept_dt PIT)"
+  fundamental_cycle_signals:
+    - id: capex_ratio
+      signal: "유형자산/총자산 (asset growth, ★음 prior = 과잉투자 anomaly)"
+      family: investment
+      uncond: {y_20d: {ic_mean: -0.075, wc_p: 0.0125}, y_60d: {ic_mean: -0.1031, wc_p: 0.0015}}
+      walk_forward_oos:
+        - {horizon: y_20d, is_ic: -0.0551, oos_ic: -0.0975, sign_hold: true, note: "★OOS 부호유지+강화"}
+        - {horizon: y_60d, is_ic: -0.0435, oos_ic: -0.1722, sign_hold: true, note: "★OOS 강화 (asset growth anomaly robust)"}
+      size_orthogonal: {b_capex: -0.1851, t_capex: -3.78, b_size: -0.1288, t_size: -2.23, horizon: y_60d,
+                        note: "★capex|Size t=-3.78 유의(독립). ★단 size 도 t=-2.23 유의 = 자동차 small-cap effect 공존(collinear 일부). multivariate(pbr+capex+size): capex t=-3.38 유지."}
+      effective_n_label:   # ★[G-C remediation 2, 2026-06-05] 60d 중첩 자기상관 보정
+        horizon: y_60d
+        ar1: 0.426              # IC 시계열 AR(1) (60d 중첩 = 인접월 강상관)
+        n_months: 82
+        eff_n: 39.7            # effective-N (full autocorr) = n=82 의 약 절반 (eff_n_ar1=33.0)
+        t_naive_iid: -3.61    # IID 가정 t (eff-N 미보정 = 과대)
+        t_eff_corrected: -2.52   # ★effective-N 보정 t (full autocorr) = -2.45~-2.52 권역. ★여전히 유의(|t|>2)
+        note: "★y_60d 중첩(AR1=0.426) → eff-N=39.7(n의 절반). naive t=-3.61 = 과대 → eff-N 보정 t=-2.45~-2.52. ★보정 후에도 유의(robust)지만 t 박제 시 eff-N 보정값 병기 의무. source=validation-neff-label-v3.json. (y_20d 는 AR1=0.087 낮음 → eff-N 보정 영향 미미, t_eff=-2.43)"
+      fdr: {merged_family_survivor: true, note: "★통합 단일 FDR m=168 survivors=5 中 capex_ratio 3 cell 생존(garden-of-forking-paths 차단 후). ★단 survivors wc_p 전부 floor-censored(meta.floor_censored_caveat) = 생존 여부만, magnitude 비교 금지"}
+      tier: structural_prior_high_confidence   # ★[G-C 2026-06-05] LOO 17종 전부 음 + PIT-safe + size 독립 3중 검증. ⛔validated alpha 단정은 보류(차기 vintage pristine OOS 후 승격)
+      verdict: "PARTIAL CONFIRMED(tentative, OOS robust, tier=structural_prior_high_confidence) — ★자동차 진짜 신규 신호. asset growth anomaly(Cooper-Gulen-Schill 2008) prior 음 정합 + OOS 강화 + size 통제 후 독립(multivariate t=-3.38) + 통합 FDR 생존. ★effective-N 보정 t=-2.52(여전히 유의) + size 공존 + universe 17종 = magnitude hedge. ★validated alpha 단정 보류(차기 vintage pristine OOS 후)."
+    - id: inv_ratio
+      signal: "재고자산/총자산 (재고순환, 음 prior)"
+      uncond: {y_20d: {ic_mean: -0.0342, wc_p: 0.2899}, y_60d: {ic_mean: -0.0512, wc_p: 0.1559}}
+      walk_forward_oos: [{horizon: y_20d, is_ic: -0.0247, oos_ic: -0.045, sign_hold: true}, {horizon: y_60d, is_ic: 0.0093, oos_ic: -0.1213, sign_hold: false}]
+      verdict: "TENTATIVE DIRECTIONAL — 부호 음(prior 정합) but 약/비유의. y_60d OOS flip. capex 대비 약."
+    - id: ppe_yoy
+      signal: "유형자산 yoy (CAPEX cycle, 음 prior)"
+      uncond: {y_20d: {ic_mean: 0.0003, wc_p: 0.995}, y_60d: {ic_mean: -0.0174, wc_p: 0.6072}}
+      verdict: "INSUFFICIENT — 비유의 + OOS flip. (level capex_ratio 가 yoy 보다 강 = stock 변수 우위)"
+    - id: rnd_ratio
+      signal: "무형자산/총자산 (R&D proxy, 양 prior)"
+      uncond: {y_20d: {ic_mean: -0.0152, wc_p: 0.6697}}
+      verdict: "INSUFFICIENT — 비유의 + prior(양)와 약하게 반대. OOS flip."
+    - id: inv_yoy
+      signal: "재고 yoy (음 prior)"
+      verdict: "INSUFFICIENT — 비유의(IC +0.016~0.036, prior 음과 반대 방향)."
+
+  # ── ★family_2 interaction (G-B 의무, rejected 박제 前) ──
+  family_2_interaction:
+    method: "pooled cross-sectional panel, month-clustered SE (measure_conditional.measure_interaction_terms)"
+    dummy: "krw_regime=KRW_weak (y_20d)"
+    results:
+      - {signal: mom_6, b_main: -0.0485, t_main: -1.07, b_inter: 0.0458, t_inter: 0.67, verdict: "interaction 비유의"}
+      - {signal: mom_12_1, b_main: -0.0530, t_main: -1.49, b_inter: 0.1231, t_inter: 2.18, verdict: "★interaction 유의(t=2.18) 부호 양 = KRW_weak서 momentum continuation"}
+      - {signal: rev_1m, b_main: 0.0328, t_main: 0.84, b_inter: -0.0293, t_inter: -0.40, verdict: "interaction 비유의"}
+      - {signal: vol_60, b_main: -0.0868, t_main: -1.81, b_inter: 0.2268, t_inter: 2.75, verdict: "★interaction 유의(t=2.75)"}
+    note: >
+      ★frame A-5 의무 충족(rejected 박제 前 family_2 검정). mom_12_1/vol_60 KRW_weak interaction 유의(t=2.18/2.75)
+      = "국면 따라 부호 갈림" 입증. ★단 부호 양(+) = 반도체(KRW_weak서 reversal 음 증폭)와 반대 + ★해당 cell 들 OOS flip
+      → interaction 유의해도 OOS 불안정 = 채택 보류(flip-register). 자동차 = 반도체와 conditional 패턴 다름(정직 박제).
+
+# ── 블록3 WEIGHT_RULES — derive_weights 입력 (range, 점추정 금지) ──
 weight_rule_candidates:
-  - indicator_id: cs_mom_6m_reversal_weak
-    base_weight_range: [-0.08, 0.0]   # ★약 음 IC·비유의 → weight 거의 0 (방향성만, 신호 약). CI 0 포함.
+  - indicator_id: cs_pbr_z   # ★primary value (OOS robust, size 독립)
+    base_weight_range: [-0.20, -0.08]   # 저PBR value premium 음 IC. ★universe 17종 magnitude hedge → posterior 권역(EB shrinkage).
     modulate_by: [archetype, regime, cycle_phase]
-    direction: "cross-sectional 6M 모멘텀 z 상위(많이 오른) 종목 약 underweight (reversal 방향). 단 비유의 = 거의 중립."
+    direction: "저PBR z 상위(저평가) 종목 forward 양 = IC 음. y_60d Slowdown regime서 강(value 작동)."
     granularity: cross_sectional
-    gate_status: {n: pass, se: marginal, power: weak, fdr: fail, oos: pass}  # ★SE marginal + power weak + FDR fail
-    source_ids: ["raw-v3/validation-metrics-v3.json:indicators.mom_6__3M"]
+    gate_status: {n: pass, se: pass, power: pass, fdr: pass, oos: pass}  # ★y_60d uncond+Slowdown = 통합 FDR 생존 + OOS robust
+    source_ids: ["raw-v3/validation-conditional-v3.json:pbr_z", "raw-v3/validation-critique-v3.json:y_60d.pbr_plus_size"]
     hedge_note: >
-      n=80 months 이나 universe 17종 작음. CI [-0.141, 0.005] 0 포함 = 비유의. ★가격 momentum 은 자동차에서 거의 무효 →
-      supervisor 가 weight ~0 처리 + valuation(§10)·regime-conditional 신호로 대체 권장.
+      ★PBR value premium = OOS robust(y_60d IS-0.108/OOS-0.117) + size 통제 후 독립(t=-2.67). ★단 universe 17종 협소
+      = point estimate magnitude 과대(small-universe). base_weight = 방향+breadth-adj 권역, 점추정 인용 금지. y_20d 는 약(t=-1.39).
+  - indicator_id: cs_capex_ratio   # ★신규 asset growth (OOS robust, 자동차 진짜 신호)
+    base_weight_range: [-0.18, -0.06]   # asset growth anomaly 음 IC. ★size collinear + 17종 hedge → 권역.
+    modulate_by: [archetype, regime]
+    direction: "유형자산/총자산 상위(과잉투자) 종목 forward 약 = IC 음 (과잉투자의 저주, Cooper-Gulen-Schill 2008)."
+    granularity: cross_sectional
+    gate_status: {n: pass, se: pass, power: pass, fdr: pass, oos: pass}  # ★wc_p 0.0015 + OOS 강화 + 통합 FDR 생존
+    source_ids: ["raw-v3/validation-fundamentals-cycle-v3.json:capex_ratio", "raw-v3/validation-critique-v3.json:y_60d.capex_plus_size"]
+    hedge_note: >
+      ★capex_ratio = 자동차 신규 진짜 신호(OOS 강화 -0.044→-0.172, 통합 FDR 생존). ★단 (a) size factor 공존(t=-2.23,
+      capex 와 일부 collinear, multivariate서 capex 독립 유지 t=-3.38) (b) universe 17종 = magnitude hedge. 방향 robust, magnitude tentative.
+  - indicator_id: cs_mom_price   # ★가격신호 (OOS flip = weight ~0)
+    base_weight_range: [-0.02, 0.02]   # ★unconditional 비유의 + conditional OOS flip = 거의 중립(weight ~0).
+    modulate_by: [regime]
+    direction: "가격 momentum/reversal = in-sample artifact(OOS flip). weight ~0, supervisor가 valuation·capex로 대체 권장."
+    granularity: cross_sectional
+    gate_status: {n: pass, se: fail, power: weak, fdr: fail, oos: fail}  # ★OOS flip = oos fail
+    source_ids: ["raw-v3/validation-conditional-v3.json:walk_forward_oos"]
+    hedge_note: "★자동차 가격신호 = unconditional 비유의 + conditional OOS flip(in-sample artifact). weight ~0. valuation(PBR)·capex 가 진짜 신호."
 
-# ── 블록5 CONFIDENCE_HOOKS — ★affects_indicator 필수 (비우면 결선 dead) ──
+# ── 블록4 CONFIDENCE_HOOKS — ★affects_indicator 필수 ──
 confidence_hooks:
-  # ★primary hook = valuation (자동차 진짜 신호). FHC wire 연결.
   - hypothesis_id: auto_pbr_value_premium
-    affects_indicator: cs_pbr_z_24m   # ★★필수 — primary indicator
-    affects_edge: [cs_pbr_z_24m, auto_fwd_24m]
-    confirm_signal: "live 저PBR z 상위 종목 forward rank IC < 0 유지 (value, rolling 24M)"
-    reject_signal: "PBR value premium IC e-CUSUM 부호 반전/소멸"
+    affects_indicator: cs_pbr_z
+    affects_edge: [cs_pbr_z, auto_fwd_60d]
+    confirm_signal: "live 저PBR z 상위 종목 forward rank IC < 0 유지 (value, rolling y_60d, Slowdown regime서 강)"
+    reject_signal: "PBR value premium IC e-CUSUM 부호 반전/소멸 (특히 OOS robust 깨짐)"
     emit_where: "panel-score-IC 축"
     accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
     feeds_weight: "derive_weights 재적합 → PBR base_weight 변동 (★PER 제외 peak-EPS)"
-    action_threshold: "e-value > 20 → retract. ★n=14 협소 안정성 모니터 강화."
-  - hypothesis_id: auto_cs_momentum_weak_reversal
-    affects_indicator: cs_mom_6m_reversal_weak  # ★보조 — momentum 비유의 (weight ~0)
-    affects_edge: [cs_mom_6m_reversal_weak, auto_fwd_3m]
-    confirm_signal: "live 횡단면 6M 모멘텀 z → 3M forward rank IC 음 유지 + 유의화(t<-2) 시 reversal 신호 강화 (rolling 12M)"
-    reject_signal: "Rank-IC e-CUSUM 부호 양 전환 누적 K=3 month (reversal 소멸/momentum 전환)"
-    emit_where: "panel-score-IC 축 (backtest SELL 아님)"
+    action_threshold: "e-value > 20 → retract. ★universe 17종 협소 안정성 모니터 강화."
+  - hypothesis_id: auto_capex_asset_growth
+    affects_indicator: cs_capex_ratio
+    affects_edge: [cs_capex_ratio, auto_fwd_60d]
+    confirm_signal: "live 유형자산/총자산 상위 종목 forward rank IC < 0 유지 (asset growth, rolling y_60d)"
+    reject_signal: "capex_ratio IC e-CUSUM 부호 양 전환 OR size factor 로 완전 흡수(독립성 소멸)"
+    emit_where: "panel-score-IC 축"
     accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
-    feeds_weight: "derive_weights 재적합 → 가격신호 weight 변동 (현 ~0, 유의화 시 음 강화)"
-    action_threshold: "e-value > 1/alpha=20 → retract / 회복 = score_ic_recovery_eprocess"
+    feeds_weight: "derive_weights 재적합 → capex base_weight 변동"
+    action_threshold: "e-value > 20 → retract / size 통제 t 절댓값 <2 지속 K=3 → size 흡수 격하."
+  - hypothesis_id: auto_price_momentum_artifact
+    affects_indicator: cs_mom_price
+    affects_edge: [cs_mom_price, auto_fwd_20d]
+    confirm_signal: "live 가격 momentum forward IC 0 근처 유지 (무신호 확인)"
+    reject_signal: "가격 momentum IC 유의화(|t|>2.5) + OOS 부호 안정 = 신호 부활 시 재검"
+    emit_where: "panel-score-IC 축 (weight ~0 유지)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "현 weight ~0 (OOS flip artifact). 부활 시만 재적합."
+    action_threshold: "OOS 부호 안정 + |t|>2.5 누적 K=3 → momentum 신호 재진입"
 
-# ── 블록6 COLLECTOR_PLAN ──
+# ── 블록5 COLLECTOR_PLAN ──
 collector_plan_industry:
-  - missing: "EV-EBITDA (cyclical primary_metric, 부채/현금 = DART BS) + 시점별 발행주식수(시총 PIT)"
-    source: "DART fnlttSinglAcntAll(부채총계/현금성자산) + stockTotqySttus. 현 = FDR 현재주식수 근사."
-    priority: high   # ★cyclical primary=ev_ebitda 미산출 = 핵심 gap (PBR/PER 만 §10)
-    status: "PBR/PER cross-sectional = §10(DART 재구성). EV-EBITDA = 후속 high."
+  - missing: "EV-EBITDA (cyclical primary_metric) + EBITDA(영업이익+감가상각) DART 재구성"
+    source: "DART fnlttSinglAcntAll(영업이익+감가상각비) + 부채/현금. 현 = PBR/PER/capex 만 측정."
+    priority: high   # cyclical primary=ev_ebitda 미산출 (PBR·capex 가 진짜 신호 입증되어 우선순위 일부 완화)
+    status: "PBR(value)·capex_ratio(asset growth) 측정완료 = 진짜 신호. EV-EBITDA = 후속 high(cyclical primary 보강)."
+  - missing: "미국 신차 SAAR yoy (자동차 고유 timing 변수, regime conditioning 또는 별 측정)"
+    source: "FRED TOTALSA(미국 차판매 SAAR, 월별). 종목 cross-sectional 아닌 산업 timing → regime 변수."
+    priority: medium
+    status: "theory-notes §6 발굴. 반도체 PPI 자리 = 자동차 SAAR. 외부 fetch 후속."
   - missing: "PIT universe 멤버십 (시점별 섹터 편입/편출 + delisted 종목)"
-    source: "FDR KRX-DESC = 현재 스냅샷만. KRX PIT 섹터분류 인증 필요"
-    priority: high   # 생존편향 (현 = 상장 시점 차이만, 17종 中 3종 부분이력)
-  - missing: "한국 자동차 수출/생산 yoy (산업 cycle 직접 지표) + 화이트리스트 영속화"
-    source: "관세청 자동차 수출(HS 8703) data.go.kr 무료. universe 화이트리스트 = 수동 큐레이션(현 BLACKLIST hardcoded)"
+    source: "FDR KRX-DESC = 현재 스냅샷만. KRX PIT 섹터분류 인증 필요. ★자동차 = 쌍용차→KG모빌리티 등 구조조정 多 = 생존편향 우려"
+    priority: high
+  - missing: "종목레벨 외국인 flow (cs-signal, 시장 regime 과 별개 알파)"
+    source: "KRX 종목별 외국인 net buy = 인증 차단(pykrx KeyError). 시장레벨 regime(ECOS)은 측정완료."
     priority: medium
-  - missing: "KR HY credit spread (공통인자 credit β KR-local)"
-    source: "현 = US BAML HY OAS proxy(FRED). KR 회사채 = 금융투자협회 유료"
-    priority: medium
+    status: "DATA-GATE (deferral 아님). 시장레벨 flow regime = 측정완료(ECOS 802Y001/0030000)."
 
 # ── ★cross (분석 단위 간 상관) — §M.3 3소비자 라우팅 (산업=보고만) ──
 cross:
-  common_factor_exposure:
+  common_factor_exposure:   # 기존 v3 측정 (validation-cross-v3.json) — unconditional contemporaneous
     - {factor: credit, beta: -0.0724, beta_ci_95: [-0.1623, 0.0176], contemporaneous: true,
        source_id: "raw-v3/validation-cross-v3.json:common_factor_exposure.credit",
-       note: "약 음 방향성 (t=-1.58 비유의). ★자동차 공통인자 노출 약 = idiosyncratic (반도체 credit 강 -0.190 과 대조)."}
-    - {factor: oil, beta: -0.1660, beta_ci_95: [-0.3881, 0.056], contemporaneous: true, note: "약 음 (t=-1.47 비유의, 원가 oil 노출 약)"}
+       note: "약 음 방향성(t=-1.58 비유의). ★자동차 공통인자 노출 약 = idiosyncratic(반도체 credit 강 -0.190 과 대조)."}
+    - {factor: oil, beta: -0.1660, beta_ci_95: [-0.3881, 0.056], contemporaneous: true, note: "약 음(t=-1.47 비유의)"}
     - {factor: rate, beta: -0.0445, beta_ci_95: [-0.14, 0.0509], contemporaneous: true, note: "비유의"}
-    - {factor: dollar, beta: -0.0837, beta_ci_95: [-1.538, 1.3706], contemporaneous: true, note: "비유의 (CI 넓음, 수출주 환율 약)"}
+    - {factor: dollar, beta: -0.0837, beta_ci_95: [-1.538, 1.3706], contemporaneous: true,
+       note: "비유의(CI 넓음). ★unconditional 약 = 자동차 환율 희석(해외생산·헤징). conditional KRW_weak 도 가격신호서 OOS flip = 환율 alpha 약."}
     - {factor: VIX, beta: -0.0013, beta_ci_95: [-0.0114, 0.0089], contemporaneous: true, note: "비유의"}
-  directional_spillover: []   # §M.3: DY = supervisor 통합
+  directional_spillover:   # §A-3 의무: 빈 [] 금지, 선행신호 후보 보고
+    - {candidate: global_auto_demand_CARZ, lag: 0, corr: 0.220, p_value: 0.043, forward_lag1_3: "비유의(p>0.06)",
+       note: "★글로벌 자동차 수요(CARZ) contemporaneous 동조 유의(lag0 +0.22) but forward 예측 부재 = REJECTED as alpha(동조성분 RegimeGlasso Ω 흡수)."}
+    - {supervisor_note: "DY(Diebold-Yilmaz) net spillover 정식 분해 = supervisor 통합단계(산업=후보 보고). 선행신호 후보 = CARZ(동조 강·forward 약)."}
   structural_linkage:
     - supplier_or_customer: global_auto_demand   # CARZ(글로벌 자동차)/SLX(철강 원가)
       io_weight: null
-      lagged_return_signal: 0.220  # lag0 CARZ corr (contemporaneous 유의 p=0.043)
-      p_value: 0.043               # lag0 (forward lag1-3 = 비유의)
+      lagged_return_signal: 0.220
+      p_value: 0.043
       source_id: "raw-v3/validation-cross-v3.json:customer_supplier_momentum"
-      verdict: >
-        REJECTED as alpha — CARZ/SLX lag0(contemporaneous) 유의(+0.22/+0.23 p<0.05) but ★forward(lag1-3) 비유의(p>0.06).
-        = 글로벌 자동차 수요 contemporaneous 동조 강하나 forward 예측 부재(§D falsifier 작동). 동조성분 RegimeGlasso Ω 흡수.
-        ★반도체보다 contemporaneous corr 강(글로벌 cycle 동조) = cyclical 특성.
-  # ⛔ sector-rotation business-cycle clock = 학술 myth(Molchanov 2024).
+      verdict: "REJECTED as alpha — CARZ/SLX lag0 유의(+0.22 p=0.043) but forward(lag1-3) 비유의 = contemporaneous 동조(forward 부재)."
 
-# ── ★valuation 횡단면 (§M.7 핵심 — DART 재구성, 2026-06-03 측정 완료) ──
+# ── ★valuation 횡단면 (기존 v3, DART 재구성 보존) ──
 valuation_cross_sectional:
-  data_source: "raw-v3/validation-valuation-v3.json (DART 417 rows 2019~ + pykrx 가격)"
-  mechanism_works: true   # PBR avgN 14 / PER 10. ★PBR value premium 강 / PER peak-EPS 무신호.
-  pit_note: "재무 = rcept_dt(공시일) 이후만(lookahead 회피). ★현대차 2019 FY rcept 2022-02(정정공시 지연 outlier, PIT 자동처리)."
+  data_source: "raw-v3/validation-valuation-v3.json (DART 417 rows 2019~) + conditional 재측정(validation-conditional-v3.json:pbr_z/per_z)"
+  mechanism_works: true   # PBR value premium / PER peak-EPS trap 무신호 = cyclical 정의 지지
+  pit_note: "재무 = rcept_dt(공시일) 이후만. 현대차 2019 FY rcept 2022-02(정정공시 지연 outlier, PIT 자동처리)."
   cyclical_finding: >
-    ★PER 횡단면 무신호(per 3M/6M/12M IC=0.003/0.004/-0.007) = peak-EPS trap(정점 EPS↑→PER↓ 왜곡)
-    데이터 지지. PBR(자본 기반) value premium 방향 강 = archetype.py cyclical 'primary=P/B, trap=peak-EPS' 정합(magnitude n=14 hedge).
-  indicators:
-    - id: cs_pbr_z
-      signal: "PBR cross-sectional z (저PBR=value, cyclical primary)"
-      horizon_results:
-        - {horizon: 3M, ic: -0.122, t_nw: -2.98, p: 0.004, n: 82, within: 0.88}
-        - {horizon: 6M, ic: -0.165, t_nw: -2.56, p: 0.013, n: 79, within: 0.86}
-        - {horizon: 12M, ic: -0.216, t_nw: -2.76, p: 0.007, n: 73, ci_block: [-0.336, -0.108], within: 0.71}
-        - {horizon: 24M_value, ic: -0.463, t_nw: -17.59, p: 0.000, n: 61, within: 1.00, loo_robust: true}
-      avg_universe_n: 14.3
-      verdict: "★PBR value premium 방향 강(전 horizon 음, BY 4 생존, LOO 안정적 17종 [-0.537,-0.395], within 높음). ★단 magnitude(-0.46 t=-17.6) = n=14 협소 과대 = small-n hedge."
-    - id: cs_per_z
-      signal: "PER cross-sectional z (★peak-EPS trap 무신호)"
-      horizon_results:
-        - {horizon: 3M, ic: 0.003, t_nw: 0.06, within: 0.38}
-        - {horizon: 12M, ic: -0.007, t_nw: -0.08, within: 0.57}
-      verdict: "★INSUFFICIENT/무신호 — PER 횡단면 IC ≈ 0. cyclical peak-EPS trap 으로 PER 무효 = EV/EBITDA 대체 필요."
-  multiple_testing: "8 테스트 BY factor 2.72. ★BY 4개 생존(pbr 24M/12M/6M/3M, per 전부 미생존). PER 무신호=peak-EPS. ★n=14 협소 magnitude hedge."
+    ★PER 횡단면 무신호(IC≈0) = peak-EPS trap. PBR(자본 기반) value premium y_60d OOS robust = archetype.py
+    cyclical 'primary=P/B, trap=peak-EPS' 정합. ★자동차 = peak-EPS trap 대표산업(Damodaran cyclical).
   verdict: >
-    ★auto = cyclical valuation 진짜 신호. PBR value premium 방향 강(BY 4 생존, LOO 안정적, within 100%@24M) =
-    ★가격 momentum 무효를 valuation 이 대체(kr-semi 예고 적중). ★PER = peak-EPS trap 무신호(IC≈0) =
-    archetype.py cyclical 정의 데이터 지지. ★단 universe 17종 협소 → PBR magnitude 과대(small-universe).
-    방향 신뢰/magnitude hedge. EV/EBITDA 대체 권고(collector_plan high).
-
-# ── robustness_checks (측정 17종 통과 기록, 지표별) ──
-robustness_checks:
-  - indicator_id: cs_mom_6m_reversal_weak   # primary (약)
-    leave_episode: null              # n 충분하나 약신호 (확인 후 박제)
-    within_period: marginal          # 0.75 (경계)
-    partial_corr_ratio: null         # 통합 RegimeGlasso 단계
-    net_sharpe_ratio: null           # |IC| 0.064 ~ 16.5bps/월 = marginal, 비유의라 net 무의미
-    forward_vs_contemp: "forward present (약 음 reversal, 비유의)"
-    family_neutralized_ic: null
-    eff_n_tier: Tentative            # n=80 months 이나 universe 17종 + 비유의 = Weak/Tentative 경계
-    multiple_testing_gate: fail      # ★BY/Bonferroni 미생존 (raw_p 0.096)
-    significance: insignificant      # ★CI 0 포함 = 비유의 (battery/반도체 와 결정적 차이)
-
-# ── horizon_verdict (forward alpha falsifier) ──
-horizon_verdict:
-  best_horizon: "★[frame §M.12 primary 재배치] 3M/6M/12M (PBR value, eff_N 높음·NW 유의·BY 생존) = primary 근거. 24M_value = ★보조(eff_N≈2.5 degenerate, 방향만). 가격 momentum 무효, valuation 이 진짜 신호."
-  forward_alpha_present: true        # ★PBR value premium forward alpha = present(가격 momentum 은 부재, valuation 방향으로 잠정)
-  note: >
-    ★자동차 가격 momentum/reversal = 전 horizon 비유의(BY 생존 0). ★단 valuation(PBR) value premium forward
-    present 강(BY 4 생존, LOO 안정적) = 가격신호 무효를 valuation 이 대체(kr-semi 예고 적중). ★PER peak-EPS 무신호.
-    cyclical archetype: PBR value + peak-EPS trap. universe 17종 협소 = PBR magnitude 과대 한계.
-
-# ── net-cost (KR 비대칭) ──
-net_cost:
-  model: "spread/2 + commission + STT_sell(0.20%, 매도측만) — §M.4 비대칭"
-  roundtrip_bps: 33.0
-  monthly_cost_bps: 16.5
-  note: "가격신호 비유의라 net Sharpe 무의미. valuation·regime 신호 측정 보강 후 재평가. sqrt impact = supervisor."
+    ★auto = cyclical valuation 신호. PBR value premium y_60d OOS robust(IS-0.108/OOS-0.117) + size 독립(t=-2.67).
+    PER peak-EPS trap 무신호(IC≈0). ★단 universe 17종 = PBR magnitude 과대(small-universe), 방향만. EV/EBITDA 보강 권고.
 
 # ── Hard-fail 4 (B C D I) self-check ──
 hard_fail_self_check:
-  B_real_data: {status: PASS, note: "합성 0%. pykrx OHLCV 17종(1818일) + yfinance(CARZ/SLX/factors) + DART + FDR. raw-v3/*.py 재현."}
-  C_traceability: {status: PASS, note: "모든 yaml 수치 = raw-v3/validation-metrics-v3.json + validation-cross-v3.json key 매핑. valuation = §10 DART 후."}
+  B_real_data: {status: PASS, note: "합성 0%. 합성지문 PASS(USDKRW 2022-10=1429/2020-03=1234 covid, CLI 2020-05=99.4, 현대차 2020-03 65900→2024-07 286000, ppe 30.5~48.7조). pykrx OHLCV 17종(1818일) + FRED CLI/DEXKOUS + ECOS 외국인순매수 + DART(extended 423rows) + yfinance. raw-v3/*.py 재현."}
+  C_traceability: {status: PASS, note: "모든 yaml 수치 = validation-conditional-v3.json + validation-fundamentals-cycle-v3.json + validation-critique-v3.json + validation-merged-fdr-v3.json key 매핑. walk_forward_oos/family_2/size-orthogonal 재현."}
   D_pit:
     status: PASS
     note: >
-      가격신호 = PIT-safe(forward shift). ★valuation 횡단면 = DART rcept_dt(공시일) 이후만 적용 = lookahead 회피
-      (FY 보고지연 median 108-120일). 시총=Close×현재주식수(시점별 주식수 정밀화 = collector_plan high).
+      가격신호 = PIT-safe(forward shift -h). ★Macro CLI = 발표지연 ~1-2M → CLI_PUB_LAG=2 적용(lookahead 회피). KRW(DEXKOUS)/flow(ECOS) 일별 실시간.
+      ★DART valuation/capex = rcept_dt(공시일) 이후만 적용 = lookahead·restatement 회피. 시총=Close×현재주식수 근사(시점별 주식수 정밀화 = collector_plan high).
   I_survivor_bias:
     status: PARTIAL
     note: >
-      universe = FDR 현재 스냅샷(생존 종목만). delisted/M&A 누락(쌍용차 법정관리→KG모빌리티 등 자동차 구조조정 多 = 생존편향 우려).
-      상장 시점 차이 정량화(17종 中 3종 부분이력). PIT 멤버십 = collector_plan high. ★화이트리스트 = 현재 스냅샷 큐레이션.
+      universe = FDR 현재 스냅샷(생존 종목만). delisted/M&A 누락. ★자동차 = 쌍용차 법정관리→KG모빌리티 등 구조조정 多 = 생존편향 우려 큼.
+      상장 시점 차이(17종 中 일부 신규상장). PIT 멤버십 = collector_plan high. ★정직 격하(PARTIAL 라벨, over-claim 회피).
 
 # ── verdict (small-n rule) ──
-verdict_label: PARTIAL  # ★전체 산업 = PARTIAL (가격신호 약, valuation·cross 보조)
+verdict_label: PARTIAL  # ★산업 전체 = PARTIAL (가격신호 무효, PBR value + capex asset growth = OOS robust)
 verdict_detail:
-  cs_mom_6m__3M: >
-    TENTATIVE DIRECTIONAL — IC -0.064(약 음 reversal, 반도체 동부호) 단 ★비유의(t=-1.69, p=0.096, NW+boot CI 0 포함, BY 미생존).
-    cap-weighted -0.083(대형주 reversal 방향). universe 17종 작음. 자동차 가격 momentum 거의 무효.
-  cs_mom_6m__6M: "TENTATIVE (IC -0.062, t=-1.18 비유의, within 0.57)"
-  price_signals_overall: "★전 16 가격신호 비유의(BY 생존 0) = 자동차 가격 momentum/reversal 무효 = horizon forward alpha 부재"
-  primary_evidence: "★[frame §M.12] primary 증거 = 3M/6M/12M(eff_indep_N 높음). 24M_value = ★보조(eff_N≈2.5 degenerate). auto t=-17.6 = small-universe × 24M overlap 이중 inflation = 방향만."
-  cs_pbr_z_24m: "★PARTIAL→hedge (자동차 진짜 신호) — PBR value premium 방향 안정적(LOO 17종, within 100%). ★단 24M eff_N≈2.5 degenerate + n=14 협소 = magnitude+significance 둘 다 inflation(t=-17.6 허수). ★방향만, 단정 불가. 가격 momentum 무효 대체."
-  cs_per_z: "★PER 무신호(IC≈0) — ★peak-EPS trap = earnings cycle 진폭(흑자도 정점 EPS↑→저PER 왜곡), ⛔시총 인과 금지. E/P 대체 권고. 미국 us_cyclical PER○ = consistent-with(시장·시총 의존, 재측정 아님)."
-  customer_momentum: "REJECTED as alpha (CARZ/SLX contemporaneous 동조 유의 lag0 +0.22, but forward 부재)"
-  common_factor: "전부 비유의 (credit/oil 약 음 방향성만, t<1.6) = 자동차 idiosyncratic (반도체 credit 강과 대조)"
+  price_signals_overall: >
+    ★REJECTED(OOS) — 가격 momentum/reversal/vol = unconditional 비유의 + conditional cell 거의 전부 walk-forward OOS 부호반전
+    (in-sample artifact). family_2 interaction(mom_12_1/vol_60 KRW_weak t=2.18/2.75) 유의하나 해당 cell OOS flip = 채택 보류(flip-register).
+    ★자동차 가격신호 = 반도체보다 약(volume cycle 점진). weight ~0.
+  cs_pbr_z: >
+    ★PARTIAL CONFIRMED(tentative, OOS robust, tier=structural_prior_high_confidence) — PBR value premium y_60d = OOS 부호+magnitude 유지(IS-0.108/OOS-0.117) +
+    Slowdown regime서 강 + size 통제 후 독립(Fama-MacBeth t=-2.67). ★[remediation] effective-N 보정(AR1=0.494, eff-N=34.2) t=-3.72→-2.40(여전 유의).
+    ★단 universe 17종 = magnitude 과대 = 방향+권역만(점추정 금지). y_20d 약. validated alpha 단정 보류.
+  cs_capex_ratio: >
+    ★PARTIAL CONFIRMED(tentative, OOS robust, tier=structural_prior_high_confidence) — ★자동차 신규 진짜 신호. 유형자산/총자산 asset growth = wc_p 0.0015 +
+    OOS 강화(IS-0.044→OOS-0.172) + 통합 FDR 생존(m=168 survivors=5 中 3) + size 통제 후 독립(multivariate t=-3.38). prior 음(Cooper-Gulen-Schill 2008) 정합.
+    ★[remediation] effective-N 보정(AR1=0.426, eff-N=39.7) y_60d t=-3.61→-2.52(여전 유의). ★단 (a) size factor 공존(t=-2.23) (b) universe 17종 = magnitude hedge (c) survivors wc_p floor-censored = magnitude 비교 금지. validated alpha 단정 보류(차기 vintage pristine OOS 후 승격).
+  cs_per_z: "★INSUFFICIENT/무신호 — PER 횡단면 IC≈0 = peak-EPS trap(정점 EPS↑→저PER 왜곡). cyclical 정의 지지. E/P·EV-EBITDA 대체 권고."
+  customer_momentum: "REJECTED as alpha — CARZ/SLX contemporaneous 동조 유의(lag0 +0.22 p=0.043) but forward 부재."
+  common_factor: "전부 비유의(credit/oil 약 음, t<1.6) = 자동차 idiosyncratic."
+  conditional_surface: >
+    ★dispatch 원의도 답 = "어느 국면에 어느 지표": 자동차는 ★가격신호 conditional 전부 OOS flip(국면 무관 무효) /
+    PBR value 는 Slowdown·flow_strong_buy regime서 강(OOS robust) / capex asset growth 는 전 regime robust(unconditional 우위).
+    = 자동차 conditional 핵심 = "regime 변조보다 unconditional valuation+asset growth 가 본질" (반도체 KRW_weak interaction 패턴과 다름).
+  merged_fdr: >
+    ★통합 단일 FDR m=168(cond 90 + fund 78) survivors=5: pbr_z y_60d(uncond+Slowdown) 2 + capex_ratio 3. garden-of-forking-paths 차단 후 생존.
+    ★[remediation 1] survivors 5개 wc_p = 전부 0.0005 = wild-cluster floor(1/2001) censored → "반도체/battery survivors=0보다 강" = ★방향성 우위(생존 여부)만 맞고
+    magnitude 비교는 floor-censored(B↑ 시 더 작아질 수 있음, 5개 간 상대강도 구분 불가). = "생존 여부" 비교만 허용, "얼마나 강한지" 정량 비교 금지.
 verdict_note: >
-  산업 전체 = PARTIAL. ★핵심 발견 = 자동차 가격 momentum/reversal 신호 = 약 음(reversal 방향, 반도체 동부호)이나 ★전부 비유의
-  (BY 생존 0, universe 17종 작음) = 가격신호 무효. customer momentum = 글로벌 자동차 수요 contemporaneous 동조 강(반도체보다)
-  but forward 부재 REJECTED. ★3산업 비교(battery 양 momentum CONFIRMED / 반도체 음 reversal PARTIAL / 자동차 음 reversal 비유의)
-  = 같은 cyclical 도 신호 강도 상이 → valuation 이 자동차 진짜 신호일 것(§10 DART). archetype cyclical 지지(가격 reversal 방향 + 글로벌 cycle 동조).
+  산업 전체 = PARTIAL. ★핵심 발견 = ① 자동차 가격 momentum/reversal = unconditional 비유의 + conditional OOS flip(in-sample artifact,
+  반도체보다 약) = 가격신호 무효 ② ★PBR value premium(y_60d) = OOS robust + size 독립 ③ ★capex_ratio(asset growth) = 자동차 신규
+  진짜 신호(OOS 강화 + 통합 FDR 생존 + size 독립) ④ PER peak-EPS trap 무신호. ★3산업 momentum 비교(battery 양 CONFIRMED /
+  반도체 음 reversal PARTIAL / 자동차 음 reversal OOS flip 무효) = 같은 cyclical 도 cycle 원천(가격 vs 판매량)이 momentum 강도 가름.
+  ★자동차 진짜 신호 = valuation(PBR) + asset growth(capex) = 자산기반 cyclical value. archetype cyclical 지지(PBR○ PER✗ peak-EPS).
+  ★전체 over-claim 회피: universe 17종 협소 = 모든 magnitude hedge(방향+권역만), small-N TENTATIVE/PARTIAL, OOS 검증 완주(2023-26 split).
+
+# ── ★ROTATION 신호 (업종 자체 OW/UW timing, 종목 selection과 별개 차원) ──
+# raw = raw-v3/{measure_rotation, collect_rotation_macro}.py + validation-rotation-auto-v1.json
+# 상세 = rotation-signals.md. v2 baseline = _rotation/validation-rotation-v2.json
+rotation_signals:
+  unit: "자동차 업종 eq-weight(17종) forward return vs 거시 driver time-series (★종목 selection과 별 차원)"
+  universe_check: "★오염 없음 — 17종 전부 진짜 자동차(완성차3+부품12+타이어2). v2 경로=내 strict 패널 동일. refine(가스오염)과 달리 clean. global_auto_d3 v2 0.2613 byte-identical 재현."
+  theory_source: "Gemini 리서치 P-Q-C 프레임워크 + Stovall early-cycle (rotation-signals.md §1)"
+  signals:
+    - id: global_auto_d3
+      driver: "글로벌 자동차 판매(CARZ ETF) 3M 변화율"
+      prior: 양
+      rho: {y_20d: 0.222, y_60d: 0.261}
+      wc_p: {y_20d: 0.034, y_60d: 0.025}
+      oos: {y_60d_is: 0.177, y_60d_oos: 0.300, sign_hold: true, strengthen: true}
+      placebo: "통과 (exceed_frac 0.03)"
+      verdict: "★STRONG (이론+통계+OOS 일치) — v2 baseline 재확인. 자동차 업종 rotation 거의 유일 robust driver. ★단 rotation 단일 FDR(m=14) BY 미생존(small-n), magnitude hedge."
+      tier: structural_prior_moderate_confidence
+    - id: cli_chg6
+      driver: "한국 OECD CLI 6M 변화 (early-cycle)"
+      prior: 양
+      rho: {y_20d: 0.243, y_60d: 0.298}
+      wc_p: {y_20d: 0.032, y_60d: 0.0065}
+      oos: {y_20d_hold: true, y_60d_flip: true}
+      verdict: "PARTIAL — Stovall early-cycle 이론 지지. y_20d OOS robust / y_60d OOS flip = y_20d만 채택."
+    - id: iron_ore_d3
+      driver: "철광석(원가 proxy) 3M 변화"
+      prior: 음
+      rho: {y_20d: 0.185, y_60d: 0.376}
+      wc_p: {y_20d: 0.054, y_60d: 0.0015}
+      sign_vs_prior: "★당초 prior 음(원가)만 단순박제 = 측정 양 = 부호반대. 사전등록 양면성(원가 음/demand 양) 미명세 불완전"
+      prior_theory_basis: "★사전이론 근거 확보(2026-06-06 리서치 /tmp/iron-auto-result.txt): 리플레이션 trade(경기회복기 경기민감주+원자재 동반, 2009-11·2020-21 현대/기아 사례) + Stovall sector rotation(자동차 경기소비재 + 소재 철강 = early-mid cycle 동반강세) + 철광석=글로벌 제조업 demand barometer(Frankel 2006 NBER). = 원가(음)/demand(양) 두 채널 中 cyclical 회복기 demand dominant"
+      regime_check: "Recovery rho=+0.445(n26) / Overheat +0.661 / Slowdown +0.413 / Reflation -0.019. Recovery 강=사전이론 정합. 단 Slowdown도 양=광범위 cyclical 동조"
+      verdict: "★TRADEABLE (조건부) — wc_p 0.0015(통합 FDR 생존) + OOS 0.286→0.549 강화 + placebo 통과 + multivar t=3.14 독립 + ★사전이론 근거(리플레이션 trade/Stovall) = HARKing 아닌 정당. ★단 (a)global_auto corr 0.275 일부 중복 (b)사전등록 양면성 불완전 = 조건부, 차기 vintage 양면 명세 후 재확인. magnitude small-n hedge."
+    - id: usdkrw_d3
+      driver: "USDKRW 3M 변화 (수출채산)"
+      prior: 양
+      verdict: "REJECTED(OOS) — 수출채산=동행(contemporaneous), forward 예측 약(이론 정합). rotation timing 부적합."
+    - id: dgs2_d3
+      driver: "미국 2년물 금리 3M 변화 (할부수요)"
+      prior: 음
+      verdict: "TENTATIVE DIRECTIONAL — 부호 음(이론 정합) 비유의. 방향만."
+    - id: jpykrw_d3
+      driver: "엔/원 3M 변화 (일본 경쟁력)"
+      prior: 음
+      verdict: "TENTATIVE DIRECTIONAL — 부호 음(prior 정합) 비유의. 방향만."
+    - id: global_auto_yoy
+      driver: "글로벌 자동차 판매 yoy"
+      prior: 양
+      verdict: "TENTATIVE — d3(3M 모멘텀)이 yoy보다 강(기저효과 제거, 변곡점 포착 이론 정합)."
+  candidates_total: "12개 식별 / 7개 측정완료 / 5개 data-gate(LME알루미늄·EV전환·중국판매·미국재고인센티브·리콜 = 무료 부재 또는 rotation 차원 부적합)"
+  tradeable:   # ★team-lead ≥2 요구 = 충족 (3개, 이론+통계+OOS 모두)
+    count: 3
+    signals: ["global_auto_d3 (y_20d+y_60d, STRONG)", "cli_chg6 (y_20d, early-cycle)", "iron_ore_d3 (y_60d, 조건부=사전이론 리플레이션/Stovall)"]
+    independence: "global_auto_d3 vs cli_chg6 corr=0.536 (중간상관). iron_ore vs global_auto corr=0.275(일부 중복, multivar iron t=3.14 독립). 3 신호 모두 cyclical 경기 동조 계열 = 실질 ~2 독립축(판매모멘텀 + 경기/원자재 reflation)"
+    combined_strategy: "★global_auto+cli 둘 다 양일 때 OW = +4.79%/월(n=37) vs 나머지 -0.30% = spread +5.09%/월 monotonic. ★단 small-n + gross(net-cost 전) + 차기 vintage 재현 필요(tentative)"
+  fdr_family: {m: 14, survivors_BY: ["iron_ore_d3__y_60d (★사전이론 근거로 정당 생존)"], note: "★iron 사전이론 확보로 보류 아닌 정당 생존. global_auto raw 유의하나 BY 미생존(small-n). rotation = time-series n_eff 26-88 hedge."}
+  verdict: >
+    ★자동차 업종 rotation tradeable 3개(team-lead ≥2 충족) = global_auto_d3(글로벌 판매 STRONG, v2 검증, universe clean, OOS 강화) +
+    cli_chg6(early-cycle Stovall, y_20d) + iron_ore_d3(조건부, 사전이론 리플레이션 trade/Stovall materials-cyclical 동행 = demand proxy 양).
+    결합 OW(global_auto+cli) spread +5.09%/월(monotonic, small-n tentative). USDKRW 동행=REJECTED. ★selection(capex/PBR OOS robust) 과 별 차원.
+    ★iron 조건부 = 사전등록 양면성(원가 음/demand 양) 불완전, 차기 vintage 재확인. rotation small-n(n_eff 26-88) hedge.

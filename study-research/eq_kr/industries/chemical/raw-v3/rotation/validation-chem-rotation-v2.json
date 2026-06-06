@@ -1,0 +1,692 @@
+{
+  "meta": {
+    "n_candidates": 8,
+    "universe_full": "17종 화이트리스트",
+    "universe_strict_NCC": [
+      "051910",
+      "011170",
+      "009830",
+      "011780",
+      "006650",
+      "005950"
+    ],
+    "ethylene_propylene_note": "에틸렌/프로필렌 spot = ICIS/Platts 유료 부재 = collector_plan. demand/cost/spread proxy 대체.",
+    "prior_commit": "naphtha/brent 음(cost) / china/krexp/usdkrw 양(demand) / spread 양(margin). 데이터 접촉 前 동결."
+  },
+  "full_17": {
+    "naphtha_yoy__y_20d": {
+      "label": "chem__full_17__naphtha_yoy__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": -0.2015,
+      "wc_p": 0.064,
+      "t_power": 1.88,
+      "ci": [
+        -240.7629,
+        5.5162
+      ],
+      "prior": "음",
+      "prior_match": true,
+      "oos": {
+        "is": -0.261,
+        "oos": -0.154,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "china_mchi_yoy__y_20d": {
+      "label": "chem__full_17__china_mchi_yoy__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": 0.1522,
+      "wc_p": 0.1549,
+      "t_power": 1.42,
+      "ci": [
+        -20.3526,
+        213.18
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.191,
+        "oos": 0.108,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "china_fxi_yoy__y_20d": {
+      "label": "chem__full_17__china_fxi_yoy__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": 0.0874,
+      "wc_p": 0.4148,
+      "t_power": 0.81,
+      "ci": [
+        -71.1667,
+        176.2293
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.122,
+        "oos": 0.084,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "spread_china_minus_naphtha__y_20d": {
+      "label": "chem__full_17__spread_china_minus_naphtha__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": 0.1883,
+      "wc_p": 0.087,
+      "t_power": 1.76,
+      "ci": [
+        -21.4511,
+        231.126
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.308,
+        "oos": 0.147,
+        "eligible": false,
+        "verdict": "OOS부호유지 mag약"
+      },
+      "status": "powered"
+    },
+    "spread_china_minus_brent__y_20d": {
+      "label": "chem__full_17__spread_china_minus_brent__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": 0.2329,
+      "wc_p": 0.035,
+      "t_power": 2.17,
+      "ci": [
+        5.8851,
+        267.8704
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.311,
+        "oos": 0.169,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "usdkrw_yoy__y_20d": {
+      "label": "chem__full_17__usdkrw_yoy__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": -0.0754,
+      "wc_p": 0.5002,
+      "t_power": 0.7,
+      "ci": [
+        -175.5375,
+        88.9695
+      ],
+      "prior": "양",
+      "prior_match": false,
+      "oos": {
+        "is": -0.214,
+        "oos": 0.18,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "powered"
+    },
+    "brent_yoy__y_20d": {
+      "label": "chem__full_17__brent_yoy__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": -0.2017,
+      "wc_p": 0.065,
+      "t_power": 1.88,
+      "ci": [
+        -243.6602,
+        9.8628
+      ],
+      "prior": "음",
+      "prior_match": true,
+      "oos": {
+        "is": -0.279,
+        "oos": -0.109,
+        "eligible": false,
+        "verdict": "OOS부호유지 mag약"
+      },
+      "status": "powered"
+    },
+    "kr_exports_yoy__y_20d": {
+      "label": "chem__full_17__kr_exports_yoy__y_20d",
+      "n": 86,
+      "n_eff": 86.0,
+      "rho": 0.0544,
+      "wc_p": 0.5972,
+      "t_power": 0.5,
+      "ci": [
+        -96.191,
+        140.1477
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.019,
+        "oos": 0.123,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "naphtha_yoy__y_60d": {
+      "label": "chem__full_17__naphtha_yoy__y_60d",
+      "n": 85,
+      "n_eff": 18.4,
+      "rho": -0.3747,
+      "wc_p": 0.001,
+      "t_power": 1.61,
+      "ci": [
+        -414.5128,
+        -48.8199
+      ],
+      "prior": "음",
+      "prior_match": true,
+      "oos": {
+        "is": -0.454,
+        "oos": -0.201,
+        "eligible": false,
+        "verdict": "OOS부호유지 mag약"
+      },
+      "status": "powered"
+    },
+    "china_mchi_yoy__y_60d": {
+      "label": "chem__full_17__china_mchi_yoy__y_60d",
+      "n": 85,
+      "n_eff": 18.4,
+      "rho": 0.4582,
+      "wc_p": 0.0005,
+      "t_power": 1.97,
+      "ci": [
+        135.5735,
+        404.9706
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.438,
+        "oos": 0.51,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "china_fxi_yoy__y_60d": {
+      "label": "chem__full_17__china_fxi_yoy__y_60d",
+      "n": 85,
+      "n_eff": 18.4,
+      "rho": 0.3468,
+      "wc_p": 0.0005,
+      "t_power": 1.49,
+      "ci": [
+        66.1718,
+        342.9682
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.311,
+        "oos": 0.471,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "spread_china_minus_naphtha__y_60d": {
+      "label": "chem__full_17__spread_china_minus_naphtha__y_60d",
+      "n": 85,
+      "n_eff": 18.4,
+      "rho": 0.4496,
+      "wc_p": 0.0005,
+      "t_power": 1.93,
+      "ci": [
+        115.4903,
+        422.7654
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.516,
+        "oos": 0.486,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "spread_china_minus_brent__y_60d": {
+      "label": "chem__full_17__spread_china_minus_brent__y_60d",
+      "n": 85,
+      "n_eff": 18.4,
+      "rho": 0.5387,
+      "wc_p": 0.0005,
+      "t_power": 2.31,
+      "ci": [
+        159.6251,
+        493.3885
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.558,
+        "oos": 0.542,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "usdkrw_yoy__y_60d": {
+      "label": "chem__full_17__usdkrw_yoy__y_60d",
+      "n": 85,
+      "n_eff": 18.4,
+      "rho": -0.1627,
+      "wc_p": 0.0795,
+      "t_power": 0.7,
+      "ci": [
+        -245.5126,
+        46.106
+      ],
+      "prior": "양",
+      "prior_match": false,
+      "oos": {
+        "is": -0.318,
+        "oos": 0.202,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "powered"
+    },
+    "brent_yoy__y_60d": {
+      "label": "chem__full_17__brent_yoy__y_60d",
+      "n": 85,
+      "n_eff": 18.4,
+      "rho": -0.4025,
+      "wc_p": 0.0005,
+      "t_power": 1.73,
+      "ci": [
+        -426.5562,
+        -58.3054
+      ],
+      "prior": "음",
+      "prior_match": true,
+      "oos": {
+        "is": -0.485,
+        "oos": -0.194,
+        "eligible": false,
+        "verdict": "OOS부호유지 mag약"
+      },
+      "status": "powered"
+    },
+    "kr_exports_yoy__y_60d": {
+      "label": "chem__full_17__kr_exports_yoy__y_60d",
+      "n": 85,
+      "n_eff": 18.4,
+      "rho": -0.0769,
+      "wc_p": 0.4693,
+      "t_power": 0.33,
+      "ci": [
+        -249.6803,
+        117.9013
+      ],
+      "prior": "양",
+      "prior_match": false,
+      "oos": {
+        "is": -0.063,
+        "oos": -0.042,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    }
+  },
+  "strict_NCC_6": {
+    "naphtha_yoy__y_20d": {
+      "label": "chem__strict_NCC_6__naphtha_yoy__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": -0.1929,
+      "wc_p": 0.076,
+      "t_power": 1.8,
+      "ci": [
+        -236.4542,
+        13.0839
+      ],
+      "prior": "음",
+      "prior_match": true,
+      "oos": {
+        "is": -0.344,
+        "oos": -0.036,
+        "eligible": false,
+        "verdict": "OOS부호유지 mag약"
+      },
+      "status": "powered"
+    },
+    "china_mchi_yoy__y_20d": {
+      "label": "chem__strict_NCC_6__china_mchi_yoy__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": 0.1094,
+      "wc_p": 0.2949,
+      "t_power": 1.02,
+      "ci": [
+        -59.2042,
+        184.5605
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.072,
+        "oos": 0.197,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "china_fxi_yoy__y_20d": {
+      "label": "chem__strict_NCC_6__china_fxi_yoy__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": 0.0536,
+      "wc_p": 0.6157,
+      "t_power": 0.5,
+      "ci": [
+        -95.2619,
+        148.7616
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": -0.019,
+        "oos": 0.183,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "powered"
+    },
+    "spread_china_minus_naphtha__y_20d": {
+      "label": "chem__strict_NCC_6__spread_china_minus_naphtha__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": 0.1747,
+      "wc_p": 0.1064,
+      "t_power": 1.63,
+      "ci": [
+        -30.853,
+        227.1674
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.268,
+        "oos": 0.18,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "spread_china_minus_brent__y_20d": {
+      "label": "chem__strict_NCC_6__spread_china_minus_brent__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": 0.2176,
+      "wc_p": 0.0435,
+      "t_power": 2.03,
+      "ci": [
+        -5.8385,
+        262.2122
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.279,
+        "oos": 0.188,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "usdkrw_yoy__y_20d": {
+      "label": "chem__strict_NCC_6__usdkrw_yoy__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": 0.0192,
+      "wc_p": 0.8591,
+      "t_power": 0.18,
+      "ci": [
+        -112.7964,
+        139.648
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": -0.021,
+        "oos": 0.113,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "powered"
+    },
+    "brent_yoy__y_20d": {
+      "label": "chem__strict_NCC_6__brent_yoy__y_20d",
+      "n": 87,
+      "n_eff": 87.0,
+      "rho": -0.1901,
+      "wc_p": 0.0815,
+      "t_power": 1.77,
+      "ci": [
+        -233.9164,
+        18.0963
+      ],
+      "prior": "음",
+      "prior_match": true,
+      "oos": {
+        "is": -0.35,
+        "oos": 0.011,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "powered"
+    },
+    "kr_exports_yoy__y_20d": {
+      "label": "chem__strict_NCC_6__kr_exports_yoy__y_20d",
+      "n": 86,
+      "n_eff": 86.0,
+      "rho": 0.0218,
+      "wc_p": 0.8261,
+      "t_power": 0.2,
+      "ci": [
+        -109.0067,
+        109.2561
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": -0.081,
+        "oos": 0.163,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "powered"
+    },
+    "naphtha_yoy__y_60d": {
+      "label": "chem__strict_NCC_6__naphtha_yoy__y_60d",
+      "n": 85,
+      "n_eff": 16.6,
+      "rho": -0.2949,
+      "wc_p": 0.0095,
+      "t_power": 1.2,
+      "ci": [
+        -382.0775,
+        23.424
+      ],
+      "prior": "음",
+      "prior_match": true,
+      "oos": {
+        "is": -0.573,
+        "oos": 0.023,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "powered"
+    },
+    "china_mchi_yoy__y_60d": {
+      "label": "chem__strict_NCC_6__china_mchi_yoy__y_60d",
+      "n": 85,
+      "n_eff": 16.6,
+      "rho": 0.2362,
+      "wc_p": 0.0205,
+      "t_power": 0.96,
+      "ci": [
+        -32.4941,
+        308.7269
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.056,
+        "oos": 0.569,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "china_fxi_yoy__y_60d": {
+      "label": "chem__strict_NCC_6__china_fxi_yoy__y_60d",
+      "n": 85,
+      "n_eff": 16.6,
+      "rho": 0.166,
+      "wc_p": 0.0785,
+      "t_power": 0.68,
+      "ci": [
+        -70.325,
+        257.9657
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": -0.096,
+        "oos": 0.559,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "powered"
+    },
+    "spread_china_minus_naphtha__y_60d": {
+      "label": "chem__strict_NCC_6__spread_china_minus_naphtha__y_60d",
+      "n": 85,
+      "n_eff": 16.6,
+      "rho": 0.3539,
+      "wc_p": 0.001,
+      "t_power": 1.44,
+      "ci": [
+        39.0325,
+        373.4113
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.437,
+        "oos": 0.487,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "spread_china_minus_brent__y_60d": {
+      "label": "chem__strict_NCC_6__spread_china_minus_brent__y_60d",
+      "n": 85,
+      "n_eff": 16.6,
+      "rho": 0.4271,
+      "wc_p": 0.0005,
+      "t_power": 1.74,
+      "ci": [
+        70.6301,
+        437.2476
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.443,
+        "oos": 0.521,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "usdkrw_yoy__y_60d": {
+      "label": "chem__strict_NCC_6__usdkrw_yoy__y_60d",
+      "n": 85,
+      "n_eff": 16.6,
+      "rho": 0.1148,
+      "wc_p": 0.2294,
+      "t_power": 0.47,
+      "ci": [
+        -84.7391,
+        232.094
+      ],
+      "prior": "양",
+      "prior_match": true,
+      "oos": {
+        "is": 0.142,
+        "oos": 0.105,
+        "eligible": true,
+        "verdict": "OOS+mag유지"
+      },
+      "status": "powered"
+    },
+    "brent_yoy__y_60d": {
+      "label": "chem__strict_NCC_6__brent_yoy__y_60d",
+      "n": 85,
+      "n_eff": 16.6,
+      "rho": -0.3148,
+      "wc_p": 0.0065,
+      "t_power": 1.28,
+      "ci": [
+        -395.7997,
+        18.0822
+      ],
+      "prior": "음",
+      "prior_match": true,
+      "oos": {
+        "is": -0.585,
+        "oos": 0.018,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "powered"
+    },
+    "kr_exports_yoy__y_60d": {
+      "label": "chem__strict_NCC_6__kr_exports_yoy__y_60d",
+      "n": 85,
+      "n_eff": 16.6,
+      "rho": -0.1172,
+      "wc_p": 0.2604,
+      "t_power": 0.48,
+      "ci": [
+        -261.9316,
+        95.0326
+      ],
+      "prior": "양",
+      "prior_match": false,
+      "oos": {
+        "is": -0.229,
+        "oos": 0.016,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "powered"
+    }
+  }
+}

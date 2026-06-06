@@ -1,0 +1,13 @@
+============================================================================
+[Gf — horizon mismatch] 월간 rebal+no-trade band 정책(1M) vs 12M signal
+  월간 정책 1M excess = +0.365%/월 (연율 +4.38%), n=136
+    block-boot 95%CI(block6) = [-0.001, +0.757]%/월  (0 포함=비유의)
+  12M signal excess = +6.687%/12M, n=125
+  → 괴리: 월간 연율 +4.4% vs 12M +6.7% = traded(월간) ≠ validated(12M)
+============================================================================
+[Gg — trap-veto bias] full top-K vs post-veto(최상위 cheapness 5% 제거) value excess
+  full top-K excess     = +8.687%/12M, n=125
+  post-veto top-K excess= +6.204%/12M
+  Δ(veto−full) = -2.482pp → ★value alpha 잠식(좌측꼬리=싼 종목 제거 손실)
+============================================================================
+[종합] Gf horizon mismatch = 월간/12M 괴리 크면 정책 재설계 / Gg = Δ<0 이면 post-veto IC 재측정 의무

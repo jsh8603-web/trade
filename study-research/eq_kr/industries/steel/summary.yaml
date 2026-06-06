@@ -1,0 +1,451 @@
+# summary.yaml — steel(철강·금속) 산업 v3 (frame v3 §M exposure card 계약)
+# ⛔ 점추정 prior 박제 금지 — 분포·CI·게이트. small-n rule(hedge 어휘, BY 보정, LOO/block-boot).
+# ★철강 universe 협소(23종, avg cross-section ~20) = small-breadth → magnitude haircut + breadth-adj IR 의무.
+# 산출 범위 = §M.7 exposure card (측정 전용). semiconductor summary.yaml 미러.
+# raw 재현: raw-v3/{collect, measure, measure_cross, measure_valuation, measure_conditional, measure_fundamentals_cycle, collect_dart, collect_dart_extended}.py
+
+industry: kr_steel            # eq_kr 12산업 中 Tier 3 (철강·금속)
+asset_scope: [equity.kr]
+archetype: cyclical           # 초자산집약 commodity 장치산업 (고로/제강/압연 설비 + 중국 수요 cycle)
+archetype_attestation:
+  valid_from: "2019-01-01"    # ★PIT 사전선언 (§M.5 ex-post 금지). 철강 = 구조적 cyclical 일관(transition 없음)
+  declared_at: "2026-06-05"   # 선언 시점 (사후편향 hazard 낮음 = 철강 = 항상 cyclical)
+  primary_metric: pbr         # ★cyclical primary. PER 양방향 왜곡(정점 peak-EPS + 다운 trough-적자) → PBR robust
+  secondary: asset_stable     # soft/probabilistic: 저성장·고배당 defensive 성격 (prob~0.2)
+  basis: >
+    초자산집약 장치산업(고로 수조원 capex) + 중국 수요·철광석 원가 commodity cycle 1차 가설. ★실측 검증:
+    cross-sectional momentum forward IC = 음(-0.181 12M reversal, BY 생존) = cyclical peak-reversal 정합(battery 양과 반대) →
+    cyclical 지지. ★capex_ratio forward IC = 음(-0.084 y_60d, ★자산집약도 레벨 anomaly = low-turnover value-like, asset growth 아님) = 초자산집약 cyclical 정합.
+as_of: "2026-05-31"
+
+# ── 블록1 LENS (정성) ──
+lens:
+  pricing_principle: >
+    철강 = cyclical 초자산집약. "싸다" = P/B (★PER 양방향 왜곡: 사이클 정점 EPS 高→PER 低 trap + 다운사이클 적자→PER 무의미).
+    primary_metric=pbr. ★실측 결론: (a) 가격 momentum(12M)이 forward 강한 **음의 예측력**(IC -0.181 reversal, BY 생존) =
+    사이클 정점 종목 되돌림 (b) ★capex_ratio(유형/총자산) forward 음(-0.084 y_60d) = ★자산집약도 레벨 anomaly(low-turnover value-like, ppe_yoy 증설변화율은 무신호) =
+    초자산집약 산업 핵심 (c) vol_60(저변동) 음(-0.105 y_60d, BY 생존) = defensive quality. valuation = PBR○ PER✗(§valuation_cross_sectional).
+  cycle_reading: >
+    2019-2026 = 중국 부동산둔화·공급과잉(2019)→COVID 회복·철강가격 급등(2020-21)→중국 수요둔화·spread 압박(2022-24)→
+    감산·구조조정(2025-26). SLX(글로벌 철강 ETF) yoy regime ex-ante: bull 32 / neutral 51 / bear 6 month. 철강 cycle = 반도체보다 완만(중국 정책 driven).
+  estimation_note: >
+    2026-05 시점: universe 23종(시총≥1000억 ∧ ADV≥1억, 1차철강+태웅). ★반도체(85종)의 1/4 = small-breadth.
+    횡단면 avg N ~20.5 = magnitude inflation 위험(frame §M.12) → point estimate 보수 cap + breadth-adj IR 병기.
+    POSCO홀딩스(005490) 시총 압도(30조, universe 60%+) → cap-weighted IC 점검 필수(대형주 reversal 확인됨 = artifact 아님).
+
+# ── 블록2 INDICATORS (forward 횡단면 Rank-IC, horizon-tagged) ──
+# ★점추정 금지: ic_mean + ic_ci_95(block-boot ∧ NW) + n_effective + oos(CPCV). small-universe magnitude haircut 의무.
+indicators_passed:
+  - id: cs_mom_12_1_reversal
+    layer: 3                  # 가격 cycle proxy (cross-sectional 모멘텀 → reversal)
+    family: momentum          # ★부호 음 = reversal (cyclical peak 되돌림)
+    horizon: 12M_mom          # 12-1 신호 → 12M forward
+    ic_mean: -0.181
+    ic_ci_95: [-0.272, -0.093]  # block-bootstrap(block=3M,B=2000). NW CI [-0.262,-0.101] 정합. 0 비포함.
+    ic_se_nw: 0.041
+    t_nw: -4.42
+    n_effective: 65           # months
+    oos_ratio: 1.00           # CPCV OOS hit=1.00 (15 folds, purge=12M)
+    avg_universe_n: 20.5      # ★small-breadth → magnitude inflation 위험
+    breadth_adj_ir: -0.81     # ★IC·√breadth (breadth≈20) = magnitude haircut 후 ~중강. point estimate -0.181 literal 인용 금지.
+    source_id: "raw-v3/validation-metrics-v3.json:indicators.mom_12_1__12M_mom"
+    notes: |
+      cross-sectional 12-1 모멘텀 z → 12M forward Rank-IC = ★음(reversal/contrarian). cyclical peak 되돌림.
+      within-period 100%(2019-2025 전부 음), leave-episode 생존, CPCV 1.00, ★BY 생존(m=16 momentum/vol family).
+      유동성-티어: hi-ADV -0.233 / lo-ADV -0.093 / cap-weighted -0.244 (대형주 reversal 강 = microcap 아티팩트 아님).
+      ★★small-universe(avg 20종) magnitude inflation 주의 = point estimate -0.181 literal 금지, breadth-adj IR -0.81 병기, magnitude 50% haircut 권고.
+      방향(부호 음)·significance(t=-4.42, BY 생존)는 robust, magnitude tentative.
+  - id: cs_vol_60_lowvol
+    layer: 3
+    family: lowvol_quality    # ★저변동 quality (theory M6 defensive demand)
+    horizon: 6M_12M_mom
+    ic_mean: -0.117           # 6M (12M -0.134). 저변동 종목 outperform = IC 음
+    ic_ci_95: [-0.184, -0.053]  # block-boot 6M. 0 배제. 12M CI [-0.201,-0.071].
+    ic_se_nw: 0.033
+    t_nw: -3.52
+    n_effective: 80
+    oos_ratio: 1.00           # 6M CPCV 1.00 (12M 0.93)
+    avg_universe_n: 21.0
+    breadth_adj_ir: -0.54
+    source_id: "raw-v3/validation-metrics-v3.json:indicators.vol_60__6M_mom"
+    notes: |
+      cross-sectional 60일 변동성 z → 6M/12M forward = ★음 = 저변동 종목 강세(defensive quality, theory M6 정합).
+      within-period 100%(6M), leave-episode 생존, ★BY 생존(vol_60 6M/12M/3M/1M 다수). conditional y_60d -0.105(wc_p=0.0005, BY top).
+      유동성: hi-ADV -0.133 / lo-ADV +0.026 (유동성 종목서 작동, microcap 아님). small-universe magnitude hedge.
+  - id: cs_mom_6_reversal
+    layer: 3
+    family: momentum
+    horizon: 3M
+    ic_mean: -0.095
+    ic_ci_95: [-0.160, -0.024]  # block-boot 0 배제
+    ic_se_nw: 0.035
+    t_nw: -2.75
+    n_effective: 80
+    oos_ratio: 1.00
+    avg_universe_n: 21.0
+    source_id: "raw-v3/validation-metrics-v3.json:indicators.mom_6__3M"
+    notes: "6M 모멘텀 z → 3M forward reversal(음). within 100%, CPCV 1.00, BY 생존. conditional y_60d -0.102(wc_p=0.003)."
+  - id: cs_capex_ratio_assetintensity_level
+    layer: 1                   # ★펀더멘털 (유형자산/총자산 = ★자산집약도 레벨, value/low-turnover 계열)
+    family: asset_intensity_level   # ★정정(steel-audit 2026-06-05): asset_growth(증설 cycle) 아님 = 레벨 anomaly
+    horizon: 60d_y60d          # 장기 horizon (value-like 신호, 장기 발현)
+    ic_mean: -0.0839
+    ic_ci_95: [-0.1435, -0.0259]  # block-boot 0 배제
+    t_nw: -3.07               # y_60d (asymptotic, small-block → wild-cluster 우선)
+    wild_cluster_p: 0.0005    # ★강유의 (per-cell wild-cluster, asymptotic 대체)
+    n_effective: 82
+    oos_ratio: "OOS 부호유지"  # walk-forward IS -0.111 → OOS -0.053 (sign hold)
+    avg_universe_n: 21.7
+    source_id: "raw-v3/validation-fundamentals-cycle-v3.json:indicators.capex_ratio.horizons.y_60d"
+    notes: |
+      ★★dispatch capex 일반화 핵심. 유형자산/총자산 횡단면 z → 60d forward IC = **음**(prior 일치). wild_cluster_p=0.0005 강유의, walk-forward OOS 부호유지.
+      ★★[mechanism 정정 — steel-audit 2026-06-05]: primary mechanism = **자산집약도 *레벨* anomaly**(low-asset-turnover, value-like)지 증설 cycle(asset growth) 아님.
+      근거: (a) ppe_yoy(증설 변화율) 무신호 (b) capex_ratio 종목내 시계열 std~0.04 vs 종목간 레벨 std 0.115 = 2.8배 = 종목 고정특성(레벨). = "구조적으로 자산집약적/저회전인 종목"이 forward 약. Cooper-Gulen-Schill(asset growth) = 부수 인용.
+      regime: Slowdown -0.096(wc_p=0.026) / KRW_neutral -0.111(wc_p=0.001) / flow_neutral -0.071(wc_p=0.027) 모두 음 유의.
+      ★자동차 capex_ratio(음, high_confidence)가 철강서 재현 = 자산집약 4섹터 일반화 1보. ★단 "증설 cycle"이 아니라 "자산집약도 레벨 spread가 forward 예측" 한정해석(메인 종합 대상).
+      ★단 BY 통합 family(m=180) 미생존(small-n). y_20d 약(-0.030 비유의)·ppe_yoy(증가율) OOS 반전 = 레벨(ratio) 한정.
+
+# ── 블록3 RELATIONSHIPS (partial-corr) — RegimeGlasso 통합 단계 입력 ──
+relationships_passed:
+  - {node_a: cs_mom_12_1_reversal, node_b: steel_fwd_12m, lag_months: 0, corr: -0.181,
+     corr_ci_95: [-0.272, -0.093], conditioning_set: [], n: 65,
+     source_id: "raw-v3/validation-metrics-v3.json:indicators.mom_12_1__12M_mom",
+     note: "본 corr = cross-sectional IC(unconditional, 음=reversal). partial-corr = 통합 RegimeGlasso 단계."}
+
+# ── 블록4 WEIGHT_RULES — derive_weights(w∝Θ_signal·IC) 입력 (range, 점추정 금지) ──
+weight_rule_candidates:
+  - indicator_id: cs_mom_12_1_reversal
+    base_weight_range: [-0.12, -0.05]   # ★음의 IC = reversal → weight 부호 음. ★magnitude haircut 반영(literal -0.181 아님). breadth-adj.
+    modulate_by: [archetype, regime, cycle_phase]
+    direction: >
+      ★cross-sectional 12-1 모멘텀 z 상위(많이 오른) 종목 underweight, 하위 overweight (reversal/contrarian, peer-relative).
+      long-only-implementable = 저 mom_z 종목 top-quantile overweight vs benchmark.
+    granularity: cross_sectional
+    gate_status: {n: pass, se: pass, power: pass, fdr: pass, oos: pass}  # ★BY 생존(momentum/vol family)
+    source_ids: ["raw-v3/validation-metrics-v3.json:indicators.mom_12_1__12M_mom"]
+    hedge_note: >
+      n=65 months. CI 0배제 + CPCV 1.00 + within 100% + BY 생존 = 방향·significance robust. ★단 small-universe(20종)
+      magnitude inflation = point estimate 50% haircut(breadth-adj IR -0.81). supervisor conservative cap.
+  - indicator_id: cs_vol_60_lowvol
+    base_weight_range: [-0.09, -0.04]   # 저변동 overweight
+    modulate_by: [archetype, regime]
+    direction: "저변동(낮은 vol_z) 종목 overweight = defensive quality, peer-relative."
+    granularity: cross_sectional
+    gate_status: {n: pass, se: pass, power: pass, fdr: pass, oos: pass}  # BY 생존
+    source_ids: ["raw-v3/validation-metrics-v3.json:indicators.vol_60__6M_mom"]
+    hedge_note: "n=80, BY 생존, conditional y_60d wc_p=0.0005. small-universe magnitude hedge."
+  - indicator_id: cs_capex_ratio_assetintensity_level
+    base_weight_range: [-0.08, -0.03]   # ★음 = 高 자산집약도(low-turnover) underweight (레벨 anomaly)
+    modulate_by: [archetype, regime, cycle_phase]
+    direction: "유형자산/총자산 上位(高 자산집약도/저회전) 종목 underweight, 下位 overweight. ★자산집약도 레벨 anomaly(value-like), peer-relative."
+    granularity: cross_sectional
+    gate_status: {n: pass, se: pass, power: pass, fdr: fail, oos: pass}  # ★wc_p 강(0.0005)이나 통합 BY 미생존
+    source_ids: ["raw-v3/validation-fundamentals-cycle-v3.json:indicators.capex_ratio.horizons.y_60d"]
+    hedge_note: >
+      ★dispatch capex 가설. y_60d wc_p=0.0005 + OOS 부호유지 = 방향 robust. ★단 통합 BY(m=180) 미생존 + y_20d 약 =
+      장기 horizon 한정 + small-n hedge. ppe_yoy(증가율)는 OOS 반전 = capex 수준(ratio) 한정 채택.
+
+# ── 블록5 CONFIDENCE_HOOKS — ★affects_indicator 필수 (비우면 결선 dead) ──
+confidence_hooks:
+  - hypothesis_id: steel_cs_momentum_reversal_persistence
+    affects_indicator: cs_mom_12_1_reversal  # ★★필수 — indicators_passed.id 와 매칭
+    affects_edge: [cs_mom_12_1_reversal, steel_fwd_12m]
+    confirm_signal: "live 횡단면 12M 모멘텀 z 하위 종목의 forward rank > 상위 유지 (rolling 12M, reversal 지속)"
+    reject_signal: "Rank-IC e-CUSUM 부호 반전 붕괴 (IC 음→양 전환 누적 K=3 month = reversal 소멸)"
+    emit_where: "panel-score-IC 축 (backtest SELL 아님)"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "derive_weights 재적합 → cross-sectional reversal base_weight 변동 (부호 음 유지 조건)"
+    action_threshold: "e-value > 1/alpha=20 → retract(live 차단) / 회복 = score_ic_recovery_eprocess"
+  - hypothesis_id: steel_asset_intensity_level_anomaly
+    affects_indicator: cs_capex_ratio_assetintensity_level
+    affects_edge: [cs_capex_ratio_assetintensity_level, steel_fwd_60d]
+    confirm_signal: "live 高 자산집약도(高 유형/총자산, low-turnover) 종목 forward < 低 자산집약 유지 (value-like level anomaly 지속)"
+    reject_signal: "capex_ratio IC e-CUSUM 부호 반전(음→양) = 자산집약도 레벨 프리미엄 소멸 (cycle 국면 변화)"
+    emit_where: "panel-score-IC 축"
+    accumulate_in: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
+    feeds_weight: "derive_weights 재적합 (자산집약도 레벨 음 weight)"
+    action_threshold: "e-value > 20 → retract / ★자산집약 4섹터 cross-sector 일관성(레벨 anomaly) = 메인 종합"
+
+# ── 블록6 COLLECTOR_PLAN ──
+collector_plan_industry:
+  - missing: "EV-EBITDA (cyclical 차선 metric, 부채/현금 = DART BS 추가 계정) + 시점별 발행주식수(시총 PIT)"
+    source: "DART fnlttSinglAcntAll(부채총계/현금성자산) + stockTotqySttus(주식총수). 현 = FDR 현재주식수 근사."
+    priority: medium   # ★철강 primary=pbr 작동하므로 ev_ebitda 차선
+    status: "PBR/PER cross-sectional = §valuation_cross_sectional 산출. EV-EBITDA = 후속."
+  - missing: "PIT universe 멤버십 (시점별 섹터 편입/편출 + delisted 종목)"
+    source: "FDR KRX-DESC = 현재 스냅샷만. KRX PIT 섹터분류 인증 필요"
+    priority: high   # 생존편향 보정 (현 = 상장 시점 차이만 정량화, 23종 中 3종 부분이력). ★철강 = 상폐 적은 산업이라 생존편향 영향 반도체보다 작음.
+  - missing: "중국 조강생산 yoy / 철광석 가격(Platts 62% Fe) / 후판·열연 가격 (산업 cycle timing 직접 지표)"
+    source: "중국 NBS 조강생산(월별 무료) / Platts·TradingEconomics 철광석 / SLX·VALE proxy(현 사용). 후판가=한국철강협회"
+    priority: medium   # timing/regime 변수 (cross-sectional 아님). 현 SLX/VALE proxy 로 산업 cycle 측정
+  - missing: "KR HY credit spread (공통인자 credit β KR-local)"
+    source: "현 = US BAML HY OAS proxy(FRED). KR 회사채 spread = 금융투자협회/한국신용평가 유료"
+    priority: medium
+  - missing: "배당수익률 (asset_stable secondary 검증, theory M6)"
+    source: "DART 배당 공시 + 가격. 현 미수집(저우선)"
+    priority: low
+
+# ════════════════════════════════════════════════════════════════════
+# ── ★★CONDITIONAL IC SURFACE (dispatch 원의도 본체, S2) ──
+# IC(지표, regime, horizon) = "어느 국면에 어느 지표가 forward return 예측하나".
+# 측정: raw-v3/measure_conditional.py (G-F 7항 헤더 선언) → validation-conditional-v3.json
+# regime: Macro(CLI amplitude-adj 4) × KRW(DEXKOUS yoy 3) × flow(ECOS 외국인순매수 28d z 3)
+# ════════════════════════════════════════════════════════════════════
+conditional_ic_surface:
+  cell_collapse: >
+    ★36셀 full(Macro4×KRW3×flow3) N>=24 cell = 0개(실측, small-universe + 월간) → INSUFFICIENT.
+    측정 = 단일축(Macro 4 / KRW 3 / flow 3 각각) conditional IC + family_2 interaction. 2축 merge = 통합단계.
+  fdr_family:
+    m_naive: 102              # powered cell 수 (단일 FDR family, G-F §3)
+    m_eff_signal: 3.0         # ★Li-Ji M_eff (가격4신호 상관보정). naive 6신호 → 유효 ~3
+    by_survivors: []          # naive m=102 BY 보정 후 0 (raw_p_min=0.0005 ≈ Bonferroni α 0.00049 = 간발 경계)
+    bonferroni_note: "Bonferroni α/102=0.00049. vol_60 y_60d / pbr_z y_60d (raw_p=0.0005) = 경계 간발(생존/미생존 경계)."
+    note: "★M_eff 통합 보정 = supervisor 통합단계(M.7 분담). 산업 = naive + M_eff_signal 박제."
+  # ── ★핵심 발견: regime별 IC 증폭/반전 (y_20d/y_60d, wild-cluster p) ──
+  key_findings:
+    - finding: "★KRW_neutral regime = 신호 증폭축 (반도체 KRW_weak 과 다름 = 철강 특수성)"
+      cells:
+        - {signal: mom_6, horizon: y_5d, regime: "krw=KRW_neutral", ic: -0.1689, wc_p: 0.0015, n: 38, status: powered}
+        - {signal: mom_6, horizon: y_20d, regime: "krw=KRW_neutral", ic: -0.1311, wc_p: 0.011, n: 37, status: powered}
+        - {signal: vol_60, horizon: y_20d, regime: "krw=KRW_neutral", ic: -0.1212, wc_p: 0.011, n: 37, status: powered}
+        - {signal: pbr_z, horizon: y_60d, regime: "krw=KRW_neutral", ic: -0.1052, wc_p: 0.0115, n: 36, status: powered}
+        - {signal: capex_ratio, horizon: y_60d, regime: "krw=KRW_neutral", ic: -0.111, wc_p: 0.001, n: 37, status: powered}
+      mechanism: >
+        환율 중립기(안정적 cycle, stress 부재)에 momentum-reversal/lowvol/value/capex 신호 모두 증폭.
+        ★반도체는 KRW_weak(수출 stress)서 증폭 = 철강과 반대. 철강은 환율 안정기에 cyclical 신호 명확(중국 cycle dominant, 환율 부차).
+    - finding: "vol_60(저변동) + pbr_z = y_60d robust (unconditional, BY top)"
+      cells:
+        - {signal: vol_60, horizon: y_60d, ic: -0.1047, wc_p: 0.0005, n_eff: 37.1}
+        - {signal: pbr_z, horizon: y_60d, ic: -0.1056, wc_p: 0.0005, n_eff: 31.5}
+        - {signal: mom_6, horizon: y_60d, ic: -0.1021, wc_p: 0.003, n_eff: 50.1}
+      mechanism: "장기 horizon(y_60d)서 lowvol/value/momentum-reversal 강. ★단 BY 보정 후 비유의(small-n + multiplicity hedge), Bonferroni 경계."
+    - finding: "Recovery/Slowdown regime → value/momentum 증폭, flow_strong_buy → 약화"
+      cells:
+        - {signal: pbr_z, horizon: y_60d, regime: "macro=Recovery", ic: -0.1445, wc_p: 0.002, n: 26, status: powered}
+        - {signal: mom_6, horizon: y_60d, regime: "macro=Recovery", ic: -0.1546, wc_p: 0.013, n: 26, status: powered}
+      mechanism: "cycle 회복국면서 저평가/저모멘텀 종목 반등(value/reversal 증폭). theory M2/M3 정합."
+  # ── ★★family_2 interaction (G-B 의무, rejected 박제 前 = frame A-5) ──
+  family_2_interaction:
+    method: "pooled panel: ret_rank ~ sig_rank + sig_rank×KRW_neutral_dummy, month-clustered SE (철강 증폭축=KRW_neutral)"
+    results:
+      - {signal: mom_6, horizon: y_20d, b_main: -0.0311, t_main: -0.76, b_interaction: -0.1035, t_interaction: -1.63, n_months: 81, verdict: "interaction 비유의(방향 정합)"}
+      - {signal: vol_60, horizon: y_20d, b_main: -0.0260, t_main: -0.67, b_interaction: -0.0947, t_interaction: -1.58, n_months: 81, verdict: "interaction 비유의(방향 정합)"}
+      - {signal: mom_12_1, horizon: y_20d, b_main: -0.0128, t_main: -0.33, b_interaction: -0.0869, t_interaction: -1.33, n_months: 81, verdict: "interaction 비유의"}
+      - {signal: rev_1m, horizon: y_20d, b_main: -0.0340, t_main: -0.75, b_interaction: -0.0053, t_interaction: -0.08, n_months: 81, verdict: "interaction 비유의"}
+    interpretation: >
+      ★mom_6/vol_60: interaction term 부호 음(KRW_neutral서 신호 증폭, 방향 정합) but t=-1.63/-1.58 비유의(small-universe + small-n).
+      = 반도체 KRW_weak interaction(t=-2.95 유의)보다 약. ★정직 보고: interaction 자체는 비유의.
+      단 conditional cell wc_p(0.0015~0.011) + walk-forward OOS(부호유지)는 강 = "약함" 단정 부적합(아래 walk_forward).
+  # ── ★walk-forward OOS (KRW_neutral conditional, verdict 근거) ──
+  walk_forward_oos:
+    regime: "krw_regime=KRW_neutral (철강 증폭축)"
+    split: "IS 2019-22 / OOS 2023-26"
+    signals:
+      mom_6__y_20d: {is_ic: -0.0843, is_n: 13, oos_ic: -0.1564, oos_n: 24, verdict: "✅부호유지+magnitude(강화)"}
+      mom_6__y_60d: {is_ic: -0.1558, is_n: 13, oos_ic: -0.1499, oos_n: 23, verdict: "✅부호유지(거의 동일)"}
+      vol_60__y_20d: {is_ic: -0.1362, is_n: 14, oos_ic: -0.1196, oos_n: 24, verdict: "✅부호유지"}
+      vol_60__y_60d: {is_ic: -0.0453, is_n: 14, oos_ic: -0.1527, oos_n: 23, verdict: "✅부호유지+강화"}
+      pbr_z__y_20d: {is_ic: -0.0871, is_n: 14, oos_ic: -0.0902, oos_n: 24, verdict: "✅부호유지(거의 동일)"}
+      pbr_z__y_60d: {is_ic: -0.1176, is_n: 14, oos_ic: -0.0887, oos_n: 23, verdict: "✅부호유지"}
+    결론: >
+      ★KRW_neutral conditional 핵심 신호(mom_6/vol_60/pbr_z) 전부 OOS 부호+magnitude 유지 = **in-sample artifact 아님**.
+      = conditional CONFIRMED(★tentative, OOS n=23~24, small-universe magnitude hedge). interaction term 비유의는 small-n,
+      walk-forward 가 직접 episode 종속 반증. 미래 데이터 불필요한 현 검증.
+  gb_status:
+    trigger_check: "BY 생존 0 AND raw_p_min(0.0005) ≈ Bonferroni α(0.00049) = 경계. ★단 momentum/vol family(measure.py m=16)는 BY 생존 7개."
+    verdict: >
+      ★"약함" 아님 = (a) momentum/vol family BY 생존 7개(measure.py) (b) conditional cell wc_p 강(0.0005~0.011) (c) walk-forward OOS 전부 부호유지
+      (d) capex 가설 입증(자산집약 일반화). conditional+통합 family naive m 과대(M_eff 미통합 + small-universe). = 동적가중 정당화.
+      G-B 자동자문 = supervisor 판단(walk-forward + family BY 생존으로 "약함" 반증 명확 → skip 권고).
+
+# ── ★신규 cycle 지표 (재고/CAPEX/R&D, ★이연 금지 = 측정완료) ──
+# 측정: collect_dart_extended.py(DART 재고/유형/무형자산 PIT) → measure_fundamentals_cycle.py → validation-fundamentals-cycle-v3.json
+fundamentals_cycle:
+  source: "DART dart_extended.parquet (23종 592rows, coverage ppe 100%/inv 82%/intangible 74%). PIT rcept_dt."
+  measured: "★사용자 박제 '이연 금지' 이행 — 측정완료 + verdict 박제."
+  indicators:
+    - {id: capex_ratio, family: asset_intensity_level, prior: 음, ic_y60d: -0.0839, wc_p_y60d: 0.0005, oos: "IS -0.111 → OOS -0.053 ✅부호유지", verdict: "★TENTATIVE DIRECTIONAL (★자산집약도 레벨 anomaly = low-turnover value-like[ppe_yoy 증설변화율 무신호 + 종목내 시계열 std 0.04 vs 종목간 0.115 = 레벨 고정특성], prior 음 일치, y_60d 강유의, walk-forward 생존, ★BY 통합 미생존 m=180). ★★dispatch capex 일반화 핵심 = 자동차 재현. ★종목 selection 검증(selection_vs_timing) 통과 = 화학 REJECTED(forward 무예측)과 다름. CGS asset growth = 부수 인용"}
+    - {id: ppe_yoy, family: asset_intensity_growth, prior: 음, ic_y60d: 0.0059, oos: "IS +0.041 → OOS -0.024 ❌반전", verdict: "INSUFFICIENT (OOS 부호반전 = artifact). ★증설 변화율(growth) 무신호 = capex 신호 source가 레벨(고정특성)이지 증설 cycle 아님 입증 = 정직 보고"}
+    - {id: inv_ratio, family: inventory, prior: 음, ic_y60d: 0.0469, oos: "IS +0.003 → OOS +0.098 부호유지(양)", verdict: "★prior 반증 — y_60d 양(prior 음 반대). ★반도체 동일 패턴(inv_ratio 양). 메커니즘 재해석: 재고/자산 高=생산확대 prox. wc_p=0.18 비유의"}
+    - {id: inv_yoy, family: inventory, prior: 음, ic_y20d: -0.0023, verdict: "INSUFFICIENT (비유의)"}
+    - {id: rnd_ratio, family: rnd, prior: 양, ic_y20d: 0.0249, verdict: "INSUFFICIENT (비유의, prior 양과 약하게 정합이나 wc_p=0.38). 철강 R&D 미미"}
+  # ── ★team-lead prior 정정 검증 (2026-06-05): capex = 종목 selection vs 섹터 timing 분해 ──
+  # 화학 capex REJECTED(NCC 동시증설=섹터 timing 누수) → 철강 cross-sectional spread 존재 검증 의무.
+  selection_vs_timing:
+    source: "raw-v3/validation-capex-spread-v3.json"
+    cross_sectional_spread: "CV=0.32(>0.3 충분). 종목별 capex_ratio range [0.16(하이록 가공) ~ 0.61(태웅 단조)] = 종목간 큰 분산"
+    variance_decomposition: "★within-time(종목 cross-sectional) var=0.0146 vs between-time(섹터 동시cycle) var=0.0006 → ratio within=0.96 (>0.5 = 종목 selection 압도적 우세)"
+    verdict: >
+      ★철강 capex_ratio = genuine 종목 selection anomaly (섹터 timing 누수 기각). 고로(POSCO/현대제철)·가공(하이록/성광벤드)·강관(세아제강)·단조(태웅)가
+      자산집약도 크게 상이 = 종목 cross-sectional spread 충분 → 화학 NCC 동시증설(섹터 일제히, spread 부재 → REJECTED)과 근본적으로 다름.
+      ★one-sided 음 단정 회피(team-lead 지시) = 데이터 판정 결과 selection 유효(단정 아닌 분산분해 검증 기반). ★단 small-universe magnitude hedge + 통합 BY 미생존 유지(메커니즘 입증, magnitude tentative).
+  verdict: >
+    ★capex_ratio(★자산집약도 레벨 anomaly = low-turnover value-like)만 TENTATIVE DIRECTIONAL(y_60d wc_p=0.0005 + OOS 생존 + prior 음 일치) = ★dispatch capex 가설 입증. ★ppe_yoy(증설 변화율) 무신호 = 신호 source = 레벨(고정특성)이지 증설 cycle(asset growth) 아님.
+    ppe_yoy(증가율) OOS 반전 / inv_ratio prior 반증(반도체 동형) / 나머지 비유의 = 정직 박제(over-claim 0).
+  fdr_family_merged:  # ★단일 FDR family 합산 (garden-of-forking-paths)
+    m_total: 180
+    composition: "conditional 102 + fundamentals 78"
+    survivors_BY: 0
+    raw_p_min: 0.0005
+    raw_p_min_keys: "vol_60 y_60d / pbr_z y_60d / capex_ratio y_60d (동률 0.0005)"
+    note: "★신규지표 추가시 family m 커져 BY 더 엄격 = garden-of-forking-paths 차단 정확 작동. M_eff 통합보정=supervisor."
+  data_gate:
+    종목레벨_외국인flow: "★DATA-GATE(deferral 아님) — KRX 종목별 차단 = 데이터 부재. 시장레벨 ECOS flow는 측정완료(regime 축)."
+
+# ── ★cross (분석 단위 간 상관) — §M.3 3소비자 라우팅 (산업=보고만) ──
+cross:
+  common_factor_exposure:
+    - {factor: oil, beta: 0.2318, beta_ci_95: [0.0147, 0.4488], contemporaneous: true,
+       source_id: "raw-v3/validation-cross-v3.json:common_factor_exposure.oil",
+       note: "★유가 양 노출 (t=+2.09 유의). 철강 = 원자재·경기 cyclical (유가↑=경기/원자재 강세 동조). n=35 small."}
+    - {factor: credit, beta: -0.0598, beta_ci_95: [-0.1153, -0.0042], contemporaneous: true,
+       note: "credit risk-off 시 철강 약세 (t=-2.11 유의). ★credit=US HY OAS proxy(KR HY 부재), n=35 small."}
+    - {factor: dollar, beta: -1.3812, beta_ci_95: [-3.0041, 0.2416], contemporaneous: true,
+       note: "약한 음 방향성 (t=-1.67 비유의, CI 0 포함). 강달러→철강 약(원자재 commodity 일반 패턴) 약 prior."}
+    - {factor: VIX, beta: -0.0062, beta_ci_95: [-0.017, 0.0046], contemporaneous: true, note: "비유의 (t=-1.13)"}
+    - {factor: rate, beta: 0.0121, beta_ci_95: [-0.0885, 0.1127], contemporaneous: true, note: "비유의 (t=+0.24)"}
+  directional_spillover: []   # §M.3: DY connectedness = supervisor 통합, I-O centrality = optional 최하위
+  structural_linkage:
+    - supplier_or_customer: global_steel_cycle_iron_ore   # SLX(글로벌 철강)/VALE(철광석 메이저)
+      io_weight: null            # BEA I-O = US, KR I-O 부재 → 정성 supply-chain
+      lagged_return_signal: 0.151  # SLX lag3 corr (best, 비유의)
+      p_value: 0.175
+      source_id: "raw-v3/validation-cross-v3.json:customer_supplier_momentum"
+      verdict: >
+        REJECTED as alpha — SLX/VALE 전 lag(0-3) 비유의(p 0.18~0.49). ★한국 철강 = 글로벌 cycle/철광석 contemporaneous 동조이나
+        forward 예측력 부재(§D falsifier 작동, 반도체 동형). 동조성분은 RegimeGlasso Ω 흡수.
+  # ⛔ sector-rotation business-cycle clock = 학술 myth(Molchanov 2024).
+
+# ── ★valuation 횡단면 (§M.7 핵심 — DART 재구성) ──
+valuation_cross_sectional:
+  data_source: "raw-v3/validation-valuation-v3.json (DART fnlttSinglAcntAll 563 rows/23종 + pykrx 가격). PBR coverage 1786 cells / PER 1408 cells."
+  mechanism_works:
+    pbr: true     # PBR value premium 작동 (3M/6M/12M IC -0.10~-0.16, BY 생존 3개, CPCV 1.00)
+    per: false    # ★PER 무신호 = peak/trough-EPS trap (반도체 동형, cyclical 공통)
+  pit_note: "재무 = rcept_dt(공시일) 이후만(lookahead 회피). FY 보고지연 median 108-120일(실측). DART CFS→OFS fallback."
+  archetype_caveat: >
+    ★철강 cyclical = PER 양방향 왜곡 실증: PER cross-sectional 전 horizon 비유의(IC -0.034~-0.108, p_NW>0.10) =
+    사이클 정점 peak-EPS + 다운사이클 trough(적자) 왜곡으로 PER value premium 무효. PBR(자본 stock, EPS 왜곡 면역)은 작동 = 반도체/자동차 동형.
+  indicators:
+    - {id: cs_pbr_z_12m, signal: pbr_z, horizon: 12M, ic_mean: -0.1609, t_nw: -3.07, n_months: 73, p_value_nw: 0.003, cpcv_oos: 1.00, within_period: 0.86, avg_universe_n: 20.7, by_survived: true, note: "★PBR value premium 12M 최강. BY 생존(m=8). small-universe magnitude hedge(point estimate -0.16 literal 금지)."}
+    - {id: cs_pbr_z_6m, signal: pbr_z, horizon: 6M, ic_mean: -0.1301, t_nw: -2.64, n_months: 79, p_value_nw: 0.010, cpcv_oos: 1.00, by_survived: true, note: "6M value 일관(BY 생존)."}
+    - {id: cs_pbr_z_3m, signal: pbr_z, horizon: 3M, ic_mean: -0.1003, t_nw: -2.68, n_months: 82, p_value_nw: 0.009, cpcv_oos: 1.00, within_period: 0.88, by_survived: true, note: "단기도 value 방향 일관(BY 생존). ★철강 PBR = 3M/6M/12M 단조 일관(반도체보다 robust)."}
+    - {id: cs_pbr_z_24m, signal: pbr_z, horizon: 24M_value, ic_mean: -0.1232, t_nw: -1.61, n_months: 61, p_value_nw: 0.112, by_survived: false, note: "★24M eff_indep_N≈2.5 degenerate(overlap) → primary 증거 아님. 3M/6M/12M 사용."}
+    - {id: per_z_all, signal: per_z, horizon: "3M/6M/12M/24M", ic_mean: "-0.034 ~ -0.108 (전 horizon)", p_value_nw: ">0.10 (전부 비유의)", by_survived: false, note: "★PER 전 horizon 비유의 = peak/trough-EPS trap. PBR과 달리 BY 미생존. E/P 대체 권고."}
+  verdict: >
+    ★PBR value premium 작동 = 3M/6M/12M 단조 일관(IC -0.10~-0.16, BY 생존 3개, CPCV 1.00) = ★철강 = cyclical value 핵심.
+    ★PER 무효 = peak/trough-EPS trap 실증(반도체/자동차 동형). cyclical valuation = PBR○ PER✗. ★small-universe(20종) magnitude haircut 의무.
+
+# ── robustness_checks (측정 17종 통과 기록, 지표별) ──
+robustness_checks:
+  - indicator_id: cs_mom_12_1_reversal   # primary
+    leave_episode: pass              # ex-peak 부호·magnitude 생존
+    within_period: pass              # 연도별 부호 일관 100% (2019-2025 전부 음)
+    partial_corr_ratio: null         # 통합 RegimeGlasso 단계
+    net_sharpe_ratio: marginal       # |IC| 0.181 > 16.5bps/월 이나 small-universe magnitude inflation 반영시 보수
+    forward_vs_contemp: "forward present (음=reversal)"  # ★forward IC 유효
+    family_neutralized_ic: null      # FF5/KR-factor neutralize = 통합 단계
+    eff_n_tier: Tentative            # n=65 months (50-100 = Tentative). ★small-universe(20종) breadth 한계
+    multiple_testing_gate: pass      # ★momentum/vol family BY 생존 (measure.py m=16). 통합 m=180 에선 미생존(hedge)
+    small_universe_caveat: "★avg 20종 = magnitude inflation. point estimate -0.181 literal 금지, breadth-adj IR -0.81 + 50% haircut."
+  - indicator_id: cs_vol_60_lowvol
+    leave_episode: pass
+    within_period: pass              # 100%(6M)
+    eff_n_tier: Validated            # n=80
+    forward_vs_contemp: "forward present (저변동 outperform)"
+    multiple_testing_gate: pass      # BY 생존
+    small_universe_caveat: "hi_adv 강 / lo_adv 약 = 유동성 종목서 작동(microcap 아님). magnitude haircut."
+  - indicator_id: cs_capex_ratio_assetintensity_level
+    leave_episode: null              # 분기 펀더멘털 (월간 leave-episode 부적합)
+    within_period: null
+    eff_n_tier: Tentative            # n=82 month (분기 forward-fill)
+    forward_vs_contemp: "forward present (y_60d 음, 자산집약도 레벨 anomaly = value-like)"
+    multiple_testing_gate: fail      # ★wc_p 강(0.0005)이나 통합 BY(m=180) 미생존
+    oos: "walk-forward 부호유지 (IS -0.111 → OOS -0.053)"
+
+# ── horizon_verdict (forward alpha falsifier) ──
+horizon_verdict:
+  best_horizon: "12M (momentum reversal) + y_60d (lowvol/value/capex 장기)"
+  forward_alpha_present: true        # ★present (음의 reversal/lowvol/value/capex alpha)
+  note: >
+    horizon 구조 = ★momentum reversal + lowvol + value + capex(asset growth) 모두 forward 음. |IC| 12M(0.181)>6M>3M 단조(momentum).
+    capex_ratio = y_60d(장기)서만 발현(★자산집약도 레벨 anomaly = value-like 장기 신호). customer momentum(SLX/VALE) forward = null(REJECTED).
+    ★battery(양 momentum)와 부호 반대 = cyclical archetype 핵심 증거. ★small-universe magnitude haircut 전제.
+
+# ── net-cost (KR 비대칭) ──
+net_cost:
+  model: "spread/2 + commission + STT_sell(0.20%, 매도측만) — §M.4 비대칭"
+  roundtrip_bps: 33.0
+  monthly_cost_bps: 16.5   # turnover 0.5/월 가정
+  note: >
+    |IC| momentum 0.181 / vol 0.117 (breadth ~20종 IR) > 16.5bps/월 이나 small-universe magnitude inflation 보정 시 net 보존 marginal.
+    ★철강 = 저유동성(POSCO 외 ADV 작음) → 실제 turnover·impact 高 = net 보수. sqrt impact = supervisor.
+
+# ── Hard-fail 4 (B C D I) self-check ──
+hard_fail_self_check:
+  B_real_data: {status: PASS, note: "합성 0%. pykrx OHLCV 실측 23종(1818일) + yfinance(SLX/VALE/factors) + DART(563+592 rows) + FDR + FRED/ECOS regime. raw-v3/*.py 재현."}
+  C_traceability: {status: PASS, note: "모든 yaml 수치 = raw-v3/validation-{metrics,cross,valuation,conditional,fundamentals-cycle,merged-fdr}-v3.json key 매핑."}
+  D_pit:
+    status: PASS
+    note: >
+      가격신호 = PIT-safe(forward return shift). ★valuation/capex 횡단면 = DART rcept_dt(공시일) 이후만 적용
+      = lookahead·restatement 회피(FY 보고지연 median 108-120일 실측). regime Macro = CLI 2개월 lag(vintage). 시총=Close×현재주식수(시점별 주식수 = collector_plan).
+  I_survivor_bias:
+    status: PARTIAL
+    note: >
+      universe = FDR 현재 스냅샷(생존 종목만). delisted/M&A 종목 누락 = 생존편향 잔존. ★단 철강 = 상폐 드문 산업(자산집약 대형주)
+      → 생존편향 영향 반도체/바이오보다 작음. 상장 시점 차이 정량화(23종 中 3종 부분 이력). PIT 멤버십 = collector_plan high.
+
+# ── verdict (small-n rule) ──
+verdict_label: PARTIAL  # ★전체 산업 = PARTIAL CONFIRMED
+verdict_detail:
+  cs_mom_12_1__12M: >
+    PARTIAL→강 (n=65, t_NW=-4.42, NW+block-boot CI 0배제, CPCV OOS hit 1.00, within-period 100%, leave-episode 생존,
+    cap-weighted -0.244 강). ★momentum/vol family BY 생존(measure.py m=16). ★★small-universe(20종) magnitude inflation = point estimate -0.181 literal 금지(breadth-adj IR -0.81 + 50% haircut). 방향·significance robust, magnitude tentative.
+  cs_vol_60_lowvol: "PARTIAL→강 (n=80, BY 생존, conditional y_60d wc_p=0.0005, within 100%). 저변동 quality(theory M6). small-universe hedge."
+  cs_capex_ratio: >
+    ★TENTATIVE DIRECTIONAL (y_60d IC -0.084, wc_p=0.0005, walk-forward OOS 부호유지, prior 음 일치 = ★자산집약도 레벨 anomaly(value-like, ppe_yoy 증설변화율 무신호)).
+    ★★dispatch capex 일반화 = 자동차 재현. ★단 통합 BY(m=180) 미생존 + y_20d 약 + ppe_yoy 반전 = 장기 horizon·수준(ratio) 한정 + small-n hedge.
+  cs_pbr_z: "PARTIAL→강 (3M/6M/12M 단조 일관, IC -0.10~-0.16, BY 생존 3개, CPCV 1.00). PBR value premium. small-universe magnitude haircut."
+  valuation_per: "★PER 무신호 = peak/trough-EPS trap (전 horizon IC -0.034~-0.108, p_NW>0.10 비유의, BY 미생존). cyclical 정의 지지(반도체/자동차 동형)."
+  customer_momentum: "REJECTED (글로벌 cycle/철광석 contemporaneous 동조, forward 예측력 부재, 전 lag 비유의)"
+  common_factor: "oil 양 유의(t=+2.09) + credit 음 유의(t=-2.11, US proxy n=35 small) / dollar 약 음 / 나머지 비유의"
+verdict_note: >
+  산업 전체 = PARTIAL (다수 신호 방향·significance robust, but small-universe magnitude hedge + 통합 BY 미생존).
+  ★핵심 발견 4: (1) momentum 음(reversal -0.181) = battery(양 +0.086)와 반대 = cyclical archetype 지지
+  (2) ★capex_ratio 음(★자산집약도 레벨 anomaly = value-like, dispatch 가설 입증) = 자동차 재현 = 자산집약 일반화 1보
+  (3) PBR○ PER✗(peak/trough-EPS trap, cyclical valuation 공통) (4) vol_60 저변동 quality.
+  ★★small-universe(23종, avg 20) = frame §M.12 magnitude inflation 위험 = point estimate literal 금지, breadth-adj IR + haircut 의무.
+  conditional 증폭축 = KRW_neutral(반도체 KRW_weak 과 다름 = 철강 = 중국 cycle dominant, 환율 부차).
+
+# ── ★S2 conditional 차원 verdict (dispatch 원의도 본체, ★walk-forward OOS 확정) ──
+verdict_conditional:
+  status: "★conditional CONFIRMED (tentative, small-universe) — walk-forward OOS 부호+magnitude 유지"
+  핵심: >
+    ★unconditional 약신호가 **conditional 로 명확 발현** = dispatch 원의도.
+    (a) KRW_neutral regime: mom_6 y_5d -0.169(wc_p=0.0015) / vol_60 y_20d -0.121 / pbr_z y_60d -0.105 / capex_ratio -0.111 증폭.
+    (b) family_2 interaction: mom_6/vol_60 b_inter 음(방향 정합) but t=-1.63/-1.58 비유의(small-n) = walk-forward 가 직접 검증.
+    (c) Recovery regime: value/momentum 증폭.
+  walk_forward_oos:
+    mom_6_KRW_neutral: {y_20d: "IS -0.084 → OOS -0.156 ✅강화", y_60d: "IS -0.156 → OOS -0.150 ✅동일"}
+    vol_60_KRW_neutral: {y_20d: "IS -0.136 → OOS -0.120 ✅", y_60d: "IS -0.045 → OOS -0.153 ✅강화"}
+    pbr_z_KRW_neutral: {y_20d: "IS -0.087 → OOS -0.090 ✅", y_60d: "IS -0.118 → OOS -0.089 ✅"}
+    결론: >
+      ★3신호 KRW_neutral conditional 전부 OOS 부호+magnitude 유지 = **in-sample artifact 아님** = conditional CONFIRMED
+      (★tentative, OOS n=23~24 small-n + small-universe magnitude hedge). interaction term 비유의는 small-n,
+      walk-forward 가 episode 종속 직접 반증. 미래 데이터 불필요한 현 검증 완주.
+  verdict_확정:
+    mom_6_KRW_neutral: "★CONFIRMED (tentative) — OOS 부호+magnitude 유지(강화)"
+    vol_60_KRW_neutral: "★CONFIRMED (tentative) — OOS 부호+magnitude 유지"
+    pbr_z_KRW_neutral: "★CONFIRMED (tentative) — OOS 거의 동일"
+  gb_판정: >
+    ★G-B 자동자문 = supervisor skip 권고 (walk-forward OOS 전부 생존 + momentum/vol family BY 생존 = '약함 단정' 반증).
+    통합 BY naive m=180 미생존은 M_eff 미통합 + small-universe. = 동적가중 정당화. ★OOS 검증 완료 = in-sample only hedge 해소(magnitude tentative).
+  비판검토_S5_실측:  # ★실측 박제 (validation-cross-sectional.md 상세)
+    S5_A_POSCO_drop: "momentum 12-1 IC -0.181 → ex-POSCO(005490) -0.165 = ★생존 (단일종목 의존 아님, 대형주 reversal 일반)"
+    S5_B_PBR_size위장: "Fama-MacBeth PBR|Size b=-0.062 t=-1.98(경계) / Size|PBR t=-1.67 비유의 = ★PBR 우위(size 위장 아님). ★단 t=-1.98 = small-universe 경계 = 완전 독립 입증 약(hedge)"
+    S5_C_leave_2021: "momentum -0.181 → ex-2021(철강 급등 episode 제거) -0.161 = ★생존 (단일 episode 종속 아님)"
+    수렴: "★momentum reversal = POSCO/2021 episode 종속 모두 기각 = robust. PBR size 위장 = PBR 우위이나 small-universe 경계 hedge. walk-forward OOS(KRW_neutral) 전부 생존과 정합."
+  정직단서: >
+    ★small-universe(23종, avg 20) magnitude inflation = point estimate literal 금지(breadth-adj IR + 50% haircut) / OOS n=23~24 small-n →
+    magnitude tentative(부호·방향만) / M_eff 통합 supervisor / 종목레벨 외국인flow 이연(KRX 차단=data-gate) / capex=측정완료(이연 아님).

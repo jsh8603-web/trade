@@ -1,0 +1,66 @@
+{
+  "meta": {
+    "n_months": 136,
+    "period": [
+      "2015-02-28",
+      "2026-05-31"
+    ],
+    "sleeves": [
+      "us_cyclical",
+      "us_defensive",
+      "us_mega_tech"
+    ],
+    "axis": {
+      "us_cyclical": [
+        "baa_aaa",
+        -1
+      ],
+      "us_defensive": [
+        "dollar",
+        1
+      ],
+      "us_mega_tech": [
+        "real_rate",
+        -1
+      ]
+    },
+    "base_weights": {
+      "us_cyclical": 0.3054174714447838,
+      "us_defensive": 0.4134247139583942,
+      "us_mega_tech": 0.281157814596822
+    }
+  },
+  "in_sample": {
+    "predictive_beta": -0.000611936242430637,
+    "predictive_test": {
+      "mean": -0.001206085132925776,
+      "n": 300,
+      "n_eff": 225.4,
+      "nw_lag": 5,
+      "t": -0.3065897318223393,
+      "fixed_b_cv": 2.08,
+      "fixed_b_sig": false
+    },
+    "contemporaneous_beta": 0.0011546700834273753,
+    "contemporaneous_test": {
+      "mean": 0.0022699756322082133,
+      "n": 302,
+      "n_eff": 210.5,
+      "nw_lag": 5,
+      "t": 0.5398016773568531,
+      "fixed_b_cv": 2.08,
+      "fixed_b_sig": false
+    }
+  },
+  "oos_active": {
+    "mean": 1.5590417650897309e-06,
+    "n": 75,
+    "n_eff": 94.1,
+    "nw_lag": 3,
+    "t": 0.3478922789323148,
+    "fixed_b_cv": 2.19,
+    "fixed_b_sig": false,
+    "ann_IR": 0.12395049662569083
+  },
+  "verdict": "STATIC_ONLY (rotation gate \ud0c8\ub77d \u2192 base=shrunk inverse-vol)"
+}

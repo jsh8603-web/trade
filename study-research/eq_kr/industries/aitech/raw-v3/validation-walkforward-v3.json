@@ -1,0 +1,191 @@
+{
+  "split": {
+    "IS": [
+      "2019-01-01",
+      "2022-12-31"
+    ],
+    "OOS": [
+      "2023-01-01",
+      "2026-12-31"
+    ]
+  },
+  "note": "aitech: ①momentum reversal(음, growth 가설 반증=battery 반대) ②★valuation pbr/per(BY 생존=primary tradeable) ③flow_strong_buy interaction 음 증폭 의 walk-forward OOS 검정.",
+  "unconditional": {
+    "mom_6__y_60d": {
+      "is_ic": 0.0021,
+      "is_n": 42,
+      "oos_ic": -0.0639,
+      "oos_n": 38,
+      "sign_hold": false,
+      "verdict": "❌부호반전(artifact) +magnitude"
+    },
+    "mom_6__y_20d": {
+      "is_ic": -0.0013,
+      "is_n": 42,
+      "oos_ic": -0.0506,
+      "oos_n": 39,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    },
+    "mom_12_1__y_60d": {
+      "is_ic": -0.077,
+      "is_n": 36,
+      "oos_ic": -0.0488,
+      "oos_n": 38,
+      "sign_hold": true,
+      "verdict": "✅부호유지 (magnitude 약화)"
+    },
+    "mom_12_1__y_20d": {
+      "is_ic": -0.0287,
+      "is_n": 36,
+      "oos_ic": -0.0312,
+      "oos_n": 39,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    },
+    "rev_1m__y_60d": {
+      "is_ic": -0.0064,
+      "is_n": 42,
+      "oos_ic": -0.0191,
+      "oos_n": 38,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    },
+    "rev_1m__y_20d": {
+      "is_ic": -0.0506,
+      "is_n": 42,
+      "oos_ic": -0.0194,
+      "oos_n": 39,
+      "sign_hold": true,
+      "verdict": "✅부호유지 (magnitude 약화)"
+    }
+  },
+  "valuation": {
+    "pbr_z__y_60d": {
+      "is_ic": -0.0601,
+      "is_n": 42,
+      "oos_ic": -0.1225,
+      "oos_n": 38,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    },
+    "pbr_z__y_20d": {
+      "is_ic": -0.0443,
+      "is_n": 42,
+      "oos_ic": -0.0503,
+      "oos_n": 39,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    },
+    "per_z__y_60d": {
+      "is_ic": -0.01,
+      "is_n": 42,
+      "oos_ic": -0.0834,
+      "oos_n": 38,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    },
+    "per_z__y_20d": {
+      "is_ic": -0.0577,
+      "is_n": 42,
+      "oos_ic": -0.036,
+      "oos_n": 39,
+      "sign_hold": true,
+      "verdict": "✅부호유지 (magnitude 약화)"
+    }
+  },
+  "regime_cell": {
+    "mom_12_1__y20d__flow_strong_buy": {
+      "is_ic": -0.1185,
+      "is_n": 8,
+      "oos_ic": -0.1777,
+      "oos_n": 9,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    },
+    "vol_60__y20d__flow_strong_buy": {
+      "is_ic": -0.1539,
+      "is_n": 9,
+      "oos_ic": -0.0952,
+      "oos_n": 9,
+      "sign_hold": true,
+      "verdict": "✅부호유지 (magnitude 약화)"
+    },
+    "pbr_z__y20d__flow_strong_buy": {
+      "is_ic": -0.1489,
+      "is_n": 9,
+      "oos_ic": -0.0787,
+      "oos_n": 9,
+      "sign_hold": true,
+      "verdict": "✅부호유지 (magnitude 약화)"
+    },
+    "per_z__y20d__flow_strong_buy": {
+      "is_ic": -0.1292,
+      "is_n": 9,
+      "oos_ic": -0.0774,
+      "oos_n": 9,
+      "sign_hold": true,
+      "verdict": "✅부호유지 (magnitude 약화)"
+    },
+    "per_z__y60d__KRW_weak": {
+      "is_ic": -0.1351,
+      "is_n": 21,
+      "oos_ic": -0.1586,
+      "oos_n": 13,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    },
+    "pbr_z__y60d__KRW_weak": {
+      "is_ic": -0.1009,
+      "is_n": 21,
+      "oos_ic": -0.1135,
+      "oos_n": 13,
+      "sign_hold": true,
+      "verdict": "✅부호유지 +magnitude"
+    }
+  },
+  "interaction": {
+    "mom_12_1__flow_strong_buy": {
+      "IS": {
+        "b_interaction": -0.1138,
+        "t_interaction": -1.22,
+        "n_months": 36,
+        "status": "ok"
+      },
+      "OOS": {
+        "b_interaction": -0.1895,
+        "t_interaction": -2.71,
+        "n_months": 39,
+        "status": "ok"
+      }
+    },
+    "vol_60__flow_strong_buy": {
+      "IS": {
+        "b_interaction": -0.1647,
+        "t_interaction": -1.8,
+        "n_months": 42,
+        "status": "ok"
+      },
+      "OOS": {
+        "b_interaction": -0.0361,
+        "t_interaction": -0.65,
+        "n_months": 39,
+        "status": "ok"
+      }
+    },
+    "rev_1m__flow_strong_buy": {
+      "IS": {
+        "b_interaction": -0.0762,
+        "t_interaction": -1.38,
+        "n_months": 42,
+        "status": "ok"
+      },
+      "OOS": {
+        "b_interaction": 0.0786,
+        "t_interaction": 0.86,
+        "n_months": 39,
+        "status": "ok"
+      }
+    }
+  }
+}

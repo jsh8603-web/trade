@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "split": "2022-01-01",
+    "H": 12,
+    "note": "생존 2개 견고성. DEF-2 정방향/DEF-1 PW역방향 견고성 진단."
+  },
+  "DEF-2": {
+    "spec": "dividend_yield(고)×op_prof(고) incr",
+    "pred": 1,
+    "in_sample": {
+      "ic_mean": 0.053,
+      "n": 143,
+      "n_eff": 44.6,
+      "t_nw": 2.42,
+      "fixed_b_cv": 2.09,
+      "fixed_b_sig": true,
+      "wild_p": 0.0188,
+      "sign": 1
+    },
+    "oos": {
+      "ic_mean": 0.1058,
+      "n": 41,
+      "n_eff": 13.9,
+      "t_nw": 2.95,
+      "fixed_b_cv": 2.48,
+      "fixed_b_sig": true,
+      "wild_p": 0.0129,
+      "sign": 1
+    },
+    "sign_persistent": true,
+    "oos_sign_matches_pred": true
+  },
+  "DEF-1": {
+    "spec": "net_issuance×ep_yield incr",
+    "pred": 1,
+    "observed": "negative(PW)",
+    "in_sample": {
+      "ic_mean": -0.0654,
+      "n": 144,
+      "n_eff": 37.2,
+      "t_nw": -2.15,
+      "fixed_b_cv": 2.16,
+      "fixed_b_sig": false,
+      "wild_p": 0.0418,
+      "sign": -1
+    },
+    "oos": {
+      "ic_mean": -0.1119,
+      "n": 41,
+      "n_eff": 13.5,
+      "t_nw": -3.49,
+      "fixed_b_cv": 2.48,
+      "fixed_b_sig": true,
+      "wild_p": 0.0051,
+      "sign": -1
+    },
+    "sign_persistent": true,
+    "oos_sign_matches_pred": false
+  }
+}

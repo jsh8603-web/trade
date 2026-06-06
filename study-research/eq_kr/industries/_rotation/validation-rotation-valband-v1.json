@@ -1,0 +1,605 @@
+{
+  "meta": {
+    "method": "산업 aggregate PBR(PIT) rolling-z(24M) → forward 예측 (valuation-band rotation)",
+    "임무": "산업이 자기 역사 대비 비싸면(z高) forward 약세(mean-reversion) = valuation timing",
+    "pit": "equity = DART rcept_dt 이후만 / 시총 = price×shares_approx(Marcap/최근종가, PIT shares 부재 근사)",
+    "horizons_months": {
+      "y_20d": 1,
+      "y_60d": 3
+    },
+    "oos_split": "2023-01-01",
+    "caveat": "★shares_approx = 현 발행주식수 근사(자사주/증자 미반영) = PBR level 절대값보다 z-score(상대) 신뢰. collector_plan: PIT shares."
+  },
+  "industries": {
+    "semiconductor": {
+      "pbr_n": 85,
+      "pbr_mean": 1.62,
+      "pbr_z_last": 3.37,
+      "signals": {
+        "y_20d": {
+          "label": "semiconductor__pbr_z__y_20d",
+          "n": 67,
+          "n_eff": 67.0,
+          "spearman_rho": -0.004,
+          "p_parametric": 0.9747,
+          "t_nw_asymptotic": -0.03,
+          "t_power_mde": 0.03,
+          "wild_cluster_p": 0.98,
+          "ci95_block_boot_prod": [
+            -0.01955,
+            0.01921
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 40,
+            "rho_is": 0.0562,
+            "rho_oos": -0.0876,
+            "eligible": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "underpowered"
+        },
+        "y_60d": {
+          "label": "semiconductor__pbr_z__y_60d",
+          "n": 65,
+          "n_eff": 18.7,
+          "spearman_rho": 0.1467,
+          "p_parametric": 0.2436,
+          "t_nw_asymptotic": 0.75,
+          "t_power_mde": 0.63,
+          "wild_cluster_p": 0.2494,
+          "ci95_block_boot_prod": [
+            -0.01932,
+            0.03811
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 38,
+            "rho_is": 0.3675,
+            "rho_oos": 0.1634,
+            "eligible": false,
+            "verdict": "⚠️OOS 부호유지 magnitude약"
+          },
+          "status": "underpowered"
+        }
+      }
+    },
+    "auto": {
+      "pbr_n": 85,
+      "pbr_mean": 0.58,
+      "pbr_z_last": 2.68,
+      "signals": {
+        "y_20d": {
+          "label": "auto__pbr_z__y_20d",
+          "n": 67,
+          "n_eff": 67.0,
+          "spearman_rho": 0.0136,
+          "p_parametric": 0.9132,
+          "t_nw_asymptotic": 0.11,
+          "t_power_mde": 0.11,
+          "wild_cluster_p": 0.9045,
+          "ci95_block_boot_prod": [
+            -0.02037,
+            0.02125
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 40,
+            "rho_is": 0.1691,
+            "rho_oos": -0.0507,
+            "eligible": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "underpowered"
+        },
+        "y_60d": {
+          "label": "auto__pbr_z__y_60d",
+          "n": 65,
+          "n_eff": 27.1,
+          "spearman_rho": -0.1279,
+          "p_parametric": 0.31,
+          "t_nw_asymptotic": -0.74,
+          "t_power_mde": 0.67,
+          "wild_cluster_p": 0.2944,
+          "ci95_block_boot_prod": [
+            -0.03842,
+            0.01546
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 38,
+            "rho_is": 0.2662,
+            "rho_oos": -0.4107,
+            "eligible": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "underpowered"
+        }
+      }
+    },
+    "financial": {
+      "status": "INSUFFICIENT(pbr n<36 or 산출불가)"
+    },
+    "battery": {
+      "pbr_n": 85,
+      "pbr_mean": 2.04,
+      "pbr_z_last": 1.89,
+      "signals": {
+        "y_20d": {
+          "label": "battery__pbr_z__y_20d",
+          "n": 67,
+          "n_eff": 64.6,
+          "spearman_rho": -0.0182,
+          "p_parametric": 0.8835,
+          "t_nw_asymptotic": -0.16,
+          "t_power_mde": 0.15,
+          "wild_cluster_p": 0.8726,
+          "ci95_block_boot_prod": [
+            -0.0189,
+            0.01708
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 40,
+            "rho_is": -0.0354,
+            "rho_oos": -0.0321,
+            "eligible": true,
+            "verdict": "✅OOS 부호+magnitude 유지"
+          },
+          "status": "underpowered"
+        },
+        "y_60d": {
+          "label": "battery__pbr_z__y_60d",
+          "n": 65,
+          "n_eff": 25.3,
+          "spearman_rho": 0.1958,
+          "p_parametric": 0.118,
+          "t_nw_asymptotic": 1.12,
+          "t_power_mde": 0.98,
+          "wild_cluster_p": 0.094,
+          "ci95_block_boot_prod": [
+            -0.01339,
+            0.03924
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 38,
+            "rho_is": 0.3187,
+            "rho_oos": 0.3765,
+            "eligible": true,
+            "verdict": "✅OOS 부호+magnitude 유지"
+          },
+          "status": "underpowered"
+        }
+      }
+    },
+    "chemical": {
+      "pbr_n": 85,
+      "pbr_mean": 0.87,
+      "pbr_z_last": 1.48,
+      "signals": {
+        "y_20d": {
+          "label": "chemical__pbr_z__y_20d",
+          "n": 67,
+          "n_eff": 67.0,
+          "spearman_rho": 0.1392,
+          "p_parametric": 0.2613,
+          "t_nw_asymptotic": 1.24,
+          "t_power_mde": 1.14,
+          "wild_cluster_p": 0.2319,
+          "ci95_block_boot_prod": [
+            -0.00446,
+            0.03025
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 40,
+            "rho_is": 0.1832,
+            "rho_oos": 0.1124,
+            "eligible": true,
+            "verdict": "✅OOS 부호+magnitude 유지"
+          },
+          "status": "underpowered"
+        },
+        "y_60d": {
+          "label": "chemical__pbr_z__y_60d",
+          "n": 65,
+          "n_eff": 21.1,
+          "spearman_rho": 0.448,
+          "p_parametric": 0.0002,
+          "t_nw_asymptotic": 2.52,
+          "t_power_mde": 2.06,
+          "wild_cluster_p": 0.0005,
+          "ci95_block_boot_prod": [
+            0.00764,
+            0.06349
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 38,
+            "rho_is": 0.4866,
+            "rho_oos": 0.5779,
+            "eligible": true,
+            "verdict": "✅OOS 부호+magnitude 유지"
+          },
+          "status": "underpowered"
+        }
+      }
+    },
+    "refining": {
+      "pbr_n": 85,
+      "pbr_mean": 0.92,
+      "pbr_z_last": 0.89,
+      "signals": {
+        "y_20d": {
+          "label": "refining__pbr_z__y_20d",
+          "n": 67,
+          "n_eff": 67.0,
+          "spearman_rho": -0.0692,
+          "p_parametric": 0.5781,
+          "t_nw_asymptotic": -0.59,
+          "t_power_mde": 0.57,
+          "wild_cluster_p": 0.5992,
+          "ci95_block_boot_prod": [
+            -0.0227,
+            0.01401
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 40,
+            "rho_is": -0.0104,
+            "rho_oos": -0.2169,
+            "eligible": true,
+            "verdict": "✅OOS 부호+magnitude 유지"
+          },
+          "status": "underpowered"
+        },
+        "y_60d": {
+          "label": "refining__pbr_z__y_60d",
+          "n": 65,
+          "n_eff": 30.9,
+          "spearman_rho": 0.1352,
+          "p_parametric": 0.283,
+          "t_nw_asymptotic": 0.76,
+          "t_power_mde": 0.75,
+          "wild_cluster_p": 0.3093,
+          "ci95_block_boot_prod": [
+            -0.01519,
+            0.04295
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 38,
+            "rho_is": 0.2552,
+            "rho_oos": -0.0636,
+            "eligible": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "underpowered"
+        }
+      }
+    },
+    "shipbuilding": {
+      "pbr_n": 85,
+      "pbr_mean": 1.71,
+      "pbr_z_last": 0.8,
+      "signals": {
+        "y_20d": {
+          "label": "shipbuilding__pbr_z__y_20d",
+          "n": 67,
+          "n_eff": 55.2,
+          "spearman_rho": -0.1219,
+          "p_parametric": 0.3257,
+          "t_nw_asymptotic": -0.99,
+          "t_power_mde": 0.91,
+          "wild_cluster_p": 0.3013,
+          "ci95_block_boot_prod": [
+            -0.02773,
+            0.01141
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 40,
+            "rho_is": -0.5122,
+            "rho_oos": -0.0137,
+            "eligible": false,
+            "verdict": "⚠️OOS 부호유지 magnitude약"
+          },
+          "status": "underpowered"
+        },
+        "y_60d": {
+          "label": "shipbuilding__pbr_z__y_60d",
+          "n": 65,
+          "n_eff": 30.4,
+          "spearman_rho": -0.0807,
+          "p_parametric": 0.5229,
+          "t_nw_asymptotic": -0.49,
+          "t_power_mde": 0.45,
+          "wild_cluster_p": 0.5317,
+          "ci95_block_boot_prod": [
+            -0.03337,
+            0.02028
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 38,
+            "rho_is": -0.6313,
+            "rho_oos": -0.0776,
+            "eligible": false,
+            "verdict": "⚠️OOS 부호유지 magnitude약"
+          },
+          "status": "underpowered"
+        }
+      }
+    },
+    "steel": {
+      "pbr_n": 85,
+      "pbr_mean": 0.37,
+      "pbr_z_last": 1.67,
+      "signals": {
+        "y_20d": {
+          "label": "steel__pbr_z__y_20d",
+          "n": 67,
+          "n_eff": 67.0,
+          "spearman_rho": -0.1572,
+          "p_parametric": 0.2039,
+          "t_nw_asymptotic": -1.4,
+          "t_power_mde": 1.29,
+          "wild_cluster_p": 0.1944,
+          "ci95_block_boot_prod": [
+            -0.02886,
+            0.00681
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 40,
+            "rho_is": -0.0763,
+            "rho_oos": -0.2565,
+            "eligible": true,
+            "verdict": "✅OOS 부호+magnitude 유지"
+          },
+          "status": "underpowered"
+        },
+        "y_60d": {
+          "label": "steel__pbr_z__y_60d",
+          "n": 65,
+          "n_eff": 24.7,
+          "spearman_rho": -0.1454,
+          "p_parametric": 0.2478,
+          "t_nw_asymptotic": -0.82,
+          "t_power_mde": 0.72,
+          "wild_cluster_p": 0.2249,
+          "ci95_block_boot_prod": [
+            -0.0406,
+            0.01612
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 38,
+            "rho_is": -0.0281,
+            "rho_oos": -0.2918,
+            "eligible": true,
+            "verdict": "✅OOS 부호+magnitude 유지"
+          },
+          "status": "underpowered"
+        }
+      }
+    },
+    "bio": {
+      "pbr_n": 85,
+      "pbr_mean": 5.43,
+      "pbr_z_last": 0.72,
+      "signals": {
+        "y_20d": {
+          "label": "bio__pbr_z__y_20d",
+          "n": 67,
+          "n_eff": 60.5,
+          "spearman_rho": 0.0461,
+          "p_parametric": 0.7109,
+          "t_nw_asymptotic": 0.36,
+          "t_power_mde": 0.36,
+          "wild_cluster_p": 0.7246,
+          "ci95_block_boot_prod": [
+            -0.01858,
+            0.02494
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 40,
+            "rho_is": 0.0629,
+            "rho_oos": 0.0099,
+            "eligible": false,
+            "verdict": "⚠️OOS 부호유지 magnitude약"
+          },
+          "status": "underpowered"
+        },
+        "y_60d": {
+          "label": "bio__pbr_z__y_60d",
+          "n": 65,
+          "n_eff": 30.1,
+          "spearman_rho": 0.0695,
+          "p_parametric": 0.582,
+          "t_nw_asymptotic": 0.37,
+          "t_power_mde": 0.38,
+          "wild_cluster_p": 0.5977,
+          "ci95_block_boot_prod": [
+            -0.01866,
+            0.03891
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 38,
+            "rho_is": 0.0659,
+            "rho_oos": 0.1172,
+            "eligible": true,
+            "verdict": "✅OOS 부호+magnitude 유지"
+          },
+          "status": "underpowered"
+        }
+      }
+    },
+    "consumer": {
+      "pbr_n": 85,
+      "pbr_mean": 0.93,
+      "pbr_z_last": 1.53,
+      "signals": {
+        "y_20d": {
+          "label": "consumer__pbr_z__y_20d",
+          "n": 67,
+          "n_eff": 67.0,
+          "spearman_rho": -0.1125,
+          "p_parametric": 0.3646,
+          "t_nw_asymptotic": -0.96,
+          "t_power_mde": 0.92,
+          "wild_cluster_p": 0.3668,
+          "ci95_block_boot_prod": [
+            -0.02745,
+            0.00983
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 40,
+            "rho_is": -0.1441,
+            "rho_oos": -0.1424,
+            "eligible": true,
+            "verdict": "✅OOS 부호+magnitude 유지"
+          },
+          "status": "underpowered"
+        },
+        "y_60d": {
+          "label": "consumer__pbr_z__y_60d",
+          "n": 65,
+          "n_eff": 26.2,
+          "spearman_rho": -0.0921,
+          "p_parametric": 0.4656,
+          "t_nw_asymptotic": -0.5,
+          "t_power_mde": 0.47,
+          "wild_cluster_p": 0.4618,
+          "ci95_block_boot_prod": [
+            -0.03659,
+            0.02136
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 38,
+            "rho_is": -0.1215,
+            "rho_oos": -0.1362,
+            "eligible": true,
+            "verdict": "✅OOS 부호+magnitude 유지"
+          },
+          "status": "underpowered"
+        }
+      }
+    },
+    "telecom": {
+      "pbr_n": 86,
+      "pbr_mean": 0.84,
+      "pbr_z_last": 2.08,
+      "signals": {
+        "y_20d": {
+          "label": "telecom__pbr_z__y_20d",
+          "n": 68,
+          "n_eff": 63.0,
+          "spearman_rho": 0.1042,
+          "p_parametric": 0.3977,
+          "t_nw_asymptotic": 0.87,
+          "t_power_mde": 0.83,
+          "wild_cluster_p": 0.3833,
+          "ci95_block_boot_prod": [
+            -0.01106,
+            0.02796
+          ],
+          "walk_forward_oos": {
+            "is_n": 28,
+            "oos_n": 40,
+            "rho_is": -0.2666,
+            "rho_oos": 0.2653,
+            "eligible": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "underpowered"
+        },
+        "y_60d": {
+          "label": "telecom__pbr_z__y_60d",
+          "n": 66,
+          "n_eff": 20.0,
+          "spearman_rho": 0.2221,
+          "p_parametric": 0.073,
+          "t_nw_asymptotic": 1.18,
+          "t_power_mde": 0.99,
+          "wild_cluster_p": 0.0955,
+          "ci95_block_boot_prod": [
+            -0.01036,
+            0.0471
+          ],
+          "walk_forward_oos": {
+            "is_n": 28,
+            "oos_n": 38,
+            "rho_is": -0.5862,
+            "rho_oos": 0.6133,
+            "eligible": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "underpowered"
+        }
+      }
+    },
+    "aitech": {
+      "pbr_n": 85,
+      "pbr_mean": 2.2,
+      "pbr_z_last": 0.36,
+      "signals": {
+        "y_20d": {
+          "label": "aitech__pbr_z__y_20d",
+          "n": 67,
+          "n_eff": 29.6,
+          "spearman_rho": 0.0393,
+          "p_parametric": 0.7519,
+          "t_nw_asymptotic": 0.3,
+          "t_power_mde": 0.21,
+          "wild_cluster_p": 0.7586,
+          "ci95_block_boot_prod": [
+            -0.0192,
+            0.02549
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 40,
+            "rho_is": 0.3162,
+            "rho_oos": -0.4283,
+            "eligible": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "underpowered"
+        },
+        "y_60d": {
+          "label": "aitech__pbr_z__y_60d",
+          "n": 65,
+          "n_eff": 16.5,
+          "spearman_rho": 0.2417,
+          "p_parametric": 0.0524,
+          "t_nw_asymptotic": 1.21,
+          "t_power_mde": 0.98,
+          "wild_cluster_p": 0.065,
+          "ci95_block_boot_prod": [
+            -0.00847,
+            0.05286
+          ],
+          "walk_forward_oos": {
+            "is_n": 27,
+            "oos_n": 38,
+            "rho_is": 0.5208,
+            "rho_oos": -0.2257,
+            "eligible": false,
+            "verdict": "❌OOS flip"
+          },
+          "status": "underpowered"
+        }
+      }
+    }
+  },
+  "fdr_family_valband": {
+    "m": 0,
+    "note": "powered cell 0"
+  }
+}

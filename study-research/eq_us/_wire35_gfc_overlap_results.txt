@@ -1,0 +1,13 @@
+============================================================================
+[Gf-C — 12-vintage overlap] 매월 1/12 트랜치 12M 보유 vs 12M signal
+  자문 권고(reference) = (C) overlap. 본인 verification = 실현 excess 가 12M 회복?
+  overlap 1M excess = +0.516%/월 (연율 +6.20%), n=136
+    block-boot 95%CI(block6) = [+0.067, +0.977]%/월  ★(0 불포함=유의)
+  단일-빈티지(reference) 1M excess = +0.488%/월 (연율 +5.85%)
+  overlap 평균 turnover = 3.8%/월
+  ── baseline(기존 결과) ──
+  월간 full-rebal+band = +4.38%/yr CI[-0.001,+0.757] 비유의
+  12M signal           = +6.687%/12M
+  → overlap 연율 vs 12M 괴리 0.49pp / 유의=True → ★수렴+유의 (horizon mismatch 해소, Gf-C 적용 타당)
+============================================================================
+[advisory-protocol] 자문=reference(overlap 권고). 위 = 본인 정량 verification + null.

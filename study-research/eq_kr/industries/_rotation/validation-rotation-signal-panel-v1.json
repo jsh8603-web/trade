@@ -1,0 +1,92 @@
+{
+  "meta": {
+    "purpose": "WIRE5 Phase1 — 11산업 rotation primary 신호 통합 패널(OW 방향 부호 정렬)",
+    "spec": "rotation-study_session.yaml §3 primary 1:1 + §1 제외(외국인flow/cli_chg) + ship monitor 미투입",
+    "sign_convention": "전 컬럼 OW 방향(값↑=비중확대 권고). 부호 음 신호(telecom/financial/consumer/refining/bio금리)는 ×(-1) 정렬",
+    "frozen": "_rotation/data/cycle_*.parquet(yfinance proxy) + raw-v3 frozen parquet. fetch 신호 0(재현성).",
+    "excluded": {
+      "외국인flow": "L축 1회계상(전산업 공통, 2층 1회 계산)",
+      "cli_chg": "1층 시장timing(N_eff≈1)"
+    },
+    "window": [
+      "2019-01-01",
+      "2026-05-31"
+    ]
+  },
+  "shape": [
+    89,
+    11
+  ],
+  "signals_ok": [
+    {
+      "industry": "steel",
+      "tier": "STRONG",
+      "signal": "iron_ore_d3",
+      "n_obs": 89
+    },
+    {
+      "industry": "auto",
+      "tier": "STRONG",
+      "signal": "global_auto_d3",
+      "n_obs": 89
+    },
+    {
+      "industry": "battery",
+      "tier": "STRONG",
+      "signal": "lithium_yoy",
+      "n_obs": 89
+    },
+    {
+      "industry": "chemical",
+      "tier": "STRONG",
+      "signal": "spread_china_naphtha",
+      "n_obs": 89
+    },
+    {
+      "industry": "semiconductor",
+      "tier": "tradeable",
+      "signal": "soxx_d3",
+      "n_obs": 89
+    },
+    {
+      "industry": "telecom",
+      "tier": "tradeable",
+      "signal": "semi_ppi_yoy(음)",
+      "n_obs": 89
+    },
+    {
+      "industry": "bio",
+      "tier": "tradeable",
+      "signal": "rate+bio_global_overlay",
+      "n_obs": 89
+    },
+    {
+      "industry": "aitech",
+      "tier": "tradeable",
+      "signal": "game/rate/sw/cloud 합성",
+      "n_obs": 89
+    },
+    {
+      "industry": "consumer",
+      "tier": "tradeable",
+      "signal": "mom_6_reversal_cosmetics(음)",
+      "n_obs": 83
+    },
+    {
+      "industry": "financial",
+      "tier": "tradeable_weak",
+      "signal": "credit_spread_d6(음)",
+      "n_obs": 89
+    },
+    {
+      "industry": "refining",
+      "tier": "tradeable_weak",
+      "signal": "유가_mean_rev(음)",
+      "n_obs": 89
+    }
+  ],
+  "signals_fail": {},
+  "monitor_only": {
+    "shipbuilding": "weight 0 = 신호 미투입(자문 3R 복합 verdict: trailing REJECTED/overall INSUFFICIENT/contrarian LIVE_UNPROVEN)"
+  }
+}

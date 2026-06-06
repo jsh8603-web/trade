@@ -1,0 +1,343 @@
+{
+  "meta": {
+    "role": "cross-industry rotation 통합 (역할 전환: 개별 산업=12 analyst, 나=통합 조율)",
+    "universe_정정": "refining=strict2(SK이노/S-Oil) 교체 (가스 오염 제거). 나머지=strict≈v2 확인",
+    "자문_B": "residual N_eff(공통인자 residualize 후 participation ratio) + sleeve clustering",
+    "zombie_masking": "★audit minor 1: 좀비 종목 마스킹(obs_ratio<0.5 OR nonzero_ratio<0.3 제외). bio/aitech 좀비 차단.",
+    "zombie_dropped": {
+      "semiconductor": [
+        {
+          "code": "440110",
+          "obs_ratio": 0.38,
+          "nonzero_ratio": 0.94
+        },
+        {
+          "code": "420770",
+          "obs_ratio": 0.4,
+          "nonzero_ratio": 0.97
+        },
+        {
+          "code": "490470",
+          "obs_ratio": 0.06,
+          "nonzero_ratio": 1.0
+        },
+        {
+          "code": "388210",
+          "obs_ratio": 0.07,
+          "nonzero_ratio": 0.99
+        },
+        {
+          "code": "425040",
+          "obs_ratio": 0.45,
+          "nonzero_ratio": 0.98
+        },
+        {
+          "code": "456010",
+          "obs_ratio": 0.27,
+          "nonzero_ratio": 0.99
+        },
+        {
+          "code": "394280",
+          "obs_ratio": 0.49,
+          "nonzero_ratio": 0.98
+        },
+        {
+          "code": "254490",
+          "obs_ratio": 0.45,
+          "nonzero_ratio": 0.99
+        },
+        {
+          "code": "452430",
+          "obs_ratio": 0.3,
+          "nonzero_ratio": 0.98
+        },
+        {
+          "code": "445090",
+          "obs_ratio": 0.34,
+          "nonzero_ratio": 0.99
+        },
+        {
+          "code": "417840",
+          "obs_ratio": 0.48,
+          "nonzero_ratio": 0.99
+        },
+        {
+          "code": "482630",
+          "obs_ratio": 0.18,
+          "nonzero_ratio": 0.99
+        }
+      ],
+      "auto": [
+        {
+          "code": "437730",
+          "obs_ratio": 0.29,
+          "nonzero_ratio": 0.97
+        },
+        {
+          "code": "125490",
+          "obs_ratio": 0.1,
+          "nonzero_ratio": 1.0
+        }
+      ],
+      "financial": [
+        {
+          "code": "031210",
+          "obs_ratio": 0.16,
+          "nonzero_ratio": 0.96
+        },
+        {
+          "code": "279570",
+          "obs_ratio": 0.03,
+          "nonzero_ratio": 0.98
+        }
+      ],
+      "battery": [
+        {
+          "code": "450080",
+          "obs_ratio": 0.34,
+          "nonzero_ratio": 0.98
+        },
+        {
+          "code": "393890",
+          "obs_ratio": 0.49,
+          "nonzero_ratio": 0.98
+        }
+      ],
+      "chemical": [
+        {
+          "code": "457190",
+          "obs_ratio": 0.4,
+          "nonzero_ratio": 0.97
+        },
+        {
+          "code": "456040",
+          "obs_ratio": 0.4,
+          "nonzero_ratio": 0.97
+        }
+      ],
+      "shipbuilding": [
+        {
+          "code": "439260",
+          "obs_ratio": 0.11,
+          "nonzero_ratio": 0.99
+        },
+        {
+          "code": "460930",
+          "obs_ratio": 0.31,
+          "nonzero_ratio": 0.98
+        },
+        {
+          "code": "217590",
+          "obs_ratio": 0.06,
+          "nonzero_ratio": 0.99
+        }
+      ],
+      "steel": [
+        {
+          "code": "460860",
+          "obs_ratio": 0.39,
+          "nonzero_ratio": 0.98
+        },
+        {
+          "code": "092790",
+          "obs_ratio": 0.37,
+          "nonzero_ratio": 0.98
+        },
+        {
+          "code": "460850",
+          "obs_ratio": 0.39,
+          "nonzero_ratio": 0.94
+        }
+      ],
+      "bio": [
+        {
+          "code": "475830",
+          "obs_ratio": 0.17,
+          "nonzero_ratio": 0.99
+        },
+        {
+          "code": "456160",
+          "obs_ratio": 0.11,
+          "nonzero_ratio": 0.98
+        },
+        {
+          "code": "376900",
+          "obs_ratio": 0.14,
+          "nonzero_ratio": 0.99
+        }
+      ],
+      "consumer": [
+        {
+          "code": "452260",
+          "obs_ratio": 0.42,
+          "nonzero_ratio": 0.96
+        }
+      ],
+      "telecom": [
+        {
+          "code": "489790",
+          "obs_ratio": 0.22,
+          "nonzero_ratio": 0.98
+        }
+      ]
+    }
+  },
+  "neff": {
+    "raw_N_eff": 3.01,
+    "raw_N_eff_ci95": [
+      2.45,
+      3.92
+    ],
+    "residual_N_eff": 3.52,
+    "residual_N_eff_ci95": [
+      2.79,
+      4.53
+    ],
+    "raw_pc1_var": 0.555,
+    "resid_pc1_var": 0.504,
+    "mean_pairwise_raw": 0.504,
+    "mean_pairwise_resid": 0.446,
+    "verdict": "residual N_eff = 공통인자 제거 후 진짜 독립 차원 (자문 Q-b '~3-4' 검증). 동시 active tilt 수 = floor(N_eff) cap."
+  },
+  "sleeve_clustering": {
+    "method": "residual 상관 → 1-corr distance → average linkage hierarchical (raw-PCA 아닌 residual, 자문 B)",
+    "clusters": {
+      "k=3": {
+        "sleeve_1": [
+          "semiconductor",
+          "auto",
+          "financial",
+          "battery",
+          "chemical",
+          "refining",
+          "shipbuilding",
+          "steel",
+          "consumer"
+        ],
+        "sleeve_2": [
+          "telecom",
+          "aitech"
+        ],
+        "sleeve_3": [
+          "bio"
+        ]
+      },
+      "k=4": {
+        "sleeve_1": [
+          "semiconductor",
+          "auto",
+          "financial",
+          "battery",
+          "chemical",
+          "refining",
+          "shipbuilding",
+          "steel",
+          "consumer"
+        ],
+        "sleeve_2": [
+          "telecom"
+        ],
+        "sleeve_3": [
+          "aitech"
+        ],
+        "sleeve_4": [
+          "bio"
+        ]
+      },
+      "k=5": {
+        "sleeve_1": [
+          "financial",
+          "consumer"
+        ],
+        "sleeve_2": [
+          "semiconductor",
+          "auto",
+          "battery",
+          "chemical",
+          "refining",
+          "shipbuilding",
+          "steel"
+        ],
+        "sleeve_3": [
+          "telecom"
+        ],
+        "sleeve_4": [
+          "aitech"
+        ],
+        "sleeve_5": [
+          "bio"
+        ]
+      }
+    },
+    "note": "★idiosyncratic-cycle 산업(refining/shipbuilding) = thin sleeve/singleton 보존(대형 cyclical sleeve 희석 시 residual alpha 죽음). flow-beta redundant 묶기."
+  },
+  "residual_top_pairs": [
+    {
+      "corr": 0.794,
+      "a": "battery",
+      "b": "chemical"
+    },
+    {
+      "corr": 0.766,
+      "a": "semiconductor",
+      "b": "battery"
+    },
+    {
+      "corr": 0.692,
+      "a": "chemical",
+      "b": "steel"
+    },
+    {
+      "corr": 0.685,
+      "a": "shipbuilding",
+      "b": "steel"
+    },
+    {
+      "corr": 0.666,
+      "a": "semiconductor",
+      "b": "chemical"
+    },
+    {
+      "corr": 0.636,
+      "a": "battery",
+      "b": "refining"
+    },
+    {
+      "corr": 0.633,
+      "a": "refining",
+      "b": "steel"
+    },
+    {
+      "corr": 0.621,
+      "a": "semiconductor",
+      "b": "auto"
+    }
+  ],
+  "residual_bottom_pairs": [
+    {
+      "corr": 0.26,
+      "a": "chemical",
+      "b": "bio"
+    },
+    {
+      "corr": 0.217,
+      "a": "shipbuilding",
+      "b": "aitech"
+    },
+    {
+      "corr": 0.215,
+      "a": "steel",
+      "b": "bio"
+    },
+    {
+      "corr": 0.193,
+      "a": "refining",
+      "b": "bio"
+    },
+    {
+      "corr": 0.145,
+      "a": "shipbuilding",
+      "b": "bio"
+    }
+  ]
+}

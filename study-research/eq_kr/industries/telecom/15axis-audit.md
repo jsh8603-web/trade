@@ -1,46 +1,53 @@
-<!-- author: equity study subagent (1단계 산출, 2026-06-04) -->
-<!-- auditor: harness2 Worker (§M.12 반영 audit + S6 추적성, author != auditor, 2026-06-04) -->
-<!-- audit_date: 2026-06-04 -->
+---
+tags: [type/axis-audit, domain/equity, sector/telecom, scope/equity-kr]
+date: 2026-06-05
+purpose: 통신 15축 self-audit 초안 (G-A 3컬럼 적용/측정경로/결과). ★최종 G-C 독립 audit = 별 세션(본 self-audit는 참고용).
+note: ★2 archetype 분리(frame §1.6) — service 3사 과점 시계열 / equipment 10종 cross-sectional. B/C/D/I hard-fail self-check = summary.yaml. (6/3 옛 통합 cross-sectional audit 대체)
+---
 
-# 15axis-audit.md — telecom(통신) §M v3 (frame v3 §E, A~P 15축)
+# 통신(telecom) 15축 self-audit 초안 (A~P)
 
-> 독립 감사: yaml↔raw 재현·hard-fail 0 확인. raw 재현 = `raw-v3/*.py`. battery/consumer 미러.
-> ★universe 협소(14종) = magnitude 과대 = small-n 핵심 점검.
+> ★본 self-audit는 **참고용**. 최종 G-C 독립 audit = 별 세션(author≠auditor, supervisor 스폰). hard-fail 코어 B·C·D·I (+M·N·O wire).
+> ★핵심 = (A) service 배당주 duration INCONCLUSIVE + (B) equipment PBR value TENTATIVE(size confound 68%).
 
-| 축 | 항목 | 판정 | 근거 |
+## 핵심 8축 (A~H)
+
+| 축 | ① 적용했나 | ② 측정 경로·코드·수치 | ③ 결과·판정 |
 |---|---|---|---|
-| **A** | 가설 사전선언 | PASS | indicators = forward 횡단면 IC. regime = ex-ante 금리. archetype valid_from 2019 사전선언. |
-| **B** | ★실데이터 (hard-fail) | **PASS** | 합성 0%. pykrx OHLCV 14종 + yfinance(^TNX/factors) + DART 357 rows(2019~) + FDR. raw-v3/*.py 재현. |
-| **C** | ★추적성 (hard-fail) | **PASS** | yaml 수치 → validation-metrics-v3 / valuation-v3 / cross-v3.json key 매핑. pbr 24M IC -0.542. LOO raw 재현. |
-| **D** | ★PIT (hard-fail) | **PASS** | 가격 forward-shift safe. valuation = DART rcept_dt 공시일 이후만. regime = ex-ante 금리 Δ. |
-| **E** | 다중검정 보정 | PASS | momentum 16테스트 BY 0. valuation 8테스트 BY → 6 생존. ★단 n=13 협소로 magnitude 과대 명시(생존=방향, 크기 hedge). |
-| **F** | OOS / walk-forward | PASS | CPCV purge+embargo. valuation OOS hit 0.80-1.00. value 방향 OOS 재현. |
-| **G** | 자기상관 보정 | PASS | Newey-West HAC + block-bootstrap. pbr 12M block-boot CI 0배제. ★+LOO 종목 robustness(14종 제외 전부 음). |
-| **H** | 미해결 명시 | PASS | collector_plan: ★universe 확장(협소 high) + 배당수익률 + PIT 멤버십. magnitude 과대 hedge 명시. |
-| **I** | ★생존편향 (hard-fail) | **PARTIAL** | universe = FDR 현재 스냅샷. 통신 = 합병 잦음(LG텔레콤/데이콤 통합). 14종 中 1종 부분 이력. ★universe 협소 자체가 더 큰 제약. PIT 멤버십=collector_plan. 정직 격하. |
-| **J** | 측정 axis 일치 (spec↔code) | PASS | spec "저PBR cross-sectional → 24M forward value" = code `cross_sectional_zscore(pbr) → fwd_24M`. 부호=value(음) verify. |
-| **K** | 분석 unit ↔ portfolio label 분리 | PASS | ★분석 unit = telecom 14종(service 3 + equipment 11). ★archetype 혼재(service asset_stable / equipment cyclical) = §1.6 부호 cancel 주의 명시. service sub n=3 = INSUFFICIENT 별도 격하. |
-| **L** | 공통인자 1회 계상 | PASS | common_factor_exposure = β 보고만(전부 비유의). 통합 supervisor L축. |
-| **M** | 코드 충실 (wire) | PASS | rank_ic / score_ic_breakdown_eprocess = weight_falsification 직접 호출. opt-in, production 미변경. |
-| **N** | cross 관계 PSD | N/A | cross 조립 = supervisor. directional_spillover=[]. |
-| **O** | leakage (PIT-safe) | PASS | forward = shift(-h). valuation rcept_dt 이후. regime ex-ante. reject≠missing 구분. |
-| **P** | net-cost robustness | PASS | 왕복 33bps. ★valuation 저회전 net 유리 but n=13 분산 제한 = concentration cap 주의 명시. |
+| **A 이론 실재** | ✅ | theory-notes.md §1 (학술 ref: Cornell 2000 equity duration / Fama-French 1992 value / Jegadeesh-Titman 1993 momentum / Basu 1977 PER / DDM bond-proxy duration) | PASS — 메커니즘 부호 사전확약(HARKing 방지). 측정 前 동결. |
+| **B★ 실데이터** | ✅ | pykrx OHLCV(14종 1818일) + FRED KR10Y/3M(IRLTLT01KRM156N/IR3TIB01KRM156N) + DART(357 rows 2019~) + regime(공통). 합성지문: 2020-08 KR10Y 1.37% 저금리/2022-10 4.27% 인상/2024-06 커브역전 -0.26 실재 | **PASS** — 합성 0%, raw-v3/*.py 재현. |
+| **C★ 추적성** | ✅ | summary.yaml 모든 수치 = validation-{telecom,robustness}-v3.json key 매핑. ★size_neutral_ic_60d = measure_robustness.py B-R4 실측코드 + `equipment_pbr_size_neutral` JSON 박제(G-C 보강1, corr 0.5535/raw -0.167→neutral -0.053/shrink 68.5%) | **PASS** — LOO/size-neutral/OOS/ADF/family_2 raw 재현(size confound 실측코드 추가 완료). |
+| **D★ PIT** | ✅ | 가격 forward shift(-h). KR 금리 FRED 월별(당월=익월 가용 ffill). DART rcept_dt 이후만(equipment 재무) | **PASS** — lookahead·restatement 회피. |
+| **E 자문 환각** | ✅ | 자문 미사용(이론 = 학술 ref 직접). 부호 prior(배당주 duration 음 / value 음 / momentum 양) = 이론 독립 수립 후 측정 대조 | PASS — 이론 메커니즘만, 측정으로 검증(자문≠코드화). |
+| **F 반증+기각** | ✅ | falsifier 정의(theory §1 각 신호) + ★기각 다수: service duration INCONCLUSIVE(부호 prior 반대) / momentum 무신호 / per underpowered / ★pbr value size confound(순수 value 약) | PASS — 기각 4+건(p-hacking 아님). |
+| **G 검정력·tier** | ✅ | ★service cross-sectional INSUFFICIENT(3종). service 시계열 n_months 88, eff-N 보정 t. equipment avgN 9.2. ★pbr size-neutral t 약화 | PARTIAL — tier: equipment pbr=TENTATIVE(size-confounded) / service duration=INCONCLUSIVE / momentum·per=INSUFFICIENT. |
+| **H 미해결** | ✅ | candidate-ledger §이연/falsifier(ARPU/5G data-gate, size confound) + research-log §미해결 | PASS. |
 
-## Hard-fail 코어 종합
+## 신규 4축 (I~L)
 
-| hard-fail 축 | 판정 | 비고 |
-|---|---|---|
-| B 실데이터 | PASS | 합성 0% (DART 357 rows) |
-| C 추적성 | PASS | yaml↔raw 매핑 (LOO 포함) |
-| D PIT | PASS | 가격/valuation/regime PIT-safe |
-| I 생존편향 | PARTIAL | 합병 잦음 + universe 협소, 정직 격하 |
+| 축 | ① 적용 | ② 측정 경로 | ③ 결과 |
+|---|---|---|---|
+| **I★ 생존편향** | ✅ | service 3사 과점 안정(상폐 적음). equipment KOSDAQ 소형(상폐 가능) but 현 스냅샷 universe(PIT 멤버십 미반영, collector low). 한화비전(489790) 최근상장 LOO 점검(outlier 아님) | PARTIAL — service 생존편향 작음. ★단 service 3종 자체가 표본부재(생존편향 아닌 data-gate). equipment PIT 멤버십 미반영. |
+| **J 거래비용·capacity** | ✅ | ★service 종목선택 0 = net-cost 무대상. equipment pbr = KOSDAQ 소형 10종 = ★일평균거래대금 작음 = capacity 제약 + KR STT 0.2% 비대칭 net | PARTIAL — over-trade 차단(service 0 + equipment conservative cap). ★equipment 소형 capacity = 실매매 제한 flag. |
+| **K 다중검정** | ✅ | 단일 FDR family(theory §3, 5가설 사전고정 → m=24 powered cell). BY survivors=[eqp_y_60d_pbr_z] 1개. wild-cluster bootstrap | PASS — FDR 보정 명시, survivor 1(약신호 정직). ★단 그 1개도 size-confounded. |
+| **L 통합 PSD** | N/A(통합단계) | 공통인자 β(dollar/VIX/rate) 보고 = supervisor 통합 1회계상 입력. directional_spillover 후보 보고(빈[] 금지 충족) | DEFER — 통합 supervisor 단계(L축 = Phase 7). |
 
-★**hard-fail 0** (B/C/D PASS, I PARTIAL = 정직 격하 → hard-fail 아님). ★단 universe 협소(14종) = magnitude 과대평가 명시 = over-claim 회피의 핵심(IC -0.54 를 CONFIRMED 박제 안 함 → PARTIAL + 방향/magnitude 분리).
+## wire 3축 (M~O) — study 단계 N/A
+| 축 | 결과 |
+|---|---|
+| M wire충실 | N/A — production 미배선(teammate scope = capsule까지). |
+| N cross PSD | DEFER — supervisor 통합. |
+| O leakage | PASS(study) — PIT-safe(D축) + reject≠missing(service INSUFFICIENT vs equipment 측정값 구분, ARPU data-gate vs 측정 구분). |
 
-## verdict
+## P net-cost robustness
+- service 종목선택 0 = 매매 미구성. equipment pbr value = ★KOSDAQ 소형 = net-cost(STT 0.2% + 슬리피지) + capacity 제약 大 → conservative cap 의무. IC≠수익(직접 net 불가, 통합 backtest 단계). PARTIAL(조건부, 소형 capacity flag).
 
-- 코어 4축 위반 0. 조건부 J/K/L/M/O/P PASS, N=N/A.
-- **status = PARTIAL** — ★value premium 방향 강(BY 6 생존, LOO robust 14종, within 100%) but magnitude(-0.54 t=-12) = n=13 협소 과대평가(small-universe artifact). 방향 신뢰/magnitude small-n hedge. service sub(3종)=INSUFFICIENT.
-- archetype asset_stable(서비스) + cyclical(장비) 혼재. valuation value 정합 = consumer 재현.
-- ★**universe 협소 = 양식 경계 케이스 입증**: cross-sectional 최소 종목 수 ~13 = magnitude 신뢰 하한. n<5종 = INSUFFICIENT(service sub) / ~13종 = 방향만 신뢰. = 6산업 batch 시 협소 산업 magnitude hedge 의무 + over-claim 회피.
-- ★**5산업 분기 (kr-battery 담당)**: battery momentum / financial regime-conditional / consumer valuation / bio event_driven(변동성) / telecom asset_stable valuation(consumer 재현, universe 협소) = 동적가중 정당화 + 양식 경계 케이스(데이터 부재 financial / universe 협소 telecom / 멀티플 부적합 bio) 다각 입증.
+## ★hard-fail 코어 self-check 종합
+- **B/C/D = PASS** (실데이터·추적성·PIT). **I = PARTIAL**(service 과점 생존편향 작음 + 3종 data-gate, equipment PIT 멤버십 미반영).
+- ★hard-fail 0 (B·C·D 통과, I = PARTIAL 비FAIL). 단 **G(검정력) = PARTIAL** + ★전체 verdict = service INCONCLUSIVE + equipment TENTATIVE(size-confounded).
+- ★G-G(매매충분성) = FAIL~PASS-conditional 경계: tradeable service 0(duration 미확인), equipment 1 conditional(pbr value, size-confounded → conservative cap).
+
+## ★self-audit 한계 (정직)
+- 본 self-audit = 참고용. G-C 독립 audit(별 세션)이 raw 재현으로 최종 판정.
+- 핵심 리스크 = (1) ★equipment pbr value = raw BY 생존이나 size confound 68%(size-neutral -0.05) = 순수 value 약 = 사실상 소형주 효과(value 단정 금지) (2) ★service 배당주 duration = 부호 prior(음) 반대 + episode-poor(single rate cycle) + level I(1) = 미확인(bond-proxy 단정 금지) (3) ARPU/5G = data-gate(미측정) (4) service cross-sectional 영구 불가(3사 과점) = 종목선택 매매 불능.
+- ★감사 주목점: G-C auditor 는 (a) size-neutral IC -0.05 재현(value vs size 분리) (b) service duration 부호 prior 반대 = episode-poor 정당성 (c) equipment per_z underpowered(avgN 6.3) 격하 정당성 검증 권고.

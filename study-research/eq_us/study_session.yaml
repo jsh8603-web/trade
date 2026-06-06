@@ -156,6 +156,47 @@ confidence_hooks:
     source_yaml: "study-research/eq_us/industries/us_mega_tech/summary.yaml"
     wire_target: "core/assume/weight_falsification.score_ic_breakdown_eprocess"
 
+# ── 블록5.5 FROZEN_REGISTER (11 가설 2-way interaction 검증 산물, metadata-only) ──
+# ★사용자 합의: ROI 낮아 결정론 파이프라인 미개조, "기록만". ⛔wire_target 의도적 생략 = 결정론 미소비.
+# ★점추정 prior 박제 금지(empirical-claim §1.5/§2): base_weight 미부여, prior_tier=structural_low_confidence, validated_alpha=false.
+# SSOT = study-research/eq_us/REWORK-prereg-11hypotheses-20260604.md §over-kill 최종 정정. over-kill 정정 후 확정(2026-06-04, rank-FM 척도 통일).
+frozen_register:
+  family: us_equity_2way_v1
+  method: "Rank-based Fama-MacBeth (discovery·kill 척도 통일 = forking-paths 차단). fixed-b CV(Kiefer-Vogelsang) + wild-cluster B=9999. median 2×2 double-sort = 보조 진단만(검정력 36% 손실)."
+  overkill_note: "직전 'robust 0개' = discovery(재-z rank-IC)/kill(raw FM) 척도 불일치 = forking-paths + n_eff<30 underpowered 부재박제 오류. rank-FM 정정 후 CONFIRM 1개 복원."
+  entries:
+    - id: DEF-2
+      spec: "dividend_yield(z,고) × op_profitability(z,고)  # yield-trap 분리"
+      verdict: CONFIRM
+      prior_tier: structural_low_confidence
+      validated_alpha: false
+      base_weight: null   # ★미부여 (점추정 prior 박제 금지)
+      evidence: "rank-FM full coef +0.193 t2.68 fixed-b sig wild p0.0105 n_eff57.9 (sign_match=True); OOS coef+0.387 t3.13 (★n_eff14.1 UNDERPOWERED)"
+      caveats: ["single 2010-2026 vintage", "dollar-conditional 집중(강달러 국면)", "sub당 4-12종 thin-demean idio 잔존", "OOS underpowered"]
+      promote_gate: "차기 data vintage pristine OOS 1-shot + GICS-level demean 재검 + turnover/net-alpha + placebo factor"
+    - id: CYC-1
+      spec: "ev_ebitda(z,저cheap) × gross_profitability(z,고)  # Novy-Marx value×quality"
+      verdict: TENTATIVE_theory_pinned
+      prior_tier: structural_low_confidence
+      validated_alpha: false
+      base_weight: null
+      evidence: "rank-FM full coef +0.416 t2.28 ★fixed-b 미통과 wild p0.046 n_eff31.3; OOS t5.1 / in-sample t0.84(후반 주도) = full marginal"
+      caveats: ["full fixed-b 미통과(진짜 marginal, over-kill 아님)", "OOS 주도 in-sample 무신호", "cyclical 60종 thin-demean"]
+      promote_gate: "이론고정 단일 pre-reg + 차기 vintage pristine OOS 1-shot"
+    - id: DEF-1
+      spec: "net_issuance × ep_yield"
+      verdict: TENTATIVE_PW_reversal
+      prior_tier: structural_low_confidence
+      validated_alpha: false
+      base_weight: null
+      evidence: "rank-FM full coef −0.207 t−2.15 fixed-b sig wild p0.049; ★wrong-sign(PW) = pred(+1) 반대"
+      note: "net_issuance 단독 PARTIAL_CONFIRMED 는 별 검정(유지). 교호는 PW-direction(pred −1) flip-register 로 차기 OOS"
+      promote_gate: "PW pred(−1) 재등록 + 차기 vintage pristine OOS"
+  rejected_or_null: ["CYC-2(incr소멸)", "CYC-3(wrong-sign reversal)", "CYC-4(stably wrong-signed)", "CYC-5(부호불안정)", "CYC-6(Tier2 null)", "DEF-3(not-incremental)", "DEF-4(Tier2 null)", "DEF-5(null)"]
+  single_signals_unaffected:
+    - "value pbr/ev_ebitda (#7 us_cyclical) = CONFIRM (재-z 무관, 단일 별 검정)"
+    - "net_issuance 단독 (us_defensive breadth) = PARTIAL_CONFIRMED"
+
 # ── 블록6 COLLECTOR_PLAN ──
 collector_plan:
 

@@ -1,0 +1,313 @@
+{
+  "meta": {
+    "unit": "반도체 업종 eq-weight 패널 forward return (rotation timing)",
+    "priors": {
+      "ppi_yoy": "음",
+      "ppi_d3": "음",
+      "export_yoy": "음",
+      "inv_yoy": "양",
+      "soxx_d3": "양동행",
+      "usdkrw_yoy": "양",
+      "real_rate_d": "음",
+      "cli_chg": "양",
+      "ind_mom_6": "검증용"
+    },
+    "oos_split": "2023-01-01",
+    "t_breakeven": 2.802,
+    "note": "fundamental 심화(rotation-analyst soxx 보강). 부호 사전확약 = rotation-signals.md §1."
+  },
+  "signals": {
+    "ppi_yoy": {
+      "prior": "음",
+      "horizons": {
+        "y_20d": {
+          "ic_forward": -0.0008,
+          "n": 88,
+          "wild_cluster_p": 0.9935,
+          "n_eff": 88.0,
+          "t_obs": 0.01,
+          "powered": false,
+          "is_ic": -0.0472,
+          "is_n": 48,
+          "oos_ic": 0.0236,
+          "oos_n": 40,
+          "oos_sign_hold": false,
+          "contemp_ic": -0.0663,
+          "label": "semi__ppi_yoy__y_20d"
+        },
+        "y_60d": {
+          "ic_forward": -0.0916,
+          "n": 84,
+          "wild_cluster_p": 0.3303,
+          "n_eff": 30.3,
+          "t_obs": 0.5,
+          "powered": false,
+          "is_ic": -0.1214,
+          "is_n": 46,
+          "oos_ic": -0.2225,
+          "oos_n": 38,
+          "oos_sign_hold": true,
+          "contemp_ic": -0.0663,
+          "label": "semi__ppi_yoy__y_60d"
+        }
+      }
+    },
+    "ppi_d3": {
+      "prior": "음",
+      "horizons": {
+        "y_20d": {
+          "ic_forward": 0.0854,
+          "n": 88,
+          "wild_cluster_p": 0.4448,
+          "n_eff": 88.0,
+          "t_obs": 0.8,
+          "powered": false,
+          "is_ic": -0.1381,
+          "is_n": 48,
+          "oos_ic": 0.3799,
+          "oos_n": 40,
+          "oos_sign_hold": false,
+          "contemp_ic": -0.056,
+          "label": "semi__ppi_d3__y_20d"
+        },
+        "y_60d": {
+          "ic_forward": -0.0518,
+          "n": 84,
+          "wild_cluster_p": 0.6562,
+          "n_eff": 29.8,
+          "t_obs": 0.28,
+          "powered": false,
+          "is_ic": -0.3528,
+          "is_n": 46,
+          "oos_ic": 0.2196,
+          "oos_n": 38,
+          "oos_sign_hold": false,
+          "contemp_ic": -0.056,
+          "label": "semi__ppi_d3__y_60d"
+        }
+      }
+    },
+    "export_yoy": {
+      "prior": "음",
+      "horizons": {
+        "y_20d": {
+          "ic_forward": -0.1264,
+          "n": 88,
+          "wild_cluster_p": 0.2364,
+          "n_eff": 88.0,
+          "t_obs": 1.18,
+          "powered": false,
+          "is_ic": -0.1583,
+          "is_n": 48,
+          "oos_ic": -0.0407,
+          "oos_n": 40,
+          "oos_sign_hold": true,
+          "contemp_ic": -0.1386,
+          "label": "semi__export_yoy__y_20d"
+        },
+        "y_60d": {
+          "ic_forward": -0.255,
+          "n": 84,
+          "wild_cluster_p": 0.017,
+          "n_eff": 29.5,
+          "t_obs": 1.36,
+          "powered": false,
+          "is_ic": -0.4361,
+          "is_n": 46,
+          "oos_ic": -0.0178,
+          "oos_n": 38,
+          "oos_sign_hold": true,
+          "contemp_ic": -0.1386,
+          "label": "semi__export_yoy__y_60d"
+        }
+      }
+    },
+    "inv_yoy": {
+      "prior": "양",
+      "horizons": {
+        "y_20d": {
+          "ic_forward": -0.2018,
+          "n": 66,
+          "wild_cluster_p": 0.0965,
+          "n_eff": 55.9,
+          "t_obs": 1.49,
+          "powered": false,
+          "is_ic": -0.0897,
+          "is_n": 32,
+          "oos_ic": -0.2544,
+          "oos_n": 34,
+          "oos_sign_hold": true,
+          "contemp_ic": -0.2955,
+          "label": "semi__inv_yoy__y_20d"
+        },
+        "y_60d": {
+          "ic_forward": -0.3102,
+          "n": 64,
+          "wild_cluster_p": 0.0235,
+          "n_eff": 22.9,
+          "t_obs": 1.45,
+          "powered": false,
+          "is_ic": -0.2234,
+          "is_n": 32,
+          "oos_ic": -0.2682,
+          "oos_n": 32,
+          "oos_sign_hold": true,
+          "contemp_ic": -0.2955,
+          "label": "semi__inv_yoy__y_60d"
+        }
+      }
+    },
+    "soxx_d3": {
+      "prior": "양동행",
+      "horizons": {
+        "y_20d": {
+          "ic_forward": 0.0521,
+          "n": 88,
+          "wild_cluster_p": 0.6242,
+          "n_eff": 88.0,
+          "t_obs": 0.49,
+          "powered": false,
+          "is_ic": 0.0798,
+          "is_n": 48,
+          "oos_ic": -0.0334,
+          "oos_n": 40,
+          "oos_sign_hold": false,
+          "contemp_ic": 0.4759,
+          "label": "semi__soxx_d3__y_20d"
+        },
+        "y_60d": {
+          "ic_forward": 0.1614,
+          "n": 84,
+          "wild_cluster_p": 0.1494,
+          "n_eff": 32.6,
+          "t_obs": 0.91,
+          "powered": false,
+          "is_ic": 0.1429,
+          "is_n": 46,
+          "oos_ic": 0.201,
+          "oos_n": 38,
+          "oos_sign_hold": true,
+          "contemp_ic": 0.4759,
+          "label": "semi__soxx_d3__y_60d"
+        }
+      }
+    },
+    "usdkrw_yoy": {
+      "prior": "양",
+      "horizons": {
+        "y_20d": {
+          "ic_forward": -0.0513,
+          "n": 88,
+          "wild_cluster_p": 0.6272,
+          "n_eff": 88.0,
+          "t_obs": 0.48,
+          "powered": false,
+          "is_ic": -0.1306,
+          "is_n": 48,
+          "oos_ic": 0.0771,
+          "oos_n": 40,
+          "oos_sign_hold": false,
+          "contemp_ic": -0.15,
+          "label": "semi__usdkrw_yoy__y_20d"
+        },
+        "y_60d": {
+          "ic_forward": -0.2108,
+          "n": 84,
+          "wild_cluster_p": 0.0345,
+          "n_eff": 31.9,
+          "t_obs": 1.17,
+          "powered": false,
+          "is_ic": -0.3415,
+          "is_n": 46,
+          "oos_ic": -0.1555,
+          "oos_n": 38,
+          "oos_sign_hold": true,
+          "contemp_ic": -0.15,
+          "label": "semi__usdkrw_yoy__y_60d"
+        }
+      }
+    },
+    "ind_mom_6": {
+      "prior": "검증용",
+      "horizons": {
+        "y_20d": {
+          "ic_forward": -0.0208,
+          "n": 82,
+          "wild_cluster_p": 0.8501,
+          "n_eff": 82.0,
+          "t_obs": 0.19,
+          "powered": false,
+          "is_ic": -0.1142,
+          "is_n": 42,
+          "oos_ic": 0.0062,
+          "oos_n": 40,
+          "oos_sign_hold": false,
+          "contemp_ic": 0.3776,
+          "label": "semi__ind_mom_6__y_20d"
+        },
+        "y_60d": {
+          "ic_forward": 0.1252,
+          "n": 80,
+          "wild_cluster_p": 0.2884,
+          "n_eff": 28.4,
+          "t_obs": 0.66,
+          "powered": false,
+          "is_ic": 0.0821,
+          "is_n": 42,
+          "oos_ic": 0.2052,
+          "oos_n": 38,
+          "oos_sign_hold": true,
+          "contemp_ic": 0.3776,
+          "label": "semi__ind_mom_6__y_60d"
+        }
+      }
+    },
+    "cli_chg": {
+      "prior": "양",
+      "horizons": {
+        "y_20d": {
+          "ic_forward": 0.066,
+          "n": 88,
+          "wild_cluster_p": 0.5262,
+          "n_eff": 88.0,
+          "t_obs": 0.62,
+          "powered": false,
+          "is_ic": 0.1219,
+          "is_n": 48,
+          "oos_ic": 0.0191,
+          "oos_n": 40,
+          "oos_sign_hold": true,
+          "contemp_ic": 0.1206,
+          "label": "semi__cli_chg__y_20d"
+        },
+        "y_60d": {
+          "ic_forward": 0.2245,
+          "n": 84,
+          "wild_cluster_p": 0.0175,
+          "n_eff": 22.9,
+          "t_obs": 1.05,
+          "powered": false,
+          "is_ic": 0.2946,
+          "is_n": 46,
+          "oos_ic": 0.2452,
+          "oos_n": 38,
+          "oos_sign_hold": true,
+          "contemp_ic": 0.1206,
+          "label": "semi__cli_chg__y_60d"
+        }
+      }
+    }
+  },
+  "fdr_family": {
+    "m": 16,
+    "by_factor": 3.381,
+    "survivors_BY": [],
+    "raw_p_min": 0.017,
+    "raw_p_min_key": "export_yoy__y_60d"
+  },
+  "momentum_residualize": {
+    "raw_ic": 0.1252,
+    "resid_ic": 0.1575,
+    "verdict": "잔존(진짜 idiosyncratic)"
+  }
+}

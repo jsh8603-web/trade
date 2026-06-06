@@ -1,0 +1,102 @@
+{
+  "meta": {
+    "H": 12,
+    "note": "자문 적용 타당성 독립검증. double-sort(구현독립) + hand-built FM + 진단."
+  },
+  "DEF-2": {
+    "pred_sign": 1,
+    "double_sort_DiD": {
+      "label": "DEF-2_DiD",
+      "mean": 0.02158,
+      "n": 183,
+      "n_eff": 53.3,
+      "t_nw": 1.65,
+      "fixed_b_cv": 2.09,
+      "fixed_b_sig": false,
+      "wild_p": 0.1122,
+      "sign": 1
+    },
+    "quadrant_fwd_means": {
+      "HH": 0.1201,
+      "HL": 0.1217,
+      "LH": 0.1308,
+      "LL": 0.154
+    },
+    "DiD_trim5pct": {
+      "label": "DEF-2_DiD_trim5%",
+      "mean": 0.01494,
+      "n": 173,
+      "n_eff": 54.6,
+      "t_nw": 1.45,
+      "fixed_b_cv": 2.08,
+      "fixed_b_sig": false,
+      "wild_p": 0.1417,
+      "sign": 1
+    },
+    "fm_handbuilt": {
+      "label": "DEF-2_FMhandbuilt",
+      "mean": 0.012,
+      "n": 183,
+      "n_eff": 50.2,
+      "t_nw": 1.82,
+      "fixed_b_cv": 2.09,
+      "fixed_b_sig": false,
+      "wild_p": 0.083,
+      "sign": 1
+    },
+    "fm_diag": {
+      "valid_months": 183,
+      "median_cs_n": 34,
+      "median_cond": 2.0,
+      "max_cond": 5.2
+    }
+  },
+  "DEF-1": {
+    "pred_sign": 1,
+    "double_sort_DiD": {
+      "label": "DEF-1_DiD",
+      "mean": -0.0283,
+      "n": 183,
+      "n_eff": 57.5,
+      "t_nw": -1.9,
+      "fixed_b_cv": 2.09,
+      "fixed_b_sig": false,
+      "wild_p": 0.0788,
+      "sign": -1
+    },
+    "quadrant_fwd_means": {
+      "HH": 0.1306,
+      "HL": 0.1615,
+      "LH": 0.1187,
+      "LL": 0.1213
+    },
+    "DiD_trim5pct": {
+      "label": "DEF-1_DiD_trim5%",
+      "mean": -0.02143,
+      "n": 173,
+      "n_eff": 58.1,
+      "t_nw": -1.71,
+      "fixed_b_cv": 2.08,
+      "fixed_b_sig": false,
+      "wild_p": 0.0958,
+      "sign": -1
+    },
+    "fm_handbuilt": {
+      "label": "DEF-1_FMhandbuilt",
+      "mean": -0.00753,
+      "n": 184,
+      "n_eff": 52.2,
+      "t_nw": -1.56,
+      "fixed_b_cv": 2.12,
+      "fixed_b_sig": false,
+      "wild_p": 0.1478,
+      "sign": -1
+    },
+    "fm_diag": {
+      "valid_months": 184,
+      "median_cs_n": 43,
+      "median_cond": 1.9,
+      "max_cond": 4.3
+    }
+  }
+}

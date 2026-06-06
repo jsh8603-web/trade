@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
-"""measure_cross.py — battery §M.3 cross 축 + PIT 보고지연 stamp.
+"""measure_cross.py — consumer(소비재) §M.3 cross 축 + PIT 보고지연 stamp.
+
+★[2026-06-05 audit 정정] battery 코드 잔재 정정: load_consumer_index() + customer-supplier =
+  소비재 supply-chain(곡물/팜유 → 음식료 마진 / 화장품 ODM). lithium/albemarle dead code 제거.
+  ★dollar β 산출은 정정 전후 동일(prices.parquet = consumer 28종 eq-weight, 함수명만 battery였음).
 
 §M.3 cross = 3소비자 라우팅 (산업 subagent = 보고만, 조립 안 함):
   (1) 공통인자 exposure β (VIX/dollar/oil/rate/credit) — contemporaneous, 통합 supervisor Σ_return 입력
-  (2) customer-supplier momentum (alpha 후보) — battery supply-chain 선행:
-      리튬/소재(LIT) → 양극재 → 셀. forward 예측 신호로 17종 검증 후보.
+  (2) customer-supplier momentum (alpha 후보) — ★소비재 upstream = 곡물(ZC=F)/팜유 → 음식료 마진 lag.
+      단 소비재 upstream 다양(곡물/화학원료/면세채널) = forward-alpha 약 prior → 측정 후 null 시 skip 기록.
   ※ DY connectedness = 통합 단계 (산업별 매번 X), I-O centrality = optional 최하위 → skip.
 
 PIT-fundamentals safety (§M.1 ⑯): DART 정기보고서 rcept_dt(제출일) vs fiscal year-end gap
@@ -33,8 +37,8 @@ if ENV.exists():
 START, END = "2019-01-01", "2026-05-29"
 
 
-def load_battery_index():
-    """battery universe 동일가중 월간 수익 (산업 대표 시계열)."""
+def load_consumer_index():
+    """consumer universe 28종 동일가중 월간 수익 (산업 대표 시계열)."""
     px = pd.read_parquet(DATA / "prices.parquet")
     px.index = pd.to_datetime(px.index)
     pxm = px.resample("ME").last()
@@ -79,8 +83,8 @@ def load_common_factors():
     return df
 
 
-def common_factor_beta(battery_ret: pd.Series, factors: pd.DataFrame):
-    """battery 월간 수익 ~ 공통인자 월간 변화 (contemporaneous β, Newey-West HAC)."""
+def common_factor_beta(consumer_ret: pd.Series, factors: pd.DataFrame):
+    """consumer 월간 수익 ~ 공통인자 월간 변화 (contemporaneous β, Newey-West HAC)."""
     fm = factors.resample("ME").last()
     # 변화율: VIX level diff, dollar/oil pct, rate diff, credit diff
     feat = pd.DataFrame(index=fm.index)
@@ -89,7 +93,7 @@ def common_factor_beta(battery_ret: pd.Series, factors: pd.DataFrame):
     if "oil" in fm: feat["oil"] = fm["oil"].pct_change()
     if "rate10y" in fm: feat["rate"] = fm["rate10y"].diff()
     if "credit_hy_oas" in fm: feat["credit"] = fm["credit_hy_oas"].diff()
-    df = pd.concat([battery_ret.rename("y"), feat], axis=1).dropna()
+    df = pd.concat([consumer_ret.rename("y"), feat], axis=1).dropna()
     if len(df) < 24:
         return {"note": "insufficient", "n": len(df)}
     X = sm.add_constant(df.drop(columns="y"))
@@ -107,23 +111,24 @@ def common_factor_beta(battery_ret: pd.Series, factors: pd.DataFrame):
     return out
 
 
-def customer_supplier_momentum(battery_ret: pd.Series):
-    """battery supply-chain 선행: 리튬/소재(LIT) → 양극재/셀(battery).
-    Cohen-Frazzini: 업스트림(공급자) lagged return → 다운스트림 forward 예측.
-    측정 = LIT(공급망 upstream) lagged momentum → battery forward return.
-    ★alpha 후보로 17종 검증 대상 (여기선 1차 lead-lag IC 만)."""
+def customer_supplier_momentum(consumer_ret: pd.Series):
+    """★[2026-06-05 정정] 소비재 supply-chain 선행: 곡물/원자재(upstream) → 음식료 마진(downstream).
+    Cohen-Frazzini: 업스트림 lagged return → 다운스트림 forward 예측.
+    측정 = 곡물(옥수수ZC/밀ZW/대두ZS, 음식료 COGS 60-80%) lagged momentum → consumer forward.
+    ★theory §1.1 cost pass-through 60-120일 lag = upstream 곡물↑ → 음식료 마진↓(역부호 예상).
+    ★소비재 upstream 다양(곡물/화학원료/면세채널) = forward-alpha 약 prior, null 시 skip 기록(§M.10 패턴)."""
     import yfinance as yf
     out = {}
-    for sym, label in [("LIT", "lithium_upstream"), ("ALB", "albemarle_lithium_producer")]:
+    for sym, label in [("ZC=F", "corn_grain_upstream"), ("ZW=F", "wheat_grain_upstream"), ("ZS=F", "soybean_upstream")]:
         try:
             s = yf.download(sym, start=START, end=END, progress=False, auto_adjust=True)["Close"].squeeze()
             s.index = pd.to_datetime(s.index)
             sm_ = s.resample("ME").last()
-            sig = sm_.pct_change(3)  # 3M upstream momentum
+            sig = sm_.pct_change(3)  # 3M upstream(곡물) momentum
             res = {}
             for lag in [0, 1, 2, 3]:
                 x = sig.shift(lag)
-                fwd = battery_ret.shift(-1)  # battery 다음달 수익
+                fwd = consumer_ret.shift(-1)  # consumer 다음달 수익
                 df = pd.concat([x.rename("x"), fwd.rename("y")], axis=1).dropna()
                 if len(df) < 24:
                     continue
@@ -132,8 +137,8 @@ def customer_supplier_momentum(battery_ret: pd.Series):
             out[label] = res
         except Exception as e:
             out[label] = {"fail": repr(e)[:60]}
-    out["_note"] = ("upstream(lithium) lagged 3M momentum → battery forward 1M. "
-                    "alpha 후보 = 측정 17종 검증 후 IC→weight. 동조성분은 RegimeGlasso Ω 자동흡수(이중라우팅 X).")
+    out["_note"] = ("★소비재 upstream(곡물 ZC/ZW/ZS) lagged 3M momentum → consumer forward 1M (cost pass-through). "
+                    "음식료 한정 driver = 산업평균엔 희석. null 시 skip(§D forward-alpha falsifier). 동조성분=RegimeGlasso Ω 흡수.")
     return out
 
 
@@ -170,15 +175,15 @@ def dart_reporting_delay():
 
 
 def main():
-    battery_ret = load_battery_index()
-    print(f"battery industry index: n={len(battery_ret)} months")
+    consumer_ret = load_consumer_index()
+    print(f"consumer industry index: n={len(consumer_ret)} months")
 
     print("[1/4] common factor β ...")
     factors = load_common_factors()
-    cfb = common_factor_beta(battery_ret, factors)
+    cfb = common_factor_beta(consumer_ret, factors)
 
-    print("[2/4] customer-supplier momentum ...")
-    csm = customer_supplier_momentum(battery_ret)
+    print("[2/4] customer-supplier momentum (소비재 곡물 upstream) ...")
+    csm = customer_supplier_momentum(consumer_ret)
 
     print("[3/4] DART reporting delay (PIT) ...")
     dart = dart_reporting_delay()
@@ -193,7 +198,7 @@ def main():
         if f == "_meta": continue
         print(f"  {f:<8} β={v['beta']:+.4f} t={v['t']:+.2f} CI={v['ci95']}")
     print(f"  meta: {cfb.get('_meta')}")
-    print("\n=== customer-supplier momentum (upstream lithium → battery fwd) ===")
+    print("\n=== customer-supplier momentum (소비재 곡물 upstream → consumer fwd) ===")
     for k, v in csm.items():
         if k.startswith("_"): continue
         print(f"  {k}: {v}")

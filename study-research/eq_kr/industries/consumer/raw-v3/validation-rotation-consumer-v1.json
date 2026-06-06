@@ -1,0 +1,1810 @@
+{
+  "meta": {
+    "method": "consumer 업종 rotation — fundamental driver(이론 사전확약→통계검증). rotation v2 NO_DIRECT 보강.",
+    "theory_precommit": "中CLI/항셍/위안=화장품(中경기 양) / 곡물=음식료(cost-push 음) / 내수=양. data mining 차단=이론 근거 필수.",
+    "drivers": {
+      "chn_cli_yoy": {
+        "expected_sign": 1,
+        "target": "cosmetics",
+        "desc": "中CLI yoy→화장품(中경기 양)"
+      },
+      "chn_cli_d3": {
+        "expected_sign": 1,
+        "target": "cosmetics",
+        "desc": "中CLI 3M모멘텀→화장품"
+      },
+      "hsi_mom3": {
+        "expected_sign": 1,
+        "target": "cosmetics",
+        "desc": "항셍 3M모멘텀→화장품(中risk-on 양)"
+      },
+      "sse_mom3": {
+        "expected_sign": 1,
+        "target": "cosmetics",
+        "desc": "상하이 3M모멘텀→화장품"
+      },
+      "usdcny_yoy": {
+        "expected_sign": -1,
+        "target": "cosmetics",
+        "desc": "USDCNY yoy→화장품(위안약세=음)"
+      },
+      "hk_travel_mom3": {
+        "expected_sign": 1,
+        "target": "cosmetics",
+        "desc": "홍콩 3M모멘텀→화장품(관광/면세 risk-on 양)"
+      },
+      "corn_yoy": {
+        "expected_sign": -1,
+        "target": "food",
+        "desc": "옥수수 yoy→음식료(cost-push 음)"
+      },
+      "wheat_yoy": {
+        "expected_sign": -1,
+        "target": "food",
+        "desc": "밀 yoy→음식료(cost-push 음)"
+      },
+      "soy_yoy": {
+        "expected_sign": -1,
+        "target": "food",
+        "desc": "대두 yoy→음식료(cost-push 음)"
+      },
+      "wti_yoy": {
+        "expected_sign": -1,
+        "target": "food",
+        "desc": "WTI유가 yoy→소비재(원가↑/소비여력↓ 음)"
+      },
+      "kor_retail_yoy": {
+        "expected_sign": 1,
+        "target": "food",
+        "desc": "한국소매판매 yoy→음식료/유통(내수 양, 2024-03 제약)"
+      },
+      "csi_spend_yoy": {
+        "expected_sign": 1,
+        "target": "retail",
+        "desc": "CSI 소비지출전망 yoy→유통/내수(소비심리 양)"
+      },
+      "csi_spend_d3": {
+        "expected_sign": 1,
+        "target": "retail",
+        "desc": "CSI 소비지출 3M모멘텀→유통(내수 양)"
+      },
+      "csi_travel_yoy": {
+        "expected_sign": 1,
+        "target": "cosmetics",
+        "desc": "CSI 여행비전망 yoy→화장품/면세(리오프닝 양)"
+      },
+      "csi_cloth_yoy": {
+        "expected_sign": 1,
+        "target": "cosmetics",
+        "desc": "CSI 의류비전망 yoy→화장품/의류(내수 양)"
+      },
+      "csi_econ_yoy": {
+        "expected_sign": 1,
+        "target": "industry",
+        "desc": "CSI 향후경기전망 yoy→소비재(경기심리 양)"
+      },
+      "xlp_xly_rel3": {
+        "expected_sign": 1,
+        "target": "industry",
+        "desc": "XLP-XLY 상대모멘텀→소비재(글로벌 방어 우위 양)"
+      }
+    },
+    "source_verified": "FRED 中CLI(CHNLOLITOAASTSAM 2026-04)/USDCNY(DEXCHUS 일별)/KOR소매(KORSARTMISMEI 2024-03 제약) + yfinance 항셍/상하이/곡물/XLP/XLY/WTI/1379.HK + ECOS CSI(511Y002 소비지출FMCB/여행비FMCCD/의류비FMCCB/향후경기FMBB).",
+    "horizons_months": {
+      "y_20d": 1,
+      "y_60d": 3
+    },
+    "oos_split": "2023-01-01",
+    "t_breakeven": 2.802
+  },
+  "rotation_signals": {
+    "chn_cli_yoy__industry__y_20d": {
+      "label": "chn_cli_yoy__industry__y_20d",
+      "n": 0,
+      "status": "INSUFFICIENT(n<12)",
+      "desc": "中CLI yoy→화장품(中경기 양)"
+    },
+    "chn_cli_yoy__industry__y_60d": {
+      "label": "chn_cli_yoy__industry__y_60d",
+      "n": 0,
+      "status": "INSUFFICIENT(n<12)",
+      "desc": "中CLI yoy→화장품(中경기 양)"
+    },
+    "chn_cli_yoy__cosmetics__y_20d": {
+      "label": "chn_cli_yoy__cosmetics__y_20d",
+      "n": 0,
+      "status": "INSUFFICIENT(n<12)",
+      "desc": "中CLI yoy→화장품(中경기 양)"
+    },
+    "chn_cli_yoy__cosmetics__y_60d": {
+      "label": "chn_cli_yoy__cosmetics__y_60d",
+      "n": 0,
+      "status": "INSUFFICIENT(n<12)",
+      "desc": "中CLI yoy→화장품(中경기 양)"
+    },
+    "chn_cli_d3__industry__y_20d": {
+      "label": "chn_cli_d3__industry__y_20d",
+      "n": 0,
+      "status": "INSUFFICIENT(n<12)",
+      "desc": "中CLI 3M모멘텀→화장품"
+    },
+    "chn_cli_d3__industry__y_60d": {
+      "label": "chn_cli_d3__industry__y_60d",
+      "n": 0,
+      "status": "INSUFFICIENT(n<12)",
+      "desc": "中CLI 3M모멘텀→화장품"
+    },
+    "chn_cli_d3__cosmetics__y_20d": {
+      "label": "chn_cli_d3__cosmetics__y_20d",
+      "n": 0,
+      "status": "INSUFFICIENT(n<12)",
+      "desc": "中CLI 3M모멘텀→화장품"
+    },
+    "chn_cli_d3__cosmetics__y_60d": {
+      "label": "chn_cli_d3__cosmetics__y_60d",
+      "n": 0,
+      "status": "INSUFFICIENT(n<12)",
+      "desc": "中CLI 3M모멘텀→화장품"
+    },
+    "hsi_mom3__industry__y_20d": {
+      "label": "hsi_mom3__industry__y_20d",
+      "n": 88,
+      "n_eff": 74.2,
+      "spearman_rho": 0.0445,
+      "expected_sign": 1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.38,
+      "wild_cluster_p": 0.6527,
+      "ci95_block_boot_prod": [
+        -0.01493,
+        0.01941
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": 0.0699,
+        "rho_oos": -0.0636,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "desc": "항셍 3M모멘텀→화장품(中risk-on 양)"
+    },
+    "hsi_mom3__industry__y_60d": {
+      "label": "hsi_mom3__industry__y_60d",
+      "n": 86,
+      "n_eff": 48.7,
+      "spearman_rho": 0.0354,
+      "expected_sign": 1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.25,
+      "wild_cluster_p": 0.7536,
+      "ci95_block_boot_prod": [
+        -0.02075,
+        0.02517
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.0245,
+        "rho_oos": -0.0693,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "항셍 3M모멘텀→화장품(中risk-on 양)"
+    },
+    "hsi_mom3__cosmetics__y_20d": {
+      "label": "hsi_mom3__cosmetics__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": 0.0154,
+      "expected_sign": 1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.14,
+      "wild_cluster_p": 0.8936,
+      "ci95_block_boot_prod": [
+        -0.01721,
+        0.01778
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": 0.1295,
+        "rho_oos": -0.134,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "desc": "항셍 3M모멘텀→화장품(中risk-on 양)"
+    },
+    "hsi_mom3__cosmetics__y_60d": {
+      "label": "hsi_mom3__cosmetics__y_60d",
+      "n": 86,
+      "n_eff": 44.7,
+      "spearman_rho": -0.0895,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 0.6,
+      "wild_cluster_p": 0.4458,
+      "ci95_block_boot_prod": [
+        -0.03269,
+        0.01714
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.0302,
+        "rho_oos": -0.2958,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "항셍 3M모멘텀→화장품(中risk-on 양)"
+    },
+    "sse_mom3__industry__y_20d": {
+      "label": "sse_mom3__industry__y_20d",
+      "n": 88,
+      "n_eff": 71.5,
+      "spearman_rho": -0.11,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 0.93,
+      "wild_cluster_p": 0.2859,
+      "ci95_block_boot_prod": [
+        -0.02811,
+        0.00859
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.1744,
+        "rho_oos": -0.0662,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "상하이 3M모멘텀→화장품"
+    },
+    "sse_mom3__industry__y_60d": {
+      "label": "sse_mom3__industry__y_60d",
+      "n": 86,
+      "n_eff": 57.9,
+      "spearman_rho": -0.0892,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 0.68,
+      "wild_cluster_p": 0.3958,
+      "ci95_block_boot_prod": [
+        -0.02552,
+        0.01113
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.2232,
+        "rho_oos": 0.0272,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "desc": "상하이 3M모멘텀→화장품"
+    },
+    "sse_mom3__cosmetics__y_20d": {
+      "label": "sse_mom3__cosmetics__y_20d",
+      "n": 88,
+      "n_eff": 87.5,
+      "spearman_rho": -0.0635,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 0.59,
+      "wild_cluster_p": 0.5852,
+      "ci95_block_boot_prod": [
+        -0.02412,
+        0.01396
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.0534,
+        "rho_oos": -0.0771,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "상하이 3M모멘텀→화장품"
+    },
+    "sse_mom3__cosmetics__y_60d": {
+      "label": "sse_mom3__cosmetics__y_60d",
+      "n": 86,
+      "n_eff": 52.8,
+      "spearman_rho": -0.1712,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.24,
+      "wild_cluster_p": 0.1274,
+      "ci95_block_boot_prod": [
+        -0.03466,
+        0.00754
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.1679,
+        "rho_oos": -0.2421,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "상하이 3M모멘텀→화장품"
+    },
+    "usdcny_yoy__industry__y_20d": {
+      "label": "usdcny_yoy__industry__y_20d",
+      "n": 60,
+      "n_eff": 60.0,
+      "spearman_rho": -0.1492,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.16,
+      "wild_cluster_p": 0.2449,
+      "ci95_block_boot_prod": [
+        -0.03079,
+        0.00893
+      ],
+      "walk_forward_oos": {
+        "is_n": 32,
+        "oos_n": 28,
+        "rho_is": -0.202,
+        "rho_oos": -0.0411,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "USDCNY yoy→화장품(위안약세=음)"
+    },
+    "usdcny_yoy__industry__y_60d": {
+      "label": "usdcny_yoy__industry__y_60d",
+      "n": 58,
+      "n_eff": 41.1,
+      "spearman_rho": 0.1108,
+      "expected_sign": -1,
+      "theory_sign_match": "False",
+      "t_power_mde": 0.71,
+      "wild_cluster_p": 0.3778,
+      "ci95_block_boot_prod": [
+        -0.0105,
+        0.03453
+      ],
+      "walk_forward_oos": {
+        "is_n": 32,
+        "oos_n": 26,
+        "rho_is": 0.1334,
+        "rho_oos": 0.0503,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "USDCNY yoy→화장품(위안약세=음)"
+    },
+    "usdcny_yoy__cosmetics__y_20d": {
+      "label": "usdcny_yoy__cosmetics__y_20d",
+      "n": 60,
+      "n_eff": 60.0,
+      "spearman_rho": -0.0757,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.59,
+      "wild_cluster_p": 0.5702,
+      "ci95_block_boot_prod": [
+        -0.0273,
+        0.01567
+      ],
+      "walk_forward_oos": {
+        "is_n": 32,
+        "oos_n": 28,
+        "rho_is": -0.1558,
+        "rho_oos": 0.0443,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "desc": "USDCNY yoy→화장품(위안약세=음)"
+    },
+    "usdcny_yoy__cosmetics__y_60d": {
+      "label": "usdcny_yoy__cosmetics__y_60d",
+      "n": 58,
+      "n_eff": 43.4,
+      "spearman_rho": 0.1632,
+      "expected_sign": -1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.08,
+      "wild_cluster_p": 0.2299,
+      "ci95_block_boot_prod": [
+        -0.0076,
+        0.03929
+      ],
+      "walk_forward_oos": {
+        "is_n": 32,
+        "oos_n": 26,
+        "rho_is": 0.2133,
+        "rho_oos": 0.135,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "USDCNY yoy→화장품(위안약세=음)"
+    },
+    "hk_travel_mom3__industry__y_20d": {
+      "label": "hk_travel_mom3__industry__y_20d",
+      "n": 62,
+      "n_eff": 56.2,
+      "spearman_rho": 0.1234,
+      "expected_sign": 1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.93,
+      "wild_cluster_p": 0.2834,
+      "ci95_block_boot_prod": [
+        -0.00906,
+        0.02835
+      ],
+      "walk_forward_oos": {
+        "is_n": 22,
+        "oos_n": 40,
+        "rho_is": 0.0548,
+        "rho_oos": 0.1705,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "홍콩 3M모멘텀→화장품(관광/면세 risk-on 양)"
+    },
+    "hk_travel_mom3__industry__y_60d": {
+      "label": "hk_travel_mom3__industry__y_60d",
+      "n": 60,
+      "n_eff": 43.0,
+      "spearman_rho": 0.2543,
+      "expected_sign": 1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.67,
+      "wild_cluster_p": 0.044,
+      "ci95_block_boot_prod": [
+        0.00137,
+        0.04438
+      ],
+      "walk_forward_oos": {
+        "is_n": 22,
+        "oos_n": 38,
+        "rho_is": 0.0492,
+        "rho_oos": 0.287,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "홍콩 3M모멘텀→화장품(관광/면세 risk-on 양)"
+    },
+    "hk_travel_mom3__cosmetics__y_20d": {
+      "label": "hk_travel_mom3__cosmetics__y_20d",
+      "n": 62,
+      "n_eff": 50.5,
+      "spearman_rho": 0.1322,
+      "expected_sign": 1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.94,
+      "wild_cluster_p": 0.2579,
+      "ci95_block_boot_prod": [
+        -0.00842,
+        0.0299
+      ],
+      "walk_forward_oos": {
+        "is_n": 22,
+        "oos_n": 40,
+        "rho_is": 0.2086,
+        "rho_oos": 0.1079,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "홍콩 3M모멘텀→화장품(관광/면세 risk-on 양)"
+    },
+    "hk_travel_mom3__cosmetics__y_60d": {
+      "label": "hk_travel_mom3__cosmetics__y_60d",
+      "n": 60,
+      "n_eff": 42.6,
+      "spearman_rho": 0.1281,
+      "expected_sign": 1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.84,
+      "wild_cluster_p": 0.3078,
+      "ci95_block_boot_prod": [
+        -0.01079,
+        0.0353
+      ],
+      "walk_forward_oos": {
+        "is_n": 22,
+        "oos_n": 38,
+        "rho_is": 0.2312,
+        "rho_oos": 0.0248,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "홍콩 3M모멘텀→화장품(관광/면세 risk-on 양)"
+    },
+    "corn_yoy__industry__y_20d": {
+      "label": "corn_yoy__industry__y_20d",
+      "n": 88,
+      "n_eff": 77.1,
+      "spearman_rho": -0.0153,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.13,
+      "wild_cluster_p": 0.8841,
+      "ci95_block_boot_prod": [
+        -0.01862,
+        0.0158
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.0178,
+        "rho_oos": 0.0977,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "desc": "옥수수 yoy→음식료(cost-push 음)"
+    },
+    "corn_yoy__industry__y_60d": {
+      "label": "corn_yoy__industry__y_60d",
+      "n": 86,
+      "n_eff": 35.4,
+      "spearman_rho": -0.0526,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.31,
+      "wild_cluster_p": 0.6282,
+      "ci95_block_boot_prod": [
+        -0.02739,
+        0.01949
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.0094,
+        "rho_oos": 0.1461,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "desc": "옥수수 yoy→음식료(cost-push 음)"
+    },
+    "corn_yoy__food__y_20d": {
+      "label": "corn_yoy__food__y_20d",
+      "n": 88,
+      "n_eff": 64.9,
+      "spearman_rho": -0.1511,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.22,
+      "wild_cluster_p": 0.1659,
+      "ci95_block_boot_prod": [
+        -0.03201,
+        0.00509
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.0937,
+        "rho_oos": -0.0739,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "옥수수 yoy→음식료(cost-push 음)"
+    },
+    "corn_yoy__food__y_60d": {
+      "label": "corn_yoy__food__y_60d",
+      "n": 86,
+      "n_eff": 33.1,
+      "spearman_rho": -0.1806,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.04,
+      "wild_cluster_p": 0.1254,
+      "ci95_block_boot_prod": [
+        -0.04272,
+        0.01129
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.0161,
+        "rho_oos": -0.1176,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "옥수수 yoy→음식료(cost-push 음)"
+    },
+    "wheat_yoy__industry__y_20d": {
+      "label": "wheat_yoy__industry__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.0567,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.53,
+      "wild_cluster_p": 0.5972,
+      "ci95_block_boot_prod": [
+        -0.02041,
+        0.01129
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.0101,
+        "rho_oos": -0.0054,
+        "eligible": false,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "밀 yoy→음식료(cost-push 음)"
+    },
+    "wheat_yoy__industry__y_60d": {
+      "label": "wheat_yoy__industry__y_60d",
+      "n": 86,
+      "n_eff": 35.5,
+      "spearman_rho": -0.1275,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.76,
+      "wild_cluster_p": 0.2129,
+      "ci95_block_boot_prod": [
+        -0.03342,
+        0.01168
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.0116,
+        "rho_oos": 0.017,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "desc": "밀 yoy→음식료(cost-push 음)"
+    },
+    "wheat_yoy__food__y_20d": {
+      "label": "wheat_yoy__food__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.1192,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.12,
+      "wild_cluster_p": 0.2944,
+      "ci95_block_boot_prod": [
+        -0.02656,
+        0.00726
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": 0.0258,
+        "rho_oos": -0.025,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "desc": "밀 yoy→음식료(cost-push 음)"
+    },
+    "wheat_yoy__food__y_60d": {
+      "label": "wheat_yoy__food__y_60d",
+      "n": 86,
+      "n_eff": 35.9,
+      "spearman_rho": -0.2038,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.22,
+      "wild_cluster_p": 0.068,
+      "ci95_block_boot_prod": [
+        -0.04226,
+        0.00639
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": 0.0783,
+        "rho_oos": -0.2205,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "desc": "밀 yoy→음식료(cost-push 음)"
+    },
+    "soy_yoy__industry__y_20d": {
+      "label": "soy_yoy__industry__y_20d",
+      "n": 88,
+      "n_eff": 67.2,
+      "spearman_rho": 0.0035,
+      "expected_sign": -1,
+      "theory_sign_match": "False",
+      "t_power_mde": 0.03,
+      "wild_cluster_p": 0.9675,
+      "ci95_block_boot_prod": [
+        -0.01637,
+        0.01858
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": 0.1096,
+        "rho_oos": -0.0092,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "desc": "대두 yoy→음식료(cost-push 음)"
+    },
+    "soy_yoy__industry__y_60d": {
+      "label": "soy_yoy__industry__y_60d",
+      "n": 86,
+      "n_eff": 29.2,
+      "spearman_rho": -0.0166,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.09,
+      "wild_cluster_p": 0.8821,
+      "ci95_block_boot_prod": [
+        -0.02766,
+        0.02675
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": 0.0932,
+        "rho_oos": 0.0712,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "대두 yoy→음식료(cost-push 음)"
+    },
+    "soy_yoy__food__y_20d": {
+      "label": "soy_yoy__food__y_20d",
+      "n": 88,
+      "n_eff": 79.7,
+      "spearman_rho": -0.1643,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.47,
+      "wild_cluster_p": 0.1324,
+      "ci95_block_boot_prod": [
+        -0.03052,
+        0.0045
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.0469,
+        "rho_oos": -0.1116,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "대두 yoy→음식료(cost-push 음)"
+    },
+    "soy_yoy__food__y_60d": {
+      "label": "soy_yoy__food__y_60d",
+      "n": 86,
+      "n_eff": 32.6,
+      "spearman_rho": -0.2207,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.26,
+      "wild_cluster_p": 0.0695,
+      "ci95_block_boot_prod": [
+        -0.04439,
+        0.00938
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.012,
+        "rho_oos": -0.2141,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "대두 yoy→음식료(cost-push 음)"
+    },
+    "wti_yoy__industry__y_20d": {
+      "label": "wti_yoy__industry__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.1159,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.09,
+      "wild_cluster_p": 0.2784,
+      "ci95_block_boot_prod": [
+        -0.02519,
+        0.00803
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.1581,
+        "rho_oos": -0.0285,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "WTI유가 yoy→소비재(원가↑/소비여력↓ 음)"
+    },
+    "wti_yoy__industry__y_60d": {
+      "label": "wti_yoy__industry__y_60d",
+      "n": 86,
+      "n_eff": 39.0,
+      "spearman_rho": -0.2611,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.63,
+      "wild_cluster_p": 0.0165,
+      "ci95_block_boot_prod": [
+        -0.04427,
+        0.00057
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.3513,
+        "rho_oos": 0.0769,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "desc": "WTI유가 yoy→소비재(원가↑/소비여력↓ 음)"
+    },
+    "wti_yoy__food__y_20d": {
+      "label": "wti_yoy__food__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.1368,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.28,
+      "wild_cluster_p": 0.2134,
+      "ci95_block_boot_prod": [
+        -0.02799,
+        0.00639
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.1642,
+        "rho_oos": -0.0051,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "WTI유가 yoy→소비재(원가↑/소비여력↓ 음)"
+    },
+    "wti_yoy__food__y_60d": {
+      "label": "wti_yoy__food__y_60d",
+      "n": 86,
+      "n_eff": 34.8,
+      "spearman_rho": -0.1848,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.09,
+      "wild_cluster_p": 0.1179,
+      "ci95_block_boot_prod": [
+        -0.04114,
+        0.00962
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.1724,
+        "rho_oos": -0.0841,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "WTI유가 yoy→소비재(원가↑/소비여력↓ 음)"
+    },
+    "kor_retail_yoy__industry__y_20d": {
+      "label": "kor_retail_yoy__industry__y_20d",
+      "n": 0,
+      "status": "INSUFFICIENT(n<12)",
+      "desc": "한국소매판매 yoy→음식료/유통(내수 양, 2024-03 제약)"
+    },
+    "kor_retail_yoy__industry__y_60d": {
+      "label": "kor_retail_yoy__industry__y_60d",
+      "n": 0,
+      "status": "INSUFFICIENT(n<12)",
+      "desc": "한국소매판매 yoy→음식료/유통(내수 양, 2024-03 제약)"
+    },
+    "kor_retail_yoy__food__y_20d": {
+      "label": "kor_retail_yoy__food__y_20d",
+      "n": 0,
+      "status": "INSUFFICIENT(n<12)",
+      "desc": "한국소매판매 yoy→음식료/유통(내수 양, 2024-03 제약)"
+    },
+    "kor_retail_yoy__food__y_60d": {
+      "label": "kor_retail_yoy__food__y_60d",
+      "n": 0,
+      "status": "INSUFFICIENT(n<12)",
+      "desc": "한국소매판매 yoy→음식료/유통(내수 양, 2024-03 제약)"
+    },
+    "csi_spend_yoy__industry__y_20d": {
+      "label": "csi_spend_yoy__industry__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.1355,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.27,
+      "wild_cluster_p": 0.2159,
+      "ci95_block_boot_prod": [
+        -0.02667,
+        0.00489
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.164,
+        "rho_oos": -0.0156,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 소비지출전망 yoy→유통/내수(소비심리 양)"
+    },
+    "csi_spend_yoy__industry__y_60d": {
+      "label": "csi_spend_yoy__industry__y_60d",
+      "n": 86,
+      "n_eff": 35.9,
+      "spearman_rho": -0.2893,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.73,
+      "wild_cluster_p": 0.007,
+      "ci95_block_boot_prod": [
+        -0.04959,
+        -0.00289
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.2941,
+        "rho_oos": -0.0361,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 소비지출전망 yoy→유통/내수(소비심리 양)"
+    },
+    "csi_spend_yoy__retail__y_20d": {
+      "label": "csi_spend_yoy__retail__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.1377,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.29,
+      "wild_cluster_p": 0.2069,
+      "ci95_block_boot_prod": [
+        -0.02718,
+        0.00513
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.1688,
+        "rho_oos": -0.0403,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 소비지출전망 yoy→유통/내수(소비심리 양)"
+    },
+    "csi_spend_yoy__retail__y_60d": {
+      "label": "csi_spend_yoy__retail__y_60d",
+      "n": 86,
+      "n_eff": 38.4,
+      "spearman_rho": -0.2762,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.71,
+      "wild_cluster_p": 0.0125,
+      "ci95_block_boot_prod": [
+        -0.04873,
+        -0.00098
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.2733,
+        "rho_oos": -0.1363,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 소비지출전망 yoy→유통/내수(소비심리 양)"
+    },
+    "csi_spend_d3__industry__y_20d": {
+      "label": "csi_spend_d3__industry__y_20d",
+      "n": 88,
+      "n_eff": 42.2,
+      "spearman_rho": 0.2115,
+      "expected_sign": 1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.37,
+      "wild_cluster_p": 0.0485,
+      "ci95_block_boot_prod": [
+        -0.00019,
+        0.03222
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": 0.2769,
+        "rho_oos": 0.1293,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 소비지출 3M모멘텀→유통(내수 양)"
+    },
+    "csi_spend_d3__industry__y_60d": {
+      "label": "csi_spend_d3__industry__y_60d",
+      "n": 86,
+      "n_eff": 52.9,
+      "spearman_rho": 0.3253,
+      "expected_sign": 1,
+      "theory_sign_match": "True",
+      "t_power_mde": 2.36,
+      "wild_cluster_p": 0.001,
+      "ci95_block_boot_prod": [
+        0.00794,
+        0.04506
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": 0.3347,
+        "rho_oos": 0.303,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "CSI 소비지출 3M모멘텀→유통(내수 양)"
+    },
+    "csi_spend_d3__retail__y_20d": {
+      "label": "csi_spend_d3__retail__y_20d",
+      "n": 88,
+      "n_eff": 55.2,
+      "spearman_rho": 0.2341,
+      "expected_sign": 1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.74,
+      "wild_cluster_p": 0.02,
+      "ci95_block_boot_prod": [
+        0.00203,
+        0.03414
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": 0.3342,
+        "rho_oos": 0.0929,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 소비지출 3M모멘텀→유통(내수 양)"
+    },
+    "csi_spend_d3__retail__y_60d": {
+      "label": "csi_spend_d3__retail__y_60d",
+      "n": 86,
+      "n_eff": 53.4,
+      "spearman_rho": 0.3007,
+      "expected_sign": 1,
+      "theory_sign_match": "True",
+      "t_power_mde": 2.2,
+      "wild_cluster_p": 0.002,
+      "ci95_block_boot_prod": [
+        0.0052,
+        0.0399
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": 0.4297,
+        "rho_oos": 0.0678,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 소비지출 3M모멘텀→유통(내수 양)"
+    },
+    "csi_travel_yoy__industry__y_20d": {
+      "label": "csi_travel_yoy__industry__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.1616,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.52,
+      "wild_cluster_p": 0.1314,
+      "ci95_block_boot_prod": [
+        -0.0285,
+        0.00328
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.191,
+        "rho_oos": -0.0761,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 여행비전망 yoy→화장품/면세(리오프닝 양)"
+    },
+    "csi_travel_yoy__industry__y_60d": {
+      "label": "csi_travel_yoy__industry__y_60d",
+      "n": 86,
+      "n_eff": 36.6,
+      "spearman_rho": -0.2827,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.71,
+      "wild_cluster_p": 0.008,
+      "ci95_block_boot_prod": [
+        -0.04719,
+        -0.00129
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.3155,
+        "rho_oos": -0.1184,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 여행비전망 yoy→화장품/면세(리오프닝 양)"
+    },
+    "csi_travel_yoy__cosmetics__y_20d": {
+      "label": "csi_travel_yoy__cosmetics__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.1873,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.76,
+      "wild_cluster_p": 0.0745,
+      "ci95_block_boot_prod": [
+        -0.03051,
+        0.00066
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.2434,
+        "rho_oos": -0.0675,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 여행비전망 yoy→화장품/면세(리오프닝 양)"
+    },
+    "csi_travel_yoy__cosmetics__y_60d": {
+      "label": "csi_travel_yoy__cosmetics__y_60d",
+      "n": 86,
+      "n_eff": 34.8,
+      "spearman_rho": -0.3,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.77,
+      "wild_cluster_p": 0.0045,
+      "ci95_block_boot_prod": [
+        -0.04844,
+        -0.00306
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.3908,
+        "rho_oos": -0.1326,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 여행비전망 yoy→화장품/면세(리오프닝 양)"
+    },
+    "csi_cloth_yoy__industry__y_20d": {
+      "label": "csi_cloth_yoy__industry__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.1684,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.58,
+      "wild_cluster_p": 0.1234,
+      "ci95_block_boot_prod": [
+        -0.02952,
+        0.00171
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.2027,
+        "rho_oos": -0.0622,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 의류비전망 yoy→화장품/의류(내수 양)"
+    },
+    "csi_cloth_yoy__industry__y_60d": {
+      "label": "csi_cloth_yoy__industry__y_60d",
+      "n": 86,
+      "n_eff": 37.5,
+      "spearman_rho": -0.2846,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.74,
+      "wild_cluster_p": 0.0115,
+      "ci95_block_boot_prod": [
+        -0.04778,
+        -0.0006
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.3639,
+        "rho_oos": -0.0831,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 의류비전망 yoy→화장품/의류(내수 양)"
+    },
+    "csi_cloth_yoy__cosmetics__y_20d": {
+      "label": "csi_cloth_yoy__cosmetics__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.156,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.46,
+      "wild_cluster_p": 0.1119,
+      "ci95_block_boot_prod": [
+        -0.02736,
+        0.00132
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.2457,
+        "rho_oos": -0.023,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 의류비전망 yoy→화장품/의류(내수 양)"
+    },
+    "csi_cloth_yoy__cosmetics__y_60d": {
+      "label": "csi_cloth_yoy__cosmetics__y_60d",
+      "n": 86,
+      "n_eff": 34.0,
+      "spearman_rho": -0.2969,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 1.73,
+      "wild_cluster_p": 0.0065,
+      "ci95_block_boot_prod": [
+        -0.04871,
+        -0.00234
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.4379,
+        "rho_oos": -0.1161,
+        "eligible": false,
+        "verdict": "OOS 부호유지 mag약"
+      },
+      "status": "underpowered",
+      "desc": "CSI 의류비전망 yoy→화장품/의류(내수 양)"
+    },
+    "csi_econ_yoy__industry__y_20d": {
+      "label": "csi_econ_yoy__industry__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": -0.0387,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 0.36,
+      "wild_cluster_p": 0.7476,
+      "ci95_block_boot_prod": [
+        -0.01895,
+        0.01398
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": -0.1007,
+        "rho_oos": 0.0611,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "desc": "CSI 향후경기전망 yoy→소비재(경기심리 양)"
+    },
+    "csi_econ_yoy__industry__y_60d": {
+      "label": "csi_econ_yoy__industry__y_60d",
+      "n": 86,
+      "n_eff": 35.7,
+      "spearman_rho": 0.0694,
+      "expected_sign": 1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.41,
+      "wild_cluster_p": 0.5297,
+      "ci95_block_boot_prod": [
+        -0.0186,
+        0.03185
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": 0.0691,
+        "rho_oos": 0.0838,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "CSI 향후경기전망 yoy→소비재(경기심리 양)"
+    },
+    "xlp_xly_rel3__industry__y_20d": {
+      "label": "xlp_xly_rel3__industry__y_20d",
+      "n": 88,
+      "n_eff": 88.0,
+      "spearman_rho": 0.1405,
+      "expected_sign": 1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.32,
+      "wild_cluster_p": 0.1944,
+      "ci95_block_boot_prod": [
+        -0.00319,
+        0.02908
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 40,
+        "rho_is": 0.0573,
+        "rho_oos": 0.1919,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered",
+      "desc": "XLP-XLY 상대모멘텀→소비재(글로벌 방어 우위 양)"
+    },
+    "xlp_xly_rel3__industry__y_60d": {
+      "label": "xlp_xly_rel3__industry__y_60d",
+      "n": 86,
+      "n_eff": 62.7,
+      "spearman_rho": -0.0414,
+      "expected_sign": 1,
+      "theory_sign_match": "False",
+      "t_power_mde": 0.33,
+      "wild_cluster_p": 0.6992,
+      "ci95_block_boot_prod": [
+        -0.02164,
+        0.0147
+      ],
+      "walk_forward_oos": {
+        "is_n": 48,
+        "oos_n": 38,
+        "rho_is": -0.1066,
+        "rho_oos": 0.1227,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered",
+      "desc": "XLP-XLY 상대모멘텀→소비재(글로벌 방어 우위 양)"
+    }
+  },
+  "subcluster_signals": {
+    "mom_6__industry__y_20d": {
+      "label": "mom_6__industry__y_20d",
+      "n": 82,
+      "n_eff": 82.0,
+      "spearman_rho": -0.192,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.74,
+      "wild_cluster_p": 0.093,
+      "ci95_block_boot_prod": [
+        -0.03048,
+        -0.00056
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 40,
+        "rho_is": -0.1736,
+        "rho_oos": -0.3711,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered"
+    },
+    "mom_6__industry__y_60d": {
+      "label": "mom_6__industry__y_60d",
+      "n": 80,
+      "n_eff": 47.7,
+      "spearman_rho": -0.2513,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.74,
+      "wild_cluster_p": 0.018,
+      "ci95_block_boot_prod": [
+        -0.04099,
+        -0.00054
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 38,
+        "rho_is": -0.1566,
+        "rho_oos": -0.5542,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered"
+    },
+    "rel_mom_6__industry__y_20d": {
+      "label": "rel_mom_6__industry__y_20d",
+      "n": 82,
+      "n_eff": 82.0,
+      "spearman_rho": -0.192,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.74,
+      "wild_cluster_p": 0.093,
+      "ci95_block_boot_prod": [
+        -0.03048,
+        -0.00056
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 40,
+        "rho_is": -0.1736,
+        "rho_oos": -0.3711,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered"
+    },
+    "rel_mom_6__industry__y_60d": {
+      "label": "rel_mom_6__industry__y_60d",
+      "n": 80,
+      "n_eff": 47.7,
+      "spearman_rho": -0.2513,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.74,
+      "wild_cluster_p": 0.018,
+      "ci95_block_boot_prod": [
+        -0.04099,
+        -0.00054
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 38,
+        "rho_is": -0.1566,
+        "rho_oos": -0.5542,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered"
+    },
+    "mom_6__cosmetics__y_20d": {
+      "label": "mom_6__cosmetics__y_20d",
+      "n": 82,
+      "n_eff": 82.0,
+      "spearman_rho": -0.1715,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.55,
+      "wild_cluster_p": 0.1404,
+      "ci95_block_boot_prod": [
+        -0.03227,
+        0.00158
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 40,
+        "rho_is": 0.009,
+        "rho_oos": -0.4403,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered"
+    },
+    "mom_6__cosmetics__y_60d": {
+      "label": "mom_6__cosmetics__y_60d",
+      "n": 80,
+      "n_eff": 35.0,
+      "spearman_rho": -0.3235,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.92,
+      "wild_cluster_p": 0.004,
+      "ci95_block_boot_prod": [
+        -0.04758,
+        -0.00429
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 38,
+        "rho_is": -0.0733,
+        "rho_oos": -0.7481,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered"
+    },
+    "rel_mom_6__cosmetics__y_20d": {
+      "label": "rel_mom_6__cosmetics__y_20d",
+      "n": 82,
+      "n_eff": 82.0,
+      "spearman_rho": -0.1715,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.55,
+      "wild_cluster_p": 0.1404,
+      "ci95_block_boot_prod": [
+        -0.03227,
+        0.00158
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 40,
+        "rho_is": 0.009,
+        "rho_oos": -0.4403,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered"
+    },
+    "rel_mom_6__cosmetics__y_60d": {
+      "label": "rel_mom_6__cosmetics__y_60d",
+      "n": 80,
+      "n_eff": 35.0,
+      "spearman_rho": -0.3235,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.92,
+      "wild_cluster_p": 0.004,
+      "ci95_block_boot_prod": [
+        -0.04758,
+        -0.00429
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 38,
+        "rho_is": -0.0733,
+        "rho_oos": -0.7481,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered"
+    },
+    "mom_6__food__y_20d": {
+      "label": "mom_6__food__y_20d",
+      "n": 82,
+      "n_eff": 82.0,
+      "spearman_rho": -0.1194,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.08,
+      "wild_cluster_p": 0.3073,
+      "ci95_block_boot_prod": [
+        -0.02813,
+        0.00757
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 40,
+        "rho_is": -0.1276,
+        "rho_oos": -0.2987,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered"
+    },
+    "mom_6__food__y_60d": {
+      "label": "mom_6__food__y_60d",
+      "n": 80,
+      "n_eff": 44.5,
+      "spearman_rho": -0.1682,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.12,
+      "wild_cluster_p": 0.1019,
+      "ci95_block_boot_prod": [
+        -0.03477,
+        0.0071
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 38,
+        "rho_is": -0.2615,
+        "rho_oos": -0.4989,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered"
+    },
+    "rel_mom_6__food__y_20d": {
+      "label": "rel_mom_6__food__y_20d",
+      "n": 82,
+      "n_eff": 82.0,
+      "spearman_rho": -0.1194,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.08,
+      "wild_cluster_p": 0.3073,
+      "ci95_block_boot_prod": [
+        -0.02813,
+        0.00757
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 40,
+        "rho_is": -0.1276,
+        "rho_oos": -0.2987,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered"
+    },
+    "rel_mom_6__food__y_60d": {
+      "label": "rel_mom_6__food__y_60d",
+      "n": 80,
+      "n_eff": 44.5,
+      "spearman_rho": -0.1682,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 1.12,
+      "wild_cluster_p": 0.1019,
+      "ci95_block_boot_prod": [
+        -0.03477,
+        0.0071
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 38,
+        "rho_is": -0.2615,
+        "rho_oos": -0.4989,
+        "eligible": true,
+        "verdict": "OOS 부호+mag 유지"
+      },
+      "status": "underpowered"
+    },
+    "mom_6__retail__y_20d": {
+      "label": "mom_6__retail__y_20d",
+      "n": 82,
+      "n_eff": 82.0,
+      "spearman_rho": -0.0213,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.19,
+      "wild_cluster_p": 0.8701,
+      "ci95_block_boot_prod": [
+        -0.01702,
+        0.01529
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 40,
+        "rho_is": -0.1595,
+        "rho_oos": 0.0878,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered"
+    },
+    "mom_6__retail__y_60d": {
+      "label": "mom_6__retail__y_60d",
+      "n": 80,
+      "n_eff": 27.1,
+      "spearman_rho": -0.0079,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.04,
+      "wild_cluster_p": 0.947,
+      "ci95_block_boot_prod": [
+        -0.02376,
+        0.02129
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 38,
+        "rho_is": -0.2234,
+        "rho_oos": 0.2577,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered"
+    },
+    "rel_mom_6__retail__y_20d": {
+      "label": "rel_mom_6__retail__y_20d",
+      "n": 82,
+      "n_eff": 82.0,
+      "spearman_rho": -0.0213,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.19,
+      "wild_cluster_p": 0.8701,
+      "ci95_block_boot_prod": [
+        -0.01702,
+        0.01529
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 40,
+        "rho_is": -0.1595,
+        "rho_oos": 0.0878,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered"
+    },
+    "rel_mom_6__retail__y_60d": {
+      "label": "rel_mom_6__retail__y_60d",
+      "n": 80,
+      "n_eff": 27.1,
+      "spearman_rho": -0.0079,
+      "expected_sign": -1,
+      "theory_sign_match": "True",
+      "t_power_mde": 0.04,
+      "wild_cluster_p": 0.947,
+      "ci95_block_boot_prod": [
+        -0.02376,
+        0.02129
+      ],
+      "walk_forward_oos": {
+        "is_n": 42,
+        "oos_n": 38,
+        "rho_is": -0.2234,
+        "rho_oos": 0.2577,
+        "eligible": false,
+        "verdict": "OOS flip"
+      },
+      "status": "underpowered"
+    }
+  },
+  "fdr_theory_drivers": {
+    "m": 12,
+    "by_factor": 3.103,
+    "survivors_BY": [
+      "csi_spend_d3__industry__y_60d"
+    ],
+    "raw_p_min": 0.001,
+    "raw_p_min_key": "csi_spend_d3__industry__y_60d",
+    "bonferroni_alpha": 0.00417
+  },
+  "fdr_all_single": {
+    "m": 68,
+    "by_factor": 4.804,
+    "survivors_BY": [],
+    "raw_p_min": 0.001,
+    "raw_p_min_key": "csi_spend_d3__industry__y_60d",
+    "bonferroni_alpha": 0.00074
+  }
+}

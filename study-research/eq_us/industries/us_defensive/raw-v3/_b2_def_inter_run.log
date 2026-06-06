@@ -1,0 +1,13 @@
+DEF-1 [net_issuance x ep_yield] pred=+1
+   raw  IC=-0.0454 t=-1.92 n_eff=51.4 CV=2.09 fb_sig=False wildP=0.0686 UP=False sign=X
+   incr IC=-0.0757 t=-3.01 fb_sig=True wildP=0.0055 n_eff=47.8
+DEF-2 [dividend_yield(고) x op_prof(고)] pred=+1
+   raw  IC=0.0686 t=3.93 n_eff=74.6 CV=2.08 fb_sig=True wildP=0.0 UP=False sign=OK
+   incr IC=0.0647 t=3.43 fb_sig=True wildP=0.0005 n_eff=55.9
+DEF-3 [earnings_cv(저) x vol_60(저) stable교집합] pred=+1
+   raw  IC=0.0477 t=2.79 n_eff=59.4 CV=2.08 fb_sig=True wildP=0.0058 UP=False sign=OK
+   incr IC=0.0287 t=1.62 fb_sig=False wildP=0.1098 n_eff=59.2
+DEF-5 [ep_yield x gross_prof anti-value quali] pred=+1
+   raw  IC=-0.0158 t=-0.6 n_eff=51.3 CV=2.1 fb_sig=False wildP=0.5688 UP=False sign=X
+   incr IC=-0.0136 t=-0.57 fb_sig=False wildP=0.5908 n_eff=49.6
+DEF-4 Tier2 ep_main_ic=-0.056 | slope b=0.0151 t=0.27 fb_sig=False sign=False wildP=0.7922

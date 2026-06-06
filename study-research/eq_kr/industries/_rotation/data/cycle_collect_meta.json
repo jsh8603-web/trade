@@ -1,0 +1,57 @@
+{
+  "source": "yfinance US-listed ETF/futures = 글로벌 cycle proxy (KR 직접 아님 = proxy 한계)",
+  "verified": "source 사전검증 통과(empirical-claim §1.1-ext, history(period=max) 1샘플)",
+  "no_direct_cycle": {
+    "telecom": "telecom_cycle.parquet 보유(별도) + ARPU/5G 무료 API 부재 → momentum/carry 유지",
+    "refining": "refining_cycle.parquet 보유(crack/oil 별도 measure_timeseries) → 본 수집 제외",
+    "financial": "금리커브(regime_series ktb10y/ktb3y/corp_aa3y) 보유 = cycle 대용",
+    "bio": "pipeline/FDA 이벤트 = 무료 정형 시계열 부재 → momentum proxy 유지",
+    "consumer": "소매판매/K-food 수출 = 무료 월별 KR 직접 부재(관세청 API 미연동) → momentum/USDKRW 유지"
+  },
+  "fetched": {
+    "steel": {
+      "tickers": {
+        "iron_ore": "TIO=F",
+        "china_proxy": "FXI"
+      },
+      "n": 2118,
+      "range": "2018-01-02~2026-06-04"
+    },
+    "battery": {
+      "tickers": {
+        "lithium": "LIT"
+      },
+      "n": 2117,
+      "range": "2018-01-02~2026-06-04"
+    },
+    "chemical": {
+      "tickers": {
+        "wti_naphtha": "CL=F",
+        "materials": "XLB"
+      },
+      "n": 2120,
+      "range": "2018-01-02~2026-06-05"
+    },
+    "auto": {
+      "tickers": {
+        "global_auto": "CARZ"
+      },
+      "n": 2117,
+      "range": "2018-01-02~2026-06-04"
+    },
+    "shipbuilding": {
+      "tickers": {
+        "baltic_dry": "BDRY"
+      },
+      "n": 2062,
+      "range": "2018-03-22~2026-06-04"
+    },
+    "semiconductor": {
+      "tickers": {
+        "soxx": "SOXX"
+      },
+      "n": 2117,
+      "range": "2018-01-02~2026-06-04"
+    }
+  }
+}

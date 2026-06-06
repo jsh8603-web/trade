@@ -1,0 +1,48 @@
+# G-C 독립 audit 결과 — aitech (author=aitech-analyst != auditor=별 teammate)
+# 모든 판정 근거 = raw-v3/*.py 직접 재실행 + parquet 독립 재계산 (self-audit 신뢰 X)
+evaluation_by: aitech-auditor (opus-1m, 메인 스폰)
+date: 2026-06-05
+evaluator_model: opus-1m
+axes_source:
+  primary: D:/projects/Inv/study-research/AUDIT-GUIDE.md
+  application: D:/projects/Inv/study-research/eq_kr/evaluation-axes.md
+industries:
+  - industry: kr_aitech
+    verdict: 부분   # PARTIAL CONFIRMED — pbr PASS-strong / mom reversal PARTIAL / per_z 격하 정당
+    provenance:
+      raw_scripts_rerun: true        # measure_valuation/critique/subcluster .py 직접 재실행, 수치 일치
+      synthetic_fingerprint_check: true   # 2020 코로나 V자반등(-2.6%→+16.3%) 실재, regime usdkrw/foreign 실재
+      yaml_to_raw_traceable: true    # pbr -0.1834/t-7.98/n73, Q1 t-3.51, mom -0.1055 모두 정확 재현
+    axes_12:
+      A: PASS      # 학술 anchor 11개 실재(Jegadeesh-Titman/FF/DHS/CKS), growth 사전선언→반증=HARKing 아님. URL부재 minor.
+      B: PASS      # 합성 0%, pykrx/DART/FDR 실측, 코로나 fingerprint 실재
+      C: PASS      # yaml↔raw 1:1 재현 (독립 재계산 일치)
+      D: PARTIAL   # 가격/재무 PIT-safe(pub lag median 48d, lookahead 0). ★단 shares=현재주식수 근사 = 분할/증자 종목 PBR lookahead 잔존(collector_plan high). ★★zombie carry-forward 누설(셀바스AI) = D 격하 사유.
+      E: PASS      # customer momentum REJECTED(forward falsifier 작동), 무비판 채택 0
+      F: PASS      # growth=continuation 기각 + customer mom REJECTED + per_z 격하 + fundamentals 전부 INSUFFICIENT
+      G: PASS      # pbr Validated(n73,BY생존) / mom Tentative(BY미생존) tier 정직
+      H: PASS      # collector_plan 5종 + 게임 상폐 생존편향 명시
+      I: PARTIAL   # FDR 현재스냅샷 생존편향 + ★게임주 상폐多(위메이드/컴투스 등 생존, 상폐사 누락). 정직 격하 = over-claim 아님 → hard-fail 아님
+      J: PASS      # net 16.5bps/월 < |IC| pbr 0.18, KR STT 비대칭 반영
+      K: PASS      # BY m=8(valuation) / m=16(mom) / m=105(conditional) 시도 공시, naive vs M_eff 정직
+      L: PASS      # common factor β 보고만(credit t-2.27), 통합 PSD=supervisor
+    hard_fail_count: 0   # B/C/D/I 中 hard-fail 0 (D·I = PARTIAL 정직격하, 무효화 아님)
+    tier: validated_alpha   # cs_pbr_z_value 한정(BY생존+size위장아님+OOS강화). mom/per = structural_prior_low_confidence
+    system_fit:
+      current_skeleton_fits: true
+      pipeline_upgrade_needed: false
+      upgrade_plan: "zombie/halt 마스킹(amt==0→NaN) 측정 파이프라인 추가 권고 — magnitude 정밀화용(부호결론엔 영향 없음)"
+    remediation:
+      - "D축: 셀바스AI(108860) 2019-03~2020-05 거래정지 284일 carry-forward(px 4155 고정+amt=0) = mom_12_1 인공 저모멘텀→음 forward로 reversal IC -0.0092 인공증폭. ★결론 불변(부호 LOO 26종 robust)이나 magnitude 과대 → 가격신호 zombie 마스킹 후 재박제 권고."
+      - "D축: shares=현재 주식수 근사 → 무상증자/분할 종목 PBR 시점값 lookahead 잔존. collector_plan high 이행."
+      - "per_z: episode 종속(2019-21 +0.044/2022-26 -0.099 재현) + 적자 18.5%(16/26종 적자경험) 양수편의 = 격하 정당. E/P 대체 high."
+      - "I축: 게임주 상폐 생존편향 PIT 멤버십 collector_plan high (bio 동형)."
+    flag_dynamic_path_check:
+      affects_indicator_present: true   # confidence_hooks affects_indicator 매핑 확인
+      affects_edge_present: true
+
+summary:
+  total_industries: 1
+  verdict_counts: {충실: 0, 부분: 1, 불충분: 0}
+  hard_fail_industries: []
+  overall_recommendation: "통합 진행 — cs_pbr_z_value=validated_alpha(BY생존+size위장아님+OOS강화) 정상 weight. mom reversal=conditional/game한정 monitor weight. ★단 가격신호 zombie 마스킹 후 momentum magnitude 재박제(부호결론 불변), per_z 격하 유지."

@@ -1,0 +1,419 @@
+{
+  "meta": {
+    "panel": [
+      "096770",
+      "010950"
+    ],
+    "horizons": {
+      "y_5d": 5,
+      "y_20d": 20,
+      "y_60d": 60
+    },
+    "method": "정유섹터(2종 동일가중) forward h일 vs driver 시계열 rank corr (team-lead 승인 horizon sweep)",
+    "gf": "wild-cluster + block-boot + eff-N + 단일 FDR(BY) + walk-forward OOS"
+  },
+  "horizon_surface": {
+    "y_5d": {
+      "brent_level": {
+        "label": "brent_level__y_5d",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.2006,
+        "wild_cluster_p": 0.0825,
+        "t_eff_corrected": -1.9,
+        "ci95_block_boot_prod": [
+          -0.03238,
+          -0.00036
+        ],
+        "status": "powered"
+      },
+      "oil_yoy": {
+        "label": "oil_yoy__y_5d",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.1922,
+        "wild_cluster_p": 0.0765,
+        "t_eff_corrected": -1.82,
+        "ci95_block_boot_prod": [
+          -0.03044,
+          0.0023
+        ],
+        "status": "powered"
+      },
+      "blended_crack_level": {
+        "label": "blended_crack_level__y_5d",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.1004,
+        "wild_cluster_p": 0.3653,
+        "t_eff_corrected": -0.94,
+        "ci95_block_boot_prod": [
+          -0.02352,
+          0.00814
+        ],
+        "status": "powered"
+      },
+      "d_blended_crack": {
+        "label": "d_blended_crack__y_5d",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": 0.0096,
+        "wild_cluster_p": 0.928,
+        "t_eff_corrected": 0.09,
+        "ci95_block_boot_prod": [
+          -0.014,
+          0.01974
+        ],
+        "status": "powered"
+      },
+      "diesel_crack_level": {
+        "label": "diesel_crack_level__y_5d",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.0902,
+        "wild_cluster_p": 0.4368,
+        "t_eff_corrected": -0.84,
+        "ci95_block_boot_prod": [
+          -0.02448,
+          0.01079
+        ],
+        "status": "powered"
+      },
+      "refinery_ip": {
+        "label": "refinery_ip__y_5d",
+        "n": 88,
+        "n_eff": 88.0,
+        "spearman_rho": -0.2472,
+        "wild_cluster_p": 0.0185,
+        "t_eff_corrected": -2.37,
+        "ci95_block_boot_prod": [
+          -0.03686,
+          -0.00377
+        ],
+        "status": "powered"
+      }
+    },
+    "y_20d": {
+      "brent_level": {
+        "label": "brent_level__y_20d",
+        "n": 87,
+        "n_eff": 87.0,
+        "spearman_rho": -0.155,
+        "wild_cluster_p": 0.1754,
+        "t_eff_corrected": -1.45,
+        "ci95_block_boot_prod": [
+          -0.03178,
+          0.00346
+        ],
+        "status": "powered"
+      },
+      "oil_yoy": {
+        "label": "oil_yoy__y_20d",
+        "n": 87,
+        "n_eff": 87.0,
+        "spearman_rho": -0.0728,
+        "wild_cluster_p": 0.5392,
+        "t_eff_corrected": -0.67,
+        "ci95_block_boot_prod": [
+          -0.02419,
+          0.00951
+        ],
+        "status": "powered"
+      },
+      "blended_crack_level": {
+        "label": "blended_crack_level__y_20d",
+        "n": 87,
+        "n_eff": 87.0,
+        "spearman_rho": -0.0513,
+        "wild_cluster_p": 0.6472,
+        "t_eff_corrected": -0.47,
+        "ci95_block_boot_prod": [
+          -0.02172,
+          0.0123
+        ],
+        "status": "powered"
+      },
+      "d_blended_crack": {
+        "label": "d_blended_crack__y_20d",
+        "n": 87,
+        "n_eff": 87.0,
+        "spearman_rho": 0.073,
+        "wild_cluster_p": 0.4858,
+        "t_eff_corrected": 0.67,
+        "ci95_block_boot_prod": [
+          -0.01124,
+          0.02333
+        ],
+        "status": "powered"
+      },
+      "diesel_crack_level": {
+        "label": "diesel_crack_level__y_20d",
+        "n": 87,
+        "n_eff": 87.0,
+        "spearman_rho": -0.031,
+        "wild_cluster_p": 0.7821,
+        "t_eff_corrected": -0.29,
+        "ci95_block_boot_prod": [
+          -0.02,
+          0.01334
+        ],
+        "status": "powered"
+      },
+      "refinery_ip": {
+        "label": "refinery_ip__y_20d",
+        "n": 87,
+        "n_eff": 87.0,
+        "spearman_rho": -0.119,
+        "wild_cluster_p": 0.2569,
+        "t_eff_corrected": -1.11,
+        "ci95_block_boot_prod": [
+          -0.02794,
+          0.00473
+        ],
+        "status": "powered"
+      }
+    },
+    "y_60d": {
+      "brent_level": {
+        "label": "brent_level__y_60d",
+        "n": 86,
+        "n_eff": 27.5,
+        "spearman_rho": -0.3383,
+        "wild_cluster_p": 0.0035,
+        "t_eff_corrected": -1.81,
+        "ci95_block_boot_prod": [
+          -0.05386,
+          -0.00674
+        ],
+        "status": "powered"
+      },
+      "oil_yoy": {
+        "label": "oil_yoy__y_60d",
+        "n": 86,
+        "n_eff": 27.5,
+        "spearman_rho": -0.283,
+        "wild_cluster_p": 0.01,
+        "t_eff_corrected": -1.49,
+        "ci95_block_boot_prod": [
+          -0.04679,
+          -0.00187
+        ],
+        "status": "powered"
+      },
+      "blended_crack_level": {
+        "label": "blended_crack_level__y_60d",
+        "n": 86,
+        "n_eff": 27.5,
+        "spearman_rho": -0.156,
+        "wild_cluster_p": 0.1659,
+        "t_eff_corrected": -0.8,
+        "ci95_block_boot_prod": [
+          -0.03985,
+          0.00894
+        ],
+        "status": "powered"
+      },
+      "d_blended_crack": {
+        "label": "d_blended_crack__y_60d",
+        "n": 86,
+        "n_eff": 27.5,
+        "spearman_rho": 0.0361,
+        "wild_cluster_p": 0.7021,
+        "t_eff_corrected": 0.18,
+        "ci95_block_boot_prod": [
+          -0.01399,
+          0.01797
+        ],
+        "status": "powered"
+      },
+      "diesel_crack_level": {
+        "label": "diesel_crack_level__y_60d",
+        "n": 86,
+        "n_eff": 27.5,
+        "spearman_rho": -0.1931,
+        "wild_cluster_p": 0.0755,
+        "t_eff_corrected": -0.99,
+        "ci95_block_boot_prod": [
+          -0.03946,
+          0.00595
+        ],
+        "status": "powered"
+      },
+      "refinery_ip": {
+        "label": "refinery_ip__y_60d",
+        "n": 86,
+        "n_eff": 27.5,
+        "spearman_rho": -0.3346,
+        "wild_cluster_p": 0.003,
+        "t_eff_corrected": -1.79,
+        "ci95_block_boot_prod": [
+          -0.05086,
+          -0.00225
+        ],
+        "status": "powered"
+      }
+    }
+  },
+  "walk_forward_oos": {
+    "brent_level__y_5d": {
+      "is_rho": -0.295,
+      "is_n": 48,
+      "oos_rho": -0.0657,
+      "oos_n": 40,
+      "sign_hold": true
+    },
+    "brent_level__y_20d": {
+      "is_rho": -0.1662,
+      "is_n": 48,
+      "oos_rho": -0.2547,
+      "oos_n": 39,
+      "sign_hold": true
+    },
+    "brent_level__y_60d": {
+      "is_rho": -0.3691,
+      "is_n": 48,
+      "oos_rho": -0.519,
+      "oos_n": 38,
+      "sign_hold": true
+    }
+  },
+  "regime_conditional": {
+    "macro_regime=Overheat": {
+      "label": "brent_level_y20__macro_regime=Overheat",
+      "n": 10,
+      "n_eff": 10.0,
+      "spearman_rho": -0.2485,
+      "wild_cluster_p": 0.5577,
+      "t_eff_corrected": -0.73,
+      "ci95_block_boot_prod": [
+        -0.07202,
+        0.011
+      ],
+      "status": "INSUFFICIENT"
+    },
+    "macro_regime=Recovery": {
+      "label": "brent_level_y20__macro_regime=Recovery",
+      "n": 26,
+      "n_eff": 26.0,
+      "spearman_rho": -0.308,
+      "wild_cluster_p": 0.1689,
+      "t_eff_corrected": -1.59,
+      "ci95_block_boot_prod": [
+        -0.06453,
+        0.00336
+      ],
+      "status": "powered"
+    },
+    "macro_regime=Reflation": {
+      "label": "brent_level_y20__macro_regime=Reflation",
+      "n": 20,
+      "n_eff": 20.0,
+      "spearman_rho": -0.2842,
+      "wild_cluster_p": 0.2429,
+      "t_eff_corrected": -1.26,
+      "ci95_block_boot_prod": [
+        -0.04751,
+        0.00288
+      ],
+      "status": "underpowered"
+    },
+    "macro_regime=Slowdown": {
+      "label": "brent_level_y20__macro_regime=Slowdown",
+      "n": 31,
+      "n_eff": 31.0,
+      "spearman_rho": 0.0504,
+      "wild_cluster_p": 0.7821,
+      "t_eff_corrected": 0.27,
+      "ci95_block_boot_prod": [
+        -0.01359,
+        0.02846
+      ],
+      "status": "powered"
+    },
+    "krw_regime=KRW_neutral": {
+      "label": "brent_level_y20__krw_regime=KRW_neutral",
+      "n": 40,
+      "n_eff": 40.0,
+      "spearman_rho": -0.288,
+      "wild_cluster_p": 0.064,
+      "t_eff_corrected": -1.85,
+      "ci95_block_boot_prod": [
+        -0.04867,
+        -0.00353
+      ],
+      "status": "powered"
+    },
+    "krw_regime=KRW_strong": {
+      "label": "brent_level_y20__krw_regime=KRW_strong",
+      "n": 10,
+      "n_eff": 10.0,
+      "spearman_rho": -0.3212,
+      "wild_cluster_p": 0.4318,
+      "t_eff_corrected": -0.96,
+      "ci95_block_boot_prod": [
+        -0.076,
+        -0.001
+      ],
+      "status": "INSUFFICIENT"
+    },
+    "krw_regime=KRW_weak": {
+      "label": "brent_level_y20__krw_regime=KRW_weak",
+      "n": 37,
+      "n_eff": 37.0,
+      "spearman_rho": 0.0794,
+      "wild_cluster_p": 0.6367,
+      "t_eff_corrected": 0.47,
+      "ci95_block_boot_prod": [
+        -0.02154,
+        0.03326
+      ],
+      "status": "powered"
+    },
+    "flow_regime=flow_neutral": {
+      "label": "brent_level_y20__flow_regime=flow_neutral",
+      "n": 47,
+      "n_eff": 34.8,
+      "spearman_rho": -0.1496,
+      "wild_cluster_p": 0.3248,
+      "t_eff_corrected": -0.87,
+      "ci95_block_boot_prod": [
+        -0.0378,
+        0.00992
+      ],
+      "status": "powered"
+    },
+    "flow_regime=flow_sell": {
+      "label": "brent_level_y20__flow_regime=flow_sell",
+      "n": 21,
+      "n_eff": 21.0,
+      "spearman_rho": 0.0468,
+      "wild_cluster_p": 0.8446,
+      "t_eff_corrected": 0.2,
+      "ci95_block_boot_prod": [
+        -0.04138,
+        0.03393
+      ],
+      "status": "underpowered"
+    },
+    "flow_regime=flow_strong_buy": {
+      "label": "brent_level_y20__flow_regime=flow_strong_buy",
+      "n": 19,
+      "n_eff": 19.0,
+      "spearman_rho": -0.3193,
+      "wild_cluster_p": 0.2049,
+      "t_eff_corrected": -1.39,
+      "ci95_block_boot_prod": [
+        -0.0502,
+        0.00179
+      ],
+      "status": "underpowered"
+    }
+  },
+  "fdr_family": {
+    "m": 23,
+    "by_factor": 3.734,
+    "survivors_BY": [],
+    "raw_p_min": 0.003,
+    "raw_p_min_key": "refinery_ip__y_60d"
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "meta": "통신 robustness + S5 역공격",
+  "equipment_pbr_loo": {
+    "full_ic_60d": -0.1668,
+    "loo_drop_ic": {
+      "489790": -0.1649,
+      "218410": -0.154,
+      "032500": -0.1498,
+      "189300": -0.1892,
+      "050890": -0.1666,
+      "037460": -0.1504,
+      "138080": -0.1636,
+      "230240": -0.1683,
+      "069540": -0.1505,
+      "049070": -0.1954
+    },
+    "loo_range": [
+      -0.1954,
+      -0.1498
+    ],
+    "all_neg": true,
+    "note": "한화비전(489790) 최근상장 = drop 시 변화 확인 (outlier 점검)"
+  },
+  "equipment_pbr_within": {
+    "within_neg_frac": 0.671,
+    "n_months": 82
+  },
+  "equipment_pbr_netcost": {
+    "gross_ic_60d": -0.1668,
+    "cost_model": "KR STT 0.2%(매도) + 슬리피지 왕복 0.3% = 회당 ~0.5%. 60d 보유=연6회.",
+    "note": "★IC=상관(수익률 아님) → net-cost 직접차감 불가. 통합단계 long_short backtest 시 적용. equipment 소형주(KOSDAQ ADV 80~300억) = capacity 제약 + 비용 高 → conservative cap 의무.",
+    "capacity_flag": "★KOSDAQ 소형 통신장비 = 일평균거래대금 작음 → 실매매 capacity 제한 (J축)"
+  },
+  "equipment_pbr_size_neutral": {
+    "pbr_z_vs_size_z_corr": 0.5535,
+    "raw_ic_60d": -0.1668,
+    "size_neutral_ic_60d": -0.0526,
+    "shrink_pct": 68.5,
+    "verdict": "★CRITICAL — pbr_z value premium 의 size confound(저PBR↔소형 양 상관). size-residualize 후 IC 축소 = 순수 value 약, 사실상 소형주 효과. TENTATIVE 격하 근거."
+  },
+  "service_duration_unit_check": {
+    "kr10y_level_fwd3_rho": 0.0068,
+    "n": 86,
+    "d_kr10y_fwd3_rho": 0.1143,
+    "d_n": 85,
+    "note": "★level I(1)(ADF p=0.81) = spurious 위험. Δ(차분, ADF p<<0.05 정상) forward 부호로 진짜 duration 판정. level≠Δ 부호 갈리면 level spurious."
+  },
+  "service_rate_regime_split": {
+    "rate_up_fwd3_rho": -0.1245,
+    "up_n": 37,
+    "rate_down_fwd3_rho": -0.092,
+    "down_n": 26,
+    "note": "금리 상승기 통신 forward(duration 음 기대) vs 하락기. 비대칭 점검."
+  },
+  "attack_synthesis": {
+    "ATK1_pbr_outlier": "한화비전 drop IC=-0.1649 vs full=-0.1668 → outlier 아님(부호유지)",
+    "ATK2_pbr_netcost": "★IC≠수익 → 직접 net 불가. KOSDAQ 소형 capacity 제약 = conservative cap (실매매 제한).",
+    "ATK3_service_duration_spurious": "level I(1) spurious 위험. level rho=0.0068 vs Δ rho=0.1143 → 부호 일관(duration 신호 잔존)",
+    "ATK4_service_weak": "service 시계열 = 전 horizon 비유의(forward wc_p>0.06). 배당주 duration = 2019-26 약(저금리→인상 1사이클뿐, n_episode 부족).",
+    "ATK5_pbr_size_confound": "★pbr_z↔size_z corr=0.554 = 저PBR↔소형 양상관. raw IC -0.167 → size-neutral -0.053 (shrink 68.5%) = value premium 대부분 소형주 효과 = TENTATIVE 격하."
+  }
+}

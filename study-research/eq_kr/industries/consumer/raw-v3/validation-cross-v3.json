@@ -57,51 +57,73 @@
     }
   },
   "customer_supplier_momentum": {
-    "lithium_upstream": {
+    "corn_grain_upstream": {
       "lag0": {
-        "corr": -0.142,
-        "p": 0.193,
+        "corr": 0.106,
+        "p": 0.335,
         "n": 85
       },
       "lag1": {
-        "corr": 0.01,
-        "p": 0.925,
+        "corr": 0.14,
+        "p": 0.204,
         "n": 84
       },
       "lag2": {
-        "corr": 0.155,
-        "p": 0.162,
+        "corr": 0.078,
+        "p": 0.484,
         "n": 83
       },
       "lag3": {
-        "corr": 0.19,
-        "p": 0.088,
+        "corr": 0.092,
+        "p": 0.41,
         "n": 82
       }
     },
-    "albemarle_lithium_producer": {
+    "wheat_grain_upstream": {
       "lag0": {
-        "corr": -0.075,
-        "p": 0.497,
+        "corr": -0.066,
+        "p": 0.548,
         "n": 85
       },
       "lag1": {
-        "corr": 0.097,
-        "p": 0.382,
+        "corr": -0.078,
+        "p": 0.48,
         "n": 84
       },
       "lag2": {
-        "corr": 0.17,
-        "p": 0.124,
+        "corr": 0.022,
+        "p": 0.841,
         "n": 83
       },
       "lag3": {
-        "corr": 0.156,
-        "p": 0.162,
+        "corr": 0.165,
+        "p": 0.138,
         "n": 82
       }
     },
-    "_note": "upstream(lithium) lagged 3M momentum → battery forward 1M. alpha 후보 = 측정 17종 검증 후 IC→weight. 동조성분은 RegimeGlasso Ω 자동흡수(이중라우팅 X)."
+    "soybean_upstream": {
+      "lag0": {
+        "corr": 0.167,
+        "p": 0.126,
+        "n": 85
+      },
+      "lag1": {
+        "corr": 0.049,
+        "p": 0.661,
+        "n": 84
+      },
+      "lag2": {
+        "corr": -0.007,
+        "p": 0.949,
+        "n": 83
+      },
+      "lag3": {
+        "corr": 0.016,
+        "p": 0.888,
+        "n": 82
+      }
+    },
+    "_note": "★소비재 upstream(곡물 ZC/ZW/ZS) lagged 3M momentum → consumer forward 1M (cost pass-through). 음식료 한정 driver = 산업평균엔 희석. null 시 skip(§D forward-alpha falsifier). 동조성분=RegimeGlasso Ω 흡수."
   },
   "pit_reporting_delay": {
     "available": true,

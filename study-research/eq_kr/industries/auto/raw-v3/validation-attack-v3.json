@@ -1,0 +1,56 @@
+{
+  "meta": {
+    "purpose": "S5 역공격 — capex size위장/episode종속/대형주의존 반증 검정"
+  },
+  "A1_size_bucket_capex": {
+    "big_bucket": {
+      "ic_mean": -0.1677,
+      "n": 82
+    },
+    "small_bucket": {
+      "ic_mean": -0.1179,
+      "n": 82
+    },
+    "verdict": "size-bucket 내에서도 capex IC 음 유지 → size 위장 아님"
+  },
+  "A2_subperiod": {
+    "pbr_z": {
+      "pre_2023": {
+        "ic": -0.1053,
+        "n": 44
+      },
+      "post_2023": {
+        "ic": -0.1173,
+        "n": 38
+      },
+      "sign_consistent": true
+    },
+    "capex_ratio": {
+      "pre_2023": {
+        "ic": -0.0435,
+        "n": 44
+      },
+      "post_2023": {
+        "ic": -0.1722,
+        "n": 38
+      },
+      "sign_consistent": true
+    }
+  },
+  "A3_loo": {
+    "pbr_z": {
+      "base": -0.1109,
+      "ex_hyundai": -0.0993,
+      "ex_kia": -0.118,
+      "ex_both": -0.106,
+      "sign_robust": true
+    },
+    "capex_ratio": {
+      "base": -0.1031,
+      "ex_hyundai": -0.0959,
+      "ex_kia": -0.094,
+      "ex_both": -0.0827,
+      "sign_robust": true
+    }
+  }
+}
