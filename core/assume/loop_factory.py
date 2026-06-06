@@ -109,6 +109,66 @@ def build_active_loop(
     )
 
 
+# ── S5 stage-1 ingest 실배선 (하이쿠 요약 + BGE 임베딩) ───────────────────
+HAIKU_MODEL = "claude-haiku-4-5-20251001"   # 소형 LLM = Claude Haiku 4.5(OAuth, 저비용 요약)
+
+
+def bge_health(base_url: str = "http://127.0.0.1:8787") -> bool:
+    """DaService BGE 임베드 서버(127.0.0.1:8787) 가용 여부."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f"{base_url.rstrip('/')}/health", timeout=2) as r:
+            return r.status == 200
+    except Exception:
+        return False
+
+
+def build_research_ingest(
+    *,
+    use_haiku: bool = False,
+    use_bge: bool = False,
+    store=None,
+    novelty_min: float = 0.15,
+    require_health: bool = True,
+):
+    """S5 stage-1 ResearchIngestPipeline 실배선 (사용자 구상: 리포트→하이쿠 요약→BGE 인덱싱).
+
+    use_haiku=True → ClaudeProvider(Haiku 4.5) 어댑터를 summarizer 로 주입(소형 LLM 요약).
+      ⛔OAuth credentials 부재/오류 → graceful(summarizer None → raw truncate 로 fallback).
+    use_haiku=False → summarizer None → raw 그대로 BGE 인덱싱(요약 생략, 사용자 '그대로 bge로 읽거나').
+    use_bge=True → DaServiceEmbedder(127.0.0.1:8787 BGE-m3) 주입(require_health 시 서버 확인 후).
+      미가동 → embedder None → ingest abstain(byte-identical).
+    """
+    from core.assume.research_ingest import ResearchIngestPipeline
+
+    summarizer = None
+    if use_haiku:
+        try:
+            from core.brain.llm_provider import ClaudeProvider
+            summarizer = GenerateToComplete(ClaudeProvider(model=HAIKU_MODEL))
+            logger.info("research_ingest summarizer 실배선: Claude Haiku 4.5")
+        except Exception as e:
+            logger.warning("Haiku summarizer 배선 실패 → raw truncate: %s", e)
+            summarizer = None
+
+    embedder = None
+    if use_bge:
+        if (not require_health) or bge_health():
+            try:
+                from core.brain.embedder import DaServiceEmbedder
+                embedder = DaServiceEmbedder()
+                logger.info("research_ingest embedder 실배선: DaService BGE-m3(8787)")
+            except Exception as e:
+                logger.warning("BGE embedder 배선 실패 → abstain: %s", e)
+                embedder = None
+        else:
+            logger.info("BGE 서버(8787) 미가동 → embedder None(abstain)")
+
+    return ResearchIngestPipeline(
+        summarizer=summarizer, embedder=embedder, store=store, novelty_min=novelty_min,
+    )
+
+
 if __name__ == "__main__":
     from core.brain.macro_schema import Bloc, MacroView, RegimeEstimate, RegimeLabel, ViewStatus
 
