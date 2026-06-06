@@ -49,6 +49,7 @@ class CoinTrackWithMacro(CoinTrack):
         )
         self._macro_orch = macro_orchestrator
         self._macro_enabled = macro_enabled
+        self._fhc_loop = None        # (B) FHC shadow 발권 루프 lazy 캐시(rate_cap 상태 유지)
 
     def collect_market_state(self, as_of=None) -> MarketState:
         """기존 CoinTrack.collect_market_state + macro 레이어 주입.
@@ -96,10 +97,68 @@ class CoinTrackWithMacro(CoinTrack):
                 state.raw_external_data["macro_abstain"] = macro_result.get("macro_abstain", False)
                 state.raw_external_data["macro_status"] = macro_result.get("status", "fresh")
                 logger.debug("macro 레이어 주입 완료: abstain=%s", macro_result.get("macro_abstain"))
+
+                # (B) FHC shadow 발권 wire — env ACTIVE_LOOP_SHADOW opt-in. off=미호출(byte-identical).
+                #     LLM(Claude OAuth) 실호출하되 카드=probationary(자본0, 배분 무영향).
+                #     결과는 raw_external_data["fhc_shadow_cards"](관찰용)로만 — 결정엔진 미참조.
+                try:
+                    from core.assume.loop_factory import is_active_loop_shadow_enabled
+                    if is_active_loop_shadow_enabled():
+                        self._run_fhc_shadow(macro_view, as_of, state)
+                except Exception as exc:
+                    logger.warning("FHC shadow 발권 wire 실패 → 무시(배분 무영향): %s", exc)
             except Exception as exc:
                 logger.warning("macro 레이어 주입 실패 → 기존 경로 유지: %s", exc)
 
         return state
+
+    def _run_fhc_shadow(self, macro_view, as_of, state) -> None:
+        """(B) FHC 능동 발권 루프 shadow 1사이클 — env ACTIVE_LOOP_SHADOW on 일 때만 호출.
+
+        macro_view(국면) 저신뢰/mediator UNKNOWN 시 LLM(Claude OAuth) 소환→반증가능 카드 발권.
+        카드 = probationary(자본0, go-live arming 전 배분 무영향). 결과는 관찰용 적재만.
+        macro_view 부재(r15 off) 시 shadow 전용 가벼운 classify 1회(graceful). 실패=무시.
+        rate_cap(일1회) 상태 유지를 위해 루프 인스턴스를 self._fhc_loop 에 캐시.
+        """
+        mv = macro_view
+        if mv is None:
+            try:
+                from core.brain.regime_classifier import RegimeClassifier
+                from core.brain.fred_adapter import RealFredAdapter
+                mv = RegimeClassifier(usd_adapter=RealFredAdapter()).classify(as_of=as_of)
+            except Exception:
+                mv = None
+        if mv is None:
+            return
+
+        if self._fhc_loop is None:
+            from core.assume.loop_factory import build_shadow_active_loop
+            # use_claude=True: 메인과 동일 OAuth 키(사용자 "한도 OK"). 실패→llm None graceful.
+            self._fhc_loop = build_shadow_active_loop(use_claude=True)
+
+        # tick = as_of 일슬롯(같은 날 1회 상한). 라이브(as_of None)=0 슬롯=프로세스 내 1회.
+        tick = 0.0
+        try:
+            if as_of is not None and hasattr(as_of, "toordinal"):
+                tick = float(as_of.toordinal())
+        except Exception:
+            tick = 0.0
+
+        pcard = self._fhc_loop.run_cycle(
+            mv, tick=tick, numeric_revision=1.0,
+            query="macro regime asset allocation outlook",
+            as_of_ts=(tick or None))
+        if pcard is not None:
+            state.raw_external_data["fhc_shadow_cards"] = [{
+                "card_id": pcard.card.card_id,
+                "direction": pcard.card.direction,
+                "thesis": pcard.thesis,
+                "mediator": pcard.card.mediator.observable_ref,
+                "falsification": pcard.card.falsification_metric,
+                "kind": pcard.card.kind,
+                "bonus_cap": pcard.card.bonus_cap,
+            }]
+            logger.info("FHC shadow 발권: %s (probationary, 자본0)", pcard.card.card_id)
 
     def generate_candidate(self, state: MarketState):
         """기존 CoinTrack.generate_candidate 그대로 (재작성 금지).

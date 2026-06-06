@@ -14,12 +14,25 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Optional
 
 from core.assume.active_loop import ActiveAnalystLoop, LoopConfig
 from core.assume.info_delta_gate import RateCapState
 
 logger = logging.getLogger(__name__)
+
+_ENV_ACTIVE_LOOP_SHADOW = "ACTIVE_LOOP_SHADOW"
+
+
+def is_active_loop_shadow_enabled() -> bool:
+    """S4 발권 shadow wire opt-in 게이트(coin_track_macro 소비). off = 미호출(byte-identical).
+
+    on 이어도 카드는 probationary(자본0) → 배분 무영향. go-live arming(사람 게이트)과 별개.
+    study_register.is_r15_enabled 동일 패턴(1/true/on/yes).
+    """
+    return str(os.environ.get(_ENV_ACTIVE_LOOP_SHADOW, "")).strip().lower() in (
+        "1", "true", "on", "yes")
 
 
 class GenerateToComplete:
@@ -120,6 +133,29 @@ def build_active_loop(
             logger.info("OllamaQwen 서버 미가동 → abstain(발권 0)")
     return ActiveAnalystLoop(
         llm=llm, report_store=report_store, rate_cap=rate_cap,
+        write_back=write_back, config=config,
+    )
+
+
+def build_shadow_active_loop(
+    *,
+    use_claude: bool = True,
+    use_local_llm: bool = False,
+    cap_per_slot: int = 1,
+    report_store=None,
+    write_back=None,
+    config: Optional[LoopConfig] = None,
+) -> ActiveAnalystLoop:
+    """coin_track_macro 발권 shadow wire 전용 빌더 — rate_cap(슬롯당 cap_per_slot, 기본 일1회) 내장.
+
+    ★build_active_loop + RateCapState 결합. 매 collect_market_state 호출이 폭증하지 않도록
+    슬롯당 발권 상한(info_delta_gate)을 강제. 인스턴스를 호출자가 캐시하면 rate 상태가 유지됨.
+    use_claude 기본 True(사용자 "OAuth 한도 OK, 메인과 동일 키"). off=llm None→abstain(byte-identical).
+    """
+    return build_active_loop(
+        use_claude=use_claude, use_local_llm=use_local_llm,
+        report_store=report_store,
+        rate_cap=RateCapState(cap_per_slot=cap_per_slot),
         write_back=write_back, config=config,
     )
 
