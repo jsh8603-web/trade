@@ -120,3 +120,29 @@ purpose: 12산업 rotation timing 신호 후보 전체 + 채택/이연/미채택
 | observe-only | underpowered rotation 신호 전체(financial cli_chg 외) | live OOS 누적 후 powered 승격 결정 |
 | evt | cli_chg PIT-lag leakage 수정(rho 0.555→0.482) | promotion-log 후보 (regime_series raw=lag미적용 함정) |
 | pointer | measure_rotation.py + summary.yaml = 산업 rotation SSOT / refining/measure_timeseries.py = prototype | 다음 세션 정독 우선순위 |
+| memory | "한국 3층 selection robust=반도체 1곳(steel/aitech 경계). EB 대평균 끌림=약신호 끌어올림 = C12 설계 부작용(결함 아님). (f)종목별 수급=약신호 직교 레버" | 다음 selection cycle prior |
+| observe-only | EB 약신호 부작용 정교화(계층 베이즈 half-Cauchy + noise-floor) + grade cut→convex 연속수축 | 통합단계 selection 코드 정식화 시 |
+| pointer | verify_weak_signal_severity.py/.json = selection 약신호 심각도 SSOT / .consult-kr-within-industry-weak-signal-RESULTS.md = 자문 1R | 다음 세션 |
+
+## 🧩 3층 산업 내 selection 약신호 — 자문 1R + 본인 검증 판정 (2026-06-06)
+
+> 입력: 자문(gemini+claude 병렬 = `.consult-kr-within-industry-weak-signal-RESULTS.md`) + 본인 시뮬(`verify-weak-signal-severity.json`).
+
+**layer 구분 (핵심)**: 사용자 "변별력 올려라" = **2층 rotation** active share(정상 작동, mean 10.1% / 비중 13배 차등). **3층 selection ρ**는 capsule IC 신뢰도 측정 = 다른 layer. selection 등급은 변별력 조절 대상 아님(측정).
+
+**EB(C12) 정상성 판정**: within EB(부호보존 |IC| DerSimonian-Laird, 대평균 0.128 끌림) = **자문 C12 설계 그대로 = 결함 아님** ("소표본=대평균 끌림" C12 원문). 단 |IC|<대평균인 약신호(telecom 0.053→0.10)를 끌어올리는 부작용 = C12 미예견, 이번 자문 발견 = 방법 한계(통합단계 정교화 의제).
+
+**selection 실효 보수 판정** (verify 시뮬, ρ 방식별):
+| EB 방식 | 中 등급(ρ≥0.25) | 비고 |
+|---|---|---|
+| ①현행 부호보존 \|IC\| | 반도체·steel·aitech (3) | 약신호 대평균 끌림 포함 |
+| ②zero-mean / ③noise-floor | **반도체만 (1)** | steel/aitech 中→低 강하 |
+→ **robust 中 = 반도체 1곳**(ρ0.36, N_eff53, IC-0.114 BY생존). steel/aitech = 경계(방법 의존). 나머지 9곳 低/불가. selection 변별력은 약 = 억지 키우면 overfit.
+
+**타당한 방향 (우선순위)**:
+1. **규율 고정** — selection IC = capsule **primary**만(IC-never-as-selector). battery inv_ratio(+0.112 TENTATIVE) → cs_mom_6m(+0.075). 등급 영향 LOW(0.214→0.189 둘 다 低)지만 정직.
+2. **(f) 종목별 수급**(외국인·기관 순매수·공매도 잔고) = 약신호 업종 직교 레버(최우선 별 study). breadth 직교(과점 업종도 flow는 시계열 변동). 검증 의무 = mom 직교(cs_mom residualize)·size 중립·공매도 regime-gate(2020-03~2021-05·2023-11~2024 금지 공백).
+3. **(b) financial sub-sector 분리**(은행만 pbr -0.161 value) = capsule 이미 진단(통합 cancel), 분리 베팅은 통합단계.
+4. **통합단계 정교화**: EB → 계층 베이즈(half-Cauchy) + noise-floor 보정 / grade cut → convex 연속수축 / cross-industry pooled selection(breadth 파편화 복구).
+
+**현 단계 결론**: 연구단계 selection = 측정 정직성 확보 완료(EB는 C12 spec 충실). 변별력 주력 = 2층 rotation. 3층 = 반도체 중심 + 약신호 산업중립 바스켓. (f) 수급이 약신호 살릴 유일 잠재 레버(미실측).
