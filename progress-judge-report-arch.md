@@ -33,6 +33,12 @@ plan: plan-judge-report-arch.md
 - 잔여: substrate on(멀티에셋 macro view+regime) 주입 variant = RegimeGlasso 공유라 button 연결 후. coin baseline은 확보.
 
 ## Working Notes
+> [ckpt-202606061030:btn-Inv S4 직교성 발권 게이트 ✅ — 스패닝 회귀(C9/Q3) additive 구현]
+> ★**완료(self-test 7/7 PASS)**: 사용자 "이 세션 plan progress 다 진행" → plan §4 go-live 경계 재판정="S0~S4 전부 dry-run/shadow, arming만 go-live" + §6 "S4/S5=거시 scope=현 세션 소유"(S6만 button) → **S4 직교성 발권 게이트가 LLM무관 통계라 자율 가능 확정**(S1/S2/S3 dormant 선례 동형).
+> (1) **마지막 결정/구현**: `core/assume/spanning_gate.py` 신규(numpy OLS+Newey-West HAC, 외부의존 0). `spanning_regression`(r_c=α+βᵀF+ε, HAC SE=Bartlett kernel 자동 lag) + `residual_forward_ic`(Spearman) + `mint_gate`(★n<20=INSUFFICIENT 단정금지 / |α_t(HAC)|<2=CAMOUFLAGE 7팩터 위장 발권차단 / α유의+잔차 forward IC=MINT 진짜 잔차알파) + `conditional_alpha`(국면 interaction=regime-switching conditional alpha, 결정론 팩터코어 못잡는 state-dependence). small-n-rigor §1.2-1.4 준수(n·HAC·hedge·INSUFFICIENT 격하). self-test: 순수팩터노출→camouflage(α_t-0.54)/직교알파→mint(α_t36.9)/n15→insufficient/잔차 forward IC 비유의→보류/잔차→fwd예측→mint(ic0.97)/HAC lags4/조건부 in28.4 vs out-0.16. ★additive INV-11(호출처 0, go-live 시 카드 mint 경로서 r_c·F 주입), go-live·실거래 무접촉.
+> (2) **다음 의도**: pytest 격리 테스트 파일(tests/assume/test_spanning_gate.py) 추가 + plan S4 마킹 + 격리 커밋. 이후 S5 정보델타 게이트(임베딩 novelty+rate-cap AND 델타, LLM무관 = 자율 가능 동형). S4 LLM 소환(claim 생성·Opus audit)·S5 대형 발권·S6 종목·S2 RegimeGlasso 공급측 = button+go-live 선결 불변.
+> (3) **동기화**: git HEAD=d00fe0f(S2). button 64e8bc0(ETF) 무접촉. btn-button 세션 살려둠(사용자 "세션둬"). push·go-live 미접촉.
+>
 > [ckpt-202606060900:btn-Inv S2 macro mediator 구독측 ✅ — posterior 노출 판정→어댑터 구현(81 passed)]
 > ★**완료(검증됨)**: 직전 ckpt 재개점("macro_schema posterior 노출 판정")을 사용자 지시("너거 하라고"+"리드미 참고")로 집행 → **macro 구독측 자율 구현 완료**.
 > (1) **판정**: `macro_schema.py` MacroView 원본은 `regime_now`(PIT filtered, NBER lag 미사용)+`confidence_now`(스칼라)만 노출, full posterior 벡터·entropy·covariance **미노출**. BUT `eval_mediator`(fhc.py L222)는 **boolean `posterior_holds`만** 받음(자산무관 core=MacroView 무지) → holds 산출은 구독 어댑터 책임 → **baseline 무수정 자율 가능 확정**. ★README 참고로 `core/brain/regime_belief_adapter.belief_from_macro_view` 발견 = MacroView→4-state belief 확률벡터 변환 **이미 존재**(confidence soft-spread+floor+unavailable→uniform) → caveat(full posterior 미노출) 해소(belief 분포서 entropy 산출).
