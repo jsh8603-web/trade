@@ -1,0 +1,208 @@
+{
+  "meta": {
+    "purpose": "약변별 sleeve 테마 ETF 1차 선정 (Phase 1-2)",
+    "기준": "대표성+유동성(MarCap≈AUM, Amount), ★리턴(EarningRate) 배제, 레버리지/인버스/액티브 제외",
+    "미완": "TER/realized-TE/tax-FX + look-through passive 확정 = Phase 1-3/2 (운용사 PDF)"
+  },
+  "kr_picks": {
+    "financial": {
+      "ticker": "091170",
+      "name": "KODEX 은행",
+      "aum_marcap": 6143.0,
+      "amount": 33199.0,
+      "nav": 15907.0,
+      "holdings_source": "FDR",
+      "look_through": "passive 추정(액티브/파생 제외 필터). Phase 1-3 운용사 PDF 확정",
+      "candidates_top3": [
+        {
+          "Symbol": "091170",
+          "Name": "KODEX 은행",
+          "MarCap": 6143,
+          "Amount": 33199
+        },
+        {
+          "Symbol": "091220",
+          "Name": "TIGER 은행",
+          "MarCap": 211,
+          "Amount": 4958
+        }
+      ]
+    },
+    "battery": {
+      "ticker": "305720",
+      "name": "KODEX 2차전지산업",
+      "aum_marcap": 20452.0,
+      "amount": 87149.0,
+      "nav": 17912.0,
+      "holdings_source": "FDR",
+      "look_through": "passive 추정(액티브/파생 제외 필터). Phase 1-3 운용사 PDF 확정",
+      "candidates_top3": [
+        {
+          "Symbol": "305720",
+          "Name": "KODEX 2차전지산업",
+          "MarCap": 20452,
+          "Amount": 87149
+        },
+        {
+          "Symbol": "305540",
+          "Name": "TIGER 2차전지테마",
+          "MarCap": 11277,
+          "Amount": 22808
+        },
+        {
+          "Symbol": "462010",
+          "Name": "TIGER 2차전지소재Fn",
+          "MarCap": 6863,
+          "Amount": 35932
+        }
+      ]
+    },
+    "bio": {
+      "ticker": "244580",
+      "name": "KODEX 바이오",
+      "aum_marcap": 2454.0,
+      "amount": 7703.0,
+      "nav": 10263.0,
+      "holdings_source": "FDR",
+      "look_through": "passive 추정(액티브/파생 제외 필터). Phase 1-3 운용사 PDF 확정",
+      "candidates_top3": [
+        {
+          "Symbol": "244580",
+          "Name": "KODEX 바이오",
+          "MarCap": 2454,
+          "Amount": 7703
+        },
+        {
+          "Symbol": "261070",
+          "Name": "TIGER 코스닥150바이오테크",
+          "MarCap": 673,
+          "Amount": 2335
+        }
+      ]
+    },
+    "shipbuilding": {
+      "ticker": "441540",
+      "name": "HANARO Fn조선해운",
+      "aum_marcap": 875.0,
+      "amount": 1234.0,
+      "nav": 31174.0,
+      "holdings_source": "FDR",
+      "look_through": "passive 추정(액티브/파생 제외 필터). Phase 1-3 운용사 PDF 확정",
+      "candidates_top3": [
+        {
+          "Symbol": "441540",
+          "Name": "HANARO Fn조선해운",
+          "MarCap": 875,
+          "Amount": 1234
+        },
+        {
+          "Symbol": "0141S0",
+          "Name": "SOL 조선기자재",
+          "MarCap": 646,
+          "Amount": 8009
+        }
+      ]
+    },
+    "consumer": {
+      "ticker": "266390",
+      "name": "KODEX 경기소비재",
+      "aum_marcap": 160.0,
+      "amount": 2305.0,
+      "nav": 17778.0,
+      "holdings_source": "FDR",
+      "look_through": "passive 추정(액티브/파생 제외 필터). Phase 1-3 운용사 PDF 확정",
+      "candidates_top3": [
+        {
+          "Symbol": "266390",
+          "Name": "KODEX 경기소비재",
+          "MarCap": 160,
+          "Amount": 2305
+        },
+        {
+          "Symbol": "266410",
+          "Name": "KODEX 필수소비재",
+          "MarCap": 128,
+          "Amount": 171
+        },
+        {
+          "Symbol": "139290",
+          "Name": "TIGER 200 경기소비재",
+          "MarCap": 95,
+          "Amount": 1042
+        }
+      ]
+    },
+    "chemical": {
+      "ticker": "139250",
+      "name": "TIGER 200 에너지화학",
+      "aum_marcap": 360.0,
+      "amount": 805.0,
+      "nav": 19509.0,
+      "holdings_source": "FDR",
+      "look_through": "passive 추정(액티브/파생 제외 필터). Phase 1-3 운용사 PDF 확정",
+      "candidates_top3": [
+        {
+          "Symbol": "139250",
+          "Name": "TIGER 200 에너지화학",
+          "MarCap": 360,
+          "Amount": 805
+        },
+        {
+          "Symbol": "117460",
+          "Name": "KODEX 에너지화학",
+          "MarCap": 306,
+          "Amount": 680
+        }
+      ]
+    },
+    "auto": {
+      "ticker": "091180",
+      "name": "KODEX 자동차",
+      "aum_marcap": 5650.0,
+      "amount": 48166.0,
+      "nav": 38712.0,
+      "holdings_source": "FDR",
+      "look_through": "passive 추정(액티브/파생 제외 필터). Phase 1-3 운용사 PDF 확정",
+      "candidates_top3": [
+        {
+          "Symbol": "091180",
+          "Name": "KODEX 자동차",
+          "MarCap": 5650,
+          "Amount": 48166
+        },
+        {
+          "Symbol": "464600",
+          "Name": "SOL 자동차소부장Fn",
+          "MarCap": 453,
+          "Amount": 5687
+        }
+      ]
+    }
+  },
+  "us_defensive_subsector": {
+    "staples": {
+      "ticker": "XLP",
+      "aum": 14855075840,
+      "name": "State Street Consumer Staples Select Sector SPDR ETF",
+      "holdings_source": "yfinance"
+    },
+    "utilities": {
+      "ticker": "XLU",
+      "aum": 22354980864,
+      "name": "State Street Utilities Select Sector SPDR ETF",
+      "holdings_source": "yfinance"
+    },
+    "healthcare": {
+      "ticker": "XLV",
+      "aum": 38248288256,
+      "name": "State Street Health Care Select Sector SPDR ETF",
+      "holdings_source": "yfinance"
+    },
+    "comm_mature": {
+      "ticker": "XLC",
+      "aum": 25115598848,
+      "name": "State Street Communication Services Select Sector SPDR ETF",
+      "holdings_source": "yfinance"
+    }
+  }
+}

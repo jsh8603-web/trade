@@ -87,6 +87,30 @@ ALLOWED_REGIONS: frozenset[str] = frozenset({"US", "KR"})
 TIER2_ALLOWLIST: frozenset[str] = frozenset()
 
 
+# ── ETF tier 분류 (약변별 sleeve fallback, 자문 D 안전장치) ────────────
+# 레버리지/인버스/ETN 키워드 (build_etf_picks.py EXCLUDE 정합). 약변별 fallback ETF 가 일반
+# passive(CORE_ALLOWED)인지 레버리지/인버스(TIER2_DEFAULT_OFF=거절)인지 이름으로 분류.
+# ⛔미배선 무동작: check_admission 은 여전히 tier 인자를 호출자에게서 받는다(byte-identical).
+#   ETF fallback 경로가 admission 을 거칠 때 호출자가 classify_etf_tier 로 tier 를 산출해 전달.
+_TIER2_ETF_KEYWORDS: tuple[str, ...] = (
+    "레버리지", "레버", "인버스", "곱버스", "2x", "3x", "선물",
+    "etn", "inverse", "leverage", "ultra", "ultrashort", "bull", "bear",
+)
+
+
+def classify_etf_tier(name: str) -> ProductTier:
+    """ETF 이름 → ProductTier. 레버리지/인버스/ETN = TIER2_DEFAULT_OFF / 일반 passive = CORE_ALLOWED.
+
+    약변별 sleeve fallback ETF 분류기 (build_etf_picks.py EXCLUDE 와 동일 키워드 정책).
+    개별 종목(현물)은 호출자가 직접 CORE_ALLOWED 지정 — 본 함수는 ETF 전용.
+    """
+    low = (name or "").lower()
+    for kw in _TIER2_ETF_KEYWORDS:
+        if kw in low:
+            return ProductTier.TIER2_DEFAULT_OFF
+    return ProductTier.CORE_ALLOWED
+
+
 # ── 게이트 함수 ───────────────────────────────────────────────────────
 
 def check_admission(

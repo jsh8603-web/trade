@@ -370,6 +370,20 @@ AI 거부권: 매수 점수 충족이어도 `ai_composite_signal.score`<0이면 
 
 > ⛔ WIRE5는 **연구 트랙 실측**이며 production 미배선. go-live 시 곱 결합(`W_i × v_{j|i}`)·hierarchical FDR 통합은 사람 게이트 통과 후 별도 단계. 점추정 단독 박제 금지(분포+CI+gate, small-n hedge), 실 PIT 데이터만(합성·시뮬 금지).
 
+#### 약변별 sleeve → 테마 ETF fallback (진행 중, 2026-06-06)
+
+3층 종목 selection 변별력이 약한(低/불가) sleeve는 종목을 골라봤자 의미 없으므로, **과거 수익률이 아니라 대표성·유동성·저비용으로 고른 단일 테마 ETF**로 노출만 확보하거나(대N), 구성종목 **capped-EW**로 통째 보유한다(소N·과점). 외부 자문 3R(gemini-web+claude-web) 수렴 = "위험 단어는 'ETF'가 아니라 '과거 수익률 높은'" — 리턴-랭크 선정을 **대표성-랭크**로 치환하면 momentum chasing·레버리지 ETF 선택(레버리지 거절정책 모순)을 피하면서 사용자 ETF 의도를 보존한다.
+
+- **Selector 추상** (`stock/selector.py`): `Selector` ABC + `SleeveInput`. `CheapnessSelector`(기존 cross-sectional 강등 래퍼, 무변경) / `EwBasketSelector`(구성종목 capped-EW) / `RepresentativeETFSelector`(단일 ETF, `score=None` pre_resolved → ranker bypass = 가짜점수 주입 아니라 '경로 건너뜀', holdings 메타 운반).
+- **dispatch seam** (`stock/construction.py:build_sleeve_decisions`, env `ETF_FALLBACK` default off=byte-identical): `N≥5(비용 proxy) ∧ 적격 passive-ETF ∧ look-through 통과 ∧ holdings PIT max-lag` → `RepresentativeETFSelector` / 그 외 → `EwBasketSelector` / strong sleeve → 기존 경로. value 2단 트리거는 '우회'가 아니라 '안 부름'(ETF=내재가치 부적합).
+- **등급→라우팅** (`_rotation/within_industry_residual_{kr,us}`): 한국 低9(financial/battery/bio/shipbuilding/consumer/chemical/auto=ETF, telecom·refining=EW 과점·ETF부재) + 미국(defensive 低=ETF, cyclical 中=selection 유지, mega_tech 불가=basket).
+- **데이터 PIT** (`stock/data/etf_pit.py`, Phase 2): `EtfPitProvider` = FDR(KR)+yfinance(US) 일별 시세(역사 PIT 가용) + **AUM 우선순위**(운용사 공시 절대값 > NAV×상장좌수 > 현재 스냅샷, `krx_universe` jsonl 일별 적재로 PIT 재구성) + **1일 lag**(cutoff=asof−1영업일, 가격·AUM 공통 = T종가 T체결 look-ahead 차단) + trailing 1M ADV(청산 proxy). `assemble_etf_picks(picks, asof)` = 정적 선정(`etf-picks.json`) + 동적 PIT → `construction(etf_picks=...)` 매핑(데이터 부재 sleeve는 EW 자동 강등).
+- **alpha→beta 4중 잠금**: WeightAssumptionCard expected-alpha=0 선언 / shadow-EW e-CUSUM 디커플링 / 대칭 promote-demote gate(변별력 회복 시 selection 복귀) / 리턴-랭크 counterfactual. risk_gate look-through(섹터 cap=underlying / 단일발행체 direct+via-ETF 합산).
+
+- **백테스트** (`study-research/eq_kr/.../etf_fallback_backtest.py`, Phase 5, 실 PIT만): 구성종목 EW basket vs 테마 ETF 실 일별 성과 + 슬리피지(engine.calculate_slippage) + shadow-EW 디커플링(월별 집계 betting, 일별=variance drag 회피). **financial 실측**(2019-2026, 34종): EW누적+230.6%/ETF+174.9%, MDD ETF우위(-47.4% vs -52.2%), **TE 14.65%**(KODEX은행 ETF가 광의 financial 부분커버 → 라우팅 재검토 신호). ★small-n hedge: 다sleeve OOS 후 확정.
+
+> ⛔ production byte-identical 보존(env off 회귀 0 검증) · go-live 미접촉 · look-ahead PIT 엄수. plan/progress = `plan-etf-fallback-weak-sleeve-20260606.md` / `etf-fallback-routing-ledger-20260606.md`.
+
 ---
 
 ## 🔢 Phase 진화 (구현 단계 — `architecture.md` §2)

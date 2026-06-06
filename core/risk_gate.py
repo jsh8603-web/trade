@@ -186,6 +186,95 @@ def down_only_corr_multiplier(avg_correlation: float) -> float:
     return min(calculate_correlation_multiplier(avg_correlation), 1.0)
 
 
+# ── ETF look-through (약변별 sleeve fallback, 자문 D3 안전장치) ──────────
+# 자문 3R 수렴(etf-fallback-weak-sleeve-20260606): 약변별 sleeve → 단일 테마 ETF 1포지션은
+# wrapper 1개로 보이지만 내부 N종목 보유 → risk cap 을 underlying 으로 분해해야 실효 집중도가 보인다.
+#   - 종목 cap   = ETF 자체(wrapper 1 instrument, check() 기존 max_weight_single 그대로)
+#   - 섹터 cap   = look-through underlying 섹터 분포(본 helper)
+#   - 단일발행체 = direct 보유 + via-ETF 보유 합산(본 helper, 이중 노출 차단)
+# ⛔off=byte-identical: 순수 함수이며 누구도 호출하지 않으면 무동작(check()·기존 경로 무변경).
+#   cross_sleeve_avg_correlation(line ~150)과 동일한 "helper 추가, 미배선 무동작" 패턴.
+# ⛔core 격리: holdings 는 dict 리스트 [{ticker, weight, sector}] 로 받는다(stock 레이어 import 0).
+
+
+def _normalize_holding_weight(w: float) -> float:
+    """holdings weight 를 fraction(0~1)으로 정규화. %(>1.5)면 /100, 이미 fraction 이면 그대로."""
+    try:
+        wf = float(w)
+    except (TypeError, ValueError):
+        return 0.0
+    if wf < 0:
+        return 0.0
+    return wf / 100.0 if wf > 1.5 else wf
+
+
+def etf_lookthrough_exposures(
+    etf_weight: float,
+    holdings: list,
+    direct_holdings: dict | None = None,
+) -> dict:
+    """ETF 1포지션의 look-through 실효 노출 분해 (risk_gate 섹터 cap·단일발행체 합산용).
+
+    etf_weight     : 포트폴리오 내 ETF 비중 (0~1).
+    holdings        : ETF 구성 [{ticker, weight, sector}] — weight 는 % 또는 fraction(자동 정규화).
+                      부분 holdings(top-N) 면 Σ<1 → 잔차는 'unclassified' 섹터로 보수 보존(정규화 X).
+    direct_holdings : {ticker: weight} 직접 보유 종목(via-ETF 와 합산). None=직접 보유 없음.
+
+    반환 {
+      'by_issuer'    : {ticker: direct + etf_weight·h_i},   # 단일발행체 direct+via-ETF 합산
+      'by_sector'    : {sector: Σ etf_weight·h_i},           # 섹터 look-through (+'unclassified' 잔차)
+      'covered'      : Σ h_i (fraction),                     # holdings 커버리지 (1.0=완전)
+      'top_issuer'   : (ticker, weight) | None,             # 최대 실효 단일발행체
+    }
+    holdings 빈/부재 → ETF wrapper 통째 'unclassified' 섹터 etf_weight (보수 fallback, look-through 불가).
+    """
+    ew = max(0.0, float(etf_weight or 0.0))
+    by_issuer: dict[str, float] = dict(direct_holdings or {})
+    by_sector: dict[str, float] = {}
+    covered = 0.0
+
+    for h in (holdings or []):
+        ticker = (h.get("ticker") or "").strip() if isinstance(h, dict) else ""
+        hf = _normalize_holding_weight(h.get("weight", 0.0)) if isinstance(h, dict) else 0.0
+        if hf <= 0:
+            continue
+        covered += hf
+        eff = ew * hf
+        if ticker:
+            by_issuer[ticker] = by_issuer.get(ticker, 0.0) + eff
+        sector = (h.get("sector") or "unclassified").strip() or "unclassified"
+        by_sector[sector] = by_sector.get(sector, 0.0) + eff
+
+    # 미커버 잔차(top-N holdings) + holdings 전무 → 보수적으로 unclassified 섹터에 적재
+    residual = ew * max(0.0, 1.0 - covered)
+    if residual > 1e-12:
+        by_sector["unclassified"] = by_sector.get("unclassified", 0.0) + residual
+
+    top_issuer = max(by_issuer.items(), key=lambda kv: kv[1]) if by_issuer else None
+    return {
+        "by_issuer": by_issuer,
+        "by_sector": by_sector,
+        "covered": covered,
+        "top_issuer": top_issuer,
+    }
+
+
+def holdings_pit_stale(
+    holdings_asof: Any,
+    asof: Any,
+    max_lag_days: int,
+) -> bool:
+    """ETF holdings PIT max-lag 검증 — holdings_asof 가 asof 대비 max_lag_days 초과면 stale(True).
+
+    stale=True → 호출자(라우팅)는 ETF 경로 강등(EW) 또는 보수 cap 적용 권고.
+    둘 중 하나라도 datetime 아님 → True(보수적: 검증 불가 = stale 취급).
+    """
+    if not isinstance(holdings_asof, datetime) or not isinstance(asof, datetime):
+        return True
+    lag = (asof - holdings_asof).days
+    return lag > int(max_lag_days)
+
+
 # ── RiskGate ──────────────────────────────────────────────────────────
 
 class RiskGate:

@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "purpose": "미국 eq_us sleeve 종목 selection 변별력 등급 (Phase 0-2, ETF fallback 후보 식별)",
+    "★패턴": "한국 within_industry_residual_kr.py 이식 (measured IC SSOT + N_eff PR + ρ_i). 새 측정 X.",
+    "capsule_ic_source": "각 sleeve summary.yaml (재작업 v3, sector-neutral). 추출 2026-06-06.",
+    "★EB_생략": "미국 3 sleeve = τ² between-group var 부적합. raw |IC| 사용. gate=measured verdict 직접.",
+    "n0_ic0_차용": "한국 within v2 (n0=13.63, ic0=0.141) = 한미 공통 척도.",
+    "★한미_비대칭": "미국 sleeve=multi-sector pooled(cyclical 5섹터) = 측정단위 한국 산업과 다름. 미국 종목 多→cyclical cross-sectional 작동.",
+    "등급_임계": "高≥0.45 / 中≥0.25 / 低<0.25 (한국 동일). 低·불가 = ETF fallback 후보."
+  },
+  "per_sleeve": {
+    "us_cyclical": {
+      "signal": "cs_pbr_z 12M(+ev_ebitda)",
+      "ic": -0.117,
+      "by": true,
+      "gate": 1.0,
+      "start": "2015-01-01",
+      "caveat": "CONFIRMED — PBR/EV-EBITDA value premium sector-neutral BY8생존+전robustness. 大N 60종(5섹터) cross-sectional 작동. ev_ebitda -0.110 병행. survivorship(현 holdings) PARTIAL. = selection 강변별, ETF fallback 불필요 경향",
+      "n_eff": 36.8,
+      "n_codes": 60,
+      "rho_i": 0.331,
+      "selection_등급": "中",
+      "_breadth": 0.73,
+      "_signal": 0.453
+    },
+    "us_defensive": {
+      "signal": "cs_net_issuance 12M",
+      "ic": 0.082,
+      "by": true,
+      "gate": 0.6,
+      "start": "2010-01-01",
+      "caveat": "PARTIAL marginal — net_issuance 단일FDR BY생존(raw_p 3e-05) but incremental only(⊥ep t3.71/⊥payout t2.41). 부호 양=Pontiff-Woodgate 문헌반대. ep_yield anti-value TENTATIVE 동반. value/quality/payout 모두 약/역방향(BY 0). OOS·cross-market 미검 = 약변별 ETF fallback 후보",
+      "n_eff": 35.38,
+      "n_codes": 48,
+      "rho_i": 0.159,
+      "selection_등급": "低",
+      "_breadth": 0.722,
+      "_signal": 0.368
+    },
+    "us_mega_tech": {
+      "signal": "cross-sectional void",
+      "ic": null,
+      "by": false,
+      "gate": null,
+      "start": "2015-01-01",
+      "caveat": "종목선택 불가 — exposure_timing_overlay(verdict 폐기). 유효 cross-section n≈8 통계적 void. 11종 custom basket 자체보유=fallback 동형(한국 refining 과점 대응). PER expensive_trap null. real_rate duration overlay 본질",
+      "n_eff": 6.58,
+      "n_codes": 11,
+      "rho_i": 0.0,
+      "selection_등급": "불가(종목선택 X = basket)"
+    }
+  }
+}

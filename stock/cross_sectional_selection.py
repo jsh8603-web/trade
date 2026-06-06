@@ -33,6 +33,7 @@
 from __future__ import annotations
 
 import statistics
+from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Callable, Optional, Sequence
 
@@ -58,6 +59,13 @@ class SelectionCandidate:
     eligible: bool               # microcap floor + trap veto 통과
     reason: str = ""
     per_metric_z: dict = field(default_factory=dict)   # {metric: robust_z} 추적용
+    # ★ETF fallback 메타 (Phase A, 자문 3R 2026-06-06, default=byte-identical):
+    #   약변별 sleeve dispatch 시 RepresentativeETFSelector 가 채운다. EQUITY 경로는 default 유지
+    #   → 기존 생성부(:431 keyword) 무변경 = byte-identity 보존.
+    instrument_type: str = "EQUITY"               # EQUITY | ETF
+    holdings_source: Optional[str] = None         # ETF look-through 출처 (risk_gate 섹터 cap 분해용)
+    holdings_asof: Optional[datetime] = None       # ETF holdings PIT 시점 (max-lag 검증용)
+    pre_resolved: bool = False                    # True=ranker bypass (sleeve-target 직접배정, cheapness 미산출)
 
 
 @dataclass(frozen=True)

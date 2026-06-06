@@ -16,11 +16,19 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime
 from typing import Any, Optional, Protocol, Sequence
 
-from core.risk_gate import GatedOrderRouter
+from core.risk_gate import (
+    GatedOrderRouter,
+    etf_lookthrough_exposures,
+    holdings_pit_stale,
+)
 
 logger = logging.getLogger("stock.order_assembly")
+
+# ETF holdings PIT max-lag (자문 D 라우팅 조건). 초과 = stale → look-through 불가 → wrapper 통째 보수.
+_ETF_HOLDINGS_MAX_LAG_DAYS = int(os.environ.get("ETF_HOLDINGS_MAX_LAG_DAYS", "90"))
 
 
 class OrderBroker(Protocol):
@@ -37,6 +45,50 @@ def _flag(name: str, default: bool) -> bool:
     return v.strip().lower() == "true"
 
 
+def _etf_fallback_on() -> bool:
+    """ETF_FALLBACK 활성 여부 — construction._resolve_etf_routing 과 동일 규칙(off=비활성)."""
+    return os.environ.get("ETF_FALLBACK", "off").strip().lower() != "off"
+
+
+def _etf_lookthrough_gate_kwargs(
+    d: dict, tw: float, gate_kwargs: dict, asof: Optional[datetime],
+) -> tuple[dict, dict]:
+    """ETF decision → risk_gate look-through gate_kwargs override + 로깅 dict.
+
+    자문 D3 안전장치 (env gated 호출자만):
+      - 단일발행체 = direct + via-ETF 최대 종목 실효비중 → current_weight 에 합산
+        (check max_weight_single 이 underlying 집중을 포착 = '종목 cap=ETF 자체'를 넘어 underlying 분해).
+      - 섹터 cap = look-through 최대 섹터 비중 → sector_weight 에 합산 (테마 ETF 통째보다 정밀).
+      - holdings PIT stale / holdings 부재 → look-through 불가 → wrapper 통째 1섹터 보수(=tw).
+    반환 (per_kwargs, lookthrough_log).
+    """
+    holdings = d.get("holdings") or []
+    direct = d.get("direct_holdings") or None
+    lt = etf_lookthrough_exposures(tw, holdings, direct_holdings=direct)
+
+    asof = asof if isinstance(asof, datetime) else None
+    stale = holdings_pit_stale(d.get("holdings_asof"), asof, _ETF_HOLDINGS_MAX_LAG_DAYS)
+
+    by_sector = lt["by_sector"]
+    # stale 또는 look-through 불가(섹터 분해 없음) → 보수: wrapper 통째 단일 섹터(=tw)
+    max_sec = tw if (stale or not by_sector) else max(by_sector.values())
+    base_sec = float(gate_kwargs.get("sector_weight", 0.0) or 0.0)
+    # ETF 경로는 proposed_size=tw 명시 전달 → check max_weight 검사가 ETF 비중을 포착(EQUITY 무변경).
+    per_kwargs = {**gate_kwargs, "sector_weight": base_sec + max_sec, "proposed_size": tw}
+
+    top = lt["top_issuer"]
+    log: dict[str, Any] = {
+        "covered": lt["covered"], "n_sector": len(by_sector),
+        "max_sector_eff": max_sec, "stale": stale,
+    }
+    if top and top[1] > 0 and not stale:
+        base_cur = float(gate_kwargs.get("current_weight", 0.0) or 0.0)
+        per_kwargs["current_weight"] = base_cur + top[1]   # 단일발행체 direct+via-ETF 합산
+        log["top_issuer"] = top[0]
+        log["top_issuer_eff"] = top[1]
+    return per_kwargs, log
+
+
 def assemble_stock_orders(
     decisions: Sequence[dict],
     *,
@@ -45,6 +97,7 @@ def assemble_stock_orders(
     dry_run: Optional[bool] = None,
     emergency_stop: Optional[bool] = None,
     cycle_id: str = "",
+    asof: Optional[datetime] = None,
     **gate_kwargs: Any,
 ) -> list[dict]:
     """Decision(target_weight>0) → order → GatedOrderRouter(risk_gate 경유) → broker(flag 차단).
@@ -73,13 +126,21 @@ def assemble_stock_orders(
             "cheapness_z": d.get("cheapness_z"),
             "rank": d.get("rank"),
         }
-        verdict = router.submit(order, cycle_id=cycle_id, via_gate=True, **gate_kwargs)
+        # ★ETF look-through (env ETF_FALLBACK on + instrument_type=ETF, 자문 D3 안전장치).
+        #   off/EQUITY → per_kwargs=gate_kwargs = 기존 경로(byte-identical).
+        per_kwargs = gate_kwargs
+        rec_lt: Optional[dict] = None
+        if _etf_fallback_on() and d.get("instrument_type") == "ETF":
+            per_kwargs, rec_lt = _etf_lookthrough_gate_kwargs(d, tw, gate_kwargs, asof)
+        verdict = router.submit(order, cycle_id=cycle_id, via_gate=True, **per_kwargs)
         rec: dict[str, Any] = {
             "ticker": ticker,
             "side": "buy",
             "target_weight": tw,
             "verdict": getattr(verdict, "verdict", None),
         }
+        if rec_lt is not None:
+            rec["lookthrough"] = rec_lt
         if not getattr(verdict, "approved", False):
             rec["status"] = "rejected"
             rec["reason"] = getattr(verdict, "reason", "")
