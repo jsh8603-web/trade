@@ -151,7 +151,10 @@ FRED/ALFRED vintage 데이터의 경계(실제 호출은 `fredapi`, 본 모듈�
 - **(B) 발권**: `coin_track_macro.collect_market_state`에서 `macro_view` 저신뢰/UNKNOWN 시 `ACTIVE_LOOP_SHADOW=on`이면 `active_loop`(Claude OAuth)가 카드 발권 → `raw_external_data["fhc_shadow_cards"]`(관찰용, 자본0). `rate_cap` 일1회(폭증 방지), 고신뢰=결정론 충분 차단.
 - **(C) bonus→weight**: `portfolio_orchestrator.allocate(fhc_card_states)`가 `FHC_BONUS=on`이면 **확정(confirmed)+mediator HOLDS** 카드만 L1 위로 bonus tilt(합=1 재정규화) + 천장 C(밴드 상한) clip. `probationary`(자본0)는 INV-5로 기여 0 = 무변경. 실주문은 `GatedOrderRouter`(go-live)로 분리.
 - **(D) 종목 universe 실연결**: `loop_factory.stock_admission_universe_fn`이 **`stock.admission` 안정 API를 실 import**(거시→종목 단방향) — whitelist universe SSOT(LLM 임의 확장 차단) + `check_admission` 적격성 + `KrxStatusProvider` 제재 게이트 + fail-closed. 더미 universe 회피 없음.
-- **LLM/임베딩 LIVE**: Claude OAuth(`~/.claude/.credentials.json`, opus-4.x 발권 / Haiku 4.5 요약) + DaService BGE-m3(127.0.0.1:8787). 메인 세션과 동일 OAuth 키(동시 호출 시 429 → backoff 5/15/45s retry).
+- **(RAG) ingest→retrieve 닫힘**: `research_ingest.retrieve`(query 임베딩 cosine + PIT(release_ts≤as_of) + scope 필터)가 active_loop `report_store`로 연결 — 종목은 on_news 적재분이 발권 시 실제 retrieve(Haiku 요약 LLM이 발권 컨텍스트로 실연결).
+- **(enrich) 거시 LLM 추론**: `coin_track_macro._run_macro_enrich`(env `MACRO_ENRICH`) — 저신뢰/caution trigger 시 `macro_reasoning.enrich`가 LLM stance를 `macro_view`에 주입 → `regime_to_weights` BL View로 배분 이동. **★결정론 baseline 자체를 LLM이 수정**(FHC bonus와 다른 리스크 프로파일). 고신뢰=baseline(LLM 미호출), confidence 축소.
+- **(consensus) 고-스테이크스 합의**: `ConsensusNode`(env `MACRO_CONSENSUS`) — `is_high_stakes`(regime 전환·배분≥10%·누적≥25%) 감지 후 LLM 검토 → **down-only de-risk**(prior 후퇴만, `de_risk` clip[0,1]로 증폭 봉인). attenuation-only 철학 정합.
+- **LLM/임베딩 LIVE**: Claude OAuth(`~/.claude/.credentials.json`, opus-4.x 발권/추론 / Haiku 4.5 요약) + DaService BGE-m3(127.0.0.1:8787). 메인 세션과 동일 OAuth 키(동시 호출 시 429 → backoff 5/15/45s retry).
 
 #### FHC 레이어 안전 경계 (불변식)
 - **shadow / 자본0**: 발권 카드는 `probationary`(bonus_cap=0). LLM이 실제 호출돼 카드를 발권·채점해도 go-live arming(사람 게이트) 전엔 배분 미투입.

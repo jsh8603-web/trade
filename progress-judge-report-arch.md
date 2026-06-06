@@ -33,6 +33,17 @@ plan: plan-judge-report-arch.md
 - 잔여: substrate on(멀티에셋 macro view+regime) 주입 variant = RegimeGlasso 공유라 button 연결 후. coin baseline은 확보.
 
 ## Working Notes
+> [ckpt-202606062330:btn-Inv ★LLM 파이프라인 전수(8종) wire 완료 — RAG 닫기 + enrich + consensus]
+> ★**완료**: 사용자 "LLM 들어가는 파이프라인 모두?" → 전수 점검 + 갭 해소 + "다 연결해" → enrich/consensus까지.
+> **LLM 8종 전부 wire+테스트**: ①발권(active_loop) ②pre-mint audit ③RAG요약(Haiku) ④RAG retrieve ⑤종목발권(security_news) ⑥bonus→weight ⑦enrich(거시LLM추론) ⑧consensus(고스테이크스).
+> - **RAG 닫기**(`83a7244` v1.37.5): `research_ingest.retrieve`(query임베딩 cosine+PIT release_ts≤as_of+scope) = active_loop.report_store Protocol. build_security_news_loop/coin_track_macro 발권에 report_store=ingest 연결 → ingest→retrieve→발권 닫힘. ★직전까지 report_store=None=리포트 없이 발권하던 갭 해소(Haiku 요약 LLM이 발권 컨텍스트로 실연결). 종목=on_news 적재분 실 retrieve, 거시=리포트소스 go-live.
+> - **enrich**(`305476e` v1.38.0): `macro_reasoning.enrich`→`coin_track_macro._run_macro_enrich`(env MACRO_ENRICH). 저신뢰/caution trigger 시 LLM stance를 macro_view 주입→regime_to_weights BL View 배분 이동. ★결정론 baseline 자체 수정(검증: gold tilt 0.48 conf축소). 고신뢰=baseline LLM미호출.
+> - **consensus**(`305476e`): `ConsensusNode` 신규(core/brain/consensus_node.py)+allocate wire(env MACRO_CONSENSUS). is_high_stakes 감지→LLM 검토→★down-only de-risk(prior 후퇴만, de_risk clip[0,1] 증폭봉인=attenuation-only 철학). 검증: de_risk 0.5→prior 후퇴 합=1, 1.5→clip 1.0.
+> - 회귀: enrich/consensus tests 9 + 도메인 705 passed 0회귀(.harness2 audit md 부재=harness2 정리 기존 직교 이슈).
+> (1) **마지막 결정**: enrich/consensus는 "결정론 baseline에 LLM 직접 개입"이라 FHC(down-only bonus)와 리스크 프로파일 다름 명시 후 사용자 "다 연결해"로 활성. 둘 다 env opt-in off=byte-identical. consensus는 down-only(증폭봉인)로 FHC 철학 유지.
+> (2) **다음 의도**: LLM 8종 전수 완료. 발권/추론 LIVE 출력=메인 멈춤 단독(.p2-fhc-live-mint.py). ⛔실주문·push=사람 게이트.
+> (3) **동기화**: 7커밋(04d963a B/ffb5c24 C/e2288a5 D/5fea15a README/83a7244 RAG/305476e enrich+consensus + ckpt). push 미실행.
+>
 > [ckpt-202606062130:btn-Inv ★(B)(C)(D) production LIVE wire 완료 + stock.admission 실연결]
 > ★**완료**: handoff §1 (B)→(C)→(D) 전부 production wire. 실거래(E)만 사람 게이트 제외, 나머지 LIVE.
 > - **(B) 발권 wire**(`04d963a` v1.37.2): `loop_factory.is_active_loop_shadow_enabled()` env gate(`ACTIVE_LOOP_SHADOW`) + `build_shadow_active_loop`(rate_cap 일1회). `coin_track_macro._run_fhc_shadow`: macro_view 저신뢰/UNKNOWN→active_loop(Claude OAuth) 카드 발권→`raw_external_data["fhc_shadow_cards"]`(probationary 자본0, 배분 무영향). off=byte-identical, 고신뢰=결정론 차단, graceful. macro_view None 시 shadow 전용 classify 1회.
