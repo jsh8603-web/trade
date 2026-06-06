@@ -111,6 +111,9 @@ def main() -> int:
     ap.add_argument("--market", default="KRW-BTC")
     ap.add_argument("--count", type=int, default=200, help="일봉 개수")
     ap.add_argument("--capital", type=float, default=1_000_000.0)
+    # A1: risk pipeline opt-in (기본 off = _run_legacy byte-identical)
+    ap.add_argument("--risk-pipeline", action="store_true", default=False,
+                    help="use_risk_pipeline=True 경로 활성화 (P2A A1)")
     args = ap.parse_args()
 
     df = fetch_upbit_daily(args.market, args.count)
@@ -118,7 +121,11 @@ def main() -> int:
     volumes = df["volume"]
 
     mem = MemoryLayer()
-    engine = BacktestEngine(cost_config=UPBIT_COST_CONFIG, initial_capital=args.capital)
+    engine = BacktestEngine(
+        cost_config=UPBIT_COST_CONFIG,
+        initial_capital=args.capital,
+        use_risk_pipeline=args.risk_pipeline,  # A1: opt-in flag
+    )
     result = engine.run(RsiReplayTrack(), prices, volumes, region="KR", memory=mem)
 
     sells = [t for t in result.trades if getattr(t, "side", "") == "SELL"]
@@ -129,6 +136,10 @@ def main() -> int:
     learned = sum(
         1 for e in mem._store if getattr(e, "outcome_pct", None) is not None
     )
+
+    # A1: per-bar checksum 메타 (risk_pipeline on 시만 존재)
+    bar_checksums = getattr(result, "_bar_checksums", None)
+    checksum_sample = bar_checksums[:3] if bar_checksums else None
 
     card = {
         "market": args.market,
@@ -144,6 +155,9 @@ def main() -> int:
         "reason": reason,
         "memory_entries": len(mem),
         "learned_outcomes": learned,
+        # A1: risk pipeline 메타
+        "risk_pipeline": args.risk_pipeline,
+        "bar_checksum_sample": checksum_sample,
     }
     print(json.dumps(card, ensure_ascii=False, indent=2))
     return 0
