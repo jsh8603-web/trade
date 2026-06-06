@@ -147,9 +147,15 @@ FRED/ALFRED vintage 데이터의 경계(실제 호출은 `fredapi`, 본 모듈�
 - **loop_factory**: 실 LLM/임베딩 배선 — `build_active_loop(use_claude)`(ClaudeProvider OAuth) / `build_research_ingest(use_haiku, use_bge)`(Claude Haiku 4.5 + DaService BGE-m3 8787). 서버/키 부재 시 graceful abstain.
 - **security_news_loop**: 개별 종목 소식 트리거 — 뉴스→ingest(중복 필터)→유니버스 게이트(스크린 통과분만 발권 / 밖=임시 후보 풀→슬롯 승격, ⛔임의 즉시 카드 금지)→발권(scope=ticker). 유니버스 실선별은 주식 트랙(`stock/`) 주입.
 
+#### production LIVE wire — 실거래만 빼고 연결 (env opt-in, off=byte-identical)
+- **(B) 발권**: `coin_track_macro.collect_market_state`에서 `macro_view` 저신뢰/UNKNOWN 시 `ACTIVE_LOOP_SHADOW=on`이면 `active_loop`(Claude OAuth)가 카드 발권 → `raw_external_data["fhc_shadow_cards"]`(관찰용, 자본0). `rate_cap` 일1회(폭증 방지), 고신뢰=결정론 충분 차단.
+- **(C) bonus→weight**: `portfolio_orchestrator.allocate(fhc_card_states)`가 `FHC_BONUS=on`이면 **확정(confirmed)+mediator HOLDS** 카드만 L1 위로 bonus tilt(합=1 재정규화) + 천장 C(밴드 상한) clip. `probationary`(자본0)는 INV-5로 기여 0 = 무변경. 실주문은 `GatedOrderRouter`(go-live)로 분리.
+- **(D) 종목 universe 실연결**: `loop_factory.stock_admission_universe_fn`이 **`stock.admission` 안정 API를 실 import**(거시→종목 단방향) — whitelist universe SSOT(LLM 임의 확장 차단) + `check_admission` 적격성 + `KrxStatusProvider` 제재 게이트 + fail-closed. 더미 universe 회피 없음.
+- **LLM/임베딩 LIVE**: Claude OAuth(`~/.claude/.credentials.json`, opus-4.x 발권 / Haiku 4.5 요약) + DaService BGE-m3(127.0.0.1:8787). 메인 세션과 동일 OAuth 키(동시 호출 시 429 → backoff 5/15/45s retry).
+
 #### FHC 레이어 안전 경계 (불변식)
 - **shadow / 자본0**: 발권 카드는 `probationary`(bonus_cap=0). LLM이 실제 호출돼 카드를 발권·채점해도 go-live arming(사람 게이트) 전엔 배분 미투입.
-- **호출처 0 dormant + off=byte-identical(INV-11)**: 전 모듈 production 미배선 — 결정론 코어·`risk_gate`·기존 brain 모듈 무수정 additive. go-live 시에만 소비.
+- **env-gated 배선 + off=byte-identical(INV-11)**: production 진입점에 배선됐으나 env(`ACTIVE_LOOP_SHADOW`/`FHC_BONUS`) off면 미진입 = byte-identical. 결정론 코어·`risk_gate`·기존 brain 모듈 무수정 additive overlay.
 - **실자금(DRY_RUN=false)·실주문·git push = 사람 게이트**. LLM은 발권/채점까지만, 실거래 경로는 자율 밖(`autopilot-run-scope`).
 - 설계 SSOT = `plan-judge-report-arch.md` / 계약 = `.coord-fhc-contract-20260603.md`.
 
