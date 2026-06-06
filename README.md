@@ -125,6 +125,36 @@ FRED/ALFRED vintage 데이터의 경계(실제 호출은 `fredapi`, 본 모듈�
 
 ---
 
+## 🃏 FHC — LLM 가설 발권 (judge 재설계, `core/assume/`)
+
+두뇌 레이어가 "지금 어떤 국면인가"를 결정론으로 깔면, **FHC(Falsifiable Hypothesis Card) 레이어는 그 위에 LLM이 반증가능한 가설을 발권**해 검증된 만큼만 비중을 미세조정한다. 핵심 비대칭: **상향 = 천장 C까지 + 증거(e-value) 누적 필요(지연)**, **하향 = 전제 깨지면 즉시 0 회수**. LLM 환각이 비중을 키우는 경로는 천장 C 하드캡과 e-value 게이트로 봉인된다.
+
+핵심 철학: **텍스트 신규성을 믿지 않고 직교화된 수익률 공간이 가설을 판정한다.** 정성 촉매('HBM 공급부족')가 기존 7팩터의 위장(중복)인지 진짜 잔차 알파인지를 스패닝 회귀로 가른다. 카드는 사후 e-value로 채점되고, 틀리면 자동 회수(5-state lifecycle).
+
+#### fhc / bonus_channel / fhc_fdr — 안전 인프라
+- **fhc**: `FHCard` + 5-state machine(minted→confirmed→vacated→rejected→revived) + 2-leg(mediator 전제 / outcome 예측, anytime-valid e-process). `minted→vacated` 금지·`rejected` absorbing·revival_cap·fail-closed(UNKNOWN→보너스 미적립).
+- **bonus_channel**: `size_with_bonus` = `clip(L1 + Σbonus, 천장 C)`. (B)강화(L1 초과 가능, 천장 C가 진짜 불변식). breaker_tripped 시 bonus 0→L1 즉시.
+- **fhc_fdr**: INV-12 alpha-wealth firewall — layer별 ELOND ledger 고정분할, multiplicity 통제.
+
+#### macro_mediator / spanning_gate / info_delta_gate — 판정 게이트
+- **macro_mediator**: 카드 전제(mediator)를 거시 국면 posterior(`belief_from_macro_view`)로 구독 — filtered-only(regime_now만, look-ahead 차단), fail-closed UNKNOWN, entropy 게이트.
+- **spanning_gate**: 직교성 발권 게이트 — `r_c = α + βᵀF + ε`(7팩터), **α≈0 = 위장(발권 차단) / α유의 + 잔차 forward IC = 진짜 잔차 알파**. Newey-West HAC SE, n<20 INSUFFICIENT(small-n rigor), 국면 조건부 알파.
+- **info_delta_gate**: 대형 LLM 발권 빈도 게이트 — **시계 rate-cap(상한) AND 델타(임베딩 novelty + 수치 리비전)**. 순수 델타의 폭증과 daily batch의 phantom turnover를 동시에 막는다. 델타 판정은 LLM 추론 0(임베딩 거리만).
+
+#### active_loop / research_ingest / loop_factory / security_news_loop — 능동 발권
+- **active_loop**: 능동 애널리스트 7-step(저신뢰 트리거→summon gate→scoped PIT 검색→falsifiable claim[LLM]→pre-mint audit[직교성+LLM 2차]→probationary mint→write-back). **결정론이 못 푸는 6유형**(regime-break·value-trap·cross-source 합성·신규 가설·이산 이벤트·instrument 선택)에서만 LLM이 결정론 코어보다 우위.
+- **research_ingest**: S5 stage-1 = **증권 리포트 → 소형 LLM(Haiku) 요약 또는 raw → 임베딩 인덱싱(BGE) → bitemporal PIT 스탬프**. 중복 novelty 필터. stage-2 발권 = active_loop.retrieve.
+- **loop_factory**: 실 LLM/임베딩 배선 — `build_active_loop(use_claude)`(ClaudeProvider OAuth) / `build_research_ingest(use_haiku, use_bge)`(Claude Haiku 4.5 + DaService BGE-m3 8787). 서버/키 부재 시 graceful abstain.
+- **security_news_loop**: 개별 종목 소식 트리거 — 뉴스→ingest(중복 필터)→유니버스 게이트(스크린 통과분만 발권 / 밖=임시 후보 풀→슬롯 승격, ⛔임의 즉시 카드 금지)→발권(scope=ticker). 유니버스 실선별은 주식 트랙(`stock/`) 주입.
+
+#### FHC 레이어 안전 경계 (불변식)
+- **shadow / 자본0**: 발권 카드는 `probationary`(bonus_cap=0). LLM이 실제 호출돼 카드를 발권·채점해도 go-live arming(사람 게이트) 전엔 배분 미투입.
+- **호출처 0 dormant + off=byte-identical(INV-11)**: 전 모듈 production 미배선 — 결정론 코어·`risk_gate`·기존 brain 모듈 무수정 additive. go-live 시에만 소비.
+- **실자금(DRY_RUN=false)·실주문·git push = 사람 게이트**. LLM은 발권/채점까지만, 실거래 경로는 자율 밖(`autopilot-run-scope`).
+- 설계 SSOT = `plan-judge-report-arch.md` / 계약 = `.coord-fhc-contract-20260603.md`.
+
+---
+
 ## 🗄️ 데이터·PIT·실거래 안전 레이어
 
 `core/data/`는 시스템의 **데이터 substrate**다. 단 하나의 책임을 진다 — **"그때 우리가 실제로 알 수 있었던 것"만 보게 한다**. 백테스트가 미래 정보를 한 톨이라도 먹으면(미래 개정값·미래 휴장·미래 유니버스·재사용 ticker) 에러 없이 통과하고 라이브 하회로만 드러나는 silent alpha 누수가 된다. 이 레이어는 그 누수 경로를 **bitemporal 시간축**으로 전수 차단한다.
