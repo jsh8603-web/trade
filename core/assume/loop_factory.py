@@ -45,7 +45,7 @@ class GenerateToComplete:
                 last = e
                 # 429(rate limit, 동일 OAuth 동시호출)·529(overloaded) → 지수 backoff 재시도
                 if e.code in (429, 529) and attempt < 3:
-                    time.sleep(6 * (attempt + 1))
+                    time.sleep((5, 15, 45)[attempt])   # exponential backoff(DA-rate-limit)
                     continue
                 raise
         if last is not None:
