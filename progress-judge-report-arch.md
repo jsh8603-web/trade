@@ -33,6 +33,12 @@ plan: plan-judge-report-arch.md
 - 잔여: substrate on(멀티에셋 macro view+regime) 주입 variant = RegimeGlasso 공유라 button 연결 후. coin baseline은 확보.
 
 ## Working Notes
+> [ckpt-202606061300:btn-Inv FHC 통합 계약 §6 수렴 — button 양측 합의 봉인]
+> ★**완료**: 사용자 "버튼과 샌드키 논의" → btn-button과 psmux 2R 논의 → **.coord-fhc-contract §6 계약 닫힘**(§6'' 봉인).
+> (1) **논의 흐름**: 1R=거시 FHC 게이트 3종(d00fe0f/7f6e945/729e48f) 통지 + §6 4건 회신 요청 → button이 **git 충돌 점검만 답하고 계약 미회신**(파일명 다름·충돌0 확인). 2R=Y/N 형태로 재요청(프레이밍 좁힘) → button §6' 박제. ★수렴 합의: (b)Y core/assume=btn-Inv 단일소유 + construction.build_sleeve_decisions가 size_with_bonus 소비(WireSmith, ETF fallback도 동일 seam) / (c)ETA=go-live arming(dormant, 날짜미정) / (Σ)Y meta·basket=button·core=INV-12 firewall만. ★(RG)=button 회신 누락이나 **§5 INV-9 기정의로 닫힘**(button RegimeGlasso native sleeve cov transition 감지→core fhc.transition(breaker_tripped) boolean 구독, macro_mediator MacroView 구독과 별 레이어). .coord §6'' btn-Inv 확인 봉인.
+> (2) **다음 의도**: FHC 통합 계약 전부 닫힘(5건 합의/기정의). 남은 건 go-live arming(사람 게이트) 시 core bonus plug-in 실소비뿐. btn-Inv 거시 트랙(S2 mediator+S4 직교성+S5 정보델타 게이트 3종 + 계약 수렴) 자율 완결.
+> (3) **동기화**: .coord-fhc-contract §6''(72줄). button 64e8bc0 무접촉, btn-button 살려둠(ctx 92%로 정리). git HEAD=536b1b4. push·go-live 미접촉.
+>
 > [ckpt-202606061130:btn-Inv S5 정보델타 발권 트리거 게이트 ✅ — rate-cap AND 델타 결합]
 > ★**완료(self-test 7/7 PASS)**: "다 진행" 자율 속개(long-mode ON). `core/assume/info_delta_gate.py` 신규(numpy만, 외부의존 0). plan §3 S5 Q2 정정 설계(2026-06-06 사용자 반박 교정) 코드화 = **rate-cap(시계 상한) AND 델타(novelty OR 수치리비전) 결합**: 순수 델타는 상한 없어 daily보다 폭증 → 시계 rate-cap 으로 상한, batch 단독은 phantom turnover/FDR 소진 → 델타로 무의미 필터.
 > (1) **구현**: `cosine_novelty`(임베딩 코퍼스 최근접 대비 1−max cos, 빈 코퍼스=1.0) + `RateCapState`(슬롯별 발권 카운터 cap_per_slot, slot_fn 시계 슬롯) + `delta_gate`(①rate-cap 소진→skip 폭증방지 ②novelty<임계 AND 수치리비전 무→skip 무의미 ③else FIRE+카운터차감). self-test: 신규→fire/중복→skip/수치리비전 단독→fire/rate-cap 슬롯당2 [T,T,F,F]/슬롯리셋/빈코퍼스 novelty1.0/임베딩없이 수치단독. ★임베딩 벡터=호출자(VaultVoice BGE) 주입=LLM추론 무관 순수거리. additive INV-11(호출처 0, go-live 시 대형 LLM 발권 트리거 소비).
