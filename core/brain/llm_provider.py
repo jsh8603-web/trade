@@ -53,6 +53,14 @@ LLM_TEMPERATURE    = float(os.environ.get("LLM_TEMPERATURE", "0.0"))
 
 _CREDENTIALS_PATH = Path(os.path.expanduser("~/.claude/.credentials.json"))
 
+# ★Claude Code OAuth 토큰 정책(2026-06-06 실측): api.anthropic.com/v1/messages 호출 시
+#   (1) anthropic-beta: oauth-2025-04-20 헤더 + (2) system 이 정확히 아래 Claude Code 문구여야
+#   통과. opus 는 system 에 추가 텍스트를 붙이면 429 rate_limit_error 로 위장거부(haiku 는 관대).
+#   → 발권/요약 등 실제 지시는 user content(prompt)에 합쳐 전달(GenerateToComplete 가 합침).
+#   둘 중 하나라도 누락 시 429(동시 호출 경합 아님 — 메인과 동일 키 동시 사용해도 무관).
+_CLAUDE_CODE_SYSTEM = "You are Claude Code, Anthropic's official CLI for Claude."
+_OAUTH_BETA = "oauth-2025-04-20"
+
 # C2 카운터 파일 (gemini_client.py:41-43 패턴, 별도 파일로 분리)
 _LLM_COUNTER_FILE = Path(
     os.environ.get("PROJECT_ROOT", str(Path(__file__).resolve().parents[2]))
@@ -236,10 +244,13 @@ class ClaudeProvider(LLMProvider):
         import urllib.request  # noqa: PLC0415
 
         token = self._get_token()
-        # OAuth token → Authorization: Bearer (anthropic SDK 는 x-api-key 로 덮어써서 직접 HTTP 사용)
+        # OAuth token → Authorization: Bearer + anthropic-beta oauth 헤더 + Claude Code system 필수.
+        # ★system 은 _CLAUDE_CODE_SYSTEM 고정(opus 는 추가 텍스트 시 429). 실제 지시(발권/요약)는
+        #   prompt(user content)에 담겨 옴(GenerateToComplete 가 system+user 를 prompt 로 합침).
         payload = {
             "model": self._model,
             "max_tokens": kwargs.get("max_tokens", 1024),
+            "system": _CLAUDE_CODE_SYSTEM,
             "messages": [{"role": "user", "content": prompt}],
         }
         # B3 결정성: temperature 실주입. 단 신형 4.x(opus-4/sonnet-4 등)는 temperature deprecated
@@ -255,6 +266,7 @@ class ClaudeProvider(LLMProvider):
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {token}",
                 "anthropic-version": "2023-06-01",
+                "anthropic-beta": _OAUTH_BETA,
             },
             method="POST",
         )

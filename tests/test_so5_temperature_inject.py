@@ -28,55 +28,48 @@ PROVIDER_SRC = (PROJECT_ROOT / "core" / "brain" / "llm_provider.py").read_text(e
 
 # ── ClaudeProvider payload temperature 실주입 ────────────────────────
 
-def test_claude_provider_payload_has_temperature():
-    """ClaudeProvider.generate payload 에 temperature 포함."""
-    import json as _json
-
-    captured = {}
-
-    def fake_urlopen(req, timeout=60):
-        body = _json.loads(req.data.decode())
-        captured["payload"] = body
-        # mock response
-        mock_resp = MagicMock()
-        mock_resp.__enter__ = lambda s: s
-        mock_resp.__exit__ = MagicMock(return_value=False)
-        mock_resp.read.return_value = _json.dumps({
-            "content": [{"type": "text", "text": "ok"}]
-        }).encode()
-        return mock_resp
-
-    provider = ClaudeProvider(model="claude-haiku-4-5-20251001")
-    provider._token = "sk-ant-oat01-fake"  # mock token
-
-    with patch("urllib.request.urlopen", side_effect=fake_urlopen):
-        provider.generate("test", temperature=0.0)
-
-    assert "temperature" in captured["payload"], "Claude payload에 temperature 없음"
-    assert captured["payload"]["temperature"] == 0.0
-
-
-def test_claude_provider_temperature_from_kwargs():
-    """ClaudeProvider — kwargs temperature 값 payload 반영."""
+def _capture_payload(model, temperature):
+    """ClaudeProvider.generate 의 payload 를 mock 으로 캡처."""
     import json as _json
 
     captured = {}
 
     def fake_urlopen(req, timeout=60):
         captured["payload"] = _json.loads(req.data.decode())
+        captured["headers"] = dict(req.headers)
         mock_resp = MagicMock()
         mock_resp.__enter__ = lambda s: s
         mock_resp.__exit__ = MagicMock(return_value=False)
-        mock_resp.read.return_value = _json.dumps({"content": [{"type": "text", "text": "hi"}]}).encode()
+        mock_resp.read.return_value = _json.dumps({"content": [{"type": "text", "text": "ok"}]}).encode()
         return mock_resp
 
-    provider = ClaudeProvider(model="claude-haiku-4-5-20251001")
-    provider._token = "sk-ant-oat01-fake"
-
+    provider = ClaudeProvider(model=model)
+    provider._token = "sk-ant-oat01-fake"  # mock token
     with patch("urllib.request.urlopen", side_effect=fake_urlopen):
-        provider.generate("test", temperature=0.5)
+        provider.generate("test", temperature=temperature)
+    return captured
 
-    assert captured["payload"]["temperature"] == 0.5
+
+def test_claude_provider_omits_temperature_for_4x():
+    """★신형 4.x(opus-4/sonnet-4/haiku-4) → temperature deprecated → payload 생략(400 invalid 회피)."""
+    cap = _capture_payload("claude-haiku-4-5-20251001", 0.0)
+    assert "temperature" not in cap["payload"], "신형 4.x 는 temperature 생략돼야(deprecated)"
+
+
+def test_claude_provider_injects_temperature_for_legacy():
+    """구형 모델(비 4.x) → temperature payload 주입(B3 결정성 하위호환)."""
+    cap = _capture_payload("claude-3-5-haiku-20241022", 0.5)
+    assert cap["payload"].get("temperature") == 0.5
+
+
+def test_claude_provider_oauth_policy_headers_and_system():
+    """★OAuth 정책(2026-06-06 실측): anthropic-beta oauth 헤더 + Claude Code system 필수."""
+    cap = _capture_payload("claude-opus-4-7", 0.0)
+    # system 은 Claude Code 문구 고정(opus 는 추가 텍스트 시 429)
+    assert cap["payload"].get("system", "").startswith("You are Claude Code")
+    # anthropic-beta oauth 헤더(대소문자 무관)
+    hdrs = {k.lower(): v for k, v in cap["headers"].items()}
+    assert "oauth-2025" in hdrs.get("anthropic-beta", "")
 
 
 # ── route_with_meta → generate 로 temperature 전달 보장 ─────────────
@@ -131,10 +124,9 @@ def test_route_result_temperature_default(tmp_path):
 # ── 소스 검증 ────────────────────────────────────────────────────────
 
 def test_claude_provider_source_has_temperature():
-    """ClaudeProvider.generate payload dict 에 temperature 키 존재 확인."""
-    import re
-    # payload = {..., "temperature": ...} 패턴
+    """ClaudeProvider.generate 에 temperature 조건부 로직 + OAuth 정책 존재."""
     assert '"temperature"' in PROVIDER_SRC or "'temperature'" in PROVIDER_SRC
-    # ClaudeProvider 섹션에 있는지 확인
     claude_section = PROVIDER_SRC[PROVIDER_SRC.find("class ClaudeProvider"):]
-    assert "temperature" in claude_section[:1000]
+    assert "temperature" in claude_section[:1500]   # system/oauth 추가로 범위 확장
+    # OAuth 정책(beta 헤더 + Claude Code system) 소스 존재
+    assert "oauth-2025" in PROVIDER_SRC and "Claude Code" in PROVIDER_SRC
