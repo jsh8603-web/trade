@@ -29,13 +29,28 @@ class GenerateToComplete:
         self._p = provider
 
     def complete(self, system: str, user: str, json_mode: bool = True) -> str:
+        import time
+        import urllib.error
         prompt = f"{system}\n\n{user}"
         if json_mode:
             prompt += "\n\nRespond ONLY with a single valid JSON object, no prose."
-        raw = self._p.generate(prompt)
-        if json_mode and isinstance(raw, str):
-            raw = _extract_json(raw)
-        return raw
+        last = None
+        for attempt in range(4):
+            try:
+                raw = self._p.generate(prompt)
+                if json_mode and isinstance(raw, str):
+                    raw = _extract_json(raw)
+                return raw
+            except urllib.error.HTTPError as e:
+                last = e
+                # 429(rate limit, 동일 OAuth 동시호출)·529(overloaded) → 지수 backoff 재시도
+                if e.code in (429, 529) and attempt < 3:
+                    time.sleep(6 * (attempt + 1))
+                    continue
+                raise
+        if last is not None:
+            raise last
+        return ""
 
 
 def _extract_json(text: str) -> str:
