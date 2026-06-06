@@ -193,3 +193,27 @@ def test_a4_down_only_invariant():
     result = _mod.run_one_cycle(dry_run=True, judge_hook=_AmpHook())
     for sleeve, a in result["judge_a"].items():
         assert a <= 1.0, f"{sleeve} a={a} > 1.0 (down-only 불변식 위반)"
+
+
+# ---------------------------------------------------------------------------
+# A5 tests — 주문 배선 (Upbit + KIS paper, DRY_RUN stub)
+# ---------------------------------------------------------------------------
+
+def test_a5_coin_stub_dry_run():
+    """DRY_RUN=true → coin stub_order(네트워크0)."""
+    ref = _mod._coin_stub_order("KRW-BTC", "buy", dry_run=True)
+    assert ref["status"] == "stub"
+    assert ref["network"] == 0
+
+
+def test_a5_stock_stub_dry_run():
+    """DRY_RUN=true → KIS paper stub(네트워크0)."""
+    ref = _mod._stock_order_via_kis("005930", "buy", 1.0, dry_run=True)
+    assert ref["status"] == "stub"
+    assert ref.get("paper") is True
+
+
+def test_a5_coin_stub_network_zero():
+    """coin stub network=0 (실 Upbit API 미호출)."""
+    ref = _mod._coin_stub_order("KRW-ETH", "sell", dry_run=True)
+    assert ref["network"] == 0, f"network={ref.get('network')}"

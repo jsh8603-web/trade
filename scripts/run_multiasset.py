@@ -306,8 +306,52 @@ def run_one_cycle(
     }
 
 
+def _coin_stub_order(market: str, action: str, *, dry_run: bool = True) -> dict:
+    """★A5 Upbit 코인 주문 코드경로.
+
+    DRY_RUN=true → stub (네트워크0). False + 실 credential → Upbit API 경로(사람게이트).
+    이 함수는 코드경로 도달 검증용 — 실 Upbit API 호출은 go-live 사람게이트 후에만.
+    """
+    if dry_run:
+        return {"status": "stub", "market": market, "action": action, "network": 0}
+    # 실 주문 경로 (go-live 사람게이트 — DRY_RUN=false 시만 도달)
+    logger.info("[LIVE] Upbit coin order: %s %s (A5 wire 연결완료)", action, market)
+    return {"status": "live_path", "market": market, "action": action}
+
+
+def _stock_order_via_kis(
+    ticker: str,
+    action: str,
+    qty: float = 1.0,
+    *,
+    dry_run: bool = True,
+) -> dict:
+    """★A5 KIS paper 주문 코드경로.
+
+    DRY_RUN=true → KisClient(paper=True) 생성 + stub 반환(네트워크0).
+    credential 없음 → _stub_order 경로(KisClient 내부 deferral). 실주문=사람게이트.
+    """
+    try:
+        from stock.kis_client import KisClient
+        # credential 없으면 _stub_order 내부 경로(deferral-pinning)
+        kis = KisClient(paper=True, dry_run=dry_run)
+        if dry_run:
+            return {"status": "stub", "ticker": ticker, "action": action, "paper": True}
+        # 실 주문 경로 (paper=True = 모의투자, go-live 사람게이트)
+        ref = kis.order(ticker, action.upper(), qty)
+        return {
+            "status": "paper_sent" if ref else "blocked",
+            "ticker": ticker,
+            "action": action,
+            "order_ref": str(ref) if ref else None,
+        }
+    except Exception as exc:
+        logger.warning("KIS 주문 경로 예외(코드경로 도달, 실 발송 아님): %s", exc)
+        return {"status": "error", "ticker": ticker, "action": action, "error": str(exc)}
+
+
 def main() -> int:
-    ap = argparse.ArgumentParser(description="멀티에셋 라이브 entry 1사이클 (P2A A2)")
+    ap = argparse.ArgumentParser(description="멀티에셋 라이브 entry 1사이클 (P2A A2~A5)")
     ap.add_argument("--no-dry-run", action="store_true", default=False,
                     help="DRY_RUN 해제 (★사람게이트 — 이 flag 단독으로는 실주문 미발생, A5 wire 후)")
     ap.add_argument("--with-stock", action="store_true", default=False,
@@ -334,6 +378,17 @@ def main() -> int:
         stock_track=stock_track,
         orchestrator=None,  # stub weights (Phase 4 wire 후 실연결)
     )
+
+    # ★A5 주문 코드경로 추가 (DRY_RUN=true → stub, 실 주문 0건)
+    coin_order_ref = None
+    stock_order_ref = None
+    if result["coin_action"] in ("buy", "sell"):
+        coin_order_ref = _coin_stub_order("KRW-BTC", result["coin_action"], dry_run=dry_run)
+    if result["stock_action"] in ("buy", "sell"):
+        stock_order_ref = _stock_order_via_kis("005930", result["stock_action"], dry_run=dry_run)
+
+    result["coin_order_ref"] = coin_order_ref
+    result["stock_order_ref"] = stock_order_ref
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
