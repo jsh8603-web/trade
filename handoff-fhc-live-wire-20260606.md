@@ -12,9 +12,10 @@ date: 2026-06-06
 > 인계: judge 재설계 = `plan-judge-report-arch.md` / progress = `progress-judge-report-arch.md` (Working Notes ckpt 전체) / 계약 = `.coord-fhc-contract-20260603.md`.
 
 ## §1. 현재 상태 + 첫 행동
-- **상태**: 거시 FHC LLM 파이프라인 **shadow e2e 완결**(13커밋, tests/assume 124 passed, audit subagent 2회 PASS — 약속-구현 정합·왜곡위반0). 전 모듈 호출처0 dormant·off=byte-identical·자본0 probationary.
-- **LIVE 검증됨**: 하이쿠 요약(Claude Haiku 4.5)·BGE 임베딩(DaService 8787 1024dim)·대형 LLM 발권(Claude OAuth, ~/.claude/.credentials.json = 메인 세션 동일 키, 한도 OK). temperature deprecated(opus-4.x) 픽스 완료.
-- **★첫 행동(재개)**: next-action의 (B)→(C)→(D) 순서. (B) coin_track_macro 발권 wire(작음)부터, (C) bonus→weight(결정론 코어, 신중)는 회귀 게이트 엄수.
+- **상태**: ★**production LIVE wire (B)(C)(D) 전부 완료**(2026-06-06, ckpt-202606062130). 5커밋(04d963a B / ffb5c24 C / e2288a5 D / 5fea15a README + version). tests/assume 132 passed + 도메인 646 passed 0회귀. env opt-in(`ACTIVE_LOOP_SHADOW`/`FHC_BONUS`) off=byte-identical.
+  - (B) `coin_track_macro._run_fhc_shadow` 발권 wire(probationary 자본0) / (C) `allocate(fhc_card_states)` bonus→weight tilt(INV-5 confirmed-only, 천장 clip) / (D) `stock_admission_universe_fn` **stock.admission 실연결**(더미 회피 제거, 사용자 지적 반영).
+- **LIVE 검증됨**: 하이쿠 요약·BGE 임베딩·대형 LLM 발권 코드/인증/요청 완성. temperature deprecated 픽스 + 429 backoff retry.
+- **★남은 것(사람 게이트만)**: ⛔(E) 실주문(execute_trade·DRY_RUN=false)·git push. + 발권 LIVE 카드 **출력** 확인 = 메인 세션 멈추고 `.p2-fhc-live-mint.py` 단독 실행(메인과 동일 OAuth 키 동시점유 시 429, idle 시 통과).
 
 ## §2. 진행 맵 (shadow 완료 / LIVE wire 남음)
 | 구분 | 모듈 | shadow | LIVE wire |

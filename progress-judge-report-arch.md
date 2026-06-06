@@ -33,6 +33,23 @@ plan: plan-judge-report-arch.md
 - 잔여: substrate on(멀티에셋 macro view+regime) 주입 variant = RegimeGlasso 공유라 button 연결 후. coin baseline은 확보.
 
 ## Working Notes
+> [ckpt-202606062130:btn-Inv ★(B)(C)(D) production LIVE wire 완료 + stock.admission 실연결]
+> ★**완료**: handoff §1 (B)→(C)→(D) 전부 production wire. 실거래(E)만 사람 게이트 제외, 나머지 LIVE.
+> - **(B) 발권 wire**(`04d963a` v1.37.2): `loop_factory.is_active_loop_shadow_enabled()` env gate(`ACTIVE_LOOP_SHADOW`) + `build_shadow_active_loop`(rate_cap 일1회). `coin_track_macro._run_fhc_shadow`: macro_view 저신뢰/UNKNOWN→active_loop(Claude OAuth) 카드 발권→`raw_external_data["fhc_shadow_cards"]`(probationary 자본0, 배분 무영향). off=byte-identical, 고신뢰=결정론 차단, graceful. macro_view None 시 shadow 전용 classify 1회.
+> - **(C) bonus→weight**(`ffb5c24` v1.37.3): `portfolio_orchestrator.allocate(fhc_card_states)` env `FHC_BONUS` opt-in → `_apply_fhc_bonus`(size_with_bonus + 합=1 재정규화), 천장 C=SLEEVE_BANDS 상한 clip. ★INV-5 confirmed-only=probationary(자본0) 기여 0→byte-identical(검증: confirmed us_stock 0.25→0.2786 tilt / probationary-only 무변경). breaker(macro_abstain)→bonus 0. coin_track_macro `_fhc_cards` 누적→다음 allocate 소비. 실주문 분리(GatedOrderRouter go-live).
+> - **(D) 종목 e2e + admission 실연결**(`e2288a5` v1.37.4): `build_security_news_loop`(haiku/bge/claude 실배선) + `on_news_batch`. ★**사용자 지적 반영**("남 소유라고 연결 안하면 안됨")=더미 universe 회피 제거→`stock_admission_universe_fn`이 `stock.admission` 안정 API 실 import(거시→종목 단방향): whitelist universe SSOT(admission.LLM_EXPANSION=LLM 임의 확장 차단 정합) + `check_admission` 적격성 + `KrxStatusProvider` 제재(거래정지→거부) 검증. stock/ 무수정(button 작업파일 미접촉).
+> - **README**(`5fea15a`): production LIVE wire 서브섹션 + "미배선"→"env-gated 배선" 정정.
+> - 회귀: tests/assume 132 passed + 도메인 646 passed 0회귀(kimchirang async·harness2 audit md 부재=기존 직교 이슈). long-mode ON(cap 500k).
+> (1) **마지막 결정**: production wire는 env opt-in(off=byte-identical). probationary 자본0이라 FHC_BONUS on이어도 confirmed 전이 전엔 무영향(go-live arming=사람 게이트). 종목 뉴스 실소스=증권 리포트 미구축(거시 RSS는 종목 매핑 불가=데이터 부재, 소유 회피 아님).
+> (2) **다음 의도**: 발권 LIVE 카드 출력=메인 멈춤 단독 `.p2-fhc-live-mint.py`. ⛔(E)실주문(execute_trade·DRY_RUN=false)·push=사람 게이트.
+> (3) **동기화**: 5커밋(04d963a/ffb5c24/e2288a5/5fea15a + version). push 미실행.
+>
+> [ckpt-202606061800:btn-Inv ★실 LLM/임베딩 LIVE 검증 + 429 진단 + production wire 인계]
+> ★**완료**: "남은거 실거래 연결빼고 다 되게" → 거시 FHC 실 LLM/임베딩 **LIVE 검증**: 하이쿠 요약(Claude Haiku 4.5, 영어 summary)·BGE 임베딩(DaService 8787 1024dim) 둘 다 성공. 거시 카드 mint=코드·인증·요청 완성(400 temperature deprecated 픽스→429). ★**429 진단**=메인 세션(이 Opus)과 **동일 OAuth 키**(~/.claude/.credentials.json) 동시 점유 rate 경합(quota 아님, 사용자 "한도 OK" 정합. 400→429 진행=인증·형식 정상=코드 결함 아님). backoff 5/15/45 retry(GenerateToComplete) 추가에도 메인 활성 중 지속. **단독 검증 스크립트 `.p2-fhc-live-mint.py`**(메인 세션 멈추고 실행 시 OAuth 경합 0→통과).
+> (1) **production wire 인계**(토큰 한계): `handoff-fhc-live-wire-20260606.md` next-action (B)발권 wire coin_track_macro:83→shadow sink / (C)bonus→weight allocate DRY_RUN 시뮬(결정론 코어, 회귀 엄수) / (D)종목 e2e universe=button 주입 / ⛔(E)실주문=사람 게이트. 토큰 625k/630k(on2 최대)라 (C)(D) 다음 세션.
+> (2) **다음 의도**: 새 세션=`handoff-fhc-live-wire-20260606.md` §1 첫 행동 (B)→(C)→(D). 발권 LIVE 카드 출력=메인 멈춤 단독 실행(.p2-fhc-live-mint.py).
+> (3) **동기화**: 16커밋(80e6600 retry+handoff·9b182dd README FHC섹션·1a9e5ae 종목골격·827700f 하이쿠BGE·f443527 temperature·ed89979 발권팩토리 …). audit 2회 PASS(약속-구현 정합·위반0). push·실주문·DRY_RUN 미접촉. long-mode on2.
+>
 > [ckpt-202606061700:btn-Inv ★종목 소식 트리거 오케스트레이터 골격 + audit 2회 PASS(124 passed)]
 > ★**완료**: audit 2기(jsonl 질문+agent답변↔코드 / plan progress↔코드+LIVE배선) **둘 다 PASS**(약속-구현 정합, 왜곡·위반·은폐 0, 118 passed 재현). 유일 갭=종목 소식→카드 e2e 오케스트레이터 부재(부품 scope/info_delta/research_ingest는 있음)→사용자 "ㄱㄱ"로 골격 보완.
 > (1) **신규** `core/assume/security_news_loop.py`(SecurityNewsCardLoop): on_news(ticker,raw)→research_ingest(중복 novelty 필터)→유니버스 게이트→[통과분]active_loop 발권단계 재사용(scope=ticker·domain=equity·자본0)/[밖]CandidatePool→promote_candidates 슬롯 승격. 유니버스 단계적(in_universe_fn=button 스크린 통과분 주입 / 밖=후보풀 / ⛔즉시카드 금지). in_universe_fn None=보수적 전량 풀. test 6, **124 passed**. additive 호출처0 dormant, active_loop/research_ingest 무수정.
