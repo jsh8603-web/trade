@@ -33,6 +33,13 @@ plan: plan-judge-report-arch.md
 - 잔여: substrate on(멀티에셋 macro view+regime) 주입 variant = RegimeGlasso 공유라 button 연결 후. coin baseline은 확보.
 
 ## Working Notes
+> [ckpt-202606061500:btn-Inv S5 ingest + S4 발권 실연결 팩토리 ✅ — 거시 FHC 파이프라인 e2e shadow(118 passed)]
+> ★**완료**: "이 세션 plan progress 자율주행 다해" + "고 라이브 실연결도 다해" → 거시 FHC 파이프라인 shadow **e2e 닫음**(발권 실연결까지). 누적 9 커밋(d00fe0f S2 / 7f6e945 S4직교성 / 729e48f S5정보델타 / 536b1b4 게이트테스트 / cd77af9 계약수렴 / c2142d7 S4능동루프 / 85d4ab4 S5 ingest / ed89979 발권실연결팩토리).
+> (1) **S5 stage-1 ingest** `core/assume/research_ingest.py`: 소형 LLM 요약→임베딩(brain.embedder)→중복판정(info_delta novelty)→bitemporal PIT(release/ingestion)→store.upsert/shadow. ingest→retrieve→active_loop 발권으로 RAG 파이프라인 닫힘. test 7.
+> (2) **S4 발권 실연결** `core/assume/loop_factory.py`: GenerateToComplete(brain.llm_provider generate↔macro_reasoning complete 어댑터)+build_active_loop(use_local_llm·ollama_health graceful)+JSON 추출. use_local_llm=False→llm None abstain(byte-identical). True→OllamaQwen 어댑터(health 후, 미가동 graceful). test 6.
+> (3) **★라이브 실연결 한계(기존 논의 확인 정합)**: autopilot-run-scope(2026-05-29)=실자금 flip(DRY_RUN=false)·90일검증·push=사람 게이트, 자율 절대 밖. 안전장치 유지. plan §4=전 구간 사람 게이트. → 발권 실연결(LLM 어댑터/팩토리, 자본0)까지=자율 완결. ★실 LLM 호출=ollama 미설치+.env 키 미설정=환경 선결(자율 밖). production wire(coin_track_macro L83 opt-in)=실 LLM 없으면 무동작+회귀민감→환경 생긴 후/사용자 확인 시 켜기. 실자금·push=사람 게이트 유지.
+> (4) **다음 의도**: 환경 선결(ollama 설치 or .env 키)→production wire(coin_track_macro opt-in shadow, off byte-identical)→실 LLM 발권 LIVE 검증. 그 후도 실자금 arming=90일 게이트(사람). button write-back sink·종목 S6=button(compact 후). push·go-live 미접촉, DRY_RUN/EMERGENCY_STOP 유지. long-mode on2.
+>
 > [ckpt-202606061400:btn-Inv S4 능동 애널리스트 루프 shadow 본체 ✅ — LLM 소환 발권(105 passed)]
 > ★**정정+완료**: 사용자 dispute("LLM 소환까지 다 못해? 진입점 button이랑 논의하고 할 줄 알았는데 그게 plan progress 진행이다") → 내 오해 정정: **LLM 소환 능동루프 ≠ go-live**. plan §4="S0~S4 전부 dry-run/shadow, go-live=능동루프 shadow 지속통과 직후 arming"이라 **LLM 소환·카드발권은 shadow 구현 대상**(자본0), go-live는 그 후 실거래만. 내가 "LLM 소환=go-live"로 잘못 묶어 멈춤=틀림.
 > (1) **button 진입점 정렬**(psmux 1R): S4 본체=btn-Inv 영역 동의 / button 접점=step7 write-back(카드→Σ_signal 원장 meta=button §6 Y, 미구현=go-live→**shadow dry-run sink로 충돌0**) / LLM 소환=orchestrator 소유 / probationary=자본0·INV-12 firewall go-live시 button / 종목 S6=scope='sector' 별도(button, compact 후).
