@@ -5,7 +5,7 @@ session: btn-Inv
 plan: plan-judge-report-arch.md
 progress: progress-judge-report-arch.md
 consult-ssot: .consult-judge-report-RESULTS.md
-next-action: "button(주식 S6) 회신 확인 → S2 mediator 합류 가능 여부 판정. 단독 진행 시 = 코인 Markov ex-ante 또는 core 정교화(reject_recovery 트리거 통합). ⛔ S2/S4/S5 = button RegimeGlasso 합류 + go-live 게이트 선결로 단독 불가."
+next-action: "★S2 macro 구독측 ✅ 완료(2026-06-06, ckpt-202606060900). core/assume/macro_mediator.py 신규(belief_from_macro_view 재사용→posterior_holds, fail-closed UNKNOWN, entropy 게이트, filtered-only regime_now만) + eval_macro_mediator fhc 연결 + test 14, 81 passed 회귀0, fhc/belief adapter 무수정 INV-11 byte-identical. ★btn-Inv 단독 자율분 소진. 잔여 전부 button 합류+go-live 선결: S2 RegimeGlasso 공급측(sleeve cov INV-9, .coord §6 미해결) / S4 능동루프 / S5 리서치 / S6 종목. 다음 세션 첫 행동=button 회신(.coord §6 b/c RegimeGlasso API) 확인 또는 go-live 게이트 사용자 논의 전까지 신규 진입 보류. ⛔go-live·push 미접촉(ETF fallback 미커밋=btn-button 소유 무접촉)."
 ---
 
 # Handoff — judge 재설계 + 리서치 통합 의사결정 아키텍처 (FHC)
@@ -50,6 +50,7 @@ next-action: "button(주식 S6) 회신 확인 → S2 mediator 합류 가능 여�
 - **거시=현 세션(btn-Inv) / 주식 구현=button 세션**(동일 FHC 틀 공유, C15). btn-Inv가 `core/assume/` FHC core **단일 소유**(사용자 "주식 리서치 한세월이니 너가 먼저"). button=core 짓지 말 것 + 산업 리서치 계속 + 나중 bonus API plug-in. button 회신 "정렬 동의·2벌 회피 합의" 받음.
 - **go-live = 전 구간 사람 게이트**. coin bot부터 incremental arming → 종목 바스켓(KIS) 최후. push 금지. 결정론·risk_gate 상수 무수정.
 - **plan-test-readiness P3(judge)/P5(리포트)는 본 plan으로 흡수**(과소명세 정정).
+- **종목 카드 universe 정책(2026-06-06 확정 = 단계적, plan S6 §종목 트리거)**: 개별 종목 소식(리포트·공시·기사) = 발권 트리거, 단 rate-cap AND 델타 게이트 통과 시만. ①기본=스크린 통과분 내 한정(C6) ②universe 밖 신선종목=임시 후보풀 적재 → 다음 스크린/슬롯 승격(즉시 끌어오기 X) ③안정 후 게이트와 함께 임시승격. ⛔"임의 종목 소식=즉시 카드" 금지(빈도 상한 소실).
 
 ## §4. 파일 inventory (절대경로)
 
