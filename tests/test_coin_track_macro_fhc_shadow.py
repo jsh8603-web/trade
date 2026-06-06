@@ -51,6 +51,7 @@ def _ct_with_fake_loop():
     """__init__ 우회 + fake LLM 루프 주입(LLM 실호출 대신 wire 메서드 로직 검증)."""
     ct = CoinTrackWithMacro.__new__(CoinTrackWithMacro)
     ct._fhc_loop = ActiveAnalystLoop(llm=_FakeLLM(), rate_cap=RateCapState(cap_per_slot=1))
+    ct._fhc_cards = []   # (C) 누적 슬롯(__init__ 우회라 수동 초기화)
     return ct
 
 
@@ -95,11 +96,24 @@ def test_high_confidence_no_summon():
     assert "fhc_shadow_cards" not in state.raw_external_data
 
 
-def test_macro_view_none_graceful():
-    """macro_view None + FRED 부재 → graceful 미발권(예외 X)."""
+def test_macro_view_none_graceful(monkeypatch):
+    """macro_view None + classify UNAVAILABLE → graceful 미발권(예외 X).
+
+    ★pollution-proof: 배치 실행 시 다른 테스트가 FRED env/캐시를 남겨 classify 가 우연 성공하면
+    발권될 수 있으므로 RegimeClassifier 를 UNAVAILABLE 고정(이 테스트는 graceful 경로만 검증)."""
+    import core.brain.regime_classifier as rc
+
+    class _Unavail:
+        def __init__(self, *a, **k):
+            pass
+
+        def classify(self, *a, **k):
+            return MacroView(regimes={}, status=ViewStatus.UNAVAILABLE, as_of_ts=0.0)
+
+    monkeypatch.setattr(rc, "RegimeClassifier", _Unavail)
     ct = _ct_with_fake_loop()
     state = _DummyState()
-    ct._run_fhc_shadow(None, None, state)   # 예외 없이 반환(classify unavailable)
+    ct._run_fhc_shadow(None, None, state)   # 예외 없이 반환(UNAVAILABLE → summon 차단)
     assert "fhc_shadow_cards" not in state.raw_external_data
 
 

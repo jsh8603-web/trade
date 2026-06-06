@@ -117,6 +117,7 @@ class PortfolioOrchestrator:
         method: str = "weight_tilt",
         sleeve_regime_ids=None,
         as_of=None,
+        fhc_card_states=None,
     ) -> Dict[str, Any]:
         """regime→macro→weights 체인 실행 → BL 슬리브 % 산출.
 
@@ -205,7 +206,50 @@ class PortfolioOrchestrator:
             if not any("r15" in str(c) or "belief" in str(c) for c in result.get("caution", [])):
                 result.setdefault("caution", []).append(tag)
 
+        # ★(C) FHC bonus → weight tilt (env FHC_BONUS opt-in, off=byte-identical 무회귀).
+        #   확정(confirmed/revived)+mediator HOLDS 카드만 L1 위로 bonus(INV-5), 천장 C=밴드 상한.
+        #   probationary(자본0) 카드는 size_with_bonus 가 기여 0 → weights 무변경(go-live arming 전
+        #   자동 무영향). 실주문은 별도(GatedOrderRouter, go-live) — allocate 는 weight 산출만(DRY 시뮬).
+        if fhc_card_states and os.environ.get("FHC_BONUS", "false").lower() == "true":
+            try:
+                breaker = bool(macro_abstain)        # macro unavailable = 보수(INV-9 류 fail-closed)
+                old_w = result.get("weights", {})
+                new_w, sized = self._apply_fhc_bonus(
+                    old_w, fhc_card_states, breaker_tripped=breaker)
+                # 실제 변화한 경우만 교체(probationary-only=무변화→byte-identical)
+                changed = any(abs(new_w.get(k, 0.0) - old_w.get(k, 0.0)) > 1e-12
+                              for k in set(new_w) | set(old_w))
+                if changed:
+                    result["weights"] = new_w
+                    result.setdefault("caution", []).append("fhc_bonus_applied")
+                    result["fhc_sizing"] = {
+                        a: {"l1": s.l1, "bonus": s.bonus, "final": s.final,
+                            "clipped": s.clipped, "n_cards": s.n_cards}
+                        for a, s in sized.items()}
+            except Exception as exc:
+                logger.warning("FHC bonus wire 실패 → L1 배분 유지: %s", exc)
+
         return result
+
+    def _apply_fhc_bonus(self, weights, card_states, *, breaker_tripped: bool = False):
+        """(C) bonus_channel.size_with_bonus 로 L1 위 bonus tilt → 합=1 재정규화.
+
+        천장 C = SLEEVE_BANDS 상한(risk_gate 독립산출 단일자산 천장 C 의 배분레벨 proxy). 밴드 미정의
+        슬리브는 1.0(무제한 상한). size_with_bonus INV-1/3/4/5/8/9 집행 후 final 합=1 재정규화.
+        반환: (new_weights{합=1}, sized{asset: AssetSizing}).
+        """
+        from core.assume.bonus_channel import size_with_bonus
+        ceilings = {sl: SLEEVE_BANDS.get(sl, (0.0, 1.0))[1] for sl in weights}
+        sized = size_with_bonus(dict(weights), card_states, ceilings,
+                                breaker_tripped=breaker_tripped)
+        raw = {a: s.final for a, s in sized.items()}
+        for a, w in weights.items():                 # sized 에 없는 슬리브 보존
+            raw.setdefault(a, w)
+        total = sum(raw.values())
+        if total <= 0:
+            return dict(weights), sized
+        new_w = {a: v / total for a, v in raw.items()}   # 합=1 재정규화(bonus tilt = relative)
+        return new_w, sized
 
     def _fallback_hrp(self, returns_history=None) -> Dict[str, Any]:
         """Riskfolio HRP fallback. 수익률 없으면 IC 중립 Prior."""

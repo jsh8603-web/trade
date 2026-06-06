@@ -50,6 +50,7 @@ class CoinTrackWithMacro(CoinTrack):
         self._macro_orch = macro_orchestrator
         self._macro_enabled = macro_enabled
         self._fhc_loop = None        # (B) FHC shadow 발권 루프 lazy 캐시(rate_cap 상태 유지)
+        self._fhc_cards = []         # (C) 발권 카드 누적 [(FHCard, FHCState)] → allocate bonus wire
 
     def collect_market_state(self, as_of=None) -> MarketState:
         """기존 CoinTrack.collect_market_state + macro 레이어 주입.
@@ -91,7 +92,8 @@ class CoinTrackWithMacro(CoinTrack):
                     sleeve_regime_ids = None
                 macro_result = self._macro_orch.allocate(
                     macro_view=macro_view, returns_history=returns_panel,
-                    sleeve_regime_ids=sleeve_regime_ids, as_of=as_of)
+                    sleeve_regime_ids=sleeve_regime_ids, as_of=as_of,
+                    fhc_card_states=(self._fhc_cards or None))  # (C) env FHC_BONUS off=무시
                 # macro_abstain 정보 주입 (H29: buy 차단 신호)
                 state.raw_external_data["macro_weights"] = macro_result.get("weights", {})
                 state.raw_external_data["macro_abstain"] = macro_result.get("macro_abstain", False)
@@ -158,6 +160,12 @@ class CoinTrackWithMacro(CoinTrack):
                 "kind": pcard.card.kind,
                 "bonus_cap": pcard.card.bonus_cap,
             }]
+            # (C) 연결: 발권 카드 누적 → 다음 사이클 allocate fhc_card_states 소비(FHC_BONUS on 시).
+            #   probationary(minted)=bonus 0→무영향. go-live arming(confirmed 전이) 시 weight tilt.
+            from core.assume.fhc import FHCState
+            self._fhc_cards.append((pcard.card, FHCState(pcard.card.card_id)))
+            if len(self._fhc_cards) > 20:
+                self._fhc_cards = self._fhc_cards[-20:]
             logger.info("FHC shadow 발권: %s (probationary, 자본0)", pcard.card.card_id)
 
     def generate_candidate(self, state: MarketState):
