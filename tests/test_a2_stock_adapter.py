@@ -152,3 +152,44 @@ def test_a3_max_weight_sector_triggers():
     )
     # kr_stock buy가 sector_weight(0.20 기본 가중치)로 게이트 통과 여부 — gate_verdicts 확인
     assert "kr_stock" in result["gate_verdicts"], f"missing kr_stock: {result}"
+
+
+# ---------------------------------------------------------------------------
+# A4 tests — judge(down-only) hook
+# ---------------------------------------------------------------------------
+
+def test_a4_judge_hook_attenuation():
+    """judge hook 감쇠 → judge_a < 1.0."""
+    class _AttenuatingHook:
+        def __call__(self, sleeve, proposed_size, l1_size=1.0):
+            return {"size_mult": 0.5, "l1_size": l1_size}
+
+    class _BuyStock:
+        def generate_candidate(self, s):
+            return {"decision": "buy", "confidence": 0.9, "reason": "buy"}
+
+    result = _mod.run_one_cycle(
+        dry_run=True,
+        stock_track=_BuyStock(),
+        judge_hook=_AttenuatingHook(),
+    )
+    assert result["judge_a"]["kr_stock"] == 0.5, f"judge_a={result['judge_a']}"
+
+
+def test_a4_judge_hook_fail_open():
+    """judge_hook=None → fail-open a=1.0 (증폭 없음)."""
+    result = _mod.run_one_cycle(dry_run=True, judge_hook=None)
+    for sleeve, a in result["judge_a"].items():
+        assert a <= 1.0, f"{sleeve} a={a} > 1.0 (증폭 위반)"
+
+
+def test_a4_down_only_invariant():
+    """★천장 불변식: judge_a ≤ l1_size=1.0 (증폭 금지)."""
+    class _AmpHook:
+        """증폭 시도 hook — size_mult > l1_size 반환 시 clamp 확인."""
+        def __call__(self, sleeve, proposed_size, l1_size=1.0):
+            return {"size_mult": 2.0, "l1_size": l1_size}  # 증폭 시도
+
+    result = _mod.run_one_cycle(dry_run=True, judge_hook=_AmpHook())
+    for sleeve, a in result["judge_a"].items():
+        assert a <= 1.0, f"{sleeve} a={a} > 1.0 (down-only 불변식 위반)"

@@ -132,6 +132,41 @@ def _compute_multiasset_corr_sector(
     return avg_corr, sector_weight
 
 
+def _apply_judge_hook(
+    judge_hook,
+    *,
+    sleeve: str,
+    proposed_size: float,
+    l1_size: float = 1.0,
+) -> float:
+    """★A4 judge(down-only) hook 적용.
+
+    engine W3 패턴 재현: JudgeVerdict 또는 dict 허용.
+    final = size_mult ∈ [0, l1_size] (down-only 불변식 보장).
+    hook=None → fail-open a=1.0 (결정론 baseline).
+
+    Returns: a_judge (0~l1_size)
+    """
+    if judge_hook is None:
+        return l1_size  # fail-open
+
+    try:
+        jv = judge_hook(sleeve=sleeve, proposed_size=proposed_size, l1_size=l1_size)
+        if hasattr(jv, "size_mult") and hasattr(jv, "l1_size"):
+            l1_ref = float(jv.l1_size) if jv.l1_size else l1_size
+            a = float(jv.size_mult)
+        elif isinstance(jv, dict):
+            l1_ref = float(jv.get("l1_size", l1_size))
+            a = float(jv.get("size_mult", l1_size))
+        else:
+            return l1_size  # 알 수 없는 형식 → fail-open
+        # ★천장 불변식: final ≤ l1_size (down-only, 증폭 금지)
+        return float(min(max(a, 0.0), l1_ref))
+    except Exception as exc:
+        logger.warning("judge_hook 예외 → fail-open: %s", exc)
+        return l1_size  # 장애 = fail-open
+
+
 def run_one_cycle(
     *,
     dry_run: bool = True,
@@ -140,16 +175,18 @@ def run_one_cycle(
     orchestrator=None,
     nav: float = 1_000_000.0,
     corr_matrix: Optional[Dict[str, Dict[str, float]]] = None,
+    judge_hook=None,    # A4: judge hook (None=fail-open a=1.0)
 ) -> Dict[str, Any]:
-    """coin + stock 1사이클 weights 산출 + ★A3 GatedOrderRouter.submit 연결.
+    """coin + stock 1사이클 weights 산출 + A3 GatedOrderRouter.submit + ★A4 judge hook.
 
     ★A3 SR directive: engine avg_correlation=0.0/sector_weight=current_weight 하드코딩 해소.
-    이 호출자(합산층)에서 corr/sector를 자산집합서 산출 → GatedOrderRouter.submit 주입.
+    ★A4: judge hook — high-stakes 시 사이징 감쇠. final ≤ l1_size (down-only 불변식).
 
     Returns:
         {"weights": {sleeve: pct}, "coin_action": str, "stock_action": str,
-         "gate_verdicts": {asset: verdict_str}, "triggered_rules": [str],
-         "bypassed_attempts": int, "orders_attempted": int, "dry_run": bool}
+         "gate_verdicts": {asset: verdict_str}, "judge_a": {asset: float},
+         "triggered_rules": [str], "bypassed_attempts": int,
+         "orders_attempted": int, "dry_run": bool}
     """
     from core.asset_track import MarketState
     from core.risk_gate import GatedOrderRouter, VerdictType
@@ -196,6 +233,7 @@ def run_one_cycle(
 
     # ★A3 합산층 GatedOrderRouter.submit — corr/sector 실산출 주입
     gate_verdicts: Dict[str, str] = {}
+    judge_a: Dict[str, float] = {}    # A4: sleeve별 judge a 값
     triggered_rules: list = []
     orders_attempted = 0
 
@@ -203,9 +241,18 @@ def run_one_cycle(
     for sleeve, action in asset_actions:
         if action not in ("buy", "sell"):
             gate_verdicts[sleeve] = "hold_skip"
+            judge_a[sleeve] = 1.0
             continue
 
         proposed_size = nav * weights.get(sleeve, 0.0)
+
+        # ★A4 judge hook — gate submit 전 사이징 감쇠 (down-only)
+        l1_size = 1.0  # 기본 L1 = 단위 사이즈
+        a_judge = _apply_judge_hook(judge_hook, sleeve=sleeve,
+                                    proposed_size=proposed_size, l1_size=l1_size)
+        judge_a[sleeve] = a_judge
+        proposed_size_judged = proposed_size * a_judge  # judge 적용 후 사이즈
+
         # ★합산층 실산출 (engine 0.0 하드코딩 대신)
         avg_corr, sector_w = _compute_multiasset_corr_sector(
             weights, sleeve, corr_matrix=corr_matrix
@@ -213,14 +260,14 @@ def run_one_cycle(
         current_w = weights.get(sleeve, 0.0)
 
         verdict = router.submit(
-            {"action": action, "asset": sleeve, "trade_value": proposed_size},
+            {"action": action, "asset": sleeve, "trade_value": proposed_size_judged},
             cycle_id=f"multiasset-{sleeve}",
             via_gate=True,
             action=action,
-            proposed_size=proposed_size,
+            proposed_size=proposed_size_judged,  # judge 감쇠 후 사이즈
             current_weight=current_w,
-            sector_weight=sector_w,          # ★합산층 산출값
-            avg_correlation=avg_corr,        # ★합산층 산출값
+            sector_weight=sector_w,              # ★합산층 산출값
+            avg_correlation=avg_corr,            # ★합산층 산출값
             nav=nav,
             position_pnl_pct=0.0,
             holding_days=0,
@@ -235,11 +282,11 @@ def run_one_cycle(
         if verdict.verdict != VerdictType.REJECTED:
             orders_attempted += 1
             if dry_run:
-                logger.info("[DRY_RUN] %s %s → stub_order(네트워크0) [%s]",
-                            sleeve, action, verdict.verdict.value)
+                logger.info("[DRY_RUN] %s %s → stub_order [%s] judge_a=%.3f",
+                            sleeve, action, verdict.verdict.value, a_judge)
             else:
-                logger.info("[LIVE] %s %s → 주문 경로(A5 wire 후) [%s]",
-                            sleeve, action, verdict.verdict.value)
+                logger.info("[LIVE] %s %s → 주문 경로(A5 wire 후) [%s] judge_a=%.3f",
+                            sleeve, action, verdict.verdict.value, a_judge)
         else:
             logger.info("[GATE] %s %s REJECTED: %s", sleeve, action, verdict.reason)
 
@@ -251,6 +298,7 @@ def run_one_cycle(
         "stock_adapter_raw_decision": stock_decision.raw.get("decision", "")
             if isinstance(stock_decision, _StockDecision) else "",
         "gate_verdicts": gate_verdicts,
+        "judge_a": judge_a,                  # A4: down-only 사이징 감쇠 결과
         "triggered_rules": triggered_rules,
         "bypassed_attempts": router.bypassed_attempts,
         "orders_attempted": orders_attempted,
