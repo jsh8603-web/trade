@@ -69,6 +69,7 @@ class PortfolioState:
     daily_loss_pct: float = 0.0    # 당일 누적 손실 (NAV 대비, 음수 = 손실)
     ytd_realized_pnl_pct: float = 0.0
     _rejected_count: int = 0       # 거절 카운트 (로그용)
+    _reject_reasons: List[List[str]] = field(default_factory=list)  # B3: 거절 사유(triggered_rules) 누적 — L2a(로직) vs L2c(상수) 구분
 
     def current_nav(self, price: float) -> float:
         """현재 NAV = cash + qty * price."""
@@ -394,12 +395,30 @@ class BacktestEngine:
         bar_checksums: List[str] = []   # bar_idx → SHA-256[:16]
         gross_series: List[float] = []  # G6 sum(gross)<=1 검증용
 
+        # B2: stage attribution JSONL — env INV_DIAG_ATTRIB on 일 때만 emit.
+        #   off(기본)=호출 0 → byte-identical. on=append-only 로그(엔진 산출 무변경).
+        #   ★자산축 태깅(asset_name) = 호출자 병합층이 자산별 집계할 raw 소스(per-bar×asset×stage×layer).
+        def _emit_attrib(**kw):
+            import os as _os, json as _json  # noqa: PLC0415
+            if _os.environ.get("INV_DIAG_ATTRIB", "").lower() not in ("1", "true", "on", "yes"):
+                return
+            from pathlib import Path as _Path  # noqa: PLC0415
+            _d = _Path("logs/executions"); _d.mkdir(parents=True, exist_ok=True)
+            with open(_d / "bar_attrib.jsonl", "a", encoding="utf-8") as _f:
+                _f.write(_json.dumps(kw, ensure_ascii=False, default=str) + "\n")
+
         for bar_idx, (ts, price) in enumerate(price_series.items()):
             price = float(price)
             vol = float(volume_series.get(ts, 0.0))
 
             # W2: 바 시작 — prev_close_nav 갱신 (일일 loss 기준)
             ps.open_bar(bar_idx, price)
+
+            # B1/B2/B4 진단 기본값 (hold/sell bar 에서도 _sv·attribution 정의 보장)
+            a_judge = 1.0
+            _verdict_name = "none"
+            _triggered: List[str] = []
+            _data_empty = False
 
             # W1: gross 산출
             if _prev_price is not None and _prev_price > 0:
@@ -425,6 +444,9 @@ class BacktestEngine:
             )
             weights, _method = size_portfolio(returns_df)
             w_asset = weights.get(asset_name, 1.0)
+            # B4: X 행수>0 게이트 (L2b 데이터) — dropna 후 0행이면 라벨 (현 fallback [0.0]은 silent)
+            if returns_df.dropna().shape[0] == 0:
+                _data_empty = True
 
             # AssetTrack 계약 경유
             state = asset_track.collect_market_state(
@@ -494,9 +516,16 @@ class BacktestEngine:
                 )
 
                 from core.risk_gate import VerdictType as _VT  # noqa: PLC0415
+                _verdict_name = verdict.verdict.name
+                _triggered = list(getattr(verdict, "triggered_rules", []) or [])
                 if verdict.verdict == _VT.REJECTED:
                     # REJECTED → skip, 엔진 cap 추정 재시도 금지
                     ps._rejected_count += 1
+                    ps._reject_reasons.append(_triggered)  # B3: 거절 사유 라벨(L2a vs L2c)
+                    _emit_attrib(bar=bar_idx, ts=ts, asset=asset_name, price=price,
+                                 action="buy", stage="gate", gross=gross, w_asset=w_asset,
+                                 a_judge=a_judge, verdict="REJECTED", triggered=_triggered,
+                                 nav=ps.current_nav(price), data_empty=_data_empty)  # B2(REJECTED bar)
                     equity_points.append(ps.current_nav(price))
                     continue
 
@@ -564,8 +593,15 @@ class BacktestEngine:
                 )
 
                 from core.risk_gate import VerdictType as _VT  # noqa: PLC0415
+                _verdict_name = verdict.verdict.name
+                _triggered = list(getattr(verdict, "triggered_rules", []) or [])
                 if verdict.verdict == _VT.REJECTED:
                     ps._rejected_count += 1
+                    ps._reject_reasons.append(_triggered)  # B3
+                    _emit_attrib(bar=bar_idx, ts=ts, asset=asset_name, price=price,
+                                 action="sell", stage="gate", gross=gross, w_asset=w_asset,
+                                 a_judge=a_judge, verdict="REJECTED", triggered=_triggered,
+                                 nav=ps.current_nav(price), data_empty=_data_empty)
                     equity_points.append(ps.current_nav(price))
                     continue
 
@@ -611,10 +647,17 @@ class BacktestEngine:
             # W2: 종가 equity 기록 (PortfolioState 기반)
             equity_points.append(ps.current_nav(price))
 
-            # W4 (SR): per-bar state-vector checksum
-            _sv = f"{bar_idx}|{round(price,6)}|{round(ps.cash,4)}|{round(ps.qty,8)}|{round(ps.avg_price,4)}|{ps.entry_bar}"
+            # W4(SR)+B1: per-bar state-vector checksum — gross|w_asset|a_judge|verdict 4필드 확장(L2a pinpoint)
+            _sv = (f"{bar_idx}|{round(price,6)}|{round(ps.cash,4)}|{round(ps.qty,8)}|"
+                   f"{round(ps.avg_price,4)}|{ps.entry_bar}|{round(gross,6)}|{round(w_asset,6)}|"
+                   f"{round(a_judge,6)}|{_verdict_name}")
             bar_checksums.append(_hashlib.sha256(_sv.encode()).hexdigest()[:16])
             gross_series.append(gross)
+            # B2: 정상 bar attribution (hold/체결 — REJECTED 는 위에서 이미 emit)
+            _emit_attrib(bar=bar_idx, ts=ts, asset=asset_name, price=price,
+                         action=action, stage="bar_end", gross=gross, w_asset=w_asset,
+                         a_judge=a_judge, verdict=_verdict_name, triggered=_triggered,
+                         nav=ps.current_nav(price), data_empty=_data_empty)
 
         final_capital = ps.current_nav(
             float(price_series.iloc[-1]) if len(price_series) > 0 else 0.0
@@ -634,6 +677,7 @@ class BacktestEngine:
         result._position_fractions = position_fractions  # type: ignore[attr-defined]
         # W2 진단용 메타
         result._rejected_count = ps._rejected_count  # type: ignore[attr-defined]
+        result._reject_reasons = ps._reject_reasons  # type: ignore[attr-defined]  # B3: 거절 사유 집계
         result._portfolio_state = ps  # type: ignore[attr-defined]
         # W3 진단용 메타
         result._judge_hook_calls = judge_hook_calls  # type: ignore[attr-defined]

@@ -101,6 +101,20 @@ class CoinTrackWithMacro(CoinTrack):
                             macro_view = self._run_macro_enrich(macro_view)
                         except Exception as exc:
                             logger.warning("macro enrich 실패 → baseline 유지: %s", exc)
+                            # B5: L3a 계약실패(파싱/schema) vs 의도적 abstain 구분 — env INV_DIAG_ATTRIB on 시만 라벨
+                            try:
+                                import os as _os  # noqa: PLC0415
+                                if _os.environ.get("INV_DIAG_ATTRIB", "").lower() in ("1", "true", "on", "yes"):
+                                    import json as _json  # noqa: PLC0415
+                                    from pathlib import Path as _P  # noqa: PLC0415
+                                    _d = _P("logs/executions"); _d.mkdir(parents=True, exist_ok=True)
+                                    with open(_d / "bar_attrib.jsonl", "a", encoding="utf-8") as _f:
+                                        _f.write(_json.dumps(
+                                            {"stage": "llm_enrich", "layer": "L3a",
+                                             "event": "llm_contract_fail", "detail": str(exc)[:200]},
+                                            ensure_ascii=False) + "\n")
+                            except Exception:
+                                pass
 
                 macro_result = self._macro_orch.allocate(
                     macro_view=macro_view, returns_history=returns_panel,
