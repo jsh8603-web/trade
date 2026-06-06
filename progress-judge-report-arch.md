@@ -22,7 +22,7 @@ plan: plan-judge-report-arch.md
 - [~] **S2 mediator wiring**(state-space filtered-only 구독) — `model: opus`(harness2→direct, additive) ★**macro 구독측 ✅**(2026-06-06) / RegimeGlasso 공급측(button INV-9 breaker)=선결 유지. `core/assume/macro_mediator.py` 신규(`belief_from_macro_view` 재사용→`posterior_holds`, fail-closed UNKNOWN, entropy 게이트, filtered-only=regime_now만·forecast 무시) + `eval_macro_mediator` fhc 연결. test 14. **81 passed 회귀0**(기존 67 불변). fhc/regime_belief_adapter 무수정=INV-11 byte-identical.
 - [x] **S3a breaker+fail-closed**(regime-primary breaker flag, INV-3/9) — `model: opus` ✅ 완료. bonus_channel.py `breaker_tripped` + 천장 누락 fail-closed. (IOC ladder 실행=INV-8=go-live downstream)
 - [x] **S3b bonus emission**(w=clip(L1+Σbonus, 천장C), INV-1/4) — `model: opus` ✅ 완료. `core/assume/bonus_channel.py` size_with_bonus + AssetSizing. (B)강화 구현(L1 초과·천장C cap). self-test 7/7.
-- [ ] **S4 능동 애널리스트 루프**(7-step+Opus pre-mint audit) — `wf: harness2`
+- [~] **S4 능동 애널리스트 루프**(7-step+Opus pre-mint audit) — `model: opus`(harness2→direct shadow) ★**본체 ✅**(2026-06-06) `core/assume/active_loop.py`(ActiveAnalystLoop). 7-step: 저신뢰 트리거(conf↓/mediator UNKNOWN)→summon gate(info_delta rate-cap)→retrieve(ReportStore)→claim(LLM)→pre-mint audit(falsifiability+spanning 직교성+LLM 2차)→probationary mint(bonus_cap=0 자본0)→write-back(shadow sink). ★llm None=전부 abstain(C2). 게이트 3종 재사용. test 8, **105 passed**. ⏳잔여=LLM 실연결·Σ_signal write-back sink(button, compact 후)·종목 scope='sector' 확장(S6)=go-live/button.
 - [ ] **S5 리서치 통합**(2-stage 카드발권+RAG 하이브리드, VaultVoice 재사용) — `wf: harness2`
 - [ ] **S6 종목 바스켓**(룰코어 스크린+딥모델 비교선택+메타카드, KIS) — `→ button 세션`
 
@@ -33,6 +33,12 @@ plan: plan-judge-report-arch.md
 - 잔여: substrate on(멀티에셋 macro view+regime) 주입 variant = RegimeGlasso 공유라 button 연결 후. coin baseline은 확보.
 
 ## Working Notes
+> [ckpt-202606061400:btn-Inv S4 능동 애널리스트 루프 shadow 본체 ✅ — LLM 소환 발권(105 passed)]
+> ★**정정+완료**: 사용자 dispute("LLM 소환까지 다 못해? 진입점 button이랑 논의하고 할 줄 알았는데 그게 plan progress 진행이다") → 내 오해 정정: **LLM 소환 능동루프 ≠ go-live**. plan §4="S0~S4 전부 dry-run/shadow, go-live=능동루프 shadow 지속통과 직후 arming"이라 **LLM 소환·카드발권은 shadow 구현 대상**(자본0), go-live는 그 후 실거래만. 내가 "LLM 소환=go-live"로 잘못 묶어 멈춤=틀림.
+> (1) **button 진입점 정렬**(psmux 1R): S4 본체=btn-Inv 영역 동의 / button 접점=step7 write-back(카드→Σ_signal 원장 meta=button §6 Y, 미구현=go-live→**shadow dry-run sink로 충돌0**) / LLM 소환=orchestrator 소유 / probationary=자본0·INV-12 firewall go-live시 button / 종목 S6=scope='sector' 별도(button, compact 후).
+> (2) **구현**: `core/assume/active_loop.py`(ActiveAnalystLoop). 7-step shadow orchestrator = 저신뢰 트리거(macro_schema confidence↓/mediator UNKNOWN)→summon gate(info_delta_gate rate-cap)→retrieve(brain.macro_reasoning ReportStore Protocol)→falsifiable claim(LLMProvider.complete)→pre-mint audit(falsification_metric 필수 + spanning_gate 직교성 camouflage/insufficient reject + LLM 2차 approve)→probationary mint(FHCard kind='probationary' bonus_cap=0)→write-back(sink 또는 shadow_sink). ★llm None/trigger 없음/claim 실패/audit reject=전부 abstain None(C2, 결정론 baseline). 게이트 3종(macro_mediator/spanning_gate/info_delta) 전부 판정부로 재사용. self-test 7 + test_active_loop 8, **105 passed 회귀0**. additive INV-11(호출처 0, go-live 시 소비), 기존 brain/assume 무수정.
+> (3) **다음 의도**: S4 shadow 본체 닫힘. ⏳잔여=LLM 실연결(provider 주입)·Σ_signal write-back sink(button compact 후)·종목 scope='sector' 확장(S6 button)=전부 go-live arming/button 합류 선결. push·go-live 미접촉. long-mode on2(750k).
+>
 > [ckpt-202606061300:btn-Inv FHC 통합 계약 §6 수렴 — button 양측 합의 봉인]
 > ★**완료**: 사용자 "버튼과 샌드키 논의" → btn-button과 psmux 2R 논의 → **.coord-fhc-contract §6 계약 닫힘**(§6'' 봉인).
 > (1) **논의 흐름**: 1R=거시 FHC 게이트 3종(d00fe0f/7f6e945/729e48f) 통지 + §6 4건 회신 요청 → button이 **git 충돌 점검만 답하고 계약 미회신**(파일명 다름·충돌0 확인). 2R=Y/N 형태로 재요청(프레이밍 좁힘) → button §6' 박제. ★수렴 합의: (b)Y core/assume=btn-Inv 단일소유 + construction.build_sleeve_decisions가 size_with_bonus 소비(WireSmith, ETF fallback도 동일 seam) / (c)ETA=go-live arming(dormant, 날짜미정) / (Σ)Y meta·basket=button·core=INV-12 firewall만. ★(RG)=button 회신 누락이나 **§5 INV-9 기정의로 닫힘**(button RegimeGlasso native sleeve cov transition 감지→core fhc.transition(breaker_tripped) boolean 구독, macro_mediator MacroView 구독과 별 레이어). .coord §6'' btn-Inv 확인 봉인.
