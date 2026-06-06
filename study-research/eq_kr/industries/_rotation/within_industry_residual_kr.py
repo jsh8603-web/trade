@@ -34,7 +34,7 @@ CAPSULE_IC = {
     "consumer":      {"signal": "cs_per_z(3M primary)",     "ic": -0.141, "by": False, "caveat": "24M degenerate, 3M primary, single-episode 의존"},
     "auto":          {"signal": "cs_capex_ratio_y60d",      "ic": -0.117, "by": False, "caveat": "OOS robust(FDR 생존), pbr 병행"},
     "semiconductor": {"signal": "cs_pbr_z_24m",             "ic": -0.114, "by": True,  "caveat": "BY 생존 유일(m=8)"},
-    "battery":       {"signal": "inv_ratio/mom_6 (+부호!)", "ic": +0.112, "by": False, "caveat": "★성장주=momentum continuation/재고확대, value(-)와 정반대"},
+    "battery":       {"signal": "cs_mom_6m (primary)",      "ic": +0.075, "by": False, "caveat": "★primary continuation(60d, flow_neutral +0.123). inv_ratio +0.112=TENTATIVE size confound 미분리→primary 채택(IC-never-as-selector 규율, 자문 c)"},
     "telecom":       {"signal": "equipment_pbr (size-neut)","ic": -0.053, "by": True,  "caveat": "raw -0.167은 size 위장, size-neutral -0.053이 정직"},
     "financial":     {"signal": "bank_pbr_z (sub만)",       "ic": -0.161, "by": False, "caveat": "★sub-sector cancel=은행만, 통합 selection LIMITED"},
     "bio":           {"signal": "flow_sell conditional",    "ic": -0.149, "by": False, "caveat": "conditional underpowered, 임상 idio"},
@@ -70,16 +70,23 @@ def main():
     nev = [r["n_eff"] for r in rows.values() if r["n_eff"] > 0]
     n0 = float(np.median(nev)) if nev else 10.0
     ic0 = float(np.median(icv)) if icv else 0.1
-    # ★C12 EB shrinkage (audit minor1): 산업 간 |IC| 대평균 끌림 = small-n(화학 N_eff4.4) magnitude 과대 보정.
-    #   ★부호 보존(|IC| 공간 shrinkage) — 단순 IC 평균은 부호 이질(battery +)을 음 대평균에 잘못 끌어당김.
-    ic_bar = float(np.mean([abs(r["ic"]) for r in rows.values() if r["ic"] is not None]))
+    # ★EB v3 = 계층 베이즈 근사 (자문 within-weak-signal R1, gemini+claude 수렴 + verify 검증).
+    #   C12 v2(부호보존 |IC| 대평균 끌림) 폐기 — 대평균(|IC|≈0.13)으로 끌면 약신호(telecom 0.053)가 부풀려짐
+    #   (verify: telecom ρ ①0.155 vs ②zero 0.046 = 3배 인플레, 둘 다 지적). C12 v2 = "심각 버그" 아니라 spec
+    #   설계 부작용 → 정밀도-가중 0-shrink 로 교체. alpha prior=0(금융 시계열 정설) + 강신호(낮은 SE) 덜 수축.
+    #   s_i² = IC SE² ≈ (1/(n-1))/T (cross-sectional Spearman time-avg). τ² = DerSimonian-Laird between-industry var.
+    #   w_i = τ²/(τ²+s_i²) = 정밀도 가중(zero-mean 과수축 회피 + 대평균 부풀림 회피, 자문 이상해).
+    T_MONTHS = 88
+    ics_abs = [abs(r["ic"]) for r in rows.values() if r["ic"] is not None]
+    s2 = {ind: (1.0 / max(r["n_codes"] - 1, 1)) / T_MONTHS for ind, r in rows.items() if r["ic"] is not None}
+    tau2 = max(0.0, float(np.var(ics_abs)) - float(np.mean(list(s2.values()))))
     for ind, r in rows.items():
         if r["ic"] is None:
             r["rho_i"] = 0.0; r["selection_등급"] = "불가(종목선택 X)"; continue
-        w_eb = r["n_eff"] / (r["n_eff"] + n0)
-        mag_pp = w_eb * abs(r["ic"]) + (1 - w_eb) * ic_bar           # |IC| EB (부호별도)
+        w_i = tau2 / (tau2 + s2[ind]) if (tau2 + s2[ind]) > 1e-12 else 0.0
+        mag_pp = w_i * abs(r["ic"])                                   # 0 향해 정밀도-가중 수축 (대평균 폐기)
         r["ic_pp"] = round(np.sign(r["ic"]) * mag_pp, 4)            # 부호 보존
-        r["w_eb"] = round(w_eb, 3)
+        r["w_shrink"] = round(w_i, 3); r["ic_se"] = round(s2[ind] ** 0.5, 4)
         breadth = r["n_eff"] / (r["n_eff"] + n0)
         signal = abs(r["ic_pp"]) / (abs(r["ic_pp"]) + ic0)            # ★IC_pp(shrunk) 사용
         # gate: BY생존=1.0 / caveat 심각(sub-cancel·conditional·marginal)=0.5 / 기타=0.8

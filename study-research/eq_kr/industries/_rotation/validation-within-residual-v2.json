@@ -16,9 +16,10 @@
       "caveat": "size 위장 아님(t=-3.51)",
       "n_eff": 15.54,
       "n_codes": 26,
-      "ic_pp": -0.1574,
-      "w_eb": 0.533,
-      "rho_i": 0.281,
+      "ic_pp": -0.139,
+      "w_shrink": 0.759,
+      "ic_se": 0.0213,
+      "rho_i": 0.264,
       "selection_등급": "中"
     },
     "steel": {
@@ -28,9 +29,10 @@
       "caveat": "small-universe breadth-adj IR -0.81",
       "n_eff": 16.39,
       "n_codes": 23,
-      "ic_pp": -0.157,
-      "w_eb": 0.546,
-      "rho_i": 0.288,
+      "ic_pp": -0.1331,
+      "w_shrink": 0.735,
+      "ic_se": 0.0227,
+      "rho_i": 0.265,
       "selection_등급": "中"
     },
     "chemical": {
@@ -40,9 +42,10 @@
       "caveat": "n=17 small-n",
       "n_eff": 4.4,
       "n_codes": 17,
-      "ic_pp": -0.1316,
-      "w_eb": 0.244,
-      "rho_i": 0.118,
+      "ic_pp": -0.095,
+      "w_shrink": 0.669,
+      "ic_se": 0.0267,
+      "rho_i": 0.098,
       "selection_등급": "低"
     },
     "consumer": {
@@ -52,9 +55,10 @@
       "caveat": "24M degenerate, 3M primary, single-episode 의존",
       "n_eff": 9.59,
       "n_codes": 28,
-      "ic_pp": -0.1335,
-      "w_eb": 0.413,
-      "rho_i": 0.161,
+      "ic_pp": -0.109,
+      "w_shrink": 0.773,
+      "ic_se": 0.0205,
+      "rho_i": 0.144,
       "selection_등급": "低"
     },
     "auto": {
@@ -64,9 +68,10 @@
       "caveat": "OOS robust(FDR 생존), pbr 병행",
       "n_eff": 7.32,
       "n_codes": 17,
-      "ic_pp": -0.1243,
-      "w_eb": 0.349,
-      "rho_i": 0.131,
+      "ic_pp": -0.0782,
+      "w_shrink": 0.669,
+      "ic_se": 0.0267,
+      "rho_i": 0.1,
       "selection_등급": "低"
     },
     "semiconductor": {
@@ -76,21 +81,23 @@
       "caveat": "BY 생존 유일(m=8)",
       "n_eff": 53.06,
       "n_codes": 85,
-      "ic_pp": -0.1169,
-      "w_eb": 0.796,
-      "rho_i": 0.361,
+      "ic_pp": -0.1042,
+      "w_shrink": 0.914,
+      "ic_se": 0.0116,
+      "rho_i": 0.338,
       "selection_등급": "中"
     },
     "battery": {
-      "signal": "inv_ratio/mom_6 (+부호!)",
-      "ic": 0.112,
+      "signal": "cs_mom_6m (primary)",
+      "ic": 0.075,
       "by": false,
-      "caveat": "★성장주=momentum continuation/재고확대, value(-)와 정반대",
+      "caveat": "★primary continuation(60d, flow_neutral +0.123). inv_ratio +0.112=TENTATIVE size confound 미분리→primary 채택(IC-never-as-selector 규율, 자문 c)",
       "n_eff": 19.27,
       "n_codes": 29,
-      "ic_pp": 0.1187,
-      "w_eb": 0.586,
-      "rho_i": 0.214,
+      "ic_pp": 0.0585,
+      "w_shrink": 0.779,
+      "ic_se": 0.0201,
+      "rho_i": 0.137,
       "selection_등급": "低"
     },
     "telecom": {
@@ -100,9 +107,10 @@
       "caveat": "raw -0.167은 size 위장, size-neutral -0.053이 정직",
       "n_eff": 8.12,
       "n_codes": 14,
-      "ic_pp": -0.1001,
-      "w_eb": 0.373,
-      "rho_i": 0.155,
+      "ic_pp": -0.0329,
+      "w_shrink": 0.621,
+      "ic_se": 0.0296,
+      "rho_i": 0.071,
       "selection_등급": "低"
     },
     "financial": {
@@ -112,9 +120,10 @@
       "caveat": "★sub-sector cancel=은행만, 통합 selection LIMITED",
       "n_eff": 18.51,
       "n_codes": 34,
-      "ic_pp": -0.1471,
-      "w_eb": 0.576,
-      "rho_i": 0.147,
+      "ic_pp": -0.1298,
+      "w_shrink": 0.806,
+      "ic_se": 0.0186,
+      "rho_i": 0.138,
       "selection_등급": "低"
     },
     "bio": {
@@ -124,9 +133,10 @@
       "caveat": "conditional underpowered, 임상 idio",
       "n_eff": 17.44,
       "n_codes": 38,
-      "ic_pp": -0.1399,
-      "w_eb": 0.561,
-      "rho_i": 0.14,
+      "ic_pp": -0.1227,
+      "w_shrink": 0.824,
+      "ic_se": 0.0175,
+      "rho_i": 0.131,
       "selection_등급": "低"
     },
     "shipbuilding": {
@@ -136,9 +146,10 @@
       "caveat": "CI 0 포함 marginal, 3사 슈퍼사이클 동조",
       "n_eff": 11.72,
       "n_codes": 16,
-      "ic_pp": -0.0953,
-      "w_eb": 0.462,
-      "rho_i": 0.093,
+      "ic_pp": -0.0373,
+      "w_shrink": 0.654,
+      "ic_se": 0.0275,
+      "rho_i": 0.048,
       "selection_등급": "低"
     },
     "refining": {

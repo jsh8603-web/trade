@@ -139,10 +139,12 @@ purpose: 12산업 rotation timing 신호 후보 전체 + 채택/이연/미채택
 | ②zero-mean / ③noise-floor | **반도체만 (1)** | steel/aitech 中→低 강하 |
 → **robust 中 = 반도체 1곳**(ρ0.36, N_eff53, IC-0.114 BY생존). steel/aitech = 경계(방법 의존). 나머지 9곳 低/불가. selection 변별력은 약 = 억지 키우면 overfit.
 
-**타당한 방향 (우선순위)**:
-1. **규율 고정** — selection IC = capsule **primary**만(IC-never-as-selector). battery inv_ratio(+0.112 TENTATIVE) → cs_mom_6m(+0.075). 등급 영향 LOW(0.214→0.189 둘 다 低)지만 정직.
-2. **(f) 종목별 수급**(외국인·기관 순매수·공매도 잔고) = 약신호 업종 직교 레버(최우선 별 study). breadth 직교(과점 업종도 flow는 시계열 변동). 검증 의무 = mom 직교(cs_mom residualize)·size 중립·공매도 regime-gate(2020-03~2021-05·2023-11~2024 금지 공백).
-3. **(b) financial sub-sector 분리**(은행만 pbr -0.161 value) = capsule 이미 진단(통합 cancel), 분리 베팅은 통합단계.
-4. **통합단계 정교화**: EB → 계층 베이즈(half-Cauchy) + noise-floor 보정 / grade cut → convex 연속수축 / cross-industry pooled selection(breadth 파편화 복구).
+**타당한 방향 — 실행 결과 (2026-06-06)**:
+1. ✅ **완료 — 규율 고정**: battery inv_ratio(+0.112 TENTATIVE) → cs_mom_6m(+0.075 primary, IC-never-as-selector). within 적용, ρ0.21→0.14(둘다低).
+2. ⛔ **DATA-GATE — (f) 종목별 수급**: 외국인·기관 순매수·공매도 = 약신호 직교 레버지만 **KRX API 차단**(pykrx 순매수/공매도 빈응답, FDR 시세만 외국인컬럼 없음). 대안=KIS API/DART 분기지분/ECOS(시장전체 부적합). 별 study(KRX 접근 복구 선행).
+3. ⏸ **통합단계 — (b) financial 은행분리**(통합 cancel, capsule 진단완료) = 은행 종목 분류 데이터 + 통합단계.
+4. ✅ **완료 — EB v3 계층베이즈**: C12 v2(대평균 끌림)→정밀도-가중 0-shrink(s²=(1/(n-1))/T, τ²=DL, w=τ²/(τ²+s²)). 약신호 부풀림 제거(telecom 0.16→0.07)+中3 BY생존 보존(반도체0.34/철강0.27/aitech0.26). grade cut→연속수축/pooled = 통합단계 잔여.
 
-**현 단계 결론**: 연구단계 selection = 측정 정직성 확보 완료(EB는 C12 spec 충실). 변별력 주력 = 2층 rotation. 3층 = 반도체 중심 + 약신호 산업중립 바스켓. (f) 수급이 약신호 살릴 유일 잠재 레버(미실측).
+**EB v3 적용 후 등급** (within 재실행): 中=반도체0.34/철강0.27/aitech0.26(BY생존) / 低 8 / 불가 정유. → robust 中 3곳 보존(약신호 부풀림 제거 후에도).
+
+**현 단계 결론**: 연구단계 selection 정직화 완료(EB v3 계층베이즈로 약신호 부풀림 제거, battery primary 규율). 변별력 주력=2층 rotation. 3층=반도체/철강/aitech 中 + 약신호 산업중립. **(f) 수급=약신호 살릴 유일 레버지만 KRX 차단 DATA-GATE** → 미래 KRX 접근 복구 시 별 study.

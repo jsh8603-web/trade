@@ -167,13 +167,15 @@ wire5_results:
   # ── 3층 산업 내 selection (capsule IC SSOT 메타분석) ──
   layer3_selection:
     원칙: "★줄자=capsule analyst 업종별 측정 IC가 SSOT. W_i(rotation)·v_{j|i}(selection) 독립 베팅(C9). selection 低=L2 자르기 아니라 v 산업중립 수축(C10). 소수종목=공통원인 N_eff,i 한번만(C11)"
-    selection_등급: "中(BY생존,분산충분): 반도체 ρ0.36/철강 ρ0.29/aitech ρ0.28 / 低: 배터리 0.21·소비재·금융·바이오·자동차·화학 0.12·통신·조선 / 불가: 정유(2종 과점). ★within EB 반영 재실측(2026-06-06)"
-    ★줄자오류_입증: "v1 book-to-price 단일잣대→배터리 IC-0.013/금융0. v2 맞는줄자→배터리 모멘텀+재고 +0.112/금융 은행pbr -0.161 회복. IC≠실효: 화학 IC강(-0.142 BY생존)이나 N_eff 4.4 과점→ρ0.12"
-    변별력_판정: "★부분충분 = 반도체/철강/aitech 3곳만 종목선택 실효(ρ 0.30~0.36, 高 0.45+ 없음). 나머지 9곳=한국 small market+과점+소표본으로 약→산업중립 바스켓+rotation 독립. 변별력 주력=2층 rotation"
+    selection_등급: "中(BY생존): 반도체 ρ0.34/철강 ρ0.27/aitech ρ0.26 / 低: 소비재0.14·금융0.14·배터리0.14(cs_mom_6m primary)·바이오0.13·자동차0.10·화학0.10·통신0.07·조선0.05 / 불가: 정유(2종 과점). ★EB v3 계층베이즈 재실측(2026-06-06)"
+    ★줄자오류_입증: "v1 book-to-price 단일잣대→배터리 IC-0.013/금융0. v2 맞는줄자→배터리 cs_mom_6m +0.075(primary, IC-never-as-selector)/금융 은행pbr -0.161 회복. IC≠실효: 화학 IC강(-0.142 BY생존)이나 N_eff 4.4 과점→ρ0.10"
+    변별력_판정: "★부분충분 = 반도체/철강/aitech 3곳 종목선택 실효(ρ 0.26~0.34 전부 BY생존, 高 0.45+ 없음). ★EB v3 계층베이즈로 약신호 부풀림 제거(telecom 0.16→0.07) 후에도 中3 보존=robust. 나머지 9곳=한국 small market+과점+소표본 약→산업중립 바스켓+rotation 독립. 변별력 주력=2층 rotation. (f)종목별 수급=약신호 살릴 직교 레버나 KRX 차단 DATA-GATE"
   caveat: "전 신호 underpowered(yaml §8) magnitude tentative. capsule IC horizon 제각각(y_12m/y_60d/conditional)=절대비교 한계, 상대신뢰·과점구조 비교용. active 천장 15%(breadth 3.5 FLAM)=30%급 변별력 통계 불가(자문 C7)"
   # ── 보완 (2026-06-06 steel-audit PASS 후, minor 2 + 전수표 ⚠️3 반영) ──
   보완_적용:
-    - "C12 산업간 EB shrinkage(audit minor1): within v2 = w_eb=N_eff/(N_eff+n0) breadth 가중 |IC| 대평균 끌림(부호 보존). small-n(chemical N_eff4.4) magnitude 과대 보정. battery +부호 유지"
+    - "★EB v3 계층베이즈 교체(자문 within-weak-signal R1, 2026-06-06): C12 v2(부호보존|IC| 대평균 끌림)=spec 설계였으나 약신호 부풀림 부작용(telecom 0.053→0.10, verify 입증). → alpha prior=0 정밀도-가중 0-shrink(s²=(1/(n-1))/T, τ²=DL, w_i=τ²/(τ²+s²))로 교체. 강신호(中3 BY생존) 보존+약신호 부풀림 제거(자문 이상해). within line 73~"
+    - "★battery selection IC = capsule primary 고정(IC-never-as-selector, 자문 c): inv_ratio(+0.112 TENTATIVE size confound)→cs_mom_6m(+0.075 primary). ρ0.21→0.14(둘다低, 등급불변)지만 정직"
+    - "★(f) 종목별 수급(외국인·기관 순매수·공매도) = 약신호 직교 레버지만 KRX API 차단(pykrx 순매수/공매도 빈응답, FDR 시세만)=DATA-GATE. 대안=KIS API/DART 분기지분/ECOS(시장전체 부적합). collector_plan 별 작업"
     - "bio singleton(전수표 ⚠️): 별도 sleeve=3-sleeve RP서 base 32% 과대 부작용 → defensive_it 멤버 유지. cross-sectional tilt가 bio 자기신호 독립 처리(silo 무관)=격리 충족"
     - "refining/financial sub-gating(전수표 ⚠️, yaml §2/§5): SUB_GATED={refining,financial}+SUB_THRESH=1.0. 신호 발현(|z_cs|≥1) 시만 독립 tilt, 평소 base 유지(refining [0.006,0.085])"
     - "git working tree R15 production 변경(audit minor2)=WIRE5 무관 별개작업(5/30 stock-corr), 커밋 안됨 확인 권고"
