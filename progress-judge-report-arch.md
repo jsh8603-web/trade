@@ -33,6 +33,12 @@ plan: plan-judge-report-arch.md
 - 잔여: substrate on(멀티에셋 macro view+regime) 주입 variant = RegimeGlasso 공유라 button 연결 후. coin baseline은 확보.
 
 ## Working Notes
+> [ckpt-202606061130:btn-Inv S5 정보델타 발권 트리거 게이트 ✅ — rate-cap AND 델타 결합]
+> ★**완료(self-test 7/7 PASS)**: "다 진행" 자율 속개(long-mode ON). `core/assume/info_delta_gate.py` 신규(numpy만, 외부의존 0). plan §3 S5 Q2 정정 설계(2026-06-06 사용자 반박 교정) 코드화 = **rate-cap(시계 상한) AND 델타(novelty OR 수치리비전) 결합**: 순수 델타는 상한 없어 daily보다 폭증 → 시계 rate-cap 으로 상한, batch 단독은 phantom turnover/FDR 소진 → 델타로 무의미 필터.
+> (1) **구현**: `cosine_novelty`(임베딩 코퍼스 최근접 대비 1−max cos, 빈 코퍼스=1.0) + `RateCapState`(슬롯별 발권 카운터 cap_per_slot, slot_fn 시계 슬롯) + `delta_gate`(①rate-cap 소진→skip 폭증방지 ②novelty<임계 AND 수치리비전 무→skip 무의미 ③else FIRE+카운터차감). self-test: 신규→fire/중복→skip/수치리비전 단독→fire/rate-cap 슬롯당2 [T,T,F,F]/슬롯리셋/빈코퍼스 novelty1.0/임베딩없이 수치단독. ★임베딩 벡터=호출자(VaultVoice BGE) 주입=LLM추론 무관 순수거리. additive INV-11(호출처 0, go-live 시 대형 LLM 발권 트리거 소비).
+> (2) **다음 의도**: pytest 격리 테스트(test_spanning_gate.py + test_info_delta_gate.py) 추가 + plan S4/S5 마킹. ★btn-Inv 거시 scope 자율 게이트 3종 완료(S2 mediator + S4 직교성 + S5 정보델타). 잔여=LLM 소환 루프 골격(S4 7-step)·리포트 편향 보정(S5 surprise/revision 변환, KR-FinBERT 톤 디민)도 통계부는 자율 가능하나 점증 복잡 → 다음 세션. S6 종목·S2 RegimeGlasso 공급측=button+go-live 선결 불변.
+> (3) **동기화**: git HEAD=7f6e945(S4). long-mode ON(cap500k). button 64e8bc0 무접촉, btn-button 살려둠. push·go-live 미접촉.
+>
 > [ckpt-202606061030:btn-Inv S4 직교성 발권 게이트 ✅ — 스패닝 회귀(C9/Q3) additive 구현]
 > ★**완료(self-test 7/7 PASS)**: 사용자 "이 세션 plan progress 다 진행" → plan §4 go-live 경계 재판정="S0~S4 전부 dry-run/shadow, arming만 go-live" + §6 "S4/S5=거시 scope=현 세션 소유"(S6만 button) → **S4 직교성 발권 게이트가 LLM무관 통계라 자율 가능 확정**(S1/S2/S3 dormant 선례 동형).
 > (1) **마지막 결정/구현**: `core/assume/spanning_gate.py` 신규(numpy OLS+Newey-West HAC, 외부의존 0). `spanning_regression`(r_c=α+βᵀF+ε, HAC SE=Bartlett kernel 자동 lag) + `residual_forward_ic`(Spearman) + `mint_gate`(★n<20=INSUFFICIENT 단정금지 / |α_t(HAC)|<2=CAMOUFLAGE 7팩터 위장 발권차단 / α유의+잔차 forward IC=MINT 진짜 잔차알파) + `conditional_alpha`(국면 interaction=regime-switching conditional alpha, 결정론 팩터코어 못잡는 state-dependence). small-n-rigor §1.2-1.4 준수(n·HAC·hedge·INSUFFICIENT 격하). self-test: 순수팩터노출→camouflage(α_t-0.54)/직교알파→mint(α_t36.9)/n15→insufficient/잔차 forward IC 비유의→보류/잔차→fwd예측→mint(ic0.97)/HAC lags4/조건부 in28.4 vs out-0.16. ★additive INV-11(호출처 0, go-live 시 카드 mint 경로서 r_c·F 주입), go-live·실거래 무접촉.
