@@ -50,6 +50,7 @@ class CoinTrackWithMacro(CoinTrack):
         self._macro_orch = macro_orchestrator
         self._macro_enabled = macro_enabled
         self._fhc_loop = None        # (B) FHC shadow 발권 루프 lazy 캐시(rate_cap 상태 유지)
+        self._fhc_ingest = None      # (RAG) research_ingest lazy(발권 report_store=RAG stage-2 연결)
         self._fhc_cards = []         # (C) 발권 카드 누적 [(FHCard, FHCState)] → allocate bonus wire
 
     def collect_market_state(self, as_of=None) -> MarketState:
@@ -134,9 +135,13 @@ class CoinTrackWithMacro(CoinTrack):
             return
 
         if self._fhc_loop is None:
-            from core.assume.loop_factory import build_shadow_active_loop
+            from core.assume.loop_factory import build_shadow_active_loop, build_research_ingest
+            # ★RAG 닫기: research_ingest(Haiku 요약 + BGE 임베딩)를 발권 report_store 로 연결.
+            #   거시 증권 리포트 소스는 go-live(미구축) → 현재 빈 retrieve(graceful). 종목은 실동작.
+            self._fhc_ingest = build_research_ingest(use_haiku=True, use_bge=True)
             # use_claude=True: 메인과 동일 OAuth 키(사용자 "한도 OK"). 실패→llm None graceful.
-            self._fhc_loop = build_shadow_active_loop(use_claude=True)
+            self._fhc_loop = build_shadow_active_loop(
+                use_claude=True, report_store=self._fhc_ingest)
 
         # tick = as_of 일슬롯(같은 날 1회 상한). 라이브(as_of None)=0 슬롯=프로세스 내 1회.
         tick = 0.0

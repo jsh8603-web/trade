@@ -132,6 +132,54 @@ class ResearchIngestPipeline:
         self.shadow_index.append(doc)
         return doc
 
+    def _all_docs(self) -> list:
+        """retrieve 대상 doc 목록. 실 store(LanceDB)는 go-live, shadow 는 shadow_index."""
+        if self.store is not None and hasattr(self.store, "docs"):
+            try:
+                return list(self.store.docs() or [])
+            except Exception:
+                return list(self.shadow_index)
+        return list(self.shadow_index)
+
+    def retrieve(self, query: str, *, as_of_ts: Optional[float] = None,
+                 k: int = 5, scope: Optional[str] = None) -> list:
+        """★RAG stage-2 연결 — active_loop.report_store Protocol(retrieve(query,as_of_ts,k)) 구현.
+
+        query 임베딩 cosine 유사도 + PIT(release_ts ≤ as_of_ts, bitemporal 누수 차단) + scope 필터
+        → top-k [{"text": summary, ...}]. embedder None → [](abstain). 이로써 ingest→retrieve→발권
+        거시/종목 RAG 파이프라인이 닫힌다(self 주석 §line5). 실 LanceDB store 는 go-live 주입.
+        """
+        if self.embedder is None:
+            return []
+        try:
+            import numpy as np
+            qv = self._embed(query)
+            if qv is None:
+                return []
+            q = np.asarray(qv, dtype=float)
+            qn = np.linalg.norm(q)
+            if qn < 1e-12:
+                return []
+            q = q / qn
+            scored = []
+            for d in self._all_docs():
+                if as_of_ts is not None and d.release_ts > as_of_ts:   # PIT(valid-time) 게이트
+                    continue
+                if scope is not None and d.scope != scope:
+                    continue
+                v = np.asarray(d.vector, dtype=float)
+                vn = np.linalg.norm(v)
+                if vn < 1e-12:
+                    continue
+                scored.append((float((v / vn) @ q), d))
+            scored.sort(key=lambda x: -x[0])
+            return [{"text": d.summary, "scope": d.scope,
+                     "release_ts": d.release_ts, "source": d.source, "score": s}
+                    for s, d in scored[:k]]
+        except Exception as e:
+            logger.warning("research_ingest retrieve 실패 → []: %s", e)
+            return []
+
     def ingest_batch(self, docs: Sequence[dict]) -> list:
         """docs=[{raw_text, release_ts, scope?, doc_id?, source?}] 순차 ingest, indexed 만 반환."""
         out = []

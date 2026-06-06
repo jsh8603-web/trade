@@ -80,3 +80,43 @@ def test_ingest_batch():
         {"raw_text": "doc B", "release_ts": 2.0, "scope": "sector"},
     ])
     assert len(res) == 2
+
+
+# ── RAG stage-2 retrieve (ingest→retrieve→발권 닫힘) ───────────────────────
+def test_retrieve_closes_rag():
+    p = ResearchIngestPipeline(embedder=_FakeEmbedder())
+    p.ingest("삼성전자 HBM3E 공급부족 목표가 상향", release_ts=1000.0, scope="005930", source="broker")
+    p.ingest("연준 금리 동결 FOMC", release_ts=1002.0, scope="macro")
+    hits = p.retrieve("HBM 메모리", as_of_ts=1005.0, k=5)
+    assert len(hits) == 2 and all("text" in h for h in hits)
+
+
+def test_retrieve_pit_filter():
+    p = ResearchIngestPipeline(embedder=_FakeEmbedder())
+    p.ingest("A", release_ts=1000.0)
+    p.ingest("B", release_ts=1002.0)
+    hits = p.retrieve("q", as_of_ts=1001.0, k=5)   # 미래(1002) 제외
+    assert len(hits) == 1 and hits[0]["release_ts"] <= 1001.0
+
+
+def test_retrieve_scope_filter():
+    p = ResearchIngestPipeline(embedder=_FakeEmbedder())
+    p.ingest("종목 리포트", release_ts=1.0, scope="005930")
+    p.ingest("거시 리포트", release_ts=2.0, scope="macro")
+    hits = p.retrieve("q", as_of_ts=10.0, scope="005930")
+    assert len(hits) == 1 and hits[0]["scope"] == "005930"
+
+
+def test_retrieve_embedder_none_abstain():
+    assert ResearchIngestPipeline(embedder=None).retrieve("q") == []
+
+
+def test_active_loop_consumes_rag_context():
+    """active_loop(report_store=ingest) → 발권 단계가 RAG 리포트 컨텍스트 소비."""
+    from core.assume.active_loop import ActiveAnalystLoop
+    p = ResearchIngestPipeline(embedder=_FakeEmbedder())
+    p.ingest("삼성 HBM 공급부족", release_ts=1000.0, scope="005930")
+    p.ingest("FOMC 동결", release_ts=1001.0, scope="macro")
+    al = ActiveAnalystLoop(llm=None, report_store=p)
+    reports = al.retrieve_reports("HBM", 1005.0)
+    assert len(reports) == 2

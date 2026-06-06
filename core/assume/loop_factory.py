@@ -315,7 +315,9 @@ def build_security_news_loop(
     ingest = build_research_ingest(
         use_haiku=use_haiku, use_bge=use_bge, store=store,
         novelty_min=novelty_min, require_health=require_health)
-    al = build_active_loop(use_claude=use_claude, rate_cap=rate_cap)
+    # ★RAG 닫기: ingest 를 active_loop report_store 로 연결 → on_news 가 적재한 리포트를
+    #   발권 단계(retrieve→claim)가 컨텍스트로 소비(research_ingest.retrieve = stage-2 Protocol).
+    al = build_active_loop(use_claude=use_claude, rate_cap=rate_cap, report_store=ingest)
 
     fn = in_universe_fn
     if fn is None and use_stock_admission:
