@@ -33,6 +33,12 @@ plan: plan-judge-report-arch.md
 - 잔여: substrate on(멀티에셋 macro view+regime) 주입 variant = RegimeGlasso 공유라 button 연결 후. coin baseline은 확보.
 
 ## Working Notes
+> [ckpt-202606061700:btn-Inv ★종목 소식 트리거 오케스트레이터 골격 + audit 2회 PASS(124 passed)]
+> ★**완료**: audit 2기(jsonl 질문+agent답변↔코드 / plan progress↔코드+LIVE배선) **둘 다 PASS**(약속-구현 정합, 왜곡·위반·은폐 0, 118 passed 재현). 유일 갭=종목 소식→카드 e2e 오케스트레이터 부재(부품 scope/info_delta/research_ingest는 있음)→사용자 "ㄱㄱ"로 골격 보완.
+> (1) **신규** `core/assume/security_news_loop.py`(SecurityNewsCardLoop): on_news(ticker,raw)→research_ingest(중복 novelty 필터)→유니버스 게이트→[통과분]active_loop 발권단계 재사용(scope=ticker·domain=equity·자본0)/[밖]CandidatePool→promote_candidates 슬롯 승격. 유니버스 단계적(in_universe_fn=button 스크린 통과분 주입 / 밖=후보풀 / ⛔즉시카드 금지). in_universe_fn None=보수적 전량 풀. test 6, **124 passed**. additive 호출처0 dormant, active_loop/research_ingest 무수정.
+> (2) **LIVE 검증 종합**(이번 세션): ①대형 LLM 발권=Claude OAuth(400→429 인증·요청 정상, 한도 경합으로 카드 출력만 보류) ②하이쿠 요약=Claude Haiku 4.5 LIVE(영어 summary) ③BGE 임베딩=DaService 8787 LIVE(1024dim) ④정보델타·직교성·mediator=통계 구현. loop_factory build_active_loop(use_claude)+build_research_ingest(use_haiku,use_bge)+temperature 픽스(llm_provider 4.x deprecated). 
+> (3) **다음 의도**: 종목 골격까지 닫힘. 유니버스 실선별(어느 주식)·룰코어 스크린=button stock/ 주입. 실 LLM 발권 카드 LIVE 출력=메인 OAuth 한도 풀릴 때. ⛔실자금 flip·push=사람 게이트(autopilot-run-scope). probationary 자본0 불변. push·go-live 미접촉. long-mode on2.
+>
 > [ckpt-202606061600:btn-Inv ★실 Claude OAuth 발권 실연결 검증 + temperature 버그 픽스]
 > ★**완료**: 사용자 "A(ollama) 이미 깔려있고 / B 전역 클로드 oath 키 사용" → B(Claude OAuth) 배선. ★A 재확인=11434 무응답+설치경로 미발견(서버 미가동, graceful abstain). ★B=`~/.claude/.credentials.json` claudeAiOauth.accessToken(sk-ant-oat01, len108) + `llm_provider.ClaudeProvider`(이미 구현, deep tier, urllib 직접 HTTP /v1/messages OAuth Bearer) + anthropic SDK 0.104.1.
 > (1) **loop_factory use_claude 추가**(commit f443527): build_active_loop(use_claude=True)→ClaudeProvider→GenerateToComplete 어댑터. 우선순위 use_claude>use_local_llm.
