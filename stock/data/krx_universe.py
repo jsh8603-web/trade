@@ -298,7 +298,9 @@ class KrxStatusProvider:
 class KrxUniverseProvider:
     """FDR StockListing("KRX-MARCAP") 경유 KRX 전체 유니버스.
 
-    get_universe(as_of, market) → List[str] (6자리 종목코드)
+    get_universe(as_of, market) → List[str] (6자리 종목코드) — [주의: 생존편향, as_of 무시]
+    get_universe_at(as_of)      → List[str]  — PIT 유니버스 (생존편향 0)
+    get_delisted_tickers()      → set[str]   — 상폐 종목 cohort (is_delisted_universe_only 배선용)
     """
 
     def get_universe(
@@ -310,6 +312,113 @@ class KrxUniverseProvider:
         df = fdr.StockListing(market)
         codes = df["Code"].astype(str).str.zfill(6).tolist()
         return codes
+
+    # ------------------------------------------------------------------
+    # C6a: PIT 유니버스 (생존편향 0) — as_of 시점에 상장 중이었던 종목만
+    # ------------------------------------------------------------------
+
+    def get_universe_at(self, as_of: datetime) -> List[str]:
+        """as_of 기준 PIT 유니버스 반환 (생존편향 0).
+
+        로직:
+          1. FDR KRX-DELISTING 에서 상폐 코호트 전체 로드 (ListingDate/DelistingDate).
+          2. 현 상장 종목(KRX-MARCAP) 을 기반으로 시작.
+          3. listing_date ≤ as_of AND (delisting_date > as_of OR delisting_date IS NaT) 인
+             상폐 종목 코호트를 유니버스에 추가 (백테스트 시점에 존재했던 상폐 종목 포함).
+          4. 미래 상장(listing_date > as_of) 종목을 현재 유니버스에서 제거.
+
+        ⚠️ FDR KRX-MARCAP 에는 ListingDate 컬럼 없음 → 현재 상장 종목은 모두
+           as_of 이전 상장으로 간주(보수적). 미래 상장 필터는 상폐 목록 경유.
+
+        Returns
+        -------
+        List[str] — 6자리 종목코드, as_of 기준 PIT 유니버스.
+        """
+        import pandas as pd
+
+        as_of_ts = pd.Timestamp(as_of)
+
+        # 1. 현재 상장 유니버스 (기준선)
+        try:
+            import FinanceDataReader as fdr
+            current_df = fdr.StockListing("KRX-MARCAP")
+            current_codes: set = set(
+                current_df["Code"].astype(str).str.zfill(6).tolist()
+            )
+        except Exception as exc:
+            logger.warning("KRX-MARCAP 로드 실패 [source_missing]: %s", exc)
+            current_codes = set()
+
+        # 2. 상폐 코호트 로드
+        delist_df = None
+        try:
+            delist_df = _fetch_delistings(
+                datetime(2000, 1, 1), datetime.combine(as_of.date(), datetime.min.time())
+            )
+        except Exception as exc:
+            logger.warning("KRX-DELISTING 로드 실패 [source_missing]: %s", exc)
+
+        universe: set = set(current_codes)
+
+        if delist_df is not None and len(delist_df) > 0:
+            sym_col = None
+            for c in ("Symbol", "Code", "ISU_SRT_CD"):
+                if c in delist_df.columns:
+                    sym_col = c
+                    break
+
+            if sym_col:
+                # ListingDate / DelistingDate → pd.Timestamp
+                delist_df = delist_df.copy()
+                delist_df["_sym"] = delist_df[sym_col].astype(str).str.zfill(6)
+                delist_df["_lst"] = pd.to_datetime(delist_df.get("ListingDate"), errors="coerce")
+                delist_df["_dls"] = pd.to_datetime(delist_df.get("DelistingDate"), errors="coerce")
+
+                for _, row in delist_df.iterrows():
+                    sym = row["_sym"]
+                    lst = row["_lst"]   # 상장일
+                    dls = row["_dls"]   # 상폐일
+
+                    # listing_date ≤ as_of AND (delisting_date > as_of OR NaT)
+                    if pd.isna(lst) or lst > as_of_ts:
+                        continue  # 아직 상장 전 → 제외
+                    # 상폐일이 as_of 이전 → 이미 상폐됨 → 포함 (백테스트 당시 존재)
+                    # 상폐일이 as_of 이후 → as_of 시점엔 상장 중 → 포함
+                    # 상폐일이 NaT → 상폐 정보 불명 → 포함 (보수적)
+                    universe.add(sym)
+
+            # 현재 유니버스에서 미래 상장(listing_date > as_of) 제거:
+            # FDR KRX-MARCAP 에는 ListingDate 없으므로 상폐 목록에서 미래 상장 필터링
+            for _, row in delist_df.iterrows():
+                sym = row["_sym"]
+                lst = row["_lst"]
+                if pd.notna(lst) and lst > as_of_ts:
+                    universe.discard(sym)
+
+        return sorted(universe)
+
+    def get_delisted_tickers(self) -> set:
+        """상폐 종목 코드 집합 — is_delisted_universe_only 의 delisted_tickers 배선용.
+
+        FDR KRX-DELISTING 전체 상폐 종목 Symbol.
+        """
+        try:
+            delist_df = _fetch_delistings(
+                datetime(2000, 1, 1), datetime.now()
+            )
+            if delist_df is not None and len(delist_df) > 0:
+                sym_col = None
+                for c in ("Symbol", "Code", "ISU_SRT_CD"):
+                    if c in delist_df.columns:
+                        sym_col = c
+                        break
+                if sym_col:
+                    return set(
+                        delist_df[sym_col].astype(str).str.zfill(6).tolist()
+                    )
+        except Exception as exc:
+            logger.warning("상폐 종목 로드 실패 [source_missing]: %s", exc)
+        return set()
 
     def get_market_caps(
         self,
