@@ -118,6 +118,12 @@ class NullFredAdapter:
         return False
 
 
+# ★PD(2026-06-07): 모듈 전역 raw 캐시 — 백테스트 시계열(coin_track_macro 매 collect 신규 adapter)
+#   가 같은 series 를 매 bar full-fetch(220개월×29s 폭주)하던 것을 인스턴스 무관 1회 공유로 차단.
+#   키=(pit_mode, series_id). raw(pre-mask)는 as_of 무관 = 전역 안전. 마스킹은 매 호출 fresh(PIT 보존).
+_GLOBAL_RAW_CACHE: dict = {}
+
+
 class RealFredAdapter:
     """
     fredapi 래퍼. 핫패스는 first-release(발표시점값), 백테스트는 full vintage(ALFRED).
@@ -151,7 +157,8 @@ class RealFredAdapter:
         if client in (None, False):
             return None
         try:
-            s = self._raw_cache.get(series_id)
+            _ck = (self.pit_mode, series_id)   # pit_mode 격리 — 전역 캐시 raw 오염 방지.
+            s = _GLOBAL_RAW_CACHE.get(_ck)
             if s is None:
                 if self.pit_mode == "first_release" and series_id not in _LATEST_FALLBACK:
                     # 발표시점값 = lookahead 없음 (§5.8-F).
@@ -161,7 +168,8 @@ class RealFredAdapter:
                     # ∪ first_release-broken(NFCI/STLFSI4 stale). as_of mask(아래)가 observation-date 기준
                     # causal cut → 실시간 PIT lookahead 없음. ★단 broken 군 백테스트 revision 은 Phase V vintage.
                     s = client.get_series(series_id)
-                self._raw_cache[series_id] = s        # raw(pre-mask) 캐시 — as_of 무관이라 안전
+                _GLOBAL_RAW_CACHE[_ck] = s            # raw(pre-mask) 전역 캐시 — as_of 무관이라 안전
+                self._raw_cache[series_id] = s        # 인스턴스 캐시도 유지(하위호환)
             if as_of is not None:
                 s = s[s.index <= as_of]   # causal mask(매 호출 fresh slice, PIT 보존).
             return s.dropna()

@@ -32,17 +32,30 @@ SLEEVE_TICKERS = {
 }
 
 
+# ★PD(2026-06-07): 전역 full-history 캐시. 백테스트 시계열(coin_track_macro 매 collect →
+#   fetch_sleeve_returns(as_of) → as_of별 1.4yr 윈도우 fetch 220회 폭주)을 period=max 1회 fetch +
+#   슬라이스로 차단. 키=ticker set. raw 가격은 as_of 무관 = 전역 안전(슬라이스만 윈도우별).
+_YF_FULL_CACHE: dict = {}
+
+
 def _default_yf_source(tickers: Sequence[str], start: date, end: date) -> "pd.DataFrame":
-    """yfinance 종가 패널 (index=date, columns=ticker). 실패 시 예외 → 호출자 None 처리."""
+    """yfinance 종가 패널 (index=date, columns=ticker). 실패 시 예외 → 호출자 None 처리.
+
+    전역 캐시: 같은 ticker set 의 full history 를 1회 fetch 후 start~end 슬라이스(재fetch 0).
+    """
     import yfinance as yf  # 지연 import(opt-in on 경로에서만 의존)
 
-    raw = yf.download(list(tickers), start=start.isoformat(), end=end.isoformat(),
-                      progress=False, auto_adjust=True)
-    # multi-ticker → ('Close', ticker), single → 'Close'
-    close = raw["Close"] if "Close" in raw else raw
-    if isinstance(close, pd.Series):
-        close = close.to_frame(tickers[0])
-    return close
+    key = tuple(sorted(tickers))
+    full = _YF_FULL_CACHE.get(key)
+    if full is None:
+        raw = yf.download(list(tickers), period="max", progress=False, auto_adjust=True)
+        # multi-ticker → ('Close', ticker), single → 'Close'
+        full = raw["Close"] if "Close" in raw else raw
+        if isinstance(full, pd.Series):
+            full = full.to_frame(tickers[0])
+        _YF_FULL_CACHE[key] = full
+    mask = (full.index >= pd.Timestamp(start)) & (full.index <= pd.Timestamp(end))
+    return full[mask]
 
 
 def fetch_sleeve_returns(

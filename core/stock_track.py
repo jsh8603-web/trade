@@ -71,6 +71,7 @@ class StockTrack(AssetTrack):
         _quote_override: MarketQuote | None = None,
         _sector_ev_ebitda_override: "list[float] | None" = None,
         _bypass_gate1_override: bool = False,
+        _deterministic_no_llm_override: bool = False,
         _heavy_agent_fail_reason_override: str | None = None,
         _weight_card_override: Any = None,
         _indicator_z_override: dict | None = None,
@@ -106,6 +107,8 @@ class StockTrack(AssetTrack):
         # ★WIRE 배선(갭B): cross-sectional selection 경로는 가격 −10% 게이트(coin dip-buy 혈통)를
         #   면제하고 stage-2 trap veto 만 적용. default False=byte-identical(단일종목 dip-buy 경로 유지).
         self._bypass_gate1 = _bypass_gate1_override
+        # ★결정론(LLM off) 경로: gate2 trap veto overlay skip → cheapness 통과분 진입(자문 nested B).
+        self._deterministic_no_llm = _deterministic_no_llm_override
         self._heavy_agent_fail_reason = _heavy_agent_fail_reason_override
         # ★R15 가중학습: 평가지표 동적 가중 카드 + 지표 신호. 주입 시 generate_candidate 의
         # buy sizing 에 다중지표 합성 S_L1 을 반영(자문 §1.4 L1 결정론, pre-agent). 미주입=무회귀.
@@ -253,6 +256,7 @@ class StockTrack(AssetTrack):
             context={"ticker": ticker},
             mode=self.mode,
             bypass_gate1=self._bypass_gate1,
+            deterministic_no_llm=self._deterministic_no_llm,
             heavy_agent_fail_reason=self._heavy_agent_fail_reason,
         )
 

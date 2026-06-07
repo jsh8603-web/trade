@@ -179,6 +179,7 @@ def run_value_trigger(
     thresholds: Gate1Thresholds = Gate1Thresholds(),
     heavy_agent_fail_reason: Optional[str] = None,
     bypass_gate1: bool = False,
+    deterministic_no_llm: bool = False,
 ) -> ValueTriggerResult:
     """2단 게이트 실행. risk_gate 가 소비하는 후보 신호를 반환.
 
@@ -242,6 +243,20 @@ def run_value_trigger(
             size_factor = max(0.0, 1.0 - trap_p)
         except Exception:
             size_factor = 1.0  # 메타라벨러 실패 시 억제 안 함(보수적이지 않으니 로깅 필요)
+
+    # --- 결정론(LLM off) 경로: gate2 trap veto = overlay → skip, gate1 통과분 진입 ---
+    #   ★자문 nested 설계(2026-06-07 2R+검증): 베이스라인 B = 순수 value rank, trap veto 는 overlay.
+    #   heavy_agent 주입 시 원래 trap veto 작동(opt-in overlay on). default False = byte-identical.
+    if deterministic_no_llm:
+        return ValueTriggerResult(
+            ticker=valuation.ticker, as_of=valuation.as_of,
+            verdict=ValueVerdict.OPPORTUNITY, passed_gate1=True,
+            stage_reached=TriggerStage.GATE1_QWEN, direction="buy",
+            confidence=0.6, valuation_gap=valuation.valuation_gap,
+            price_change_pct=price_change_pct,
+            reasoning="결정론(LLM off): gate2 trap veto overlay skip, cheapness gate1 통과분 진입",
+            metalabel_size_factor=size_factor,
+        )
 
     # --- H22: 백테스트는 2차 heavy-agent abstain ---
     if mode == RunMode.BACKTEST:

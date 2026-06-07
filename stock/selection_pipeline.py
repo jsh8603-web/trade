@@ -51,6 +51,7 @@ def build_universe_candidates(
     mode: RunMode = RunMode.FORWARD,
     held_ranks: Optional[dict[str, int]] = None,
     interactions: Optional[Sequence[tuple[str, str, int]]] = None,
+    deterministic_no_llm: bool = False,
 ) -> list[dict]:
     """universe → selection → per-ticker value_trigger → Decision 호환 dict 리스트.
 
@@ -115,6 +116,7 @@ def build_universe_candidates(
             _quote_override=quote_by_ticker.get(cand.ticker),
             _heavy_agent_override=heavy_agent,
             _bypass_gate1_override=True,
+            _deterministic_no_llm_override=deterministic_no_llm,
             _heavy_agent_fail_reason_override=fail_reason,
         )
         state = track.collect_market_state()

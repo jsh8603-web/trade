@@ -112,6 +112,7 @@ def build_sleeve_decisions(
     use_interactions: bool = True,
     etf_fallback_routing: Optional[dict[str, str]] = None,
     etf_picks: Optional[dict[str, dict]] = None,
+    deterministic_no_llm: bool = False,
 ) -> list[dict]:
     """sleeve명으로 preset 부호 + yaml weights + interaction 자동 주입 → 종목선택 Decision 리스트.
 
@@ -158,4 +159,5 @@ def build_sleeve_decisions(
         mode=mode,
         held_ranks=held_ranks,
         interactions=interactions or None,
+        deterministic_no_llm=deterministic_no_llm,
     )
