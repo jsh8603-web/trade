@@ -458,7 +458,14 @@ class BacktestEngine:
 
             try:
                 decision = asset_track.generate_candidate(state)
-                action = getattr(decision, "action", "hold")
+                # ★PD(2026-06-07) L3a 계약 fix: stock track 은 dict(키 "decision") 반환,
+                #   coin Decision 은 객체(.action/.decision). 양쪽 처리(과거 getattr(dict,"action")=
+                #   항상 "hold" → buy 전멸 거래0). dict 우선 "action"→"decision", 객체 동일 순.
+                if isinstance(decision, dict):
+                    action = decision.get("action") or decision.get("decision") or "hold"
+                else:
+                    action = (getattr(decision, "action", None)
+                              or getattr(decision, "decision", None) or "hold")
             except Exception:
                 action = "hold"
 

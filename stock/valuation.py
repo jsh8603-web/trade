@@ -258,10 +258,21 @@ def value_stock(
     """
     if not fundamentals or len(fundamentals) < 1:
         return None
+    # ★PD(2026-06-07): 최신순(descending) 보장 — 호출자 정렬 무관 방어.
+    #   fundamentals_pit_provider 는 ascending(오래된→최신) 반환 → fundamentals[0]=최古 로
+    #   stale 밸류 산출(market_cap/FCF 모두 과거치). 이미 최신순 주입 시 idempotent(무영향).
+    fundamentals = sorted(fundamentals, key=lambda f: f.filing_timestamp, reverse=True)
     cur = fundamentals[0]
     market_cap = quote.market_cap
     if not market_cap or market_cap <= 0:
-        return None
+        # ★PD(2026-06-07): quote 시총 부재 시 outstanding_shares × price 합성.
+        #   EDGAR 는 시총 미제공(shares 만) → 백테스트 quote(가격만)와 결합. 기존 경로(quote.market_cap
+        #   주입)는 무영향(fallback 은 market_cap None 일 때만 발동) = off byte-identical.
+        _shares = getattr(cur, "outstanding_shares", None)
+        if _shares and _shares > 0 and quote.price and quote.price > 0:
+            market_cap = _shares * quote.price
+        else:
+            return None
 
     pit_clean = all(f.is_pit_clean() for f in fundamentals)
     notes: List[str] = []

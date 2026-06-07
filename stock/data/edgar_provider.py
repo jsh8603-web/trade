@@ -38,6 +38,10 @@ _GAAP_MAP: Dict[str, str] = {
     "LongTermDebt": "total_debt",
     "LiabilitiesAndStockholdersEquity": "total_debt",  # fallback
     "StockholdersEquity": "shareholders_equity",
+    # ★PD(2026-06-07): value_stock market_cap 합성 + ev_ebitda/residual_income 메서드 활성용.
+    "WeightedAverageNumberOfDilutedSharesOutstanding": "outstanding_shares",
+    "DepreciationDepletionAndAmortization": "depreciation_amortization",
+    "DepreciationAndAmortization": "depreciation_amortization",  # fallback
     "RetainedEarningsAccumulatedDeficit": None,  # 무시
 }
 
@@ -160,7 +164,8 @@ class EdgarXbrlProvider:
                 continue
             concept_data = us_gaap.get(concept, {})
             for unit_key, unit_vals in concept_data.get("units", {}).items():
-                if unit_key not in ("USD", "KRW"):
+                # shares = 발행주식수 unit(outstanding_shares). USD/KRW = 금액. 그 외 무시.
+                if unit_key not in ("USD", "KRW", "shares"):
                     continue
                 for entry in unit_vals:
                     form = entry.get("form", "")
@@ -176,7 +181,8 @@ class EdgarXbrlProvider:
                             "form": form,
                             "fy": entry.get("fy"),
                             "fp": entry.get("fp", ""),
-                            "currency": unit_key,
+                            # shares unit 이 currency 를 덮어쓰지 않게 금액 unit 만 통화로.
+                            "currency": unit_key if unit_key in ("USD", "KRW") else "USD",
                         }
                     # 최신 값 우선 (val이 있는 경우만)
                     if field not in accession_data[accn]:
@@ -211,6 +217,13 @@ class EdgarXbrlProvider:
             fp = data.get("fp", "")
             fiscal_period = self._make_fiscal_period(fy, fp)
 
+            # ★PD(2026-06-07): ebitda = operating_income + D&A 합성(둘 다 있을 때).
+            #   book_value = shareholders_equity(장부가). value_stock ev_ebitda/residual_income 활성용.
+            _oi = data.get("operating_income")
+            _da = data.get("depreciation_amortization")
+            _ebitda = (_oi + _da) if (_oi is not None and _da is not None) else None
+            _equity = data.get("shareholders_equity")
+
             return Fundamentals(
                 ticker=ticker,
                 fiscal_period=fiscal_period,
@@ -223,8 +236,12 @@ class EdgarXbrlProvider:
                 net_income=data.get("net_income"),
                 free_cash_flow=data.get("free_cash_flow"),
                 cash_and_equivalents=data.get("cash_and_equivalents"),
-                shareholders_equity=data.get("shareholders_equity"),
+                shareholders_equity=_equity,
                 total_debt=data.get("total_debt"),
+                outstanding_shares=data.get("outstanding_shares"),
+                depreciation_amortization=_da,
+                ebitda=_ebitda,
+                book_value=_equity,
             )
         except Exception as exc:
             logger.debug("accession 변환 실패 accn=%s: %s", accn, exc)
