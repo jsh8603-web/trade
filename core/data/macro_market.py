@@ -57,7 +57,12 @@ def fetch_daily(symbol: str, range_: str = "1mo", interval: str = "1d") -> list[
     """
     try:
         import requests  # 지연 import — 미설치여도 모듈 import 자체는 성공
-    except Exception:
+    except Exception:  # C2: source_missing 라벨 — 동작 동일([] 반환), silent 제거
+        import logging as _log
+        _log.getLogger(__name__).warning(
+            "fetch_daily source_missing: requests not installed [label=source_missing] symbol=%r",
+            symbol,
+        )
         return []
 
     try:
@@ -77,7 +82,12 @@ def fetch_daily(symbol: str, range_: str = "1mo", interval: str = "1d") -> list[
         timestamps = node.get("timestamp") or []
         quote = ((node.get("indicators") or {}).get("quote") or [{}])[0]
         closes = quote.get("close") or []
-    except Exception:
+    except Exception as _exc:  # C2: data_empty 라벨 — 동작 동일([] 반환), silent 제거
+        import logging as _log
+        _log.getLogger(__name__).warning(
+            "fetch_daily data_empty: Yahoo parse failed [label=data_empty] symbol=%r exc=%r",
+            symbol, _exc,
+        )
         return []
 
     out: list[tuple[date, float]] = []

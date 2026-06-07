@@ -460,8 +460,10 @@ class RegimeClassifier:
     def _safe_fetch(self, adapter: FredAdapter, as_of) -> MacroFeatureBundle:
         try:
             return fetch_macro_bundle(adapter, as_of=as_of)
-        except Exception as e:
-            logger.warning("fetch_macro_bundle failed: %s", e)
+        except Exception as e:  # C2: source_missing 라벨 — 동작 동일(available=False), silent 제거
+            logger.warning(
+                "fetch_macro_bundle source_missing [label=source_missing]: %s", e
+            )
             return MacroFeatureBundle(available=False)
 
     @staticmethod

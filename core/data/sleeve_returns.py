@@ -69,7 +69,12 @@ def fetch_sleeve_returns(
     src = source_fn or _default_yf_source
     try:
         close = src(tickers, start, end)
-    except Exception:
+    except Exception as _exc:  # C2: data_empty 라벨 — 동작 동일(None 반환), silent 제거
+        import logging as _log
+        _log.getLogger(__name__).warning(
+            "fetch_sleeve_returns data_empty: price fetch failed [label=data_empty] exc=%r",
+            _exc,
+        )
         return None
     if close is None or len(close) < min_rows:
         return None

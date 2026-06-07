@@ -114,7 +114,12 @@ def fetch_factor_cov(
     src = source_fn or _default_fred_source
     try:
         levels = src(series_ids, start, end)
-    except Exception:
+    except Exception as _exc:  # C2: source_missing 라벨 — 동작 동일(None 반환), silent 제거
+        import logging as _log
+        _log.getLogger(__name__).warning(
+            "fetch_factor_cov source_missing: factor fetch failed [label=source_missing] exc=%r",
+            _exc,
+        )
         return None
     if not levels:
         return None

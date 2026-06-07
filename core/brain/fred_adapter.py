@@ -165,7 +165,12 @@ class RealFredAdapter:
             if as_of is not None:
                 s = s[s.index <= as_of]   # causal mask(매 호출 fresh slice, PIT 보존).
             return s.dropna()
-        except Exception:
+        except Exception as _exc:  # C2: source_missing 라벨 — 동작 동일(None), silent 제거
+            import logging as _log
+            _log.getLogger(__name__).warning(
+                "RealFredAdapter.get_series source_missing: series_id=%r [label=source_missing] exc=%r",
+                series_id, _exc,
+            )
             return None
 
 
