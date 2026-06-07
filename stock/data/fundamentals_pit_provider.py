@@ -76,7 +76,7 @@ def get_fundamentals_pit(
     *,
     edgar_provider=None,
     dart_provider=None,
-    limit: int = 12,
+    limit: int = 60,  # ★PD: 과거 백테스트 as_of 커버(최근 12=3년만→pit_empty). 60=15년 분기.
 ) -> FundamentalsResult:
     """as_of 기준 PIT 펀더멘털 반환.
 
@@ -231,7 +231,7 @@ class FundamentalsPitProvider:
         ticker: str,
         as_of: datetime,
         region: str,
-        limit: int = 12,
+        limit: int = 60,  # ★PD: 과거 백테스트 커버(모듈 함수와 동일). 12=최근 3년만→pit_empty.
     ) -> FundamentalsResult:
         return get_fundamentals_pit(
             ticker,

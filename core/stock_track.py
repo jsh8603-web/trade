@@ -77,9 +77,20 @@ class StockTrack(AssetTrack):
         _regime_pi_override: dict | None = None,
         _registry_override: Any = None,
         _regime_label_override: str | None = None,
+        _fund_provider: Any = None,
+        _quote_provider: Any = None,
+        _region: str = "KR",
     ) -> None:
         self.ticker = ticker
         self.mode = mode
+        # ★PD lookahead 보수: 백테스트 시계열 PIT — collect_market_state(as_of) 가 override 없을 때
+        #   provider 로 그 시점 quote/PIT 펀더를 동적 조회(매 bar engine 이 as_of 전달). override 우선.
+        self._fund_provider = _fund_provider
+        self._quote_provider = _quote_provider
+        self._region = _region
+        # 동적 조회분(매 bar 갱신) — 외부 override 와 분리. _eff_*() 가 override 우선 결합.
+        self._dynamic_quote: MarketQuote | None = None
+        self._dynamic_funds: list[Fundamentals] = []
         self._market_data_override = _market_data_override
         self._portfolio_override = _portfolio_override
         self._external_data_override = _external_data_override
@@ -107,6 +118,14 @@ class StockTrack(AssetTrack):
         self._registry = _registry_override
         self._regime_label = _regime_label_override
 
+    def _eff_quote(self) -> "MarketQuote | None":
+        """효과 quote = 외부 override 우선, 없으면 동적 조회분(백테스트 PIT)."""
+        return self._quote_override if self._quote_override is not None else self._dynamic_quote
+
+    def _eff_funds(self) -> "list[Fundamentals]":
+        """효과 fundamentals = 외부 override 우선, 없으면 동적 조회분(백테스트 PIT)."""
+        return self._fundamentals_override or self._dynamic_funds
+
     # ── AssetTrack 추상메서드 구현 ─────────────────────────────────────
 
     def collect_market_state(self, as_of=None) -> MarketState:
@@ -117,14 +136,30 @@ class StockTrack(AssetTrack):
         as_of=<datetime>: 백테스트 PIT 진입점 — quote override 가 없을 때 raw_market_data["as_of"]
           기록(provider 소비는 후속 WP6). 하위호환 default None.
         """
+        # ★PD lookahead 보수: as_of + provider 주입 시 매 bar 그 시점 PIT 동적 조회(외부 override 없을 때만).
+        #   engine 백테스트 루프가 매 bar as_of=ts 전달 → 시점별 PIT 펀더/quote → lookahead 차단.
+        if as_of is not None:
+            _aod = as_of.date() if hasattr(as_of, "date") else as_of
+            if self._quote_override is None and self._quote_provider is not None:
+                try:
+                    self._dynamic_quote = self._quote_provider.get_quote_at(self.ticker, _aod, self._region)
+                except Exception:
+                    self._dynamic_quote = None
+            if not self._fundamentals_override and self._fund_provider is not None:
+                try:
+                    _fr = self._fund_provider.get_fundamentals_pit(self.ticker, as_of, self._region)
+                    self._dynamic_funds = list(_fr.filings) if getattr(_fr, "available", False) else []
+                except Exception:
+                    self._dynamic_funds = []
+
         raw_market = self._market_data_override or {}
         raw_external = self._external_data_override or {}
         raw_portfolio = self._portfolio_override or {}
         raw_past = self._past_decisions_override or []
 
-        # 주가/펀더멘털 override 가 있으면 raw_market_data 에 통합
-        if self._quote_override is not None:
-            q = self._quote_override
+        # 주가/펀더멘털: 효과값(외부 override 우선 → 없으면 동적 PIT) 으로 raw 통합
+        q = self._eff_quote()
+        if q is not None:
             raw_market = {
                 **raw_market,
                 "ticker": q.ticker,
@@ -141,7 +176,8 @@ class StockTrack(AssetTrack):
         if as_of is not None and "as_of" not in raw_market:
             raw_market["as_of"] = as_of.isoformat()
 
-        if self._fundamentals_override:
+        _funds = self._eff_funds()
+        if _funds:
             raw_external = {
                 **raw_external,
                 "fundamentals": [
@@ -151,7 +187,7 @@ class StockTrack(AssetTrack):
                         "source": f.source.value,
                         "is_pit_clean": f.is_pit_clean(),
                     }
-                    for f in self._fundamentals_override
+                    for f in _funds
                 ],
             }
 
@@ -186,11 +222,13 @@ class StockTrack(AssetTrack):
         #   stock.valuation.value_stock 로 내재가치 밴드 실산출(과거 stub abstain 경로 대체).
         #   override 주입 경로·데이터 전무 경로는 byte-identical(둘 다 없을 때만 fallback 발동).
         valuation = self._valuation_override
-        if valuation is None and self._fundamentals_override and self._quote_override:
+        _eff_f = self._eff_funds()   # 외부 override 우선 → 없으면 동적 PIT(백테스트 시계열)
+        _eff_q = self._eff_quote()
+        if valuation is None and _eff_f and _eff_q:
             from stock.valuation import value_stock  # noqa: PLC0415
             valuation = value_stock(
-                self._fundamentals_override,
-                self._quote_override,
+                _eff_f,
+                _eff_q,
                 sector_ev_ebitda=self._sector_ev_ebitda,
             )
         if valuation is None:
@@ -207,7 +245,7 @@ class StockTrack(AssetTrack):
         # 2단 게이트 실행
         trigger = run_value_trigger(
             valuation=valuation,
-            fundamentals=self._fundamentals_override,
+            fundamentals=_eff_f,
             price_change_pct=price_change_pct,
             heavy_agent=self._heavy_agent,
             metalabeler=self._metalabeler,

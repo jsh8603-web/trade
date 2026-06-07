@@ -45,38 +45,51 @@ _GAAP_MAP: Dict[str, str] = {
 _RATE_LIMIT_DELAY = 0.11
 
 
+# ★PD 캐시(2026-06-07): 백테스트 매 bar 동적 PIT 조회 시 네트워크 폭주 차단.
+#   company_tickers.json 1회(전역) + companyfacts cik별 1회 → 매 bar 메모리 적중.
+_TICKERS_CACHE: Optional[dict] = None
+_FACTS_CACHE: Dict[str, dict] = {}
+
+
 def _ticker_to_cik(ticker: str) -> Optional[str]:
     """SEC EDGAR company_tickers.json 에서 ticker → CIK 조회.
 
     ★URL fix(2026-06-07 smoke): company_tickers.json 은 www.sec.gov/files 에 있다.
       data.sec.gov 는 companyfacts API(_SEC_BASE) 전용 — /files 경로는 404.
+    ★캐시: tickers.json 은 전역 1회만 fetch(매 bar 재조회 폭주 차단).
     """
+    global _TICKERS_CACHE
     import requests
-    url = "https://www.sec.gov/files/company_tickers.json"
-    try:
-        time.sleep(_RATE_LIMIT_DELAY)
-        r = requests.get(url, headers=_HEADERS, timeout=15)
-        r.raise_for_status()
-        data = r.json()
-        ticker_upper = ticker.upper()
-        for _, v in data.items():
-            if str(v.get("ticker", "")).upper() == ticker_upper:
-                cik = str(v["cik_str"]).zfill(10)
-                return cik
-    except Exception as exc:
-        logger.warning("SEC ticker→CIK 조회 실패 ticker=%s: %s", ticker, exc)
+    ticker_upper = ticker.upper()
+    if _TICKERS_CACHE is None:
+        url = "https://www.sec.gov/files/company_tickers.json"
+        try:
+            time.sleep(_RATE_LIMIT_DELAY)
+            r = requests.get(url, headers=_HEADERS, timeout=15)
+            r.raise_for_status()
+            _TICKERS_CACHE = r.json()
+        except Exception as exc:
+            logger.warning("SEC ticker→CIK 조회 실패 ticker=%s: %s", ticker, exc)
+            return None
+    for _, v in _TICKERS_CACHE.items():
+        if str(v.get("ticker", "")).upper() == ticker_upper:
+            return str(v["cik_str"]).zfill(10)
     return None
 
 
 def _fetch_company_facts(cik: str) -> Optional[dict]:
-    """SEC EDGAR companyfacts API — 전체 US-GAAP facts."""
+    """SEC EDGAR companyfacts API — 전체 US-GAAP facts. ★cik별 전역 캐시(매 bar 재fetch 차단)."""
+    if cik in _FACTS_CACHE:
+        return _FACTS_CACHE[cik]
     import requests
     url = f"{_SEC_BASE}/api/xbrl/companyfacts/CIK{cik}.json"
     try:
         time.sleep(_RATE_LIMIT_DELAY)
         r = requests.get(url, headers=_HEADERS, timeout=30)
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+        _FACTS_CACHE[cik] = data
+        return data
     except Exception as exc:
         logger.warning("companyfacts 조회 실패 CIK=%s: %s", cik, exc)
     return None

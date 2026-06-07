@@ -92,34 +92,27 @@ def run_one(
             "dry_run": dry_run,
         }
 
-    # 2. as_of = 마지막 bar 날짜 (단일 사이클 기준점)
+    # 2~4. provider 준비 — ★PD lookahead 차단: StockTrack 이 매 bar collect_market_state(as_of=ts)
+    #   로 그 시점 PIT 펀더/quote 동적 조회(종료일 펀더 1개 고정=lookahead 폐기). EDGAR/OHLCV 캐시로 폭주 X.
+    quote_provider = QuoteProvider()
+    fund_provider = FundamentalsPitProvider()
+
+    # 진단용 라벨(마지막 bar 1회 — 실거래 결정은 StockTrack 이 매 bar 동적 조회)
     as_of_date = price_series.index[-1].date()
     as_of_dt = datetime.combine(as_of_date, datetime.min.time())
+    _diag_fund = fund_provider.get_fundamentals_pit(ticker, as_of_dt, region)
+    _diag_quote = quote_provider.get_quote_at(ticker, as_of_date, region)
+    if not _diag_fund.available:
+        logger.warning("fundamentals(마지막bar) %s/%s label=%s", region, ticker, _diag_fund.label)
 
-    # 3. quote (C4)
-    quote_provider = QuoteProvider()
-    quote = quote_provider.get_quote_at(ticker, as_of_date, region)
-    # quote 없어도 price_series 마지막 값으로 fallback
-    if quote is None:
-        logger.warning("quote 없음 %s/%s as_of=%s — price fallback", region, ticker, as_of_date)
-
-    # 4. fundamentals PIT (C5)
-    fund_provider = FundamentalsPitProvider()
-    fund_result = fund_provider.get_fundamentals_pit(ticker, as_of_dt, region)
-    if not fund_result.available:
-        logger.warning(
-            "fundamentals unavailable %s/%s label=%s — 벤치 베타 대체(비중0 금지)",
-            region, ticker, fund_result.label,
-        )
-    fundamentals = fund_result.filings  # available=False 이면 []
-
-    # 5. StockTrack 조립
+    # 5. StockTrack 조립 — provider 주입(override 없음 → 매 bar 동적 PIT)
     mode = RunMode.BACKTEST if not dry_run else RunMode.FORWARD
     stock_track = StockTrack(
         ticker=ticker,
         mode=mode,
-        _quote_override=quote,
-        _fundamentals_override=fundamentals,
+        _fund_provider=fund_provider,
+        _quote_provider=quote_provider,
+        _region=region,
     )
 
     # 6. engine.run (use_risk_pipeline=True)
@@ -156,8 +149,8 @@ def run_one(
         "n_bars": len(price_series),
         "final_capital": result.final_capital,
         "n_trades": result.n_trades,
-        "fund_label": fund_result.label,
-        "quote_available": quote is not None,
+        "fund_label": _diag_fund.label,
+        "quote_available": _diag_quote is not None,
         "per_bar_checksum": per_bar_checksum,
         "metrics": metrics,
         "dry_run": dry_run,
