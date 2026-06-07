@@ -46,9 +46,13 @@ _RATE_LIMIT_DELAY = 0.11
 
 
 def _ticker_to_cik(ticker: str) -> Optional[str]:
-    """SEC EDGAR company_tickers.json 에서 ticker → CIK 조회."""
+    """SEC EDGAR company_tickers.json 에서 ticker → CIK 조회.
+
+    ★URL fix(2026-06-07 smoke): company_tickers.json 은 www.sec.gov/files 에 있다.
+      data.sec.gov 는 companyfacts API(_SEC_BASE) 전용 — /files 경로는 404.
+    """
     import requests
-    url = f"{_SEC_BASE}/files/company_tickers.json"
+    url = "https://www.sec.gov/files/company_tickers.json"
     try:
         time.sleep(_RATE_LIMIT_DELAY)
         r = requests.get(url, headers=_HEADERS, timeout=15)
