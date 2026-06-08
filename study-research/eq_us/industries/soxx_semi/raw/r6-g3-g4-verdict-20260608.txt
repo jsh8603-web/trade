@@ -15,3 +15,12 @@
 # ★§방향보존: "value 무효" 아님. 현 측정 가능 틀(대형주 12종 / 광의 33종 EW)에서 코드화 factor 신호 아님 = 범위한정.
 #   value 자체는 대형주 2-name(NVDA·AVGO)에 존재하나 = position이지 systematic factor 아님 = ledger/yaml 채택 불가.
 #   ★승격 잔여 경로(미래): CRSP/Compustat 생존편향-free + 딥밸류 소형(현 XSD보다 더 광의) universe = 별도 data unblock.
+
+# ★G4 무결성 자가검증 (E94 대안 가설 검증, 2026-06-08):
+# 대안 가설: broad IC 소멸(0.024)이 (a)진짜 value 부재인가 (b)중소형 데이터 노이즈인가?
+# (1) 중소형 shares coverage: NXPI shares=1 obs, MRVL=6 obs = 일부 종목 시총 계산 부정확(노이즈 기여 가능).
+# (2) ★SMALL 21종 단독 PBR-only value IC(y60) = -0.009 (거의 0, 약간 음) vs CORE 12종 = +0.096.
+#   = ★중소형 반도체엔 value premium 진짜 부재(부호도 반대). shares 노이즈와 무관(PBR만, shares 양호 종목 다수).
+# ★종합: G2 결론(breadth 확장→value 소멸=대형주 2-name) 방향 robust. SMALL 단독 IC -0.009 = 진짜 부재 강증거.
+#   단 broad IC 정확 magnitude(0.024)는 NXPI/MRVL shares 부족으로 일부 불확실(±). 방향·결론 불변.
+# = ★value 코드화 불가 = 대형주 2-name position 확정(중소형 value 진짜 부재). data 노이즈로 뒤집히지 않음.
