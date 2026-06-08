@@ -101,4 +101,23 @@ related: cross-regime-ledger.md §41-42, industries/_rotation/, within_industry_
 2. **rotation**: 확장패널 매년 재추정에서 수축 사후평균 유지 + 신호 강도 powered 승격(현 underpowered). refining 부호충돌(study +0.30 vs deep −0.249) 측정 방식 대조 확정.
 3. **데이터 게이트**: 종목별 수급(KRX API 차단) 해제 시 약신호 leverage.
 
-**산물**: .p4-kr-static.log·.p4-kr-ow.log·.p4-kr-wide-value.py·.p4-kr-rotation-deep.py / study `industries/_rotation/`(measure v1~integration·within-residual v1~v2) / 자문 claude-web 3R(.claude-web-basic-last.md).
+**산물**: .p4-kr-static.log·.p4-kr-ow.log·.p4-kr-wide-value.py·.p4-kr-rotation-deep.py / study `industries/_rotation/`(measure v1~integration·within-residual v1~v2) / 자문 claude-web(아래 §E-7 정확 경로).
+
+---
+
+## E. 검증 보강 — 누락 7건 (독립 검증 a0ce85ee, 2026-06-09)
+
+> 본 문서 초안이 빠뜨린 7건(ledger §41-42엔 일부 박제, 본 문서 자기완결성 보강). ★다음 세션 재시도 위험 순.
+
+**★자문 3R 치명점 3 (시총비례 함정·폐기조건·타이밍순진)**:
+1. **시총비례 ≠ 중립** — 한국 시총가중 = 삼성·반도체 메가캡 **거대 능동베팅**. ⛔"rotation 죽었으니 시총비례로 가면 중립" 오인 금지. 시클리컬 틸트는 오히려 그 메가캡 집중에서 **분산**. 비클 문서에 시총비례 디폴트의 내재 노출(반도체·FX·수출 베타) 명시 의무.
+2. **폐기조건 정량** — 실현손익 단독 임계는 IR 0.3 확인에 **44년 필요(검정력≈0)**. ⛔"3~5년 손익 보고 폐기" 재설계 금지. → 폐기 90% = **매년 확장패널 재추정**(수축 사후평균 0 무너지면) + 논제 붕괴(복합체 공동변동 12M 회전상관) + 비용(STT) 레짐 게이트. 백스톱 = **36M 회전 IR −0.5 지속** 또는 3년누적 사전 부트스트랩 5퍼센타일(파국 전용).
+3. **정적 틸트 타이밍-순진** — 전표본 vol로 +3~5%p 위험기여 산정 = **수축기 조건부 위험 과소**(경기민감 상관은 아플 때 치솟음). 소액 정적(0.04)도 불경기 드로다운 집중을 안고 감(분산 효과만 있지 "안전" 아님).
+
+**★study 시도 추가 (이미 죽은 길 — 재탐구 금지)**:
+4. **PCA sleeve + selfcheck**(measure_pca_sleeve/selfcheck·validation-pca-sleeve/rotation-selfcheck): residual-PCA parallel analysis·MP edge 모두 **k\*=1**(noise 넘는 sleeve PC 1개뿐, PC1 분산 50%). 36셀 regime **0/25 powered(collapse 100%, N<24)**. ⛔"residual-PCA로 깨끗한 sleeve 뽑자" / "36셀 regime-conditional rotation" 재시도 = 이미 죽음.
+5. **valband 구조적 break**(valuation-band): PBR z-score 밸류밴드 = valuation-stationarity 가정인데 **re-rating 개시(조선 슈퍼사이클) 순간 가정 붕괴 = 추세전환주 구조적 역베팅**. ⛔밸류밴드 rotation 재시도 함정.
+6. **momentum = 공통인자 재포장**: flow-beta 산업(반도체/자동차/금융) momentum/valuation = 외국인 flow factor 재포장(market momentum × beta). 진짜 alpha = flow 무관 idio-cycle(crack spread/backlog/China PMI). short-horizon(1M) reversal이 더 신뢰. ⛔"산업 momentum IC 0.36인데 왜 안 쓰지" 재탐구 = flow 재포장 결론 재도출.
+
+**★source 포인터 정확화 (E98)**:
+7. 운용 자문 = `~/.claude/.claude-web-basic-last.md` **L37246-37430**(R1/R2, 2026-06-07) + **L38387-38560**(R2/R3, 2026-06-08). study-phase rotation design 2R = `.consult-kr-rotation-design-RESULTS.md`. "넓은 틀이면 살 수도"는 3R "가치 사는 동네=소형·딥밸류·거버넌스 디스카운트" 의역(직접 어구 아님).
