@@ -76,3 +76,56 @@ study-research/eq_us_defensive/raw/fred/BAMLH0A0HYM2.csv.v2-backup
 study-research/reit/study_session.yaml.v2.bak
 .kis-token-cache.json
 data/etf_snapshots.jsonl
+
+# === [2026-06-07] 루트 임시 스터디·자문·진단 산출 (추적 불필요) ===
+.p0-*
+.p1-*
+.p2-*
+.p3-*
+.p4-*
+.consult-*
+.audit-*
+.tmp-*
+.t0-*
+.t0b-*
+.t1-*
+.m2-*
+.s1-*
+.coord-*
+.frame-change-*
+.babyplace-*
+.harness2-pit-taskspec.txt
+.psmux-check.txt
+.pytest-fails*.txt
+.pytest-final.txt
+.rl_out.txt
+.rl_result.txt
+.supadeps.txt
+# === data/ 런타임 상태 (gitignore 누락분) ===
+data/alert_state.json
+data/api_throttle_state.json
+data/daily_trades.json
+data/dynamic_risk.json
+data/feedback_hub_state.json
+data/llm_daily_counter.json
+data/model_retrain_queue.json
+data/newsrang_cache.json
+data/strategy_health.json
+data/kimchirang_state.json
+data/krx_snapshots.jsonl
+data/last_trade_time.txt
+data/.memory_index.json
+data/backtest_full_results.json
+data/backtest_v3_compare_results.json
+# === 루트 실행 로그 ===
+execution-log.jsonl
+# === [2026-06-07] 빌드·백업·IDE·런타임 (추적 불필요) ===
+.harness2*
+.vscode/
+.p2b-*
+memory/
+panel/
+research-raw-phase2/
+undefined/
+data/fixtures/
+/archive/
