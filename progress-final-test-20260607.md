@@ -82,10 +82,15 @@
 - [~] **P8-A 즉시배선** ★eq_kr **배선 완료, 10년 측정 대기**(2026-06-09):
   - **eq_kr rotation+selection** ✅배선: rotation=`_kr_rotation_apply`(`_sleeve_rotation_kr` import 복사0, PIT panel≤as_of+build_weights, 분기 3M=active 1M버그 회피, kappa 4산업 steel/chemical/telecom/refining) / selection=`_bt_kr_picks` cheapness 분기(semi/aitech cs_pbr_z·steel mom_12_1) + ★**W4 cheapness×quality(ROE)** 트랩 게이트(1년 smoke: semi −0.065→+0.0099·aitech −0.006→+0.0028 음→양) / `sleeve_signals.py` 한국 부호({pbr:-1,roe:+1}). 본체=`core/portfolio_decompose.py` SUB_SLEEVES 7→12(누락 fix). +★**⑮거래비용**(turnover×cost 한국STT0.25%/기타0.07%, §4-3 회전잠식). 채택게이트=10년 OOS(ledger §42 semi 우선/steel·aitech 위험). ⛔study대로(rotation panel=yaml §3 거시 cycle).
   - **eq_intl/reit SLEEVE_AGG 매핑**: factor β measured 완비(`factor_betas_seed.py` eq_intl/reit cell), SLEEVE_AGG 미등록만 → 매핑 추가하면 corr_prior roll-up 활성. 단 SLEEVES 차원 추가=portfolio 구성 결정(사용자).
-- [ ] **P8-B collector 구현** (데이터 게이트, 외부 수집 필요):
+- [~] **P8-B collector 구현** (데이터 게이트 — 2026-06-09 소스 가용성 실측 분류, ⛔선건설 보류=신호 미채택[consult-adoption-gate], 사용자 채택+우선순위 결정 후 구현):
   - crypto 3: stablecoin_total_supply(DefiLlama)·etf_net_flow(Farside)·halving_phase(결정론 함수)
   - commodity 10: CME term structure(roll_yield/basis_momentum/convenience_yield)·EIA(days_of_supply)·BIS(china_credit)·NOI(H7)·CIT·INDPRO 12m lag·mm_net_long
   - bond_cash 5: FRED DGS10/DGS2/FEDFUNDS/JGB·ETF가격(TLT/IEF/SHY)
+  - ★**소스 가용성 3-tier 실측 분류**(2026-06-09):
+    - **Tier1 즉시(무료·키있음·외부의존0)**: bond_cash FRED DGS10/DGS2/FEDFUNDS(기존 RealFredAdapter 즉시, 키 .env 확인) + ETF가격 TLT/IEF/SHY(yfinance, 백테스트 이미 fetch) / crypto halving_phase(BTC 반감기 4개 기지=순수 결정론 함수) / commodity INDPRO 12m lag(FRED) / commodity mm_net_long(CFTC 무료 주간 COT). = **구현 난이도 최저, credential 0**.
+    - **Tier2 무료공개 API(구현+키)**: crypto stablecoin_total_supply(DefiLlama 무료 REST) / commodity days_of_supply(EIA 무료 키) / crypto etf_net_flow(Farside 웹스크레이프=취약).
+    - **Tier3 게이트(유료/지연/출처불명)**: commodity CME term structure roll_yield/basis_momentum/convenience_yield(유료 선물피드) / BIS china_credit(분기지연공개) / NOI(H7)·CIT·cross-sector(출처 미특정). = **credential/계약 필요, go-live급 게이트**.
+    - ⛔JGB(bond_cash)=일본 국채, FRED 미수록 → 별도 소스(투자.com/BOJ) 필요=Tier2~3.
 - [x] **P8-C ★압축 후 3R 자문 처리 완결**(2026-06-09 검증 종결, ⛔폐기 안 함): eq_us `_sleeve_rotation.py` = us_stock 내 경기별 업종 비중조절 **파이프라인 핵심**. ★**설계 확정·배선·검증 완료**: ①**예측 rotation층=STATIC_ONLY**(results.json verdict "rotation gate 탈락 → base=shrunk inverse-vol", n=136, OOS IR 0.124 비유의) = 자문3R "predictive 소멸→static" **의도된 종결**(폐기 아님, gate 탈락=정상). ②**조절방식 배선·실동작 검증**: `decompose_weight(factor_z=)` defensive real_rate 보간 단조 작동(z=−2→defensive 0.420 / z=+2→0.206, z↑→비중↓ β음 정합, Σ=1), `_MODULATED_FACTOR={"defensive":"real_rate"}`. ③**defensive full range[0.10,0.28] 복원 확인**(`_DEFENSIVE_BAND`, ckpt-082345 잔여 해소). ④cyclical=cap 보류확정(study β동시−0.12 vs forward+0.46 부호충돌+생존15~20%, 자문 mid 고정), mega_tech=고정(regime_modulate=false). ⑤**off byte-identical**(factor_z=None==미주입 검증 PASS). ⚠️미결 1건=us 업종 **base(cap vs inverse-vol)** 선택 → **W1**(inverse-vol 종목비중, 최하 우선 데이터 실측) 의존, P8-C 범위 밖. 동반: cyclical hy_oas(부호충돌 cap유지 의도)·macro transition freq(미구현 모니터). 상세=handoff-wiring-gap-20260608.md §4-2 U-a.
 
 ## Working Notes
