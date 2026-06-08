@@ -1,34 +1,35 @@
 ---
 tags: [type/candidate-ledger, domain/equity-us, sector/xli_industrials, purpose/easy-review]
 date: 2026-06-08
-status: ★minimal 게이트 PASSIVE(결합 t<2)이나 FCF-yield 단독 t>2 + sub-sector 이질성 = main 판단 필요(완전 dead 아님).
+status: ★PASSIVE 확정 (deeper 4관문 미달 — 관문1 sub-sector-neutral FAIL). = 미국 GICS selection early-stop.
 ---
 
-# XLI(산업재) 후보 원장 (minimal verify, §13 VERIFY 2순위, 마지막 early-stop 체크)
+# XLI(산업재) 후보 원장 (deeper 확정, §13 VERIFY 2순위 마지막)
 
-## 🏁 ★결론 (★단정 금지 — XLF와 차이)
+## 🏁 ★★최종 결론
 
-★minimal 게이트 = PASSIVE (value 결합 non-overlap t=1.21<2). ⛔단 ★완전 dead 아님:
-- ★**FCF-yield 단독 t>2 생존** (y20 2.91 / y60 2.05, CI 0배제) + EV/EBITDA 단독 t=2.02.
-- ★**sub-sector sign-cancel**: 기계 +0.043 / 복합 +0.040 / 서비스 +0.030 (양) ↔ 방산 −0.005 / 운송 ≈0 = ★cyclical-β bleed(자문 R3 적중) → 결합 value 약화 원인.
-- leave-top2(CAT·GE) retention 0.52 = ★의미 있음(XLF는 IC~0 무의미, XLI는 value 일부 실재 = 2-name 위장 아님).
-- = ★XLF(완전 부재 t=0.45)와 달리 XLI는 selection **trace 존재**. sub-sector-conditional FCF-yield 잠재.
+★**XLI selection = PASSIVE 확정** (FCF-yield trace = sub-sector tilt, within-selection 아님). sleeve = top 시총 EW passive.
+- deeper 4관문: 관문2(leave-top2 retention 0.84)·관문3(machinery 아님)·관문4(BY-FDR 2생존) PASS, ★**관문1(sub-sector-neutralize) FAIL**.
+- ★관문1 핵심: FCF-yield sub-sector 내 demean 후 y60 t=2.0(p=0.051 간발)/y20 t=1.73 = ★신호 핵심이 sub-sector **between** 틸트
+  (기계 양 +0.04 / 방산 음 −0.005 = 자문 R3 cyclical-β bleed)이고 within-sub-sector 순수 selection은 경계선 약. = 종목 selection 아닌 섹터배분.
+- ★**미국 GICS selection 무료데이터 전 섹터 early-stop 확정** (XLF 완전부재 t=0.45 + XLI selection 미달).
 
-## 📊 측정 verdict (validation-xli.json)
+## 📊 deeper 4관문 (validation-xli-deeper.json)
 
-| factor | y60 IC | non-overlap t | verdict |
-|---|---|---|---|
-| value 결합(EV/EBITDA·FCF-yield) | 0.033 | 1.21 | 결합 비유의(sub-sector sign-cancel) |
-| **value_fcfy** | 0.056 | **2.05** | ★t>2 생존(y20 2.91) |
-| **value_evebitda** | 0.041 | **2.02** | ★t>2 생존 |
-| quality_roic | −0.012 | −0.19 | 무신호(음) |
-| quality_gpa | 0.002 | −0.25 | 무신호 |
+| 관문 | 결과 | |
+|---|---|---|
+| 1. sub-sector-neutralize FCF-yield | ★**FAIL** | y20 t=1.73 / y60 t=2.0(p=0.051) = within t<2 경계 (신호=sub-sector between) |
+| 2. fcfy 단독 leave-top2(CAT·GE) | PASS | retention 0.84, t_lo2 2.51(y20). 2-name 위장 아님 |
+| 3. machinery 집중 | PASS | machinery-only artifact 아님 |
+| 4. BY-FDR(보수) | PASS | m=6 c(m)=2.45 → 2건 생존 |
+| ★전부 통과? | **NO** (관문1) | codifiable 기준 미달 = PASSIVE |
 
-## ★main 판단 필요 (early-stop vs XLI deeper)
-- (1) minimal 게이트 엄격 → PASSIVE 확정 + 미국 GICS selection early-stop.
-- (2) ★FCF-yield 단독 t>2 + sub-sector split 잠재 = XLI deeper study(sub-sector-neutralize FCF-yield) 1건 여지.
-- ★XLF는 완전 부재였으나 XLI는 trace = early-stop 단정 보류 권고(main 결정).
+## 🔓 §방향보존 + Reopen (⛔ artifact 단정 아님)
+- ⛔ "산업재 value 영구 무효" 아님 = within-sub-sector FCF-yield 경계선 신호 존재(t=2.0) = 범위한정.
+- ★FCF-yield 신호 = sub-sector tilt(기계 OW / 방산 UW) = ★**selection 아닌 rotation 영역**서 살릴 여지(별 영역 이관).
+- Reopen: (a) 생존편향-free CRSP (b) sub-sector tilt → rotation-study 이관 (c) within FCF-yield 차기 vintage OOS 재현.
 
-## 🔓 Reopen / §방향보존
-- ⛔ "산업재 value 영구 무효" 아님 = 결합 틀 미달이나 FCF-yield·기계 sub-sector 잠재 = 범위한정.
-- Reopen = 생존편향-free CRSP + sub-sector-neutralize FCF-yield deeper study.
+## ★early-stop 함의 (미국 GICS selection 전체)
+- SOXX(value=2-name) + XLF(완전부재 t=0.45) + XLI(within-selection 미달, 신호=sub-sector tilt) = ★3섹터(VERIFY 1·2순위 + 파일럿) 전멸.
+- = ★미국 GICS selection 무료데이터로 코드화 가능 신호 = **부재**(early-stop). 11섹터 전 PASSIVE(top 시총 EW).
+- ⛔§방향보존: 무료-데이터 틀 한정. Reopen = CRSP 생존편향-free universe(전 섹터 공통).

@@ -1,0 +1,87 @@
+{
+  "meta": {
+    "target": "XLI FCF-yield trace — codifiable 4관문",
+    "signal": "FCF-yield (op_cashflow-capex)/mcap",
+    "survivor_upper_bound": "현-holdings-only = 부진 편출 누락 = FCF-yield IC upward bias upper-bound"
+  },
+  "gate1_subsector_neutral": {
+    "y_20d": {
+      "ic": 0.0333,
+      "nonoverlap_t": 1.73,
+      "p": 0.0855,
+      "n": 150,
+      "ci": [
+        0.0111,
+        0.0572
+      ],
+      "survive_t2": false
+    },
+    "y_60d": {
+      "ic": 0.0437,
+      "nonoverlap_t": 2.0,
+      "p": 0.0508,
+      "n": 50,
+      "ci": [
+        0.0034,
+        0.0833
+      ],
+      "survive_t2": false
+    }
+  },
+  "gate2_fcfy_leave_top2": {
+    "y_20d": {
+      "ic_full": 0.047,
+      "ic_lo2": 0.0401,
+      "retention": 0.854,
+      "t_lo2": 2.51,
+      "p_lo2": 0.0132
+    },
+    "y_60d": {
+      "ic_full": 0.0562,
+      "ic_lo2": 0.0469,
+      "retention": 0.834,
+      "t_lo2": 1.72,
+      "p_lo2": 0.0919
+    }
+  },
+  "gate3_machinery": {
+    "y_60d": {
+      "ic_all": 0.0562,
+      "ic_no_machinery": 0.0445,
+      "t_no_machinery": 1.51,
+      "ic_machinery_only": 0.1031,
+      "t_machinery_only": 1.81,
+      "machinery_only_artifact": false
+    }
+  },
+  "gate4_byfdr": {
+    "m": 6,
+    "c_m": 2.45,
+    "pvals": [
+      0.0855,
+      0.0508,
+      0.0132,
+      0.0919,
+      0.0042,
+      0.0457
+    ],
+    "by_survivors": [
+      0.0042,
+      0.0132
+    ],
+    "n_survive": 2
+  },
+  "VERDICT": {
+    "gate1_subsector_neutral_pass": false,
+    "gate1_t": [
+      1.73,
+      2.0
+    ],
+    "gate2_fcfy_leave_top2_pass": true,
+    "gate2_retention": 0.834,
+    "gate3_not_machinery_only": true,
+    "gate4_byfdr_pass": true,
+    "ALL_PASS": false,
+    "interpretation": "★XLI FCF-yield = artifact → PASSIVE 확정 = 미국 GICS selection 무료데이터 전 섹터 early-stop. null result"
+  }
+}

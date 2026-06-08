@@ -1,0 +1,11 @@
+# XLI FCF-yield trace deeper 4관문 (2026-06-08) — 미국 유일 selection 신호 확정/기각
+# ★관문1 sub-sector-neutralize FCF-yield: sub-sector 내 demean 후 IC y20 t=1.73(p=0.086) / y60 t=2.0(p=0.051) = ★FAIL(within t<2 경계)
+#   = 신호 핵심이 sub-sector BETWEEN 틸트(기계 양 +0.04 / 방산 음 -0.005 = cyclical-β bleed), within-sub-sector 순수 selection 경계선 약.
+# ★관문2 fcfy 단독 leave-top2(CAT·GE): retention 0.83~0.85(높음) + t_lo2 2.51(y20) = PASS(2-name 위장 아님)
+# ★관문3 machinery: no_mach t=1.51 / mach_only t=1.81 = machinery-only artifact 아님 = PASS
+# ★관문4 BY-FDR: m=6 c(m)=2.45 → 2건 생존(raw fcfy y20 p=0.0042, leave-top2 y20 p=0.0132) = PASS
+# ★판정: 4관문 중 관문1 FAIL = codifiable 기준(전부 통과) 미달 = ★XLI selection 코드화 불가 = PASSIVE 확정.
+#   ⛔단정 hedge: 관문1 y60 t=2.0 = 완전 artifact 아닌 within 경계선 약신호(BY-FDR fragile). 단 4관문 미달.
+# ★FCF-yield 신호 = sub-sector tilt(기계 OW/방산 UW) = selection 아닌 ROTATION 영역서 살릴 여지(별 study 이관).
+# ★★EARLY-STOP 확정: SOXX(2-name) + XLF(완전부재 t=0.45) + XLI(selection 미달, 신호=sub-sector tilt) = 미국 GICS selection 무료데이터 전멸.
+# ⛔§방향보존: 무료-데이터 틀 한정 = 영구 무효 아님. Reopen = CRSP 생존편향-free / sub-sector tilt → rotation 이관.

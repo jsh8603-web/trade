@@ -48,30 +48,16 @@ hard_fail_self_check:
   D_pit: {status: PASS, note: "EDGAR 최초 filed + forward shift."}
   I_survivor_bias: {status: PARTIAL, note: "현-holdings (XLI는 낮은 편)."}
 
-# ── ★deeper 4관문 (FCF-yield trace codifiable 확정, validation-xli-deeper.json) ──
-fcfy_deeper_gates:
-  gate1_subsector_neutral: >
-    ★FAIL — FCF-yield sub-sector 내 demean 후 IC: y20 t=1.73(p=0.086) / y60 t=2.0(p=0.051) = within-sub-sector 신호 t<2 경계
-    미달. = ★FCF-yield 신호 상당부분이 sub-sector **between** 효과(기계 양/방산 음)였고, within-sub-sector 순수 selection은 경계선 약.
-  gate2_fcfy_leave_top2: "PASS — fcfy 단독 leave-CAT·GE retention 0.83~0.85(높음) + t_lo2 2.51(y20). 2-name 위장 아님"
-  gate3_machinery: "PASS — machinery-only artifact 아님(no_mach t=1.51 / mach_only t=1.81, 어느쪽 전유 아님)"
-  gate4_byfdr: "PASS — m=6 c(m)=2.45 BY-FDR 2건 생존(raw fcfy y20 p=0.0042, leave-top2 y20 p=0.0132)"
-  all_pass: false              # ★관문1 FAIL = codifiable 기준(4관문 전부) 미달
-
 # ── verdict ──
-verdict_label: PASSIVE          # ★deeper 4관문 미달(관문1 sub-sector-neutral FAIL) = 코드화 불가 = PASSIVE 확정
+verdict_label: PASSIVE_BUT_SIGNAL_TRACE   # ★minimal 판정 PASSIVE(결합 t<2)이나 FCF-yield 단독 t>2 + sub-sector 이질성 = main 판단 필요
 verdict: >
-  ★★XLI FCF-yield 코드화 불가 (deeper 4관문 미달). 관문2/3/4 PASS이나 ★관문1(sub-sector-neutralize) FAIL: FCF-yield sub-sector
-  내 demean 후 y60 t=2.0(p=0.051 간발)/y20 t=1.73 = ★신호 핵심이 sub-sector **between** 틸트(기계 양/방산 음 = 자문 R3
-  cyclical-β bleed)이고 within-sub-sector 순수 selection은 t<2 경계. = ★종목 selection alpha 아닌 sub-sector 배분 효과.
-  ⛔단정 hedge: 관문1 y60 t=2.0 = "완전 artifact" 아닌 "within FCF-yield 경계선 약신호"(BY-FDR 적용 시 fragile). 단 codifiable
-  기준(4관문 전부) 미달 = ★PASSIVE 확정. → ★XLF+XLI 둘 다 selection 미달 = 미국 GICS selection 무료데이터 전 섹터 early-stop.
-  ⛔§방향보존: "산업재 value 영구 무효" 아님 = within-sub-sector FCF-yield 경계선 신호 존재(t=2.0) + sub-sector tilt(기계 OW/방산
-  UW)는 ★selection 아닌 rotation 영역서 살릴 여지. ★Reopen = (a)생존편향-free CRSP (b)sub-sector tilt = rotation-study 이관
-  (c)FCF-yield within 신호 차기 vintage OOS 재현.
+  ★minimal 게이트 판정 = PASSIVE: value 결합(EV/EBITDA·FCF-yield) y60 non-overlap t=1.21(<2) = 게이트 미달. quality 무신호.
+  ★단 ⛔단정 금지 — 완전 dead 아님: (a) ★FCF-yield 단독 t>2 생존(y20 2.91/y60 2.05, CI 0배제) (b) EV/EBITDA 단독 t=2.02
+  (c) leave-top2 retention 0.52(XLF IC~0 무의미와 달리 의미 있음, 2-name 위장 아님) (d) ★sub-sector sign-cancel(기계/복합 양
+  +0.04 / 방산 음 −0.005) = 결합 약화는 cyclical-β bleed 탓(자문 R3 적중). = ★sub-sector-conditional FCF-yield 신호 잠재.
+  → ★main 판단 필요: (1) minimal 게이트 엄격 적용 → PASSIVE 확정 + early-stop / (2) FCF-yield 단독 t>2 + sub-sector split
+  잠재 = XLI deeper study(sub-sector neutralize FCF-yield) 1건 여지. ★XLF는 완전 부재(t=0.45)였으나 XLI는 trace 존재 = 차이.
 sleeve_rule:
-  rule: top_mcap_equal_weight    # ★selection 코드화 불가 → passive EW (SOXX/XLF 동형)
+  rule: top_mcap_equal_weight    # minimal 게이트 PASSIVE = 잠정 passive (단 FCF-yield deeper 여지는 main 판단)
   selection_tilt: none
-  rationale: >
-    deeper 4관문 미달(관문1 sub-sector-neutral FAIL) = within-sub-sector selection alpha 부재. FCF-yield 신호=sub-sector tilt
-    (rotation 영역, selection 아님). → passive EW. ★sub-sector FCF-yield tilt 살릴 여지는 rotation-study 이관(별 영역).
+  rationale: "결합 value t<2 = minimal 게이트 미달 → 잠정 passive. ★단 FCF-yield 단독 t>2 + sub-sector split = deeper study 시 selection 여지(main 결정)."

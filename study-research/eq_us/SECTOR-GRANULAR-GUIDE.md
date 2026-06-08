@@ -255,4 +255,15 @@ SOXX cap-weight = NVDA 단일베팅 위장(megacap idiosyncratic을 섹터 timin
 
 **Early-stop**: XLF·XLI조차 leave-top2서 무너지면 = 미국 GICS selection은 무료 데이터론 전멸 → 전 섹터 passive 확정.
 
+### ★★실측 결과 — EARLY-STOP 확정 (2026-06-08, 3섹터 검증 완료)
+| 섹터 | 검증 | 결과 | 죽은 방식 |
+|---|---|---|---|
+| SOXX 반도체 | R1~R6 풀 | PASSIVE | value=NVDA·AVGO 2-name position(breadth 확장 시 소멸 IC 0.109→0.024) |
+| XLF 금융 | minimal | PASSIVE | value/quality 전 factor non-overlap t<2(완전 부재, t=0.45). 생존편향 upper-bound조차 미달 |
+| XLI 산업재 | minimal+deeper 4관문 | PASSIVE | FCF-yield trace 있으나 ★sub-sector-neutralize FAIL(within t=2.0 경계) = 신호=sub-sector tilt(rotation), selection 아님 |
+
+→ ★**미국 GICS selection = 무료데이터로 코드화 가능 신호 부재 = EARLY-STOP 확정**. 11섹터 전 PASSIVE(top 시총 EW passive sleeve).
+자문 대원칙(미국 대형주 차익거래 극심 → selection-alpha base rate 부재) **실증 confirm**. 한국(KRW_weak conditional 살아남)과 대조.
+⛔§방향보존: 무료-데이터 틀 한정 = 영구 무효 아님. ★XLI FCF-yield sub-sector tilt(기계 OW/방산 UW)는 selection 아닌 **rotation 영역서 살릴 여지**(별 study 이관). Reopen 전체 = CRSP 생존편향-free.
+
 **⚠️ §방향보존**: PASSIVE 9섹터 = "현 무료-데이터 틀 코드화 불가 = 범위한정"이지 영구 무효 아님. **Reopen 트리거** = (전체)생존편향-free CRSP universe 확보 / (XLE 한정)reserve·breakeven·hedge-book PIT alt-data / (XLV 한정)services·devices sub-sector split. 충족 시 monitor→verify 승급.
