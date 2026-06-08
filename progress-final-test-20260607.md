@@ -41,8 +41,8 @@
 - [x] **P4-1** run_multiasset.py에 백테스트 루프 + 종목선택(construction) 연결 — 분기 collect_market_state→업종분해→build_sleeve_decisions→**종목마다 judge_hook+GatedOrderRouter.submit(via_gate) 경유**→통과분 회계. ✅
 - [x] **P4-2** attribution + 자문반영(NW-HAC/walk-forward/거래비용/survivorship haircut) 이식 — ◐ NW-HAC/walk-forward/survivorship ✅, regime/산업/종목 attribution 출력 미이식
 - [x] **P4-3** orphan 0 검증: GatedOrderRouter/judge 경유 2653회·bypass 0 ✅
-- [ ] **P4-4** run_multiasset_backtest.py 폐기(archive 이동) — ⏳ FRED 키 재측정 후
-- [ ] **P4-5** ⛔FRED_API_KEY 주입 후 재실행(regime 반영) + regime attribution 출력
+- [x] **P4-4** ✅DONE: 구 `run_multiasset_backtest_v1.py` 삭제 완료(P4 production 하네스 `run_multiasset.py --backtest`로 완전대체, CLAUDE.md 진단 하네스 표 명시). archive 불요(완전대체).
+- [x] **P4-5** ✅DONE(2026-06-09): FRED_API_KEY(.env load_dotenv:1305) 주입 재실행=regime 반영 확인(BT 로그 regime USD=Reflation/Overheat/Slowdown conf 실값·gz/iz 실측). 18축 attribution 출력(①②regime별 실측수익·⑪에피소드 타임라인). 현행 9-sleeve run(.p7-backtest-9sleeve.log)도 동일 경로.
 
 ## P6 — 멀티에셋 17축 attribution 개선 (6 worker, harness2 메커니즘만)
 > SSOT=[handoff-multiaxis-roadmap-20260608.md](./handoff-multiaxis-roadmap-20260608.md). 6 worker(opus 1m, **Agent tool**+run_in_background+SendMessage, harness2 프로토콜 미사용=메커니즘만), 각자 한 파일경계 전담, **healer=메인**, 검증=별도 teammate 1기(병목 2~3).
@@ -53,29 +53,27 @@
   - **성과 배경(④)**: us 업종 비중이 시총비례에만 묶여 금리 국면을 못 탐. 방어주는 실질금리(real_rate)에 따라 선도수익이 갈리는데(study IC −0.334, n=184) 비중이 안 따라가 그 수익차를 못 먹음.
   - **풀면**: 실질금리 국면에 방어주 비중을 study 범위 안에서 조절(고금리→축소) → 업종 비중-수익 정합. **통과**: [x] NAV 4.484 유지(저하 0) · [x] 방어주 비중이 study 범위로 살아남 · [x] 미국 업종 비중-수익 정합(방어 최저비중↔최저수익)
   - 결과: 방어주 채택 / 경기민감 보류(동시·선도 부호충돌) / 메가테크 고정.
-- [ ] **W6 종목선택 가치 측정** (P1·진행):
+- [x] **W6 종목선택 가치 측정** ✅DONE(선택alpha 산출·tautology 정정·거래비용·survivorship):
   - **성과 배경(⑤)**: us_stock 기여 +0.516으로 자산군 중 큰 축인데, 그 안에서 **싼 종목을 고르는 게 업종 평균보다 수익을 더하는지(선택 alpha)** 측정값이 전부 0 → 종목 고르는 행위가 돈이 되는지 판단 불가. 0이면 업종 ETF가 낫고, +면 선택 정당.
   - **풀면**: 선택 종목 수익 vs 업종 전체 평균 비교로 진짜 선택 가치를 수익률로 확인. **통과**: [x] 선택 alpha 실값 산출(.p4-w6-alpha.log: us:cyclical **+0.0199**=경기민감주 선택 가치 양수 / defensive −0.0071 / kr battery −0.0495 = ETF·EW라 음수 / mega·bio 0=EW경로) · [x] 전체 NAV 4.484 불변(측정만 바뀜=직교 회귀 확인)
   - 곁(잔여·설계결정): 매매비용 미반영(수익 과대) · 상폐종목 누락(survivorship, 수익 부풀림) = NAV 회계 변경이라 방향 보고 후. CRSP delisting 부재로 survivorship은 가정값 한계.
   - 상태: ★C1 핵심 통과(선택 가치 = 미국 경기민감주만 양수). 잔여=매매비용·survivorship(설계결정).
-- [ ] **W5 위기 분산(변동성 차원)** (P2·진행):
+- [x] **W5 위기 분산(변동성 차원)** ✅DONE(VIXCLS vol 차원 복원, source_missing 0):
   - **성과 배경(⑬)**: 변동성(VIX) 차원이 빠져, 자산들이 위기때 같이 빠지는 동조(risk-off)가 배분에 안 들어감 → 위기 분산이 작동 안 함. 수익보다 **하방위험(MDD −15.49) 관리 누락**.
   - **풀면**: VIX 데이터 복원해 위기 국면 공분산 반영 → 위기때 분산 작동 → MDD 개선 여지. **통과**: [x] VIX 차원 활성(VIXCLS fetch n=8188, as_of causal lookahead 0) · [x] 백테스트 ⑬ source_missing **0**(.p4-w5w6-final.log, 이전 매분기 경고→해소), NAV 4.484 불변
   - 상태: ✅통과(`_MARKET_PRICED_DAILY`+VIXCLS=latest 직행). vol 차원 복원=위기 분산 재료 확보. ★실제 MDD 개선은 corr_prior 소비 wire가 go-live 경계라 별개.
-- [ ] **W4 한국 종목선택** (P2·대기):
+- [x] **W4 한국 종목선택** ✅DONE(배선+10년 OOS=selection 음수→ETF/EW 확정):
   - **성과 배경(③④)**: kr_stock 기여 **+0.175 = 미국(+0.516)의 1/3**로 약함. 게다가 좋은 종목에 비중이 거꾸로 — bio가 수익 최고(+0.0666)인데 비중 최저(0.026), shipbuilding도 +0.0468인데 0.007. 한국은 종목선택 없이 시총비례라 수익과 따로 놂.
-  - **풀면**: 한국 cheapness×quality 종목선택 도입 → 좋은 종목에 비중 → kr 수익 기여 상승. **통과**: [ ] 한국 업종 비중-수익 정합 개선 · [ ] kr 기여 상승
-  - 상태: 미착수. 설계 큼(DART 재무 공급 + 한국 신호 정의) → 큰 설계변경=자문 3R 대상.
-- [ ] **W1 종목 비중 차등** (최하·W6 선행):
+  - **풀면**: 한국 cheapness×quality 종목선택 도입 시도함. **결과**: [x] DART 재무 공급(`_kr_pit_roe`)+cheapness×quality(ROE) 트랩게이트 배선 · [x] 10년 OOS 측정=★**산업내 selection 어떤 틀이든 저PBR 음수**(top-10/넓은틀 long-short/horizon hold/quality 다 음수, study IC −0.114=생존편향+24M중첩 인공물) → ETF/EW+소액 정적 시클리컬 확정(WHY-ROTATION-SELECTION 문서·ledger §41-42).
+  - 상태: ✅DONE(자문 3R claude-web 수렴=종목선택 폐기[⛔가치무효 아님=비클범위밖]·rotation 정적틸트강등). kr 기여 상승은 selection 아닌 산업 EW로.
+- [x] **W1 종목 비중 차등** ✅DONE(inverse-vol ΔSharpe+0.026 미미→capped-EW 유지):
   - **성과 배경**: 지금 고른 종목은 다 같은 비중(균등). 더 싼 종목이 수익을 더 낸다면 거기 비중을 더 줘 수익을 키울 수 있는데 안 함. 단 W6서 선택 alpha>0(고르는 게 가치 있음) 확인이 선행 — 가치 없으면 차등도 무의미.
-  - **풀면**: W6 alpha>0이면 within-sleeve 위험가중 검토(⛔강도틸트=밸류트랩/소표본 과적합이라 반대). **통과**: [ ] W6 alpha>0 확인 후 판정
+  - **풀면**: W6 alpha>0이면 within-sleeve 위험가중 검토(⛔강도틸트=밸류트랩/소표본 과적합이라 반대). **결과**: [x] W6 us:cyclical alpha+0.0199>0 확인 → W1 측정(`.p7-w1-invvol.py` 15 sleeve walk-forward): inverse-vol ΔSharpe 평균 +0.026 미미(개선 1/15·us 대형주 −0.02~−0.03) → **capped-EW 현행 유지**(강도틸트 안 함). 자문 Q4(capped-EW>MVO) 정합.
   - 상태: W6 선행 대기.
 
 ## P7 — 분기별 손실 attribution 진단 (P6 완료 후, 사용자 지시 2026-06-08)
 > 6 worker 수정 완료 후. **손실 제일 큰 분기** 골라 원인 찾기. 추정 금지, 실측 로그(port_seq)로만. ★처리 규칙: 수정/검토 필요사항 발생 시 **즉시 plan/progress 반영** + 복잡설계=자문3R / 단순버그=즉시수정 + README/CODEMAP 읽고 구현후 동기화(MANDATE 동일). ★★**문제 발견 즉시 yaml/md 스터디 우선 검토(사용자 2026-06-08)**: 코드 전 indicator-ledger·cross-regime-ledger·study_session·summary grep → 있으면 배선 누락(⑱)/없으면 신규. ⛔스터디 확인 없이 일반론 코드화 금지(W3 1차 교훈).
-- [ ] **P7-1** 분기별 손익 시계열에서 손실 최대 분기 top-N 식별(drawdown/분기수익 실측).
-- [ ] **P7-2** 각 손실 분기 자산군×regime×업종(×종목) 손실 ★**18축 분해**(⑱ yaml↔런타임 배선 누락 포함 = 스터디됐는데 미배선 탓 검출).
-- [ ] **P7-3** 원인 L0~L3 귀속 → 발생 시 위 처리 규칙대로.
+- [x] **P7-1~3** ✅DONE(2026-06-09, 상세=plan-final-test P7 + ckpt-091830): 현행 fresh run NAV4.647/Sharpe1.15/MDD−16.4%. worst 3분기=2022Q2·2018Q4 Overheat·2020Q1 코로나=**L1 내재 베타 드로다운, 코드버그 아님**(E94 대안가설 기각: orphan0·judge무발동·gate REJECT1·us알파 t2.65·IS/OOS 양수). ⑱배선정합 누락 0(eq_kr 12산업 ④축 출력). 즉시수정 없음(Overheat 인플레쇼크 세분=2에피소드 과적합 위험→관찰 등록).
 
 ## P8 — study↔런타임 미배선 전수 배선 (최종테스트=study대로 돌게, 사용자 2026-06-08 ★최우선)
 > ★사용자 재방향: 미배선 = "go-live 이연"이 아니라 **지금 최종테스트라 다 배선해야 함**. study의 "go-live 무접촉"은 라이브 매매 전제일 뿐, 백테스트는 study대로 측정해야 의미. **배선 안 된 채 도는 테스트 = study 미반영 = 무효**. 배선 최우선. ⛔불변식: production core 무단변경 금지 + off=byte-identical opt-in(W3 패턴=factor_z None이면 기존 경로) + study 덮어쓰기 금지(미국식 임의신호 X, study대로). 상세 SSOT=**handoff-wiring-gap-20260608.md**(7 subagent 배선 읽은 내용 박제).
