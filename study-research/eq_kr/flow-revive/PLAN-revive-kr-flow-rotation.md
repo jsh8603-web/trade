@@ -44,6 +44,21 @@ study는 "종목별 수급 = KRX API 차단"으로 가정하고 per-sector flow�
 
 ⚠️ **본 세션 측정 게이트**: pykrx 미설치 + 네트워크 차단 → per-sector flow를 라이브 fetch 불가. 측정은 **네트워크 허용 세션**에서 수행해야 한다(아래 Phase 1).
 
+## 3-bis. Phase 1 측정 완료 (repo 데이터 한계 내, 2026-06-08)
+
+라이브 per-sector flow 는 네트워크 차단(KRX/Naver 403)이라, **집계 flow 를 섹터 beta 로 투영한 버전**으로 잴 수 있는 만큼 전부 측정했다. 산물 = `measure_sector_flowbeta_precursor.py`·`measure_flowbeta_tradeable_complete.py`.
+
+| 측정 | 결과 | 함의 |
+|---|---|---|
+| 구조 존재(precursor) | 섹터 flow-beta 분산 std 7.5bp·range 26.6(semi +14.4↔bio −12.3), split-half Spearman **0.727 p0.007** | per-sector flow ≠ 집계(횡단면 구조 실재) = GO |
+| 리스크 프리미엄(Test1) | Spearman(beta, 평균수익) +0.168 **p0.60** | 고-flow-beta 섹터가 더 벌지 않음(프리미엄 없음) |
+| 운용 L/S(Test2, PIT·cost) | 무조건 net **−0.2%/yr** / flow조건부 net **−5.0%/yr**(IS−11↔OOS+13 flip) | 비용 차감 후 **死**(t<1, 부호 불안정) |
+| lead-lag(Test3) | 동시 k0 **+0.247** → k1 +0.047 → k≥2 ~0 | 효과=**동시 가격충격**, 1일이면 소멸 |
+
+★**핵심 결론**: 한국 횡단면 rotation 을 지배하는 외국인 flow 차원은 **예측정보가 아니라 동시 체결충격(price impact)**. 신호로 보고 매매하면 이미 끝난 움직임을 쫓음 = study 의 "신호 실재(t2.04) but 운용 alpha 0" 를 메커니즘으로 설명. **beta-투영판 rejected_provisional**.
+
+★**남은 좁은 open door**(이 측정이 못 본 것): 위는 *집계 flow×섹터beta* 투영이지 **진짜 per-sector 순매수**가 아니다. 외국인이 남보다 먼저 한 섹터를 누적하는 **idio 선행정보**(transfer-entropy 문헌: 외국인이 마이크로레벨 선행)는 라이브 데이터에서만 보인다. k1 미세 +0.047 이 그 잔존 가능성. → 아래 Phase 1-live 가 **유일한 미해결 측정**(prior 는 동시-impact 발견으로 대폭 하향).
+
 ## 4. 구현 계획 (코드 미착수 — 단계만)
 
 ### Phase 0 — 환경/데이터 게이트 (선결)
