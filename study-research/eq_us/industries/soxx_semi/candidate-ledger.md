@@ -27,15 +27,24 @@ status: ★R3 conditional 측정 완료 — FREEZE 철회, value/low_vol(BAB) �
 | quality(ROIC) | 무 | 비유의 | 미생존 | — | ★REJECTED(무신호) = 결합 희석 원인 |
 | value+quality 결합 | +0.030 | — | — | — | ★REJECTED(Novy-Marx 통설 반증) |
 
-## 🎯 채택 예정 (primary, R3 측정 → 통과 시 ✅채택)
+## ✅ 채택 (R5 최종 — yaml 등록 + 검증 통과, PARTIAL_CONFIRMED)
 
-| 지표 | family | predicted_sign | 근거 (학술) | R3 게이트 |
+| 지표 | family | tier | 근거 (R3+R4 측정) |
+|---|---|---|---|
+| **value** (저PBR/저EV-EBITDA z, sector-neutral) | value | ★**PARTIAL_CONFIRMED** (생존편향 상한) | y_60d IC +0.104, ★NW-HAC overlapping 보정 후 y20 t=3.24/y60 t=2.73 유의 + BY-FDR 생존(4셀) + pre-AI(rate_low p=0.003) robust + OOS +0.085. value 단독 채택(결합은 quality 무신호로 희석). source=validation-conditional-v1.json + validation-r4-corrections.json |
+| **low_vol / BAB** | low_vol | ★**PARTIAL_CONFIRMED** (생존편향 상한, ★신규 발견) | y_60d IC −0.118, NW-HAC y20 t=−3.11/y60 t=−2.83 + BY 생존(5셀) + pre-AI 방향유지. 섹터 내 저변동(TXN/MCHP) > 고변동(NVDA/AMD). Frazzini-Pedersen (2014) JFE |
+
+> ★두 신호 모두 **unconditional** 채택. ★conditional regime 증폭(rate-extreme/credit_high)은 family-2 overlapping 보정
+> 후 붕괴(day-cluster t 4~6 → block-cluster 1.3~1.4) = TENTATIVE/격하. ★CONFIRMED 승격 = 생존편향 historical + DFII10 unblock 후.
+
+## 🧪 측정했으나 미달 (R3+R4 forward-IC 박제, 정직)
+
+| 지표 | family | predicted_sign | 측정 결과 | verdict |
 |---|---|---|---|---|
-| value (저PBR/저EV-EBITDA z, sector-neutral) | value | **음**(cheap→fwd+) | Fama-French (1992/93). 한국 pbr_z IC −0.114 대응 | MDE\|IC\|>0.107 + CI 0배제 + OOS 부호유지 + BY |
-| gross profitability (GP/Assets) | quality | **양** | Novy-Marx (2013) JFE. value 와 음상관=분산 | 동상 + GP concept 가용 sub-universe |
-| sales/price (1/PSR) | value | **양** | Barbee-Mukherji-Raines (1996) FAJ. peak-EPS 면역 | 동상 + Revenue 태그 fallback |
-| margin level+momentum | quality | **양** | Novy-Marx + QMJ. leading-edge vs commoditized | 동상 |
-| quality (ROIC, low leverage) | quality | **양** | Asness-Frazzini-Pedersen (2019) QMJ | 동상 |
+| quality (ROIC) | quality | 양 | uncond NW-HAC t=0.78 / 전 regime·horizon 비유의 / BY 미생존 | ★REJECTED(무신호) = value+quality 결합 희석 원인 |
+| momentum 12-1 | momentum | 양 (한국 reversal 반대 가설) | uncond NW-HAC t=1.11 / OOS 부호반전(IS−0.01/OOS+0.08) / BY 미생존 / family-2 block-cluster t=1.38 | ★REJECTED (미국 momentum도 한국 reversal도 미입증) |
+| value+quality 결합 | value+quality | 음(결합 강화 가설) | IC +0.030 < MDE 0.107 (value 0.068 대비 희석) | ★REJECTED — ★Novy-Marx "결합 강화" 통설 반증(quality 무신호) |
+| rev_1m (단기반전) | reversal | 음 | uncond y60 NW-HAC t=−2.52 / family-2 credit_high block-cluster t=2.07(유일 잔존) | conditional/약 — y60 장기 reversal만, 단기 약 |
 
 ## 🧪 신규 신호 후보 (★측정 의무 = 이연 금지, R3 forward-IC 박제)
 
@@ -54,9 +63,9 @@ status: ★R3 conditional 측정 완료 — FREEZE 철회, value/low_vol(BAB) �
 | ★**R&D intensity** | EDGAR | ⛔ **R&D concept 부재** (EDGAR parquet 13 concept 中 R&D 없음) | `ResearchAndDevelopmentExpense` 별도 fetch OR 측정 보류 |
 | EV-EBITDA (cyclical primary 보조) | EDGAR ✅ 재사용 | ✅ op_income+dep_amort+lt_debt+st_debt+cash 존재 | dep_amort 0종(ADI/TXN/QCOM) = EBIT proxy fallback |
 | GP·Revenue·margin | EDGAR ✅ | △ QCOM gross_profit=0 / revenues 부족(ADI/KLAC/LRCX/MU<25) | fallback 태그(Revenues−cogs) + 부분측정 hedge |
-| 생존편향 보정 (delisted/M&A 종목) | CRSP / SOXX-ICE historical | ★현 12종=현 holdings + ★prices 2015~ only | CRSP delisting OR SOXX/ICE PIT membership (I축 hard-fail) |
-| ★EW-semi universe | 사전등록 ✅ **SOXX/ICE(~30) 결정** | XSD 미채택. 현 raw 12종 → 30종 확장 | SOXX/ICE historical constituent fetch (자기일관) |
-| regime 16셀 (★실질금리×credit 2축, dollar 강등) | macro.parquet | ✅ DFII10/baa_aaa/hy_oas 보유 | N≥24 collapse 사전점검. dollar=2차 robustness lens |
+| ★생존편향 보정 (delisted/M&A 종목) | CRSP / SOXX-ICE historical | ⛔ ★현 12종=현 holdings + prices 2015~ + fetch 시도 실패(yfinance=현재만, CRSP 유료) | CRSP delisting OR SOXX/ICE PIT membership = ★CONFIRMED 승격 조건(I축 hard-fail PARTIAL) |
+| ★DFII10 실질금리 (regime 재측정) | FRED DFII10 | ⛔ ★sandbox 네트워크 timeout(fredgraph/stooq/data page 실패) = data-gate | network 복구 시 fetch → nominal(현 rate10y) → 실질 regime 재해석 |
+| ★EW-semi universe | 사전등록 ✅ **SOXX/ICE(~30) 결정** | XSD 미채택. 현 raw 12종 측정 → 30종 확장 미완 | SOXX/ICE historical constituent fetch (자기일관, 생존편향 동시 해소) |
 
 ## ❌ 미채택 / drop (R1 실증으로 제거)
 
@@ -68,20 +77,27 @@ status: ★R3 conditional 측정 완료 — FREEZE 철회, value/low_vol(BAB) �
 | hyperscaler capex guidance (κ lead) | guidance = 주가 coincident, 실집행 = lagging. leading 아님 |
 | dollar β (단독 신호) | Bruno-Shin (2015) EM/sovereign → US large-cap 도달 약. us_cyclical β=−0.228 t=−1.02 비유의. 2차 필터만 |
 
-## 🔬 후속 재검증 falsifier (R1 가설 → R3 반증조건)
+## 🔬 후속 재검증 falsifier (채택했으나 조건부 — CONFIRMED 승격 조건)
 
-| 가설/지표 | predicted_sign | ★반증조건 (사전등록) |
-|---|---|---|
-| H1 value-selection | 음(cheap→fwd+) | CI 0 포함 or wrong-sign 유의 → 기각 → (C) freeze 발동 |
-| H2 κ (수출 lagged→forward) | 양 | predictive t<2(fixed-b) or eff_N<벽 or lead 자체 부재(coincident) → κ 폐기 |
-| H3 decomposition γ | within 비-null | γ null → (C) freeze (granular 폐기) |
-| momentum 12-1 | 양 | ★한국처럼 음(reversal) 유의 → predicted 반대 = 기각 (부호 검정) |
-| 모든 신호 공통 | — | MDE\|IC\|<0.107 dead-on-arrival / OOS 부호반전 / CI 0 포함 |
+| 지표 | 현 tier | 미해결 의문 | unblock (PARTIAL_CONFIRMED → CONFIRMED 승격) 조건 |
+|---|---|---|---|
+| value | PARTIAL_CONFIRMED | ★생존편향 I축 PARTIAL(현 holdings) = magnitude 신뢰 제한 | SOXX/ICE historical membership + delisted 보강 → 생존편향-free 재측정서 IC 유지 |
+| low_vol/BAB | PARTIAL_CONFIRMED | 동상 + OOS wc_p 0.10 경계 | 생존편향 보강 + OOS 누적(2026+ pristine) |
+| value rate-extreme conditional | 격하(TENTATIVE) | ★rate_high 증폭 = AI episode 의존(2023-26) | ★DFII10 실질금리 재측정(nominal→실질) + 차기 vintage OOS서 conditional 재현 |
+| ~~decomposition γ~~ | — | R3 unconditional γ null 이었으나 = horizon 누락 측정 = 무효 | conditional 측정서 value/low_vol 발현 = freeze 철회로 대체 |
 
-## 🔄 flip-register (R3 이후 — regime-conditional sign flip 관찰, 현재 공란)
+## 🔄 flip-register (regime-conditional sign flip — ★pristine OOS 게이트, 현 vintage 확정 금지)
 
-> ★R1 = 측정 전이라 flip 후보 없음. R3 regime 32셀 측정 후 uncond→conditional 부호반전 cell 을 여기 등록.
 > ⛔ 한국 전례 (team-lead 주의): regime flip = in-sample only → pristine OOS 게이트 전 신호 채택 금지.
+
+| flip cell | uncond → conditional | n / 보정 후 status | 해석 | OOS 게이트 |
+|---|---|---|---|---|
+| value [rate_mid] | 양(+0.068) → **소멸(−0.004)** | n=953d / wc_p 0.917 | rate 중간국면 value 소멸(U자 골) | 차기 vintage 재현 확인 |
+| mom_12_1 [IS→OOS] | 음(IS −0.012) → **양(OOS +0.080)** | family-2 block-cluster t=1.38 비유의 | AI 시기 momentum 반전(passive 지배?) | OOS 누적, 현 격하 |
+| value [rate_high] | 양 증폭(+0.105) but ★AI episode | n=833d(거의 AI 시기) | AI 붐 금리상승기 value 리프라이싱 | ★DFII10 실질 + 차기 vintage pristine |
+
+★flip-register 원칙: conditional 증폭 = overlapping 보정 후 붕괴(block-cluster) = ⛔현 vintage 확정 금지. 차기 vintage
+(2026+ 신규) pristine OOS 부호·유의 재현 시만 conditional 승격. 현재 = "관찰 등록"만.
 
 ## 📌 자산화 enum 분류 (R1 = pointer 중심)
 
