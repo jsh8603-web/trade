@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "note": "R5 4게이트 — value under-claim/low_vol over-claim 정정"
+  },
+  "gate1_sampling": {
+    "ic_sampling": "daily (매 거래일 cross-section IC)",
+    "evidence": "IC obs=2807, median gap=1.0d (1~3 = daily 거래일)",
+    "nw_lag_correct": "daily-sampled forward 60d → NW lag=60 적정 (monthly였으면 BUG). T=185 auto-bw=4 는 monthly 기준 = 부적용",
+    "nw_lag_sweep": {
+      "lag_4": {
+        "ic": 0.1036,
+        "nw_t": 7.7
+      },
+      "lag_20": {
+        "ic": 0.1036,
+        "nw_t": 4.0
+      },
+      "lag_60": {
+        "ic": 0.1036,
+        "nw_t": 2.73
+      },
+      "lag_90": {
+        "ic": 0.1036,
+        "nw_t": 2.46
+      }
+    }
+  },
+  "gate2_nonoverlap": {
+    "nonoverlap_n": 47,
+    "ic_mean": 0.0951,
+    "t_nonoverlap": 2.11,
+    "p_nonoverlap": 0.04,
+    "verdict": "value PRIMARY tier 앵커. t≥2 면 modest-but-real",
+    "block_boot_sweep": {
+      "block_60": {
+        "ci_95": [
+          0.0254,
+          0.1736
+        ],
+        "crosses_0": false
+      },
+      "block_90": {
+        "ci_95": [
+          0.0123,
+          0.1757
+        ],
+        "crosses_0": false
+      },
+      "block_120": {
+        "ci_95": [
+          0.0056,
+          0.1872
+        ],
+        "crosses_0": false
+      },
+      "block_250": {
+        "ci_95": [
+          0.0009,
+          0.1831
+        ],
+        "crosses_0": false
+      }
+    }
+  },
+  "gate3_leave2out": {
+    "ic_full": 0.1036,
+    "ic_leave_NVDA_AVGO": 0.0046,
+    "retention": 0.044,
+    "t_nonoverlap_lo2": -0.1,
+    "verdict": "position-not-factor 강등"
+  },
+  "gate4_lowvol": {
+    "raw_ic": -0.118,
+    "raw_nw_t": -2.83,
+    "sign_interp": "★anti-BAB(고변동 outperform) = BAB 반대",
+    "preAI_ic": -0.0673,
+    "preAI_nw_t": -1.33,
+    "orthog_ic": 0.0452,
+    "orthog_nw_t": 1.71,
+    "verdict": null
+  }
+}

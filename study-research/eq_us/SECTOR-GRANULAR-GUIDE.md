@@ -126,7 +126,13 @@ R5 보고       → supervisor(main)에 final message (PARTIAL/FAIL 축 명시, 
 
 ## §10. 자문 3R 수렴 반영 (2026-06-08, gemini-web + claude-web 병렬) — ★SSOT override
 
-> 3자(로컬 probe + Gemini + Claude) 완전 수렴. R2에서 Gemini가 Claude 반박에 전면 동의. 본 §10이 §0~§9 충돌 부분을 override. 원문 = `.consult-us-sector-granular-briefing.md` + `~/.claude/.gemini-web-last.md` + `~/.claude/.claude-web-basic-last.md`.
+> ⛔★사용자 정정 (2026-06-09, §방향보존 ERROR): **아래 §10.1~10.7 요약은 자문 원문을 비관 쪽으로 왜곡함.** 원문 방향성 복원:
+> 1. **산업 배분(rotation / 슬리브간) = ★주 레버, 살릴 여지.** 동적 분기타이밍이 아니라 **정적 틸트(static tilt)** + 수축(shrinkage) + 사후평균 + 다중비교 깐깐 검증으로 **살린다**. ("rotation 회의 ~30%·보류·슬리브간 어렵다" = 왜곡, 폐기 아님).
+> 2. **종목선택(selection / 슬리브내) = 현 좁은 틀(대형주 top-10 동일가중)에서만 약했던 것.** 소형·딥밸류 종목을 못 담아서지 **가치 무효 아님**. ("value-only / 무가치 / 죽음" = 왜곡).
+> 3. **반도체 freeze→철회(horizon 축 부족) 통찰 = ★사용자 지적 귀속** (main 발견 아님).
+> → 아래 §10.1~10.7 비관 톤(★☆☆ 강등·회의·dead 등)은 이 정정 하에서 "정적 틸트로 살리되 깐깐 검증" 으로 재해석. 자문 원문 = `~/.claude/.claude-web-basic-last.md` (raw substring 우선).
+>
+> 3자(로컬 probe + Gemini + Claude). 본 §10이 §0~§9 충돌 부분을 override. 원문 = `.consult-us-sector-granular-briefing.md` + `~/.claude/.gemini-web-last.md` + `~/.claude/.claude-web-basic-last.md`.
 
 ### 10.1 방향 전환 (★사용자 원 가정 정정)
 "섹터 분해 → rotation+selection 둘 다 발현"은 **부분만 맞음**. **rotation granular 회의적(~30%), 진짜 엣지 = selection-value**. 층 분리: selection층 (D)factor-cancel 교정완료 / rotation층 (C)시장구조 우세.
@@ -210,3 +216,17 @@ SOXX cap-weight = NVDA 단일베팅 위장(megacap idiosyncratic을 섹터 timin
 - ★자문 통설도 falsify: Novy-Marx "value+quality 결합 강화" = SOXX 12종선 quality 무신호로 희석(반증). 자문 prior 재현 검증 의무.
 - ★생존편향 I축: 현 holdings only universe = TENTATIVE 상한(CONFIRMED 불가). historical membership(CRSP/ETF PIT) 무료부재 시 정직 PARTIAL.
 - ★data 라벨 검증: 컬럼명(rate10y)과 실값(nominal vs 실질) 일치 확인(spec↔code match). SOXX에서 "DFII10 실질" 라벨이 nominal(DGS10)이었음.
+
+### 12.4 ★leave-N-out (factor vs N-name bet) + non-overlap t 의무 (R5 게이트 자산화, 2026-06-08)
+- ★SOXX value 가 overlapping NW-t=2.73 + BY 생존으로 "PARTIAL_CONFIRMED" 보였으나, **NVDA·AVGO leave-2-out retention=0.044**
+  (두 종목 빼면 IC 0.104→0.005 소멸) = ★**position-not-factor**(2-name bet)로 강등. small-N 섹터(12종)는 1~2 megacap 이
+  cross-section IC 를 지배 가능 = factor 위장.
+- ★**의무** (small-N 섹터 selection IC tier 확정 전):
+  (a) **leave-top-N-out**: 시총/지배 상위 1~2종 제외 후 retention = IC₍₋N₎/IC₀. ≥0.70 → factor / 0.40~0.70 → concentration-dependent /
+      <0.40 → position-not-factor 강등.
+  (b) **non-overlap t PRIMARY**: forward h일 IC 의 tier 는 **비겹침(T/h obs) t** 에 앵커링(overlapping NW-t 는 보조). daily-overlapping
+      t 가 부풀 수 있음(SOXX value overlapping t=2.73 vs non-overlap t=2.11).
+  (c) **misspec 부호 점검**: low_vol/BAB 류는 ★부호 방향 확인 의무(저변동 outperform = 정상 / 고변동 outperform = anti-BAB =
+      AI 고베타 misspec 포장). pre-AI 단독 + beta·momentum 직교화 후 정상부호+|t|≥2 아니면 KILL.
+- ★SOXX 결론: value = weak/2-name-concentration(PROVISIONAL, factor 미입증) / low_vol = REJECTED-as-constructed(anti-BAB KILL).
+  = ★small-N 섹터 selection 은 leave-N-out + non-overlap + 부호 점검 통과 전 "신호 확보" 단정 금지.

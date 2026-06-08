@@ -1,0 +1,7 @@
+# SOXX R5 4게이트 (2026-06-08, value/low_vol over-claim 정정)
+# 게이트1 IC샘플링: daily-sampled(gap=1d) → NW lag=60 적정(monthly BUG 아님). lag60 t=2.73.
+# 게이트2 non-overlap: value n=47 IC=0.095 t=2.11 p=0.04 modest. block-boot 60~250 CI 0배제(250 하한 0.0009 간발).
+# ★게이트3 leave-2-out: value IC_full 0.104 → leave NVDA·AVGO 0.0046 retention=0.044(<0.40) = position-not-factor(2-name bet).
+# ★게이트4 low_vol: raw IC=-0.118 = anti-BAB(고변동 outperform) + pre-AI t=-1.33 + 직교 t=1.71 = REJECTED-as-constructed(KILL).
+# ★최종 tier: value = weak/2-name-concentration(PROVISIONAL, R4 PARTIAL_CONFIRMED 강등) / low_vol = REJECTED-as-constructed.
+# = 자문 정정 채택(falsify 적중). value·low_vol 모두 over-claim 교정.

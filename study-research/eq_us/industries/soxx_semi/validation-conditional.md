@@ -145,6 +145,38 @@ AI episode 의존. low_vol = AI 강화나 pre-AI 방향 유지.
   rate_high 증폭 = AI episode 의존. = ★"regime conditional 증폭" over-claim 금지.
 - quality·mom = REJECTED/무신호.
 
+## §5-ter. ★R5 검증 4게이트 (claude 2R 수렴 — value/low_vol 분리 정정)
+
+> ★자문 정정: "value/low_vol 묶음 약신호" 라벨 오류. value = under-claim 의심이었으나 ★leave-2-out 으로 over-claim
+> 판명(2-name bet) / low_vol = over-claim(anti-BAB misspec). source=raw-v3/validation-r5-gates.json.
+
+### §5-ter.1 ★게이트1 — IC 샘플링 + NW lag 매칭 (lag-버그 감사)
+- IC = **daily-sampled** 확인(median gap=1d, 매 거래일 cross-section). forward 60d → ★**NW lag=60 적정**(monthly BUG 아님).
+- lag sweep: lag=4 t=7.7(과적합) / **lag=60 t=2.73** / lag=90 t=2.46. → lag-버그 없음, overlapping NW-t=2.73 유효.
+
+### §5-ter.2 ★게이트2 — non-overlap t (value PRIMARY 앵커)
+- 60d 비겹침 n=47: IC=0.095, ★**t=2.11, p=0.04** = modest-but-real(자문 예측 ≈2.35 근접).
+- block-boot sweep: block 60/90/120/250 모두 CI 0 안 건넘(block_250 하한 0.0009=간발). → value 약하게 생존(fragile).
+
+### §5-ter.3 ★★게이트3 — NVDA·AVGO leave-2-out (결정적 강등)
+- ★IC_full=0.104 → **IC_lo2=0.0046**(NVDA·AVGO 제외 시 거의 0) → ★**retention=0.044** (<0.40), t_lo2=−0.1.
+- → ★**position-not-factor 강등**: value 신호 = **NVDA·AVGO 2-name bet**, factor 아님. 두 종목 빼면 value premium 소멸.
+- = ★**value 도 over-claim**(2-name 의존). non-overlap t=2.11(게이트2)은 NVDA·AVGO 집중에서 나온 것.
+
+### §5-ter.4 ★★게이트4 — low_vol REJECTED-as-constructed (KILL)
+- ★raw IC=−0.118 = **anti-BAB**(고변동 NVDA/AMD outperform) = BAB(저변동 outperform) **반대 부호**. = AI 고베타를 저변동
+  프리미엄으로 misspec 포장(★"BAB 신규 발견" 라벨 = 부호 반대 over-claim).
+- pre-AI 단독: IC=−0.067, **t=−1.33 (|t|<2)** = 비유의. orthog(beta·mom 직교): IC=+0.045, **t=1.71 (|t|<2)** = SAVE 경로도 미달.
+- → ★**low_vol = KILL 확정** (anti-BAB 부호 + pre-AI |t|<2 + 직교 SAVE 미달).
+
+### §5-ter.5 ★tier 최종 정정 (R5 게이트 후)
+| 지표 | R4 tier | ★R5 게이트 결과 | ★최종 tier |
+|---|---|---|---|
+| value | PARTIAL_CONFIRMED | non-overlap t=2.11(modest) BUT ★leave-2-out retention=0.044(position-not-factor) | ★**weak / 2-name-concentration**(NVDA·AVGO bet, factor 아님) |
+| low_vol | PARTIAL_CONFIRMED | ★anti-BAB 부호 + pre-AI t=−1.33 + 직교 t=1.71 | ★**REJECTED-as-constructed**(misspec, KILL) |
+- ★PARTIAL_CONFIRMED 2건 모두 강등. value = 약신호+2-name 의존(factor 미입증) / low_vol = KILL. ★자문 정정 채택(falsify 적중).
+- ★not-artifact 단서(value): 단조 항기간구조(5d→60d 증가) + pre-AI p=0.003 = 신호 존재하나 **factor 아닌 2-name 집중**.
+
 ## §6. 한계 (hard-fail 축 self-check)
 
 - **I 생존편향 PARTIAL**: 현 12종 holdings only → TENTATIVE 상한.

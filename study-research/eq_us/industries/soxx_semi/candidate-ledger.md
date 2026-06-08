@@ -27,24 +27,24 @@ status: ★R3 conditional 측정 완료 — FREEZE 철회, value/low_vol(BAB) �
 | quality(ROIC) | 무 | 비유의 | 미생존 | — | ★REJECTED(무신호) = 결합 희석 원인 |
 | value+quality 결합 | +0.030 | — | — | — | ★REJECTED(Novy-Marx 통설 반증) |
 
-## ✅ 채택 (R5 최종 — yaml 등록 + 검증 통과, PARTIAL_CONFIRMED)
+## 🟡 약신호 / 조건부 (R5 게이트 후 — ★PARTIAL_CONFIRMED 강등, factor 미입증)
 
-| 지표 | family | tier | 근거 (R3+R4 측정) |
+| 지표 | family | tier | 근거 (R5 4게이트, validation-conditional.md §5-ter) |
 |---|---|---|---|
-| **value** (저PBR/저EV-EBITDA z, sector-neutral) | value | ★**PARTIAL_CONFIRMED** (생존편향 상한) | y_60d IC +0.104, ★NW-HAC overlapping 보정 후 y20 t=3.24/y60 t=2.73 유의 + BY-FDR 생존(4셀) + pre-AI(rate_low p=0.003) robust + OOS +0.085. value 단독 채택(결합은 quality 무신호로 희석). source=validation-conditional-v1.json + validation-r4-corrections.json |
-| **low_vol / BAB** | low_vol | ★**PARTIAL_CONFIRMED** (생존편향 상한, ★신규 발견) | y_60d IC −0.118, NW-HAC y20 t=−3.11/y60 t=−2.83 + BY 생존(5셀) + pre-AI 방향유지. 섹터 내 저변동(TXN/MCHP) > 고변동(NVDA/AMD). Frazzini-Pedersen (2014) JFE |
+| **value** (저PBR/저EV-EBITDA z) | value | ★**weak / 2-name-concentration** (PROVISIONAL, R4 PARTIAL_CONFIRMED 강등) | non-overlap t=2.11 p=0.04 modest BUT ★leave-NVDA·AVGO retention=**0.044**(<0.40) = position-not-factor. 두 종목 빼면 IC 0.104→0.005 소멸. ★factor 아닌 2-name bet. not-artifact 단서(단조 항기간구조+pre-AI p=0.003)이나 breadth 부재 |
 
-> ★두 신호 모두 **unconditional** 채택. ★conditional regime 증폭(rate-extreme/credit_high)은 family-2 overlapping 보정
-> 후 붕괴(day-cluster t 4~6 → block-cluster 1.3~1.4) = TENTATIVE/격하. ★CONFIRMED 승격 = 생존편향 historical + DFII10 unblock 후.
+> ★value = 신호 존재하나 **NVDA·AVGO 2-name 집중**(factor 미입증). DOWNGRADE 트리거 충족(leave-2-out retention<0.70).
+> ★승격 = 생존편향 historical universe 확장(breadth↑) 후 retention 재측정. 현 = PROVISIONAL-weak, ⛔ factor 채택 금지.
 
-## 🧪 측정했으나 미달 (R3+R4 forward-IC 박제, 정직)
+## ❌ 측정했으나 미달 / KILL (R3~R5 forward-IC 박제, 정직)
 
 | 지표 | family | predicted_sign | 측정 결과 | verdict |
 |---|---|---|---|---|
+| **low_vol / BAB** | low_vol | 음(저β→fwd+) | ★raw IC=−0.118 = **anti-BAB**(고변동 outperform=BAB 반대) + pre-AI t=−1.33 + 직교(beta·mom) t=1.71 | ★**REJECTED-as-constructed** (KILL) — AI 고베타를 저변동으로 misspec 포장. R4 "신규 발견" = over-claim 정정 |
 | quality (ROIC) | quality | 양 | uncond NW-HAC t=0.78 / 전 regime·horizon 비유의 / BY 미생존 | ★REJECTED(무신호) = value+quality 결합 희석 원인 |
-| momentum 12-1 | momentum | 양 (한국 reversal 반대 가설) | uncond NW-HAC t=1.11 / OOS 부호반전(IS−0.01/OOS+0.08) / BY 미생존 / family-2 block-cluster t=1.38 | ★REJECTED (미국 momentum도 한국 reversal도 미입증) |
-| value+quality 결합 | value+quality | 음(결합 강화 가설) | IC +0.030 < MDE 0.107 (value 0.068 대비 희석) | ★REJECTED — ★Novy-Marx "결합 강화" 통설 반증(quality 무신호) |
-| rev_1m (단기반전) | reversal | 음 | uncond y60 NW-HAC t=−2.52 / family-2 credit_high block-cluster t=2.07(유일 잔존) | conditional/약 — y60 장기 reversal만, 단기 약 |
+| momentum 12-1 | momentum | 양 (한국 reversal 반대 가설) | uncond NW-HAC t=1.11 / OOS 부호반전 / BY 미생존 / family-2 block-cluster t=1.38 | ★REJECTED (미국 momentum도 한국 reversal도 미입증) |
+| value+quality 결합 | value+quality | 음(결합 강화 가설) | IC +0.030 < MDE 0.107 (value 0.068 대비 희석) | ★REJECTED — Novy-Marx "결합 강화" 통설 반증(quality 무신호) |
+| rev_1m (단기반전) | reversal | 음 | uncond y60 NW-HAC t=−2.52 / family-2 credit_high block-cluster t=2.07 | conditional/약 — y60 장기 reversal만 |
 
 ## 🧪 신규 신호 후보 (★측정 의무 = 이연 금지, R3 forward-IC 박제)
 

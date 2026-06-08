@@ -44,10 +44,15 @@ verdict: 부분 (hard-fail 코어 B·C·D PASS / I PARTIAL = TENTATIVE 상한). 
 
 ## ★최종 verdict
 
-- **value (unconditional)** = PARTIAL_CONFIRMED (NW-HAC t3.24 + BY 생존 + pre-AI robust, 생존편향 상한).
-- **low_vol/BAB (unconditional)** = PARTIAL_CONFIRMED (NW-HAC t−2.8~−3.1 + BY 생존, 생존편향 상한).
-- **conditional (regime 증폭)** = TENTATIVE/격하 (family-2 overlapping 보정 후 붕괴, rate_high=AI episode 의존).
-- **quality·momentum** = REJECTED/무신호.
-- ★전체 = **부분(PARTIAL)**: hard-fail 무효화 0 + value·low_vol robust(PARTIAL_CONFIRMED) + 생존편향 PARTIAL = TENTATIVE 상한.
-- ★독립 audit subagent 권고: value·low_vol register 가능(require_raw=True, TENTATIVE tier) / conditional 증폭은 보류.
-  생존편향 보강(historical membership) + DFII10 재fetch 후 tier 재판정.
+> ★R5 4게이트 후 정정 (validation-conditional.md §5-ter): R4 PARTIAL_CONFIRMED 2건 모두 강등.
+
+- **value (unconditional)** = ★**weak / 2-name-concentration** (PROVISIONAL). non-overlap t=2.11 modest BUT ★leave-NVDA·AVGO
+  retention=0.044 = position-not-factor(2-name bet, 두 종목 빼면 IC 소멸). R4 PARTIAL_CONFIRMED 강등.
+- **low_vol/BAB** = ★**REJECTED-as-constructed** (KILL). anti-BAB 부호(고변동 outperform) + pre-AI t=−1.33 + 직교 t=1.71.
+  R4 "신규 발견" = AI 고베타 misspec over-claim 정정.
+- **conditional (regime 증폭)** = 격하 (family-2 overlapping 붕괴).
+- **quality·momentum·결합** = REJECTED.
+- ★전체 = **부분(PARTIAL, 약)**: hard-fail 무효화 0(B·C·D PASS, I PARTIAL) + ★value = weak/2-name(factor 미입증) +
+  low_vol KILL. ★자문 정정 채택(falsify 적중) = value·low_vol 모두 over-claim 교정.
+- ★독립 audit subagent 권고: value = PROVISIONAL-weak register(factor 채택 금지, 2-name 명시) / low_vol = KILL /
+  conditional 보류. 승격 = 생존편향 historical universe 확장(breadth↑) 후 leave-2-out retention 재측정.

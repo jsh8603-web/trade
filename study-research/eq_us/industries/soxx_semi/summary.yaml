@@ -194,9 +194,18 @@ conditional_ic_surface:
     fdr_by: "Benjamini-Yekutieli m=45 c(m)=4.39 q=0.10 → ★10셀 생존(value·low_vol). quality·mom 미생존. M_eff 미통합(보수적 naive)"
     ai_episode: "★value rate_low=pre-AI(p=0.003) + rate_high=AI(p=0.008) 양 시기 발현 = value pre·post robust(AI 단일 artifact 아님). rate_high 증폭=AI 의존"
     dfii10_gate: "★DFII10 실질금리 재fetch = sandbox 네트워크 timeout(fredgraph/stooq/data page 실패) = data-gate. rate10y=nominal 유지"
+    tier_r4: >
+      (R4 시점) value·low_vol(uncond) = PARTIAL_CONFIRMED. ★R5 게이트로 강등됨(아래 r5_gates 참조).
+  r5_gates:  # ★R5 검증 4게이트 — value/low_vol over-claim 정정 (validation-conditional.md §5-ter, validation-r5-gates.json)
+    gate1_ic_lag: "★IC=daily-sampled 확인(gap=1d) → NW lag=60 적정(monthly BUG 아님). lag sweep 60=t2.73/90=t2.46. lag-버그 없음"
+    gate2_nonoverlap: "★value non-overlap n=47 IC=0.095 t=2.11 p=0.04 modest-but-real. block-boot 60~250 CI 0배제(250 하한 0.0009 간발)"
+    gate3_leave2out: "★★value IC_full 0.104 → leave NVDA·AVGO IC 0.0046 retention=0.044(<0.40) = position-not-factor 강등(2-name bet)"
+    gate4_lowvol: "★★low_vol raw IC=−0.118 = anti-BAB(고변동 outperform=BAB 반대) + pre-AI t=−1.33 + 직교 t=1.71 = REJECTED-as-constructed(KILL)"
     tier_final: >
-      ★value(uncond) = PARTIAL_CONFIRMED (NW-HAC + BY 생존 + pre-AI robust, ★생존편향 I축 PARTIAL = CONFIRMED 불가).
-      low_vol/BAB(uncond) = PARTIAL_CONFIRMED. conditional 증폭 = TENTATIVE/격하(overlapping 보정 후 붕괴). quality·mom = REJECTED.
+      ★R5 게이트 최종 정정 (PARTIAL_CONFIRMED 2건 강등): value = ★weak/2-name-concentration(NVDA·AVGO bet, factor 아님 —
+      retention 0.044). low_vol = ★REJECTED-as-constructed(anti-BAB misspec, KILL). quality·mom·결합 = REJECTED.
+      conditional 증폭 = 격하(overlapping 붕괴). ★자문 정정 채택(falsify 적중) = value over-claim(2-name) + low_vol over-claim(misspec).
+      not-artifact 단서(value): 단조 항기간구조 + pre-AI p=0.003 = 신호 존재하나 factor 아닌 2-name 집중.
 
 # ── Hard-fail 4 (B C D I) self-check ──
 hard_fail_self_check:
