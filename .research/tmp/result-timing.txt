@@ -1,0 +1,70 @@
+Of course. Here is a rigorous, citation-grounded breakdown of leading indicators for semiconductor industry cycle timing, focusing on data availability and forward-predictive evidence.
+
+### 1. SEMI Book-to-Bill Ratio (North America Semiconductor Equipment)
+
+The SEMI Book-to-Bill (B/B) ratio was historically one of the most-watched indicators for the semiconductor capital equipment (CapEx) cycle, which often leads the broader semiconductor device cycle.
+
+*   **Discontinuation of Public B/B Ratio:**
+    *   SEMI (Semiconductor Equipment and Materials International) **stopped publishing the full North America Book-to-Bill report in January 2017**. The final report, covering data for December 2016, was the last one issued.
+    *   In their final press release on January 26, 2017, SEMI Americas president Denny McGuirk stated the report was being replaced by a "monthly billings report and other reports that are part of the SEMI market data portfolio." The rationale was that the globalized nature of the supply chain made a North America-centric B/B ratio less representative of the overall industry's health.
+
+*   **Discontinuation of Public Monthly Billings Press Release:**
+    *   Yes, SEMI later ceased issuing the detailed public monthly billings press release. The last detailed public press release for the "North America Semiconductor Equipment Industry Billings Report" was for **June 2021 data, published on July 22, 2021**.
+    *   Starting with the July 2021 data (published in August 2021), SEMI transitioned to a "quote-only" press release format. This new format provides a brief qualitative quote from the SEMI CEO but no longer includes the specific monthly billings figure, the year-over-year (YoY) change, or the month-over-month (MoM) change.
+    *   **Current Status (2024-2026):** The detailed monthly billings data, including historical figures and regional breakdowns, is now available exclusively to subscribers of the SEMI **Equipment Market Data Subscription (EMDS)**. The free, public data point is no longer available.
+
+*   **Historical Data Availability:**
+    *   **Free:** Historical data for the North America Semiconductor Equipment Book-to-Bill Ratio from 1991 to its discontinuation in December 2016 is available for free from the **Federal Reserve Bank of St. Louis's FRED database (Series ID: BBPBFEQ)**. This is a reliable source for the historical time series.
+    *   **Paid:** SEMI offers extensive historical and current billings data (globally and by region) through its paid EMDS subscription service.
+
+### 2. WSTS / SIA Global Semiconductor Billings (3-Month Moving Average)
+
+This is the most widely cited statistic for the health of the overall semiconductor device market.
+
+*   **Availability and Lag:** The data is compiled by **World Semiconductor Trade Statistics (WSTS)** and publicly disseminated via a monthly press release from the **Semiconductor Industry Association (SIA)**.
+    *   **Publication Lag:** There is a significant lag. The press release is typically issued in the first few days of a given month, but it reports data for two months prior. For example, the release in early **June 2024** reports the global sales data for **April 2024**.
+    *   The data is presented as a three-month moving average (3MMA) to smooth out short-term volatility. This smoothing, while helpful, adds to the effective lag of the indicator.
+
+*   **Free vs. Subscription:**
+    *   **Free:** The monthly SIA press release, containing the headline global sales figure (3MMA), YoY/MoM changes, and a regional breakdown, is publicly available on the SIA website (`semiconductors.org`). **This press release is still public as of mid-2024 and is expected to continue.**
+    *   **Paid:** The full, detailed WSTS database with granular product-level data (e.g., Memory, Logic, Analog) is a highly expensive subscription service primarily used by market participants and research firms.
+
+### 3. Taiwan Semiconductor Export & Revenue Data
+
+Taiwan's dominance in foundry (TSMC), packaging (ASE), and design (MediaTek) makes its data a high-quality, timely indicator.
+
+*   **Availability and Lag:**
+    *   **Taiwan Ministry of Finance (MOF):** Publishes detailed monthly trade statistics, including exports of "Electronic components," of which semiconductors are the vast majority. This data is typically released between the **7th and 10th of the following month**. It is a very reliable and timely indicator of global electronics demand.
+    *   **TSMC Monthly Net Revenue:** As a listed company, Taiwan Semiconductor Manufacturing Company (TSMC) reports its unaudited net revenue on a monthly basis. This report is usually released around the **10th of the following month**.
+
+*   **Point-in-Time Cleanliness:**
+    *   **TSMC's monthly revenue is exceptionally clean** as a point-in-time indicator. It is a direct, hard number from the world's most important semiconductor manufacturer and is not subject to significant future revision. Its release is a major market event.
+    *   The MOF export data is also high quality but, like most government economic statistics, can be subject to minor revisions in subsequent releases. However, for directional cycle-timing purposes, the initial release is highly effective.
+
+### 4. South Korea Semiconductor Exports
+
+South Korea's leadership in the memory market (Samsung, SK Hynix) makes its export data an excellent proxy for a critical, and often most volatile, segment of the semiconductor industry.
+
+*   **Availability and Lag:**
+    *   **Ministry of Trade, Industry and Energy (MOTIE):** Releases a **preliminary trade data report for the first 20 days of the month**. This is published on the 21st of the *current* month. This "20-day" data point is one of the earliest high-frequency indicators available globally for tech demand and is closely watched by analysts.
+    *   **Korea Customs Service:** Publishes the full monthly trade data on the **1st day of the following month**. This is extremely timely, often beating all other major regional data releases. The data is granular and specifies semiconductor exports clearly.
+
+### 5. Inventory-to-Shipment Ratios and Other Alternatives
+
+*   **Inventory-to-Shipment Ratios:** Data for "Semiconductors and Other Electronic Components" is published monthly by the **U.S. Census Bureau**. However, it is released with a nearly two-month lag, making it a lagging or coincident indicator, not a leading one for equity markets. Company-level inventory data from financial statements is only available quarterly with an even greater lag.
+*   **Semiconductor PPI:** The Producer Price Index for Semiconductors and Other Electronic Components is published by the **U.S. Bureau of Labor Statistics (BLS)** and is available on FRED (**Series ID: PCU334413334413**). It is a monthly series released mid-month for the prior month. It measures pricing power and can be a useful input, but it tends to be more coincident with the industry cycle.
+*   **Philadelphia Fed / ISM Manufacturing Surveys:** The **Philadelphia Fed's Manufacturing Business Outlook Survey** (released on the third Thursday of the month for the *current* month) is extremely timely. Its "New Orders" sub-index is a strong leading indicator for the broader manufacturing economy, including electronics. While not semiconductor-specific, it provides a valuable, real-time read on industrial demand. The national **ISM Manufacturing PMI** report (released on the first business day of the following month) serves a similar purpose.
+
+### 6. Published Forward-Predictive Evidence (Leading vs. Coincident)
+
+This is a critical distinction. The academic and practitioner consensus is that while these data series are excellent for tracking the fundamental business cycle, their ability to *lead* semiconductor equity returns is limited and complex.
+
+*   **Common Finding (Coincident Nature):** A recurring finding in both sell-side research (e.g., reports from major investment banks) and empirical analysis is that semiconductor stock prices (e.g., the PHLX Semiconductor Index, SOX) are themselves a powerful leading indicator. Stock prices often peak and trough **3-6 months *before*** the peaks and troughs in smoothed data like the SIA's 3MMA of global billings.
+    *   **Reasoning:** Equity markets are forward-looking mechanisms that attempt to discount future fundamentals. By the time a clear inflection (e.g., YoY growth turning positive) is visible in the lagged, smoothed government/industry data, the stock market has often already priced in the recovery.
+
+*   **Using Rate-of-Change (2nd Derivative):** Sophisticated practitioners do not look at the absolute level of billings or YoY growth (the 1st derivative). Instead, they focus on the **acceleration or deceleration of YoY growth (the 2nd derivative)**. The point where the *rate of deceleration* in YoY billings begins to slow can be a leading indicator for the trough in stock prices. This is a more effective but also more difficult signal to interpret in real-time.
+
+*   **Specific Citations:**
+    *   While many studies are proprietary sell-side reports, the general principle is well-established in quantitative finance. For an academic example of how stock prices lead economic data, see **"Does the Stock Market Lead or Lag Business Cycles? A Spectral Analysis" (Malliaris & Urrutia, 1991, *Journal of Financial and Quantitative Analysis*)**. While not specific to semiconductors, it establishes the broad principle.
+    *   In a more applied context, research by firms like **Sanford C. Bernstein** has historically published extensive work on semiconductor cycle timing, often highlighting that the SOX index itself leads the fundamental data. (e.g., work by analyst Stacy Rasgon, though specific reports are proprietary).
+    *   **The Smoothing Problem:** As you noted, a 3-month moving average of data for (M-2, M-1, M) is mathematically centered at month M-1. If this data is published in month M+1, there is an inherent 2-month lag from the center of the data window to the publication date, making it very difficult for the indicator to be "leading." The raw, unsmoothed monthly data (like TSMC or Korea Customs) is therefore more valuable for real-time analysis, despite its volatility.

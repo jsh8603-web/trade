@@ -185,7 +185,7 @@ def test_core_brain_files_importable():
     from core.brain.macro_schema import MacroView, RegimeLabel, Bloc, RegimeEstimate
     from core.brain.regime_to_weights import regime_to_weights, SLEEVES, BASE_WEIGHTS
     from core.brain.macro_reasoning import MacroReasoningNode
-    assert len(SLEEVES) == 7
+    assert len(SLEEVES) == 9   # ★eq_intl/reit 신설(2026-06-09, 7→9 분산 sleeve)
     assert abs(sum(BASE_WEIGHTS.values()) - 1.0) < 1e-4
 
 

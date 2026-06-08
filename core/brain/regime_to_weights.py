@@ -47,9 +47,13 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # 슬리브 정의 + bloc 키잉 (§5.8-B)
 # ---------------------------------------------------------------------------
-SLEEVES = ["us_stock", "kr_stock", "commodity", "gold", "bond", "cash", "coin"]
+SLEEVES = ["us_stock", "kr_stock", "commodity", "gold", "bond", "cash", "coin", "eq_intl", "reit"]
 
 # 각 슬리브가 어느 bloc 레짐에 키잉되는가 (§5.8-B: US행=USD, KR행=KRW, 나머지=글로벌USD).
+# ★eq_intl/reit(2026-06-09): factor-distinct 분산 sleeve 신설(falsify=drop은 구조적이지 중복 아님).
+#   eq_intl=dollar/FX 채널(USD↑→unhedged intl↓, β−0.23~−0.57 강확인/forward 약), reit=rate/duration
+#   채널(cap rate spread·WALT). 둘 다 USD bloc 키잉. ★REGIME_DIRECTION 미등록=neutral default(.get)
+#   → 레짐 틸트 없이 base만 보유=순수 분산(forward 신호 약해 틸트 과적합 회피). 향후 신호 졸업 시 등급 부여.
 SLEEVE_BLOC = {
     "us_stock": Bloc.USD,
     "kr_stock": Bloc.KRW,
@@ -58,12 +62,16 @@ SLEEVE_BLOC = {
     "bond": Bloc.USD,
     "cash": Bloc.USD,
     "coin": Bloc.USD,
+    "eq_intl": Bloc.USD,
+    "reit": Bloc.USD,
 }
 
 # 중립(레짐 무관) 기준비중 — 정책 파라미터 (사용자 리스크 한도로 override 가능).
+# ★eq_intl 0.06/reit 0.05 신설(2026-06-09) = us_stock 0.25→0.20, bond 0.25→0.19 에서 차감(Σ=1 보존).
 BASE_WEIGHTS = {
-    "us_stock": 0.25, "kr_stock": 0.15, "commodity": 0.08,
-    "gold": 0.08, "bond": 0.25, "cash": 0.09, "coin": 0.10,
+    "us_stock": 0.20, "kr_stock": 0.15, "commodity": 0.08,
+    "gold": 0.08, "bond": 0.19, "cash": 0.09, "coin": 0.10,
+    "eq_intl": 0.06, "reit": 0.05,
 }
 
 # 방향 등급 → 기준비중 배수 (§5.8-B 표: ↑/↓/중립/최우위 정량화).
@@ -173,7 +181,9 @@ def regime_to_weights(
 # IC1 대안C(R10 수렴): study 세분 sleeve → 배분 sleeve cov-공간 roll-up 비중.
 # cov 가산성(Cov(Σwᵢxᵢ, y)=Σwᵢ Cov(xᵢ,y))으로 factor cancel·sign-flip 방어(beta 가중평균 금지).
 # 미매핑 배분 sleeve(kr_stock=eq_kr superseded / bond·cash·coin=betas 부재) = eye 독립.
-# eq_intl·reit betas = 배분 자산군 부재 → drop(us_stock 에 안 섞음, R10).
+# ★eq_intl·reit(2026-06-09 sleeve 신설): SEED factor β 미산출 → SLEEVE_AGG 미매핑 = eye 독립
+#   (bond·cash·coin 과 동일 처리). cov roll-up 없이 BL prior+공분산은 returns_history 실측으로 직접.
+#   향후 eq_intl/reit factor β SEED 산출 시 매핑 추가(현재는 분산 자산군으로만 편입).
 SLEEVE_AGG = {
     "us_stock": {"eq_us_cyclical": 0.5, "eq_us_defensive": 0.5},  # 초기 eq-weight(시총 가중은 후속)
     "commodity": {"commodity": 1.0},

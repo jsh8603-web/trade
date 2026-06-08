@@ -230,3 +230,29 @@ SOXX cap-weight = NVDA 단일베팅 위장(megacap idiosyncratic을 섹터 timin
       AI 고베타 misspec 포장). pre-AI 단독 + beta·momentum 직교화 후 정상부호+|t|≥2 아니면 KILL.
 - ★SOXX 결론: value = weak/2-name-concentration(PROVISIONAL, factor 미입증) / low_vol = REJECTED-as-constructed(anti-BAB KILL).
   = ★small-N 섹터 selection 은 leave-N-out + non-overlap + 부호 점검 통과 전 "신호 확보" 단정 금지.
+
+## §13. ★11섹터 selection-study 트리아지 (자문 3R 만장일치, 2026-06-08)
+
+> SOXX 파일럿 selection 코드화 불가 확정 후, 11 GICS 섹터 풀 스터디 비용 회피 위해 트리아지. 3자(로컬+claude-web+gemini-web) 3R 수렴 만장일치. 자문 raw=`~/.claude/.claude-web-basic-last.md`+`~/.claude/.gemini-web-last.md`.
+
+**대원칙(자문)**: 미국 대형주는 차익거래 극심 → selection-alpha base rate=부재(반도체 동형). 살아남는 신호 = (i)차익거래 느린 hard-fundamental 앵커(은행 장부가) (ii)구조적 mispricing. growth/모멘텀 지배 섹터는 value=winner의 inverse-momentum 위장으로 죽음.
+
+| 우선순위 | 섹터 | 분류 | 사유 |
+|---|---|---|---|
+| 1 | **XLF 금융** | VERIFY | book-value=경제적 실재(P/B·P/TBV·ROE), max clean N, commodity-β 오염 최소, 서브슬리브(은행/보험/자본시장) 분해 명료 |
+| 2 | **XLI 산업재** | VERIFY | EV/EBITDA·FCF-yield codeable, breadth 큼 (cyclical-β bleed sign-cancel 위험으로 2순위) |
+| — | XLK·XLC·XLY | PASSIVE | 메가캡 집중+모멘텀 지배 = factor가 position 위장 (반도체 동형) |
+| — | XLU·XLP | PASSIVE | 저-dispersion(동질 defensive)·단일축 지배 = 신호 있어도 먹을 것 無 |
+| — | XLRE | PASSIVE | bond-proxy·small-N, 이미 rotation(9-cluster property-type)으로 연구완료 |
+| — | XLV | PASSIVE | 임상 binary=un-codeable(EDGAR/price 부재) + LLY 16% NVDA동형 위장. ※carve-out 살릴 여지=services/devices/distributors(UNH·CI·MCK) sub-sector split(고급옵션) |
+| — | XLE·XLB | PASSIVE | commodity-β 직교붕괴(E&P FCF=WTI 준결정함수) + ★생존편향이 신호종목 정확히 솎아냄(2015-16·2020 파산=low-breakeven deep-value 누락→α 양오염) = SOXX 죽인 무료-데이터 게이트와 동일·strictly worse |
+| — | SOXX 반도체 | PASSIVE | R1~R6 확정(value=2-name position) — top 시총 EW |
+
+**최소검증 스크린(VERIFY 2섹터 공통)**:
+1. **leave-top2-out retention = 1차 kill게이트**(retention=IC₋₂/IC_full <0.5 → 반도체식 position 위장 = 즉시 PASSIVE 전환).
+2. 섹터-적합 value+quality Rank-IC: XLF=P/B·P/TBV·ROE / XLI=EV/EBITDA·FCF-yield·ROIC. 1m·3m horizon, **non-overlap t primary**, n/p/block-boot CI.
+3. BY-FDR(family) 보정. small-N rigor 전 의무.
+
+**Early-stop**: XLF·XLI조차 leave-top2서 무너지면 = 미국 GICS selection은 무료 데이터론 전멸 → 전 섹터 passive 확정.
+
+**⚠️ §방향보존**: PASSIVE 9섹터 = "현 무료-데이터 틀 코드화 불가 = 범위한정"이지 영구 무효 아님. **Reopen 트리거** = (전체)생존편향-free CRSP universe 확보 / (XLE 한정)reserve·breakeven·hedge-book PIT alt-data / (XLV 한정)services·devices sub-sector split. 충족 시 monitor→verify 승급.

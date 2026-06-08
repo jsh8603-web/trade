@@ -1,0 +1,34 @@
+### Fact-Check of Semiconductor Data Sources
+
+**CLAIM 1: CONFIRMED**
+SEMI officially ceased publication of the North American semiconductor equipment Book-to-Bill ratio report in early 2017. The final report was indeed for the **December 2016** data, which was published on **January 24, 2017**. SEMI transitioned to reporting solely on billings rather than the book-to-bill ratio, citing that the data provided less insight into the current market dynamic due to changing industry booking patterns.
+
+**CLAIM 2: UNVERIFIED-OR-WRONG**
+The series ID "BBPBFEQ" **does not exist** on FRED. While FRED maintains extensive manufacturing data, it does not host the proprietary SEMI historical Book-to-Bill time series. Historical data for this series is generally only available through private archives or secondary market research reports (like those from VLSI Research/TechInsights).
+
+**CLAIM 3: CONFIRMED**
+Starting with the report covering **June 2021** (released in July 2021), SEMI shifted its public-facing press release for the "North American Semiconductor Equipment Industry Billings" report to omit the specific dollar amount in the headline and body. The public release now focuses on a "three-month average" trend description, while the specific, raw dollar figures are locked behind the paid **EMDS (Equipment Market Data Subscription)**.
+
+**CLAIM 4: CONFIRMED**
+The SIA continues to release the **WSTS (World Semiconductor Trade Statistics)** monthly global sales data, calculated as a three-month moving average, for free on [semiconductors.org](https://www.semiconductors.org). As of 2024, the "Global Sales Report" is released around the first week of every month, providing the previous month's data.
+
+**CLAIM 5: CONFIRMED**
+The Korea Customs Service and the Ministry of Trade, Industry and Energy (MOTIE) publish preliminary export data (covering the first 20 days) on the **21st day** of the current month. The final monthly trade statistics are released on the **1st day** of the following month (or the next business day if the 1st is a holiday). Because semiconductors represent ~20% of South Korea’s total exports, this data is widely considered the "canary in the coal mine" for global memory chip demand and broader electronics cycles.
+
+**CLAIM 6: CONFIRMED**
+TSMC publishes its "Monthly Revenue Report" typically between the **8th and 10th day** of the following month. The revenue figure is unaudited but is considered a "clean" point-in-time figure. Revisions to these monthly figures are extremely rare and generally only occur if there is a significant accounting error; they are not revised for "seasonal adjustment" or retrospective industry re-categorizations.
+
+**CLAIM 7: CONFIRMED**
+The Producer Price Index (PPI) for "Semiconductor and Related Device Manufacturing" is available on FRED under series ID **PCU334413334413**. It tracks the net change in price for semiconductors sold by domestic producers.
+
+***
+
+### Analysis: Does the PHLX Semiconductor Index (SOX) lead billings?
+
+There is **no credible evidence** that the PHLX Semiconductor Index (SOX) acts as a reliable 3-to-6-month leading indicator for *fundamental* billings data. In fact, the consensus among quantitative analysts and industry economists is that the relationship is reversed: **fundamental data lags equity pricing.**
+
+*   **Market Efficiency:** The SOX is a forward-looking equity index. Stock prices incorporate future expectations of cash flows and earnings; therefore, the SOX often moves *before* the fundamentals (billings) are realized in the data.
+*   **Coincidence vs. Lag:** Billings data is a lagging indicator of economic activity because it reflects orders that were often placed months prior. When billings finally reflect a "turn" in the cycle, the equity market has typically already priced in that shift months earlier.
+*   **The "Double-Counting" Fallacy:** Traders often attempt to use billings data as a "buy signal," but because billings represent the *past* (what has already been shipped/invoiced), they are essentially "rear-view mirror" data. If you use billings to time the market, you are by definition trading on lagged information.
+
+**Conclusion:** The SOX does not lead billings because it is a *predictor*; it leads billings because billings are a *confirmation* of what the market already anticipated. Relying on billings as a leading indicator for equity timing is a classic "trap" in semiconductor sector analysis.

@@ -5,7 +5,7 @@
 system 누락 코드문제였고 v1.39.0(7ce667d)에서 fix → 메인 활성 중 동시 호출에도 LIVE 통과.
 abstain 이 나오면 429 가 아니라 audit reject(빈 falsification_metric 등 LLM 응답 품질)다.
 
-실행: PYTHONPATH=. python .p2-fhc-live-mint.py
+실행(repo 루트에서): PYTHONPATH=. python diagnostics/p2-coin-study/fhc_live_mint.py
 """
 import os
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")

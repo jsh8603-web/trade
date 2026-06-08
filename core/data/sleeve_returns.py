@@ -29,6 +29,8 @@ SLEEVE_TICKERS = {
     "bond": "BND",          # Vanguard Total Bond
     "cash": "BIL",          # SPDR 1-3M T-Bill
     "coin": "BTC-USD",      # Bitcoin
+    "eq_intl": "EFA",       # iShares MSCI EAFE (해외 선진국 주식, dollar/FX 채널 분산, 2026-06-09)
+    "reit": "VNQ",          # Vanguard Real Estate (리츠, rate/duration 채널 분산, 2026-06-09)
 }
 
 

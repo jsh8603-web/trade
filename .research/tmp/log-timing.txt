@@ -1,0 +1,3 @@
+[free key] 429 → promo fallback
+[promo used 1 today] credit consumed
+Result saved to D:/projects/Inv/.research/tmp/result-timing.txt (10279 chars)

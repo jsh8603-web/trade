@@ -1,0 +1,12 @@
+StockTrack: valuation 미연결 → abstain (fundamentals+quote 주입 시 실연결)
+[9단계 스모크] sleeve=cyclical signs={'pbr': -1, 'ev_ebitda': -1} ETF_FALLBACK=off as_of=2022-06-01
+  universe=['XOM', 'CVX', 'CAT', 'DE', 'FCX', 'NUE', 'DOW']
+  metric_panel 산출: {m: n_tickers} = {pbr:5, ev_ebitda:3}
+
+  build_sleeve_decisions → 6 decisions:
+    CVX      dec=buy w=0.167 verdict=? type=stock rank=1 cheap_z=0.4082444070516234 reason=UNDERPOWERED(n=6<10); selected rank=1 z=+0.41
+    NUE      dec=buy w=0.167 verdict=? type=stock rank=2 cheap_z=0.12118045084471862 reason=UNDERPOWERED(n=6<10); selected rank=2 z=+0.12
+    DOW      dec=hold w=0.167 verdict=? type=stock rank=3 cheap_z=0.0 reason=UNDERPOWERED(n=6<10); selected rank=3 z=+0.00
+    FCX      dec=buy w=0.167 verdict=? type=stock rank=4 cheap_z=-0.24337745629378815 reason=UNDERPOWERED(n=6<10); selected rank=4 z=-0.24
+    DE       dec=buy w=0.167 verdict=? type=stock rank=5 cheap_z=-0.50962380871876 reason=UNDERPOWERED(n=6<10); selected rank=5 z=-0.51
+    CAT      dec=buy w=0.167 verdict=? type=stock rank=6 cheap_z=-2.0803338519536005 reason=UNDERPOWERED(n=6<10); selected rank=6 z=-2.08

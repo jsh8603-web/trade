@@ -66,7 +66,10 @@ status_legend: "adopted=배분 레이어 코드화 대상(activate) / candidate=
 - **왜 화두가 됐나**: IC10 measured cross-corr 에서 reit/eq_intl/xle 가 VIX(risk-off) pool 에 강하게 묶이는 adopted 관계(eq_cyclical↔eq_intl +0.838·↔reit +0.686·commodity↔xle +0.650). 그러나 런타임 할당 차원 SLEEVES(us_stock/kr_stock/commodity/gold/bond/cash/coin)에 이 sleeve 들이 **부재** → SLEEVE_AGG 매핑 불가 → measured 됐으나 런타임 무기여(정직라벨). "넣으려면?"에서 sleeve 신설 화두 발생.
 - **신설 시 선행 작업**: sleeve 추가 = portfolio 구성 변경. 해당 자산(reit/eq_intl/xle)의 지표 study(상관·국면·factor β·weight_rules) + 티커 인프라(`sleeve_returns SLEEVE_TICKERS`) + study yaml + 독립 audit(15축) 전부 선행 의무. ★defensive 는 us_stock 흡수(SLEEVE_AGG us_stock←cyclical+defensive)로 예외 — 이미 measured vol −0.63 반영.
 - **게이트**: 사용자 방향 논의(portfolio 구성 = 설계 결정). 자율 범위 밖. **나중 리서치 큐**.
-- **status**: 보류(cross 관계는 adopted 측정 완료, sleeve 진입은 신설 게이트 대기 — 재평가 트리거=사용자 portfolio 구성 확장 결정).
+- **status**: ★**eq_intl/reit = ADOPTED(diversification base, 2026-06-09 사용자 "끝까지 자율로 다해" 승인 + falsify)**. xle = 보류 유지.
+  - **falsify(consult-adoption-gate)**: drop(R10)은 **"중복이라서"가 아니라 "배분 sleeve 미정의" 구조적 이유**였음을 확인. eq_intl=dollar/FX 채널(β−0.23~−0.57 강확인/forward 약, validation-h1), reit=rate/duration 채널(H2 PARTIAL/H4 CONFIRMED) → 둘 다 us_stock과 **factor-distinct**(중복 아님). reit만 신설(전제=eq_intl 중복)도 falsify → 둘 다 편입.
+  - **배선 범위(보수)**: `SLEEVES` 7→9, `BASE_WEIGHTS` eq_intl 0.06/reit 0.05(us 0.25→0.20·bond 0.25→0.19 차감 Σ=1), `SLEEVE_TICKERS` EFA/VNQ, `SLEEVE_BLOC` USD. ★**diversification-only**=REGIME_DIRECTION 미등록(neutral default, 레짐 틸트 0, forward 약신호 과적합 회피) + SLEEVE_AGG 미매핑(eye 독립, BL 공분산은 returns_history 실측 직접) + **SEED factor β 미산출**. v1.39.1, 회귀 80 passed(so1 count 7→9 갱신, so8 audit-doc 사전부재 무관).
+  - **잔여(후속, 신설 완료와 분리)**: 완전 factor 통합(eq_intl/reit SEED β 산출 + regime weight_rules + SLEEVE_AGG 매핑 + 15축 독립 audit) = forward 신호 졸업 시. 현재는 분산 자산군 base 편입까지만(레짐 베팅 없음).
 
 ## 6. Factor 축 확장 — P1 실측 + P2 독립 opus audit (2026-06-02)
 > series 공백 발굴(subagent afd5bb1) → ROI 선별(MOVE/A/FRA-OIS 3축, PMI·reit분리·외국인순매수·copper-gold·crypto-onchain 제외) → P1 실측(a656b5d5) → P2 독립 opus audit(a8f746b2, raw 재계산 ±0.005 일치, hard-fail 0). 잣대=배분 sleeve 실제 영향 + 일별 동적.
