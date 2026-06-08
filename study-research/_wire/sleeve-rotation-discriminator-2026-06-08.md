@@ -49,3 +49,30 @@ EW ann +22.6%/Sharpe 1.01.
 - **잔존 open**: KR flow-inflow 국면조건부 tilt(+0.23 vs −0.04/mo) = 유일 미검증 희미 잔존, OOS·비용 검증 시 판정(현 prior 낮음).
 
 산물: `eq_us/_wire-verify/measure_us_sleeve_rotation.py`·`measure_us_rotation_timing_vs_static.py` / `eq_kr/flow-revive/measure_kr_sleeve_rotation.py`.
+
+---
+
+## 추가 sweep — "확신 설 때까지" (2026-06-08, 사용자 지시)
+
+ledger의 정론충돌 단서(저변동 역전)부터 재측정 + 슬리브 변별 가능성 소진.
+
+### ★측정방법 결함 발견 — 저변동성 anomaly "역전"은 raw-return IC artifact
+ledger/내 1차에서 cyclical `vol_60` IC +0.068(고변동 우위)=BAB/저변동 정론 역전처럼 보임. **재측정(raw vs 위험조정)**:
+
+| 슬리브 | low-vol IC vs **raw** fwd수익 | low-vol IC vs **위험조정**(fwd Sharpe) |
+|---|---|---|
+| cyclical | −0.107 (t=−4.49) | **−0.013 (t=−0.59 NULL)** |
+| defensive | −0.033 (t=−1.56) | +0.014 (t=0.63) |
+| mega_tech | −0.234 (t=−6.55) | −0.061 (t=−2.02) |
+
+→ **"역전"은 측정 artifact**: raw-return rank-IC가 강세장서 베타를 보상해 고변동주를 띄움. 위험조정하면 소멸. ★**함의**: 시스템 횡단면 채택기준(raw-return rank-IC)이 저변동/방어/quality 신호를 구조적으로 불리 측정 = defensive selection "死"의 한 원인(신호 결함 아닌 줄자가 베타 보상). 별도 박제 → `indicator-ledger`/방법론.
+
+### 슬리브 변별 가능성 소진 (5-sleeve, risk-adj, drawdown)
+- **risk-adj/drawdown steelman 실패**: VIX 고국면 defensive de-risk = 수익 +20.1%(EW +23.5%↓) + MaxDD −21.1% 개선無(2020/22 광범위 하락엔 방어주도 동반). inverse-vol=Sharpe 불변(수익-DD 1:1). risk-adj 모멘텀 Calmar 1.19 vs 1.12 미미.
+- **5-sleeve(semi/fin/ind/def/meg) 모멘텀**: OW-top mom3M IR vs EW +0.68(IS+0.66/OOS+0.72 일관!)처럼 보였으나 — ★**decisive: static OW meg(Sharpe 1.40/+30.5%)가 모멘텀 로테이션(NET Sharpe 1.29/+27.8%)을 이김**. EW 초과 IR=laggard(def/fin/ind) 제외하고 mega/semi로 기운 것뿐, 타이밍 시도(2022 방어전환)는 오히려 손해. = **진짜 슬리브 타이밍 가치 0, 작동분=후견지명 mega 정적 베타**.
+
+### ★최종 확신 (scope 명시)
+**가용 데이터(eq_us/eq_kr 주식 슬리브, 2015-2026)·이 단일 mega-tech 지배 국면에서: 산업슬리브간 %를 동적으로 바꿔 robust(OOS·비용·위험조정 생존) 수익 내는 변별 지표는 없다.** 시도 전부(신용/VIX/real_rate 국면·raw/risk-adj 모멘텀·reversal·inverse-vol·de-risk·KR rotation panel·foreign flow) = 비유의 or OOS붕괴 or static-beta. 유일 양(+)은 **mega 정적 OW(후견지명 세속베타, 변별 아님)** + 이미 wired된 real_rate→defensive(약).
+- ⚠️**scope 한계(정직)**: ① 단일 국면 표본(2015-26, value 10년 2000-08 부재) ② 주식 슬리브만(시스템 top-level 자산로테이션=Investment Clock은 stock/bond/gold/commodity 횡단, 본 측정 범위 밖=ledger adopted 별건) ③ 라이브 데이터 차단(per-sector flow 등 미측정). → "변별 불가" 확신은 **이 범위 한정**, 다국면·다자산·라이브신호선 재론 가능.
+
+산물 추가: `eq_us/_wire-verify/remeasure_lowvol_raw_vs_riskadj.py`·`measure_riskadj_drawdown_rotation.py`·`measure_5sleeve_rotation_sweep.py`·`measure_momentum_vs_static_decisive.py`.

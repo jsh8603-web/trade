@@ -4,6 +4,7 @@
 > status: **adopted**=weight_rules base_weight>0 / **candidate**=indicators만(미채택) / **rejected**=audit(P2) verdict 후 주입.
 > ★reject 사유 산발분(validation-*.md / direction.md)은 P2 audit verdict 주입 시 채워짐. 현재=채택/후보 가시화 1차.
 > ⚠️**과대보고 경고(2026-06-08, wiring-integrity-eq_us 검증)**: 본 "adopted"는 `study_session.yaml` **v1 가설 base_weight**라, v3 재작업(`summary.yaml`=런타임 SSOT)이 confirm 안 한 신호도 adopted 표기됨. 직접 재현으로 **eq_us_cyclical mom_12_1(adopted 0.06)=IC +0.004 p0.76 null / asset_growth_yoy(0.08)=IC~0** 둘 다 런타임(`sleeve_signals.py`) 미배선 확인. 런타임 selection 은 **summary.yaml + sleeve_signals.py** 가 SSOT(cyclical=pbr/ev_ebitda만, defensive=net_iss/ep+DEF2). 이 표의 adopted≠런타임 배선. 상세=`_wire/wiring-integrity-eq_us-2026-06-08.md`.
+> ⚠️**측정방법 caveat(2026-06-08, sleeve-rotation-discriminator 검증)**: 횡단면 채택기준 = **raw forward-return rank-IC**인데, 이는 강세장서 **베타를 보상**해 저변동/방어/quality 신호를 구조적 불리 측정. 실측: low-vol IC vs raw = cyclical −0.107/mega −0.234(고변동 우위처럼 보임)지만 **위험조정(fwd Sharpe) IC = −0.013/−0.061로 소멸**(BAB 정론 역전은 artifact). → 방어·저변동·quality 신호 판정 시 raw-IC 단독 금지, **위험조정 IC 병행** 필요(defensive selection "死"의 한 원인=신호결함 아닌 줄자 베타보상). 상세=`_wire/sleeve-rotation-discriminator-2026-06-08.md`.
 
 **전체 합계: adopted 71 / candidate 54 / rejected 0** (자산 8개)
 
