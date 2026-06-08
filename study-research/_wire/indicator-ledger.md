@@ -3,6 +3,7 @@
 > 자동생성(`core/study/indicator_ledger.build_indicator_ledger`). 산발된 8자산 study_session.yaml 통합.
 > status: **adopted**=weight_rules base_weight>0 / **candidate**=indicators만(미채택) / **rejected**=audit(P2) verdict 후 주입.
 > ★reject 사유 산발분(validation-*.md / direction.md)은 P2 audit verdict 주입 시 채워짐. 현재=채택/후보 가시화 1차.
+> ⚠️**과대보고 경고(2026-06-08, wiring-integrity-eq_us 검증)**: 본 "adopted"는 `study_session.yaml` **v1 가설 base_weight**라, v3 재작업(`summary.yaml`=런타임 SSOT)이 confirm 안 한 신호도 adopted 표기됨. 직접 재현으로 **eq_us_cyclical mom_12_1(adopted 0.06)=IC +0.004 p0.76 null / asset_growth_yoy(0.08)=IC~0** 둘 다 런타임(`sleeve_signals.py`) 미배선 확인. 런타임 selection 은 **summary.yaml + sleeve_signals.py** 가 SSOT(cyclical=pbr/ev_ebitda만, defensive=net_iss/ep+DEF2). 이 표의 adopted≠런타임 배선. 상세=`_wire/wiring-integrity-eq_us-2026-06-08.md`.
 
 **전체 합계: adopted 71 / candidate 54 / rejected 0** (자산 8개)
 
