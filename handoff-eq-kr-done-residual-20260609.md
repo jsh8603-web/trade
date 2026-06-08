@@ -1,5 +1,5 @@
 ---
-next-action: "★잔여 6과제 중 4개 완료(2026-06-09): refining 부호충돌 확정(517e11e)·W5 VIXCLS vintage 검증(f2cf157)·P8-C eq_us rotation 종결(f2cf157)·P7 분기별 손실 attribution 완결(6f6ffc9, NAV4.647 worst 3분기 L1 베타귀속). ▸**사용자 결정 대기 2건**(번호텍스트 Q1/Q2 발송): (Q1) eq_intl/reit SLEEVE_AGG=배분 sleeve 신설 여부(SLEEVES 7→9 portfolio 결정, 권고 현행유지) (Q2) P8-B collector 빌드 시점(3-tier 분류 박제 f038c63, 신호 미채택이라 권고 보류). 답 수신 시 진행. ⛔production core/stock 무단변경+off=byte-identical+push·go-live 미접촉."
+next-action: "★잔여 6과제 전부 해소(2026-06-09, 사용자 '끝까지 자율로 다해' 승인): (1)refining 확정(517e11e) (2)W5 VIXCLS 검증(f2cf157) (3)P8-C eq_us rotation 종결(f2cf157) (4)P7 손실 attribution(6f6ffc9, NAV4.647 worst3분기 L1베타) (5)P8-B=게이트보류(f038c63, 신호 미채택 consult-adoption-gate) (6)★eq_intl/reit 분산 sleeve 신설(4047b80, v1.39.1): falsify=drop은 중복 아닌 구조적, 둘다 factor-distinct→7→9 diversification base(neutral 레짐·SEED β 없음·회귀 80 passed). ▸**다음 가능 작업**: eq_intl/reit 완전 factor통합(SEED β+regime weight_rules+15축 audit, 신호졸업 후) / P8-B collector 빌드(신호 채택 후) / 9-sleeve 백테스트(사용자가 이번 '분기별 돌려보기 빼고' 지시로 skip, 다음 실행 시 EFA/VNQ 자동편입). ⛔production core/stock(엔진·부품) 무단변경+push·go-live·실주문 미접촉(BASE_WEIGHTS/SLEEVES=정책 파라미터라 수정 허용)."
 session: btn-Inv (opus, long-mode ON2 750k)
 date: 2026-06-09
 tags: [type/handoff, topic/eq-kr-residual, domain/multiasset]
