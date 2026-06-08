@@ -591,13 +591,18 @@ def _kr_rotation_apply(subw, as_of_ts):
             return subw
         base_w = base_w / base_w.sum()
         w = base_w.copy()
-        for grp, ow in ((["steel", "chemical", "refining"], 0.025), (["telecom"], 0.015)):
-            kpos = {i: kappa.get(i, 0.0) for i in grp if kappa.get(i, 0.0) > 0 and i in base_w.index}
-            ks = sum(kpos.values())
-            if ks <= 0:
-                continue
-            for i, k in kpos.items():
-                w[i] = base_w[i] + ow * (k / ks)   # 정적 OW(신호 z 무관), kappa 비례 배분
+        # ★(2) 심층(.p4-kr-rotation-deep) 반영: 진짜 레버 = steel/chemical/telecom(양국면 안정 양수
+        #   IC). ⛔refining 제외(deep IC −0.249 = results.json +0.30 부호충돌, 보수적). ★(1) OW 키움
+        #   (0.04→0.10, 신호가 포트에 드러나게) deep IC abs 비례. ⚠️불경기 드로다운(steel/chemical 고베타).
+        # ★(1) 측정 결론: OW 0.04→0.10 키워도 NAV 동일(3.716→3.712)=산업간 portfolio alpha 0
+        #   (자문 "비싼 베타" 확정). 소액 정적(0.04) 유지 — alpha 0이나 삼성 메가캡 몰빵 분산 효과.
+        DEEP_IC = {"steel": 0.322, "chemical": 0.220, "telecom": 0.228}
+        OW_TOTAL = 0.04
+        kpos = {i: v for i, v in DEEP_IC.items() if i in base_w.index}
+        ks = sum(kpos.values())
+        if ks > 0:
+            for i, v in kpos.items():
+                w[i] = base_w[i] + OW_TOTAL * (v / ks)   # 정적 OW(신호 z 무관), deep IC 비례
         w = w.clip(lower=0.0); w = w / w.sum()
         return {i: float(w[i]) for i in w.index if w[i] > 1e-9}
     except Exception as exc:
