@@ -222,6 +222,20 @@ ssot_prior: [eq_us/industries/us_cyclical/theory-notes.md (peak-EPS / asset-grow
   핵심 근거이나 미확인 → R2 cross-verify 통과 전 yaml prior 박제 금지.
 - AQR Fact/Fiction(2014) = ★학술저널 아님(운용사 WP) 명시 = within-industry value 주장의 peer-review weight 낮음.
 
+### 6.3 ★R2 인용 cross-verify 결과 (2026-06-08, Gemini Pro+Flash 2회 교차)
+
+| 인용 | R2 검증 | 정정 |
+|---|---|---|
+| **Lettau-Wachter (2007)** | ✅ 실존 확정 | JF **62(1) pp.55-92**. value=짧은 duration→금리 둔감, growth=긴 duration→금리 민감 (regime 실질금리 축 근거) |
+| **Chan-Lakonishok-Sougiannis (2001)** | ✅ 실존 + ★**부호 정정** | JF **56(6) pp.2431-2456**. ★R&D-return = **양(+)** (R1 초안 "음"=오류). 시장 R&D **과소평가**(underreaction) → R&D intensity(특히 R&D/market-equity=value 성격) 高 = forward 양. ⚠️ R&D level 단독은 무관계, R&D/market-equity(value 엉킴)일 때 양 = R&D/Sales 부호 별도 R3 |
+| **Asness-Porter-Stevens (2000)** | ✅ 실존 (AQR WP) | within-industry(industry-relative) value/momentum 예측력 > market-wide = ★within-sector value-selection primary 핵심 학술근거 확보 |
+| **Cohen-Polk-Vuolteenaho** | ✅ 실존 + ★**연도 정정** | 2003=NBER WP, JF 정식게재 **2009 64(5) pp.2089-2138**. value spread 클수록 value premium 큼 |
+
+★**중대 정정**: Chan-LS-2001 R&D predicted_sign = R1 초안 "음" → **양(+)** (Pro+Flash 2회 수렴, 과소평가설). ⚠️ EDGAR
+R&D concept 부재 = 측정 자체 data-gate(부호 정정해도 R3 보류 가능). ★Asness-Porter-Stevens + Cohen-PV **실존 확정** =
+within-sector value-selection 학술근거 강화(박제금지 해제). ★empirical-claim §3: 부호는 자문 수렴이나 R&D/Sales↔R&D/
+market-equity 정의차 = R3 본인 IC 부호 실측 falsify 의무.
+
 ---
 
 ## 7. ★R1 15축 자가체크 (R1 적용 축 = A 이론실재 / E 환각 / F 반증조건)

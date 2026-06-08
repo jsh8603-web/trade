@@ -1,0 +1,6 @@
+# EDGAR 재사용 검증 (us_cyclical/raw-v3/data/edgar_fundamentals.parquet, 2026-06-08)
+# SOXX 12종 전부 보유: 22,798 rows
+# concept 13종: net_income op_income gross_profit cash equity cogs assets capex shares revenues lt_debt dep_amort st_debt
+# ★R&D concept 부재 = data-gate
+# gap: QCOM gross_profit=0 / revenues 부족(ADI15 KLAC6 LRCX23 MU11) / dep_amort=0(ADI/TXN)
+# prices.parquet: 12종 전부, 2015-01-02~2026-05-28 (wide format). ★IS 2010-2021 가정 불가(2015~) + 현 holdings 생존편향

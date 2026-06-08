@@ -1,0 +1,10 @@
+# sub-industry-neutral MDE 재계산 (2026-06-08, R2 지시1)
+# sub-industry: fabless(NVDA/AVGO/AMD/QCOM n=4) / memory(MU n=1) / equip(LRCX/KLAC/AMAT n=3) / analog_idm(TXN/ADI/INTC/MCHP n=4)
+# 단월 cross-section IC SE (Spearman 1/sqrt(N-1)): full N=12 = 0.302 → sub-industry-neutral N_eff=8 = 0.378 (악화)
+# ★memory n=1(MU): demean 시 신호=0 (정보 완전소실)
+# 시계열 누적 MDE_IC (80% power, alpha=0.05):
+#   IS 2015-2021 (~84mo):   full=0.092 / neutral=0.116 (>0.107)
+#   full 2015-2026 (~137mo): full=0.072 / neutral=0.091 (<0.107)
+#   OOS 2022-2026 (~53mo):   full=0.116 / neutral=0.146 (검정력 매우 약)
+# 판정: value prior |IC|~0.11-0.12 → full-sample neutral 통과 / IS-only·OOS neutral MDE 미달 → walk-forward freeze 위험
+# = value+quality 결합 못하면 (C) freeze 근거. sub-industry-neutral 불가(memory n=1)도 freeze 근거.

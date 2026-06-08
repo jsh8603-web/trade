@@ -27,8 +27,8 @@ status: ★R1 단계 = 후보 enumerate + predicted_sign 사전고정 (실측 IC
 
 | 지표 | family | predicted_sign | 학술 (환각검증) | ★주의 |
 |---|---|---|---|---|
-| asset growth (Assets YoY) | asset_growth | **음** | Cooper-Gulen-Schill (2008) J.Finance ✅ | capital cycle. us_cyclical 전 universe 가용 |
-| R&D intensity (R&D/Sales) | rnd | **음** | Chan-Lakonishok-Sougiannis (2001) J.Finance ⚠️R2확인 | ★팹리스 상위 쏠림 = style bias 위험 |
+| asset growth (Assets YoY) | asset_growth | **음** | Cooper-Gulen-Schill (2008) J.Finance ✅ | capital cycle. ★EDGAR assets 12종 ✅ 재사용 |
+| R&D intensity (R&D/market-equity) | rnd | ★**양**(R2 정정, 음→양) | Chan-Lakonishok-Sougiannis (2001) JF 56(6) ✅실존 | ★시장 과소평가설(underreaction). ⛔ EDGAR R&D concept 부재=**data-gate**. R&D/Sales↔R&D/market-eq 정의차 R3 |
 | capex intensity (Capex/Assets) | asset_growth | **음** | Cooper-Gulen-Schill 하위 ✅ | ★메모리/IDM 상위 쏠림 = style bias |
 | momentum 12-1 | momentum | **양**(★한국 reversal 과 반대 가설) | Jegadeesh-Titman (1993) ✅ | ★부호 검정 = pilot 핵심 falsifier (음=reversal 유의면 기각) |
 | low-vol / BAB | low_vol | **음**(저β→fwd+) | Frazzini-Pedersen (2014) JFE ✅ | 섹터 내 TXN/MCHP vs NVDA/AMD |
@@ -37,11 +37,12 @@ status: ★R1 단계 = 후보 enumerate + predicted_sign 사전고정 (실측 IC
 
 | 후보 | 출처 | 상태 | unblock |
 |---|---|---|---|
-| EV-EBITDA (cyclical primary 보조) | EDGAR | ⏳ 부채/현금 계정 추가 fetch | OperatingIncome+D&A+debt+cash (us_cyclical 일부 가용) |
-| GP·Revenue (gross profit / sales) | EDGAR concept | △ semi 부분 가용 | fallback 태그 (Revenues − CostOfGoodsAndServicesSold) |
-| 생존편향 보정 (delisted/M&A 종목) | CRSP / S&P semi historical | ★현 12종 = 현 holdings only | CRSP delisting return OR S&P semi PIT membership (I축 hard-fail) |
-| EW-semi universe (SOXX/ICE vs S&P semi select/XSD) | 사전등록 | ⏳ 미확정 | 횡단 자기일관 universe 결정 |
-| regime 32셀 (실질금리×credit×dollar) | macro.parquet | ✅ 컬럼 보유 | N≥24 collapse 사전점검 (한국 36셀 full 0개 전례) |
+| ★**R&D intensity** | EDGAR | ⛔ **R&D concept 부재** (EDGAR parquet 13 concept 中 R&D 없음) | `ResearchAndDevelopmentExpense` 별도 fetch OR 측정 보류 |
+| EV-EBITDA (cyclical primary 보조) | EDGAR ✅ 재사용 | ✅ op_income+dep_amort+lt_debt+st_debt+cash 존재 | dep_amort 0종(ADI/TXN/QCOM) = EBIT proxy fallback |
+| GP·Revenue·margin | EDGAR ✅ | △ QCOM gross_profit=0 / revenues 부족(ADI/KLAC/LRCX/MU<25) | fallback 태그(Revenues−cogs) + 부분측정 hedge |
+| 생존편향 보정 (delisted/M&A 종목) | CRSP / SOXX-ICE historical | ★현 12종=현 holdings + ★prices 2015~ only | CRSP delisting OR SOXX/ICE PIT membership (I축 hard-fail) |
+| ★EW-semi universe | 사전등록 ✅ **SOXX/ICE(~30) 결정** | XSD 미채택. 현 raw 12종 → 30종 확장 | SOXX/ICE historical constituent fetch (자기일관) |
+| regime 16셀 (★실질금리×credit 2축, dollar 강등) | macro.parquet | ✅ DFII10/baa_aaa/hy_oas 보유 | N≥24 collapse 사전점검. dollar=2차 robustness lens |
 
 ## ❌ 미채택 / drop (R1 실증으로 제거)
 
