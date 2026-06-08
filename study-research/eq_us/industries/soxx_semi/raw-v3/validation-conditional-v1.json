@@ -1,0 +1,807 @@
+{
+  "meta": {
+    "universe": [
+      "NVDA",
+      "AVGO",
+      "AMD",
+      "QCOM",
+      "TXN",
+      "MU",
+      "ADI",
+      "LRCX",
+      "KLAC",
+      "AMAT",
+      "INTC",
+      "MCHP"
+    ],
+    "n_stocks": 12,
+    "regime": "rate10y(★nominal 10y, NOT DFII10)×credit(Baa-Aaa) tercile",
+    "horizon": [
+      "y_5d",
+      "y_20d",
+      "y_60d"
+    ],
+    "survivor_bias": "PARTIAL(현 holdings, historical 무료부재)→TENTATIVE 상한",
+    "data_note": "★rate10y 컬럼 = nominal 10y(값 0.52~4.98 음수0 = DGS10, NOT DFII10 TIPS). round-1 \"실질금리 DFII10\" 라벨 정정 필요",
+    "note": "점추정 박제금지 CI+wc_p+n+OOS+tier. N<24 underpowered 정직 라벨"
+  },
+  "unconditional": {
+    "value": {
+      "y_5d": {
+        "ic": 0.032,
+        "ci": [
+          0.0065,
+          0.0548
+        ],
+        "wc_p": 0.004,
+        "n_days": 2862,
+        "eff_n": 495.4,
+        "status": "powered"
+      },
+      "y_20d": {
+        "ic": 0.068,
+        "ci": [
+          0.0262,
+          0.1055
+        ],
+        "wc_p": 0.002,
+        "n_days": 2847,
+        "eff_n": 154.4,
+        "status": "powered"
+      },
+      "y_60d": {
+        "ic": 0.1036,
+        "ci": [
+          0.0543,
+          0.154
+        ],
+        "wc_p": 0.0,
+        "n_days": 2807,
+        "eff_n": 47.7,
+        "status": "powered"
+      }
+    },
+    "quality": {
+      "y_5d": {
+        "ic": 0.014,
+        "ci": [
+          -0.0085,
+          0.0383
+        ],
+        "wc_p": 0.225,
+        "n_days": 2862,
+        "eff_n": 667.0,
+        "status": "powered"
+      },
+      "y_20d": {
+        "ic": 0.0161,
+        "ci": [
+          -0.0229,
+          0.0588
+        ],
+        "wc_p": 0.405,
+        "n_days": 2847,
+        "eff_n": 144.5,
+        "status": "powered"
+      },
+      "y_60d": {
+        "ic": 0.0089,
+        "ci": [
+          -0.0364,
+          0.0594
+        ],
+        "wc_p": 0.709,
+        "n_days": 2807,
+        "eff_n": 51.7,
+        "status": "powered"
+      }
+    },
+    "mom_12_1": {
+      "y_5d": {
+        "ic": 0.0338,
+        "ci": [
+          0.0062,
+          0.0619
+        ],
+        "wc_p": 0.027,
+        "n_days": 2610,
+        "eff_n": 584.1,
+        "status": "powered"
+      },
+      "y_20d": {
+        "ic": 0.0267,
+        "ci": [
+          -0.0206,
+          0.0725
+        ],
+        "wc_p": 0.25,
+        "n_days": 2595,
+        "eff_n": 172.3,
+        "status": "powered"
+      },
+      "y_60d": {
+        "ic": 0.0218,
+        "ci": [
+          -0.0344,
+          0.0735
+        ],
+        "wc_p": 0.423,
+        "n_days": 2555,
+        "eff_n": 53.2,
+        "status": "powered"
+      }
+    },
+    "rev_1m": {
+      "y_5d": {
+        "ic": 0.0001,
+        "ci": [
+          -0.0257,
+          0.0278
+        ],
+        "wc_p": 0.994,
+        "n_days": 2842,
+        "eff_n": 634.8,
+        "status": "powered"
+      },
+      "y_20d": {
+        "ic": -0.0002,
+        "ci": [
+          -0.036,
+          0.0388
+        ],
+        "wc_p": 0.993,
+        "n_days": 2827,
+        "eff_n": 240.2,
+        "status": "powered"
+      },
+      "y_60d": {
+        "ic": -0.0604,
+        "ci": [
+          -0.1042,
+          -0.0244
+        ],
+        "wc_p": 0.002,
+        "n_days": 2787,
+        "eff_n": 153.8,
+        "status": "powered"
+      }
+    },
+    "low_vol": {
+      "y_5d": {
+        "ic": -0.0486,
+        "ci": [
+          -0.075,
+          -0.02
+        ],
+        "wc_p": 0.0,
+        "n_days": 2802,
+        "eff_n": 642.0,
+        "status": "powered"
+      },
+      "y_20d": {
+        "ic": -0.0749,
+        "ci": [
+          -0.1188,
+          -0.0283
+        ],
+        "wc_p": 0.001,
+        "n_days": 2787,
+        "eff_n": 174.3,
+        "status": "powered"
+      },
+      "y_60d": {
+        "ic": -0.118,
+        "ci": [
+          -0.1685,
+          -0.0636
+        ],
+        "wc_p": 0.0,
+        "n_days": 2747,
+        "eff_n": 45.5,
+        "status": "powered"
+      }
+    }
+  },
+  "conditional_rate": {
+    "value": {
+      "rate_low": {
+        "y_20d": {
+          "ic": 0.1035,
+          "ci": [
+            0.0459,
+            0.1617
+          ],
+          "wc_p": 0.0,
+          "n_days": 958,
+          "eff_n": 61.3,
+          "status": "powered"
+        }
+      },
+      "rate_mid": {
+        "y_20d": {
+          "ic": -0.0039,
+          "ci": [
+            -0.0754,
+            0.0744
+          ],
+          "wc_p": 0.917,
+          "n_days": 953,
+          "eff_n": 45.6,
+          "status": "powered"
+        }
+      },
+      "rate_high": {
+        "y_20d": {
+          "ic": 0.1049,
+          "ci": [
+            0.033,
+            0.1703
+          ],
+          "wc_p": 0.001,
+          "n_days": 936,
+          "eff_n": 53.4,
+          "status": "powered"
+        }
+      }
+    },
+    "quality": {
+      "rate_low": {
+        "y_20d": {
+          "ic": 0.0247,
+          "ci": [
+            -0.0327,
+            0.0942
+          ],
+          "wc_p": 0.411,
+          "n_days": 958,
+          "eff_n": 56.8,
+          "status": "powered"
+        }
+      },
+      "rate_mid": {
+        "y_20d": {
+          "ic": 0.015,
+          "ci": [
+            -0.0617,
+            0.0834
+          ],
+          "wc_p": 0.681,
+          "n_days": 953,
+          "eff_n": 28.9,
+          "status": "powered"
+        }
+      },
+      "rate_high": {
+        "y_20d": {
+          "ic": 0.0083,
+          "ci": [
+            -0.0559,
+            0.0736
+          ],
+          "wc_p": 0.814,
+          "n_days": 936,
+          "eff_n": 56.2,
+          "status": "powered"
+        }
+      }
+    },
+    "mom_12_1": {
+      "rate_low": {
+        "y_20d": {
+          "ic": -0.0243,
+          "ci": [
+            -0.0951,
+            0.0466
+          ],
+          "wc_p": 0.484,
+          "n_days": 882,
+          "eff_n": 66.8,
+          "status": "powered"
+        }
+      },
+      "rate_mid": {
+        "y_20d": {
+          "ic": 0.0318,
+          "ci": [
+            -0.0642,
+            0.1056
+          ],
+          "wc_p": 0.469,
+          "n_days": 777,
+          "eff_n": 34.4,
+          "status": "powered"
+        }
+      },
+      "rate_high": {
+        "y_20d": {
+          "ic": 0.0706,
+          "ci": [
+            -0.0023,
+            0.1544
+          ],
+          "wc_p": 0.078,
+          "n_days": 936,
+          "eff_n": 66.3,
+          "status": "powered"
+        }
+      }
+    },
+    "rev_1m": {
+      "rate_low": {
+        "y_20d": {
+          "ic": -0.0334,
+          "ci": [
+            -0.085,
+            0.0258
+          ],
+          "wc_p": 0.217,
+          "n_days": 939,
+          "eff_n": 72.6,
+          "status": "powered"
+        }
+      },
+      "rate_mid": {
+        "y_20d": {
+          "ic": 0.0241,
+          "ci": [
+            -0.032,
+            0.0921
+          ],
+          "wc_p": 0.447,
+          "n_days": 952,
+          "eff_n": 81.9,
+          "status": "powered"
+        }
+      },
+      "rate_high": {
+        "y_20d": {
+          "ic": 0.0085,
+          "ci": [
+            -0.064,
+            0.0857
+          ],
+          "wc_p": 0.822,
+          "n_days": 936,
+          "eff_n": 71.4,
+          "status": "powered"
+        }
+      }
+    },
+    "low_vol": {
+      "rate_low": {
+        "y_20d": {
+          "ic": -0.1061,
+          "ci": [
+            -0.185,
+            -0.0434
+          ],
+          "wc_p": 0.003,
+          "n_days": 916,
+          "eff_n": 59.9,
+          "status": "powered"
+        }
+      },
+      "rate_mid": {
+        "y_20d": {
+          "ic": -0.0072,
+          "ci": [
+            -0.0851,
+            0.0706
+          ],
+          "wc_p": 0.853,
+          "n_days": 935,
+          "eff_n": 72.1,
+          "status": "powered"
+        }
+      },
+      "rate_high": {
+        "y_20d": {
+          "ic": -0.1119,
+          "ci": [
+            -0.1916,
+            -0.0284
+          ],
+          "wc_p": 0.006,
+          "n_days": 936,
+          "eff_n": 55.0,
+          "status": "powered"
+        }
+      }
+    }
+  },
+  "conditional_credit": {
+    "value": {
+      "credit_low": {
+        "y_20d": {
+          "ic": 0.086,
+          "ci": [
+            0.0126,
+            0.1622
+          ],
+          "wc_p": 0.029,
+          "n_days": 940,
+          "eff_n": 50.7,
+          "status": "powered"
+        }
+      },
+      "credit_mid": {
+        "y_20d": {
+          "ic": 0.0524,
+          "ci": [
+            -0.0131,
+            0.1116
+          ],
+          "wc_p": 0.119,
+          "n_days": 984,
+          "eff_n": 63.2,
+          "status": "powered"
+        }
+      },
+      "credit_high": {
+        "y_20d": {
+          "ic": 0.0663,
+          "ci": [
+            0.0088,
+            0.1261
+          ],
+          "wc_p": 0.023,
+          "n_days": 923,
+          "eff_n": 59.7,
+          "status": "powered"
+        }
+      }
+    },
+    "quality": {
+      "credit_low": {
+        "y_20d": {
+          "ic": 0.0922,
+          "ci": [
+            0.0211,
+            0.1608
+          ],
+          "wc_p": 0.01,
+          "n_days": 940,
+          "eff_n": 52.0,
+          "status": "powered"
+        }
+      },
+      "credit_mid": {
+        "y_20d": {
+          "ic": -0.0393,
+          "ci": [
+            -0.0966,
+            0.0222
+          ],
+          "wc_p": 0.219,
+          "n_days": 984,
+          "eff_n": 45.4,
+          "status": "powered"
+        }
+      },
+      "credit_high": {
+        "y_20d": {
+          "ic": -0.0024,
+          "ci": [
+            -0.0657,
+            0.068
+          ],
+          "wc_p": 0.942,
+          "n_days": 923,
+          "eff_n": 60.5,
+          "status": "powered"
+        }
+      }
+    },
+    "mom_12_1": {
+      "credit_low": {
+        "y_20d": {
+          "ic": 0.0646,
+          "ci": [
+            -0.0056,
+            0.1416
+          ],
+          "wc_p": 0.072,
+          "n_days": 940,
+          "eff_n": 73.7,
+          "status": "powered"
+        }
+      },
+      "credit_mid": {
+        "y_20d": {
+          "ic": -0.0355,
+          "ci": [
+            -0.1162,
+            0.0404
+          ],
+          "wc_p": 0.372,
+          "n_days": 860,
+          "eff_n": 37.5,
+          "status": "powered"
+        }
+      },
+      "credit_high": {
+        "y_20d": {
+          "ic": 0.0494,
+          "ci": [
+            -0.0335,
+            0.1319
+          ],
+          "wc_p": 0.242,
+          "n_days": 795,
+          "eff_n": 60.3,
+          "status": "powered"
+        }
+      }
+    },
+    "rev_1m": {
+      "credit_low": {
+        "y_20d": {
+          "ic": 0.0131,
+          "ci": [
+            -0.049,
+            0.0721
+          ],
+          "wc_p": 0.703,
+          "n_days": 940,
+          "eff_n": 79.9,
+          "status": "powered"
+        }
+      },
+      "credit_mid": {
+        "y_20d": {
+          "ic": -0.0659,
+          "ci": [
+            -0.1113,
+            -0.0045
+          ],
+          "wc_p": 0.017,
+          "n_days": 964,
+          "eff_n": 96.6,
+          "status": "powered"
+        }
+      },
+      "credit_high": {
+        "y_20d": {
+          "ic": 0.055,
+          "ci": [
+            -0.0131,
+            0.1148
+          ],
+          "wc_p": 0.105,
+          "n_days": 923,
+          "eff_n": 88.0,
+          "status": "powered"
+        }
+      }
+    },
+    "low_vol": {
+      "credit_low": {
+        "y_20d": {
+          "ic": -0.0555,
+          "ci": [
+            -0.1355,
+            0.0197
+          ],
+          "wc_p": 0.179,
+          "n_days": 940,
+          "eff_n": 58.8,
+          "status": "powered"
+        }
+      },
+      "credit_mid": {
+        "y_20d": {
+          "ic": -0.0521,
+          "ci": [
+            -0.1229,
+            0.0352
+          ],
+          "wc_p": 0.265,
+          "n_days": 924,
+          "eff_n": 31.9,
+          "status": "powered"
+        }
+      },
+      "credit_high": {
+        "y_20d": {
+          "ic": -0.1173,
+          "ci": [
+            -0.1965,
+            -0.0417
+          ],
+          "wc_p": 0.001,
+          "n_days": 923,
+          "eff_n": 67.9,
+          "status": "powered"
+        }
+      }
+    }
+  },
+  "family_2_interaction": {
+    "rate_high": {
+      "value": {
+        "b_main": 0.0463,
+        "t_main": 6.66,
+        "b_interaction": 0.0586,
+        "t_interaction": 4.61,
+        "n_obs": 33096,
+        "n_days": 2847
+      },
+      "quality": {
+        "b_main": 0.0194,
+        "t_main": 2.71,
+        "b_interaction": -0.011,
+        "t_interaction": -0.9,
+        "n_obs": 33296,
+        "n_days": 2847
+      },
+      "mom_12_1": {
+        "b_main": 0.002,
+        "t_main": 0.23,
+        "b_interaction": 0.0686,
+        "t_interaction": 4.48,
+        "n_obs": 31140,
+        "n_days": 2595
+      },
+      "rev_1m": {
+        "b_main": -0.0045,
+        "t_main": -0.6,
+        "b_interaction": 0.013,
+        "t_interaction": 0.92,
+        "n_obs": 33924,
+        "n_days": 2827
+      },
+      "low_vol": {
+        "b_main": -0.0561,
+        "t_main": -6.49,
+        "b_interaction": -0.0558,
+        "t_interaction": -3.73,
+        "n_obs": 33444,
+        "n_days": 2787
+      }
+    },
+    "credit_high": {
+      "value": {
+        "b_main": 0.0666,
+        "t_main": 8.85,
+        "b_interaction": -0.0013,
+        "t_interaction": -0.11,
+        "n_obs": 33096,
+        "n_days": 2847
+      },
+      "quality": {
+        "b_main": 0.0231,
+        "t_main": 3.26,
+        "b_interaction": -0.023,
+        "t_interaction": -1.86,
+        "n_obs": 33296,
+        "n_days": 2847
+      },
+      "mom_12_1": {
+        "b_main": 0.0168,
+        "t_main": 1.94,
+        "b_interaction": 0.0326,
+        "t_interaction": 2.07,
+        "n_obs": 31140,
+        "n_days": 2595
+      },
+      "rev_1m": {
+        "b_main": -0.0269,
+        "t_main": -3.66,
+        "b_interaction": 0.0819,
+        "t_interaction": 5.82,
+        "n_obs": 33924,
+        "n_days": 2827
+      },
+      "low_vol": {
+        "b_main": -0.0538,
+        "t_main": -6.29,
+        "b_interaction": -0.0635,
+        "t_interaction": -4.21,
+        "n_obs": 33444,
+        "n_days": 2787
+      }
+    }
+  },
+  "walk_forward": {
+    "value": {
+      "IS_2015_2021": {
+        "ic": 0.0573,
+        "n_days": 1763,
+        "ci": [
+          0.013,
+          0.1088
+        ],
+        "wc_p": 0.034
+      },
+      "OOS_2022_2026": {
+        "ic": 0.0854,
+        "n_days": 1084,
+        "ci": [
+          0.014,
+          0.1493
+        ],
+        "wc_p": 0.019
+      }
+    },
+    "quality": {
+      "IS_2015_2021": {
+        "ic": 0.0205,
+        "n_days": 1763,
+        "ci": [
+          -0.0303,
+          0.0751
+        ],
+        "wc_p": 0.408
+      },
+      "OOS_2022_2026": {
+        "ic": 0.009,
+        "n_days": 1084,
+        "ci": [
+          -0.0577,
+          0.0687
+        ],
+        "wc_p": 0.787
+      }
+    },
+    "mom_12_1": {
+      "IS_2015_2021": {
+        "ic": -0.0116,
+        "n_days": 1511,
+        "ci": [
+          -0.0648,
+          0.0456
+        ],
+        "wc_p": 0.725
+      },
+      "OOS_2022_2026": {
+        "ic": 0.0801,
+        "n_days": 1084,
+        "ci": [
+          0.0091,
+          0.155
+        ],
+        "wc_p": 0.042
+      }
+    },
+    "rev_1m": {
+      "IS_2015_2021": {
+        "ic": -0.0155,
+        "n_days": 1743,
+        "ci": [
+          -0.0596,
+          0.0324
+        ],
+        "wc_p": 0.456
+      },
+      "OOS_2022_2026": {
+        "ic": 0.0245,
+        "n_days": 1084,
+        "ci": [
+          -0.0371,
+          0.0868
+        ],
+        "wc_p": 0.46
+      }
+    },
+    "low_vol": {
+      "IS_2015_2021": {
+        "ic": -0.0771,
+        "n_days": 1703,
+        "ci": [
+          -0.1397,
+          -0.0258
+        ],
+        "wc_p": 0.003
+      },
+      "OOS_2022_2026": {
+        "ic": -0.0714,
+        "n_days": 1084,
+        "ci": [
+          -0.1515,
+          0.0104
+        ],
+        "wc_p": 0.1
+      }
+    }
+  }
+}

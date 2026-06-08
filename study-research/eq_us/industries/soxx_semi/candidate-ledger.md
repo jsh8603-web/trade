@@ -3,15 +3,28 @@ tags: [type/candidate-ledger, domain/equity-us, sector/soxx_semi, purpose/easy-r
 date: 2026-06-08
 purpose: SOXX(미국 반도체) 자문·이론에서 거론된 지표 후보 전체 + 채택예정/이연/미채택/falsifier + 사유. 다음 세션이 "뭐가 왜 빠졌나" 한눈에.
 source_artifacts: round-1.md(H1~H5, 2026-06-08) + theory-notes.md(R1 학술 ground) + 기존 us_cyclical(prior 흡수)
-status: ★R1 단계 = 후보 enumerate + predicted_sign 사전고정 (실측 IC 전). 6분류 verdict 는 R3 실측 후 확정.
+status: ★R3 conditional 측정 완료 — FREEZE 철회, value/low_vol(BAB) 살아남(TENTATIVE). R4 = FDR+DFII10 재fetch+audit.
 ---
 
-# SOXX(미국 반도체) 지표 후보 원장 (R1 — 실측 전)
+# SOXX(미국 반도체) 지표 후보 원장 (R3 conditional 측정 후)
 
-> ★범위 = soxx_semi capsule 한정 (미국 섹터 granular 파일럿 1번). round-1 H1~H5 + theory-notes 학술 ground 흡수.
-> ★verdict 라벨 = small-n rule (CONFIRMED/PARTIAL/TENTATIVE/INSUFFICIENT/REJECTED). ★R1 = 아직 측정 전 = 모두 "검증 대기".
-> ★핵심 한 줄: 미국 반도체 = within-sector **value-selection(ρ)** primary, rotation/timing(κ) 회의(~30%, falsify 대상).
-> 한국과 차이 = KRW_weak regime 이식불가 → 미국 = 실질금리×credit 2축. ★sub-industry 이질성 = 측정 1급 오염.
+> ★범위 = soxx_semi capsule 한정 (미국 섹터 granular 파일럿 1번).
+> ★verdict 라벨 = small-n rule (CONFIRMED/PARTIAL/TENTATIVE/INSUFFICIENT/REJECTED).
+> ★핵심 한 줄: 미국 반도체 within-sector value-selection(ρ) = (D) 부분 정당. ★R3 unconditional 단일 horizon freeze 는
+> horizon 누락 오판 → conditional×y_60d×OOS 로 **value(+0.104) + low_vol/BAB(−0.118) 살아남**(TENTATIVE). quality 무신호.
+> 한국과 차이 = KRW_weak 이식불가 → 미국 = nominal금리×credit regime. ★sub-industry 이질성 = 측정 1급 오염.
+> ★자문 통설 2건 반증: Novy-Marx value+quality 결합강화(quality 희석) + momentum 미국 작동(OOS 부호반전).
+
+## 📊 R3 측정 verdict (conditional×horizon×OOS, validation-conditional.md)
+
+| 지표 | unconditional y_60d | conditional | OOS | ★verdict |
+|---|---|---|---|---|
+| **value** | +0.104 (wc_p 0) | rate-extreme U자, family-2 t=4.61 | +0.085 robust | ★**PARTIAL 채택** (TENTATIVE: 생존편향+overlapping+FDR R4) |
+| **low_vol(BAB)** | −0.118 (wc_p 0) | credit_high, family-2 t=−4.21 | −0.071 robust | ★**PARTIAL 채택** (신규 발견, TENTATIVE) |
+| momentum 12-1 | y_5d 약 | rate_high family-2 t=4.48 | ★OOS 부호반전 | conditional only, unstable |
+| rev_1m | y_60d −0.060 | credit_high family-2 t=5.82 | 부호반전 | conditional/단기, OOS 약 |
+| quality(ROIC) | 무 | 무 | 무 | ★REJECTED(무신호) = 결합 희석 원인 |
+| value+quality 결합 | +0.030 | — | 약화 | ★REJECTED(Novy-Marx 통설 반증, quality 희석) |
 
 ## 🎯 채택 예정 (primary, R3 측정 → 통과 시 ✅채택)
 

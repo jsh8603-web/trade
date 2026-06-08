@@ -1,0 +1,20 @@
+# SOXX conditional IC surface 핵심 발견 (2026-06-08, R3 재측정)
+# ★team-lead 지적: R3 unconditional 단일 horizon(y_20d) freeze = 축 부족. conditional×horizon×family-2×OOS 재측정.
+#
+# UNCONDITIONAL × horizon (★단일 horizon 누락 보완):
+#   value:   y_5d +0.032 / y_20d +0.068 / y_60d +0.104 (wc_p 0, 단조증가) ← freeze 오판 원인
+#   low_vol: y_5d -0.049 / y_20d -0.075 / y_60d -0.118 (wc_p 0, 단조강화, BAB 신규)
+#   quality: 전 horizon 무신호 (0.009~0.016)
+#   mom:     y_5d +0.034 약 / 장기 감쇠
+#   rev_1m:  y_60d -0.060 (장기 reversal)
+# CONDITIONAL regime (y_20d):
+#   value rate-extreme U자: rate_low +0.103 / rate_mid -0.004(소멸) / rate_high +0.105
+#   low_vol credit_high -0.117 / quality credit_low +0.092(한정)
+# FAMILY-2 interaction (× regime_high):
+#   value × rate_high b_inter +0.059 t=4.61 / mom × rate_high +0.069 t=4.48
+#   low_vol × credit_high -0.064 t=-4.21 / rev_1m × credit_high +0.082 t=5.82 / quality 비유의
+# WALK-FORWARD OOS (y_20d):
+#   value IS+0.057→OOS+0.085(wc_p 0.019) robust / low_vol IS-0.077→OOS-0.071(0.10) robust
+#   mom IS-0.012→OOS+0.080 ★부호반전 unstable / quality 무신호 일관
+# ★FREEZE 철회: value + low_vol = conditional×horizon×OOS robust = (D) 부분 정당. TENTATIVE.
+# ★data 라벨: rate10y = nominal 10y(0.52~4.98, 음수0 = DGS10), NOT DFII10 실질 → R4 DFII10 재fetch.
