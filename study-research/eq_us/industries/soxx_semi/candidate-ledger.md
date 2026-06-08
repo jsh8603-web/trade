@@ -15,16 +15,17 @@ status: ★R3 conditional 측정 완료 — FREEZE 철회, value/low_vol(BAB) �
 > 한국과 차이 = KRW_weak 이식불가 → 미국 = nominal금리×credit regime. ★sub-industry 이질성 = 측정 1급 오염.
 > ★자문 통설 2건 반증: Novy-Marx value+quality 결합강화(quality 희석) + momentum 미국 작동(OOS 부호반전).
 
-## 📊 R3 측정 verdict (conditional×horizon×OOS, validation-conditional.md)
+## 📊 R3+R4 측정 verdict (★R4 보정 후 확정, validation-conditional.md §5-bis)
 
-| 지표 | unconditional y_60d | conditional | OOS | ★verdict |
-|---|---|---|---|---|
-| **value** | +0.104 (wc_p 0) | rate-extreme U자, family-2 t=4.61 | +0.085 robust | ★**PARTIAL 채택** (TENTATIVE: 생존편향+overlapping+FDR R4) |
-| **low_vol(BAB)** | −0.118 (wc_p 0) | credit_high, family-2 t=−4.21 | −0.071 robust | ★**PARTIAL 채택** (신규 발견, TENTATIVE) |
-| momentum 12-1 | y_5d 약 | rate_high family-2 t=4.48 | ★OOS 부호반전 | conditional only, unstable |
-| rev_1m | y_60d −0.060 | credit_high family-2 t=5.82 | 부호반전 | conditional/단기, OOS 약 |
-| quality(ROIC) | 무 | 무 | 무 | ★REJECTED(무신호) = 결합 희석 원인 |
-| value+quality 결합 | +0.030 | — | 약화 | ★REJECTED(Novy-Marx 통설 반증, quality 희석) |
+| 지표 | uncond y_60d | NW-HAC 보정 | BY-FDR | AI episode | ★최종 verdict |
+|---|---|---|---|---|---|
+| **value** | +0.104 (wc_p 0) | ★y20 t=3.24/y60 t=2.73 유의 | ★생존 | pre-AI(rate_low p=0.003) robust | ★**PARTIAL_CONFIRMED**(uncond, 생존편향 상한) |
+| **low_vol(BAB)** | −0.118 (wc_p 0) | ★y20 t=−3.11/y60 t=−2.83 유의 | ★생존 | pre-AI 방향유지 | ★**PARTIAL_CONFIRMED**(uncond, 생존편향 상한) |
+| conditional 증폭(family-2) | — | ★block-cluster t=1.3~1.4 붕괴 | — | rate_high=AI 의존 | ★**격하**(day-cluster t 부풀림 artifact) |
+| momentum 12-1 | 약 | t=1.11 비유의 | 미생존 | — | ★REJECTED (OOS 부호반전) |
+| rev_1m | −0.060 | y60 t=−2.52 | 생존 | — | conditional/약(block-cluster t=2.07 유일 잔존) |
+| quality(ROIC) | 무 | 비유의 | 미생존 | — | ★REJECTED(무신호) = 결합 희석 원인 |
+| value+quality 결합 | +0.030 | — | — | — | ★REJECTED(Novy-Marx 통설 반증) |
 
 ## 🎯 채택 예정 (primary, R3 측정 → 통과 시 ✅채택)
 

@@ -1,0 +1,234 @@
+{
+  "meta": {
+    "note": "R4 보정: FDR BY + overlapping NW-HAC + AI episode. DFII10 재fetch=sandbox timeout→data-gate",
+    "rate_label": "★nominal 10y(NOT DFII10 실질, fetch timeout). regime=nominal 금리 국면"
+  },
+  "overlapping_corrected": {
+    "value": {
+      "y_20d": {
+        "ic": 0.068,
+        "nw_se": 0.021,
+        "nw_t": 3.24,
+        "n_days": 2847,
+        "eff_n_overlap": 142.3,
+        "sig_nw": "유의"
+      },
+      "y_60d": {
+        "ic": 0.1036,
+        "nw_se": 0.038,
+        "nw_t": 2.73,
+        "n_days": 2807,
+        "eff_n_overlap": 46.8,
+        "sig_nw": "유의"
+      }
+    },
+    "low_vol": {
+      "y_20d": {
+        "ic": -0.0749,
+        "nw_se": 0.0241,
+        "nw_t": -3.11,
+        "n_days": 2787,
+        "eff_n_overlap": 139.3,
+        "sig_nw": "유의"
+      },
+      "y_60d": {
+        "ic": -0.118,
+        "nw_se": 0.0417,
+        "nw_t": -2.83,
+        "n_days": 2747,
+        "eff_n_overlap": 45.8,
+        "sig_nw": "유의"
+      }
+    },
+    "quality": {
+      "y_20d": {
+        "ic": 0.0161,
+        "nw_se": 0.0206,
+        "nw_t": 0.78,
+        "n_days": 2847,
+        "eff_n_overlap": 142.3,
+        "sig_nw": "비유의"
+      },
+      "y_60d": {
+        "ic": 0.0089,
+        "nw_se": 0.0368,
+        "nw_t": 0.24,
+        "n_days": 2807,
+        "eff_n_overlap": 46.8,
+        "sig_nw": "비유의"
+      }
+    },
+    "mom_12_1": {
+      "y_20d": {
+        "ic": 0.0267,
+        "nw_se": 0.0241,
+        "nw_t": 1.11,
+        "n_days": 2595,
+        "eff_n_overlap": 129.8,
+        "sig_nw": "비유의"
+      },
+      "y_60d": {
+        "ic": 0.0218,
+        "nw_se": 0.0399,
+        "nw_t": 0.55,
+        "n_days": 2555,
+        "eff_n_overlap": 42.6,
+        "sig_nw": "비유의"
+      }
+    },
+    "rev_1m": {
+      "y_20d": {
+        "ic": -0.0002,
+        "nw_se": 0.0191,
+        "nw_t": -0.01,
+        "n_days": 2827,
+        "eff_n_overlap": 141.3,
+        "sig_nw": "비유의"
+      },
+      "y_60d": {
+        "ic": -0.0604,
+        "nw_se": 0.024,
+        "nw_t": -2.52,
+        "n_days": 2787,
+        "eff_n_overlap": 46.5,
+        "sig_nw": "유의"
+      }
+    }
+  },
+  "family2_overlap_corrected": {
+    "value_x_rate_high": {
+      "b_interaction": 0.0586,
+      "t_inter_blockcluster": 1.31,
+      "n_blocks": 48,
+      "sig": "비유의"
+    },
+    "mom_12_1_x_rate_high": {
+      "b_interaction": 0.0686,
+      "t_inter_blockcluster": 1.38,
+      "n_blocks": 44,
+      "sig": "비유의"
+    },
+    "low_vol_x_credit_high": {
+      "b_interaction": -0.0635,
+      "t_inter_blockcluster": -1.42,
+      "n_blocks": 47,
+      "sig": "비유의"
+    },
+    "rev_1m_x_credit_high": {
+      "b_interaction": 0.0819,
+      "t_inter_blockcluster": 2.07,
+      "n_blocks": 48,
+      "sig": "유의"
+    }
+  },
+  "fdr_by": {
+    "m_total": 45,
+    "q": 0.1,
+    "c_m": 4.39,
+    "method": "Benjamini-Yekutieli(의존성 보정)",
+    "survivors": [
+      [
+        "value|rate_low|y20",
+        0.0,
+        0.00051
+      ],
+      [
+        "low_vol|uncond|y60",
+        0.0,
+        0.00101
+      ],
+      [
+        "value|uncond|y60",
+        0.001,
+        0.00152
+      ],
+      [
+        "low_vol|uncond|y5",
+        0.001,
+        0.00202
+      ],
+      [
+        "value|rate_high|y20",
+        0.001,
+        0.00253
+      ],
+      [
+        "low_vol|credit_high|y20",
+        0.001,
+        0.00303
+      ],
+      [
+        "value|uncond|y20",
+        0.002,
+        0.00354
+      ],
+      [
+        "low_vol|uncond|y20",
+        0.002,
+        0.00405
+      ],
+      [
+        "low_vol|rate_high|y20",
+        0.004,
+        0.00455
+      ],
+      [
+        "rev_1m|uncond|y60",
+        0.004,
+        0.00506
+      ]
+    ],
+    "n_survivors": 10,
+    "note": "45셀 raw wild-cluster p → BY-FDR q=0.10. 우연 기대 45×0.05≈2.3. M_eff 미통합(보수적=naive m)."
+  },
+  "ai_episode_check": {
+    "value_rate_low": {
+      "preAI_2015_2022": {
+        "ic": 0.1035,
+        "n": 958,
+        "wc_p": 0.003
+      },
+      "AI_2023_2026": {
+        "ic": null,
+        "n": 0,
+        "wc_p": null
+      }
+    },
+    "value_rate_mid": {
+      "preAI_2015_2022": {
+        "ic": -0.0039,
+        "n": 953,
+        "wc_p": 0.933
+      },
+      "AI_2023_2026": {
+        "ic": null,
+        "n": 0,
+        "wc_p": null
+      }
+    },
+    "value_rate_high": {
+      "preAI_2015_2022": {
+        "ic": 0.0572,
+        "n": 103,
+        "wc_p": 0.582
+      },
+      "AI_2023_2026": {
+        "ic": 0.1108,
+        "n": 833,
+        "wc_p": 0.008
+      }
+    },
+    "low_vol_credit_high": {
+      "preAI_2015_2022": {
+        "ic": -0.0803,
+        "n": 693,
+        "wc_p": 0.082
+      },
+      "AI_2023_2026": {
+        "ic": -0.2288,
+        "n": 230,
+        "wc_p": 0.0
+      }
+    }
+  }
+}

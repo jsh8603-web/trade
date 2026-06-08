@@ -93,6 +93,58 @@ horizon freeze 는 **측정 축 부족(horizon 누락) 오판**. ★단:
   (지표 5 × regime 6 × horizon 3 + family-2 = 다중검정 R4 BY 의무).
 - ★value·low_vol = **방향·존재 tentative 확인**, magnitude 는 hedge.
 
+## §5-bis. ★R4 보정 (FDR BY + overlapping + AI episode, tier 확정)
+
+> team-lead R4 지시 4 보정. ★#3 DFII10 재fetch = sandbox 네트워크 timeout(fredgraph/stooq/FRED data page 모두 실패)
+> → **data-gate 등록**, rate10y=nominal 유지 + 라벨 정직. 나머지 3 보정 완수. source=raw-v3/validation-r4-corrections.json.
+
+### §5-bis.1 ★overlapping 자기상관 보정 (Newey-West HAC, lag=horizon)
+| 지표 | y_20d NW_t | y_60d NW_t | 판정 |
+|---|---|---|---|
+| **value** | **+3.24** | **+2.73** | ★보정 후 유의 유지 (eff_N 겹침보정 y60d=46.8) |
+| **low_vol** | **−3.11** | **−2.83** | ★보정 후 유의 유지 |
+| quality | +0.78 | +0.24 | 비유의(일관) |
+| mom_12_1 | +1.11 | +0.55 | 비유의 |
+| rev_1m | −0.01 | **−2.52** | y_60d만 유의(장기 reversal) |
+→ ★**value·low_vol unconditional = NW-HAC overlapping 보정 후도 유의** (t>2.7). magnitude robust.
+
+### §5-bis.2 ★family-2 interaction overlapping 보정 (60d block-cluster)
+| interaction | day-cluster t (§3) | ★60d block-cluster t | 판정 |
+|---|---|---|---|
+| value × rate_high | 4.61 | **1.31** | ★**붕괴 → 비유의** (day-cluster 가 overlap 미흡, t 부풀림) |
+| mom_12_1 × rate_high | 4.48 | **1.38** | ★붕괴 비유의 |
+| low_vol × credit_high | −4.21 | **−1.42** | ★붕괴 비유의 |
+| rev_1m × credit_high | 5.82 | **2.07** | 유의 유지(유일) |
+→ ★**중대 정정**: §3 family-2 t(4~6)는 day-clustering 이 60d overlapping 자기상관 미흡 = **t 부풀림 artifact**. 60d
+block-cluster 보정 시 value/mom/low_vol interaction **모두 비유의**(rev_1m만 생존). = ★"regime conditional 증폭"은 약화 =
+conditional 효과는 TENTATIVE. ★단 unconditional value/low_vol 은 §5-bis.1 NW-HAC 유의 = main effect 는 robust.
+
+### §5-bis.3 ★FDR BY 보정 (Benjamini-Yekutieli, 45셀, q=0.10)
+- m=45, c(m)=4.39 (의존성 보정), 우연 기대 45×0.05≈2.3. → ★**10셀 생존**:
+  - value: rate_low(p=0) / rate_high(0.001) / uncond y60(0.001) / uncond y20(0.002)
+  - low_vol: uncond y60(0) / y5(0.001) / credit_high(0.001) / y20(0.002) / rate_high(0.004)
+  - rev_1m: uncond y60(0.004)
+→ ★**value·low_vol = BY 생존**(우연 아님). quality·mom = 미생존(전 셀). ★M_eff 미통합(보수적 naive m).
+
+### §5-bis.4 ★AI capex episode 교란 점검 (pre-AI 2015-2022 vs AI 2023-2026)
+| regime cell | pre-AI 2015-2022 | AI 2023-2026 | 판정 |
+|---|---|---|---|
+| value rate_low | IC=0.104 (n=958, p=0.003) | n=0 | ★rate_low=거의 전부 pre-AI → value **pre-AI robust** |
+| value rate_mid | IC=−0.004 (p=0.93) | n=0 | 무신호(일관) |
+| value rate_high | IC=0.057 (n=103, p=0.58 비유의) | IC=0.111 (n=833, p=0.008) | ★rate_high=거의 AI 시기 → **AI episode 의존 의심** |
+| low_vol credit_high | IC=−0.080 (p=0.082) | IC=−0.229 (p=0.0) | AI 강하나 pre-AI 방향 유지(약) |
+→ ★**해석**: value premium 은 **pre-AI(rate_low p=0.003) + AI(rate_high p=0.008) 양 시기 발현** = episode-specific regime
+분리되나 value 자체는 **pre·post robust**(AI 단일 artifact 아님). 단 ★"rate_high 증폭"은 AI 시기 한정 = U자 high 다리는
+AI episode 의존. low_vol = AI 강화나 pre-AI 방향 유지.
+
+### §5-bis.5 ★tier 재판정 (R4 보정 후)
+- **value (unconditional)** = NW-HAC y20 t=3.24/y60 t=2.73 + BY 생존 + pre-AI(rate_low p=0.003) robust → ★**PARTIAL_CONFIRMED**
+  (단 생존편향 I축 PARTIAL = CONFIRMED 불가).
+- **low_vol/BAB (unconditional)** = NW-HAC t=−2.8~−3.1 + BY 생존 + pre-AI 방향유지 → ★**PARTIAL_CONFIRMED** (생존편향 상한).
+- **conditional (family-2 regime 증폭)** = ★overlapping block-cluster 보정 후 비유의(붕괴) → **TENTATIVE/격하** (rev_1m만 잔존).
+  rate_high 증폭 = AI episode 의존. = ★"regime conditional 증폭" over-claim 금지.
+- quality·mom = REJECTED/무신호.
+
 ## §6. 한계 (hard-fail 축 self-check)
 
 - **I 생존편향 PARTIAL**: 현 12종 holdings only → TENTATIVE 상한.

@@ -1,0 +1,15 @@
+# SOXX R4 보정 핵심 (2026-06-08, tier 확정)
+# team-lead R4 지시 4 보정 + 마감 2.
+# 1. ★overlapping NW-HAC (lag=horizon): value y20 t=3.24/y60 t=2.73, low_vol y20 -3.11/y60 -2.83 = 유의 유지(unconditional robust)
+#    quality/mom 비유의. rev_1m y60 t=-2.52.
+# 2. ★family-2 overlapping 보정 (60d block-cluster): day-cluster t(4~6) → block-cluster t(1.3~1.4) 붕괴 비유의!
+#    value×rate_high 4.61→1.31 / mom 4.48→1.38 / low_vol -4.21→-1.42 / rev_1m 5.82→2.07(유일 잔존)
+#    = ★conditional 증폭 = day-cluster t 부풀림 artifact = 격하
+# 3. ★FDR BY (Benjamini-Yekutieli, m=45, c(m)=4.39, q=0.10): 10셀 생존 = value(rate_low/rate_high/uncond y20·y60)
+#    + low_vol(uncond y5·y20·y60/credit_high/rate_high) + rev_1m(uncond y60). quality·mom 미생존.
+# 4. ★AI episode: value rate_low=pre-AI(IC 0.104 p=0.003, AI n=0) + rate_high=AI(IC 0.111 p=0.008, preAI 비유의)
+#    = value pre·post 양 시기 발현(AI 단일 artifact 아님) but rate_high 증폭=AI 의존. low_vol AI 강화+preAI 방향유지.
+# 5. DFII10 실질금리 재fetch = sandbox 네트워크 timeout(fredgraph/stooq/data page 모두 실패) = data-gate. rate10y=nominal 유지.
+# 6. 15axis-audit.md 작성.
+# ★tier 확정: value·low_vol(uncond) = PARTIAL_CONFIRMED(NW-HAC + BY 생존 + pre-AI robust, 생존편향 I축 PARTIAL = CONFIRMED 불가).
+#             conditional 증폭 = TENTATIVE/격하(overlapping 붕괴). quality·mom = REJECTED.

@@ -187,9 +187,16 @@ conditional_ic_surface:
     rev_1m: {is_ic: -0.016, oos_ic: 0.024, verdict: "부호반전 비유의"}
   verdict: >
     ★FREEZE 철회 (team-lead 지적 실증): R3 unconditional 단일 horizon(y_20d) freeze 는 측정 축 부족(horizon 누락) 오판.
-    conditional×horizon×family-2×OOS 전체 보면 (a) value y_60d +0.104 + rate-extreme + OOS robust (b) low_vol(BAB) y_60d
-    −0.118 + credit_high + OOS robust = ★살아남. = (D) granular 부분 정당. ★단 TENTATIVE(생존편향 PARTIAL + overlapping
-    inflation + FDR 미보정). quality = 진짜 무신호. mom/rev = conditional only(OOS 불안정).
+    conditional×horizon×family-2×OOS 보면 value y_60d +0.104 + low_vol −0.118 살아남 = (D) granular 부분 정당.
+  r4_correction:  # ★R4 보정 후 tier 확정 (validation-conditional.md §5-bis, validation-r4-corrections.json)
+    overlapping_nw_hac: "★value y20 NW_t=3.24/y60=2.73, low_vol y20=−3.11/y60=−2.83 = 보정 후 유의 유지(unconditional robust)"
+    family2_blockcluster: "★family-2 interaction day-cluster t(4~6) → 60d block-cluster t(1.3~1.4) 붕괴 비유의(rev_1m만 2.07). conditional 증폭 = t 부풀림 artifact = 격하"
+    fdr_by: "Benjamini-Yekutieli m=45 c(m)=4.39 q=0.10 → ★10셀 생존(value·low_vol). quality·mom 미생존. M_eff 미통합(보수적 naive)"
+    ai_episode: "★value rate_low=pre-AI(p=0.003) + rate_high=AI(p=0.008) 양 시기 발현 = value pre·post robust(AI 단일 artifact 아님). rate_high 증폭=AI 의존"
+    dfii10_gate: "★DFII10 실질금리 재fetch = sandbox 네트워크 timeout(fredgraph/stooq/data page 실패) = data-gate. rate10y=nominal 유지"
+    tier_final: >
+      ★value(uncond) = PARTIAL_CONFIRMED (NW-HAC + BY 생존 + pre-AI robust, ★생존편향 I축 PARTIAL = CONFIRMED 불가).
+      low_vol/BAB(uncond) = PARTIAL_CONFIRMED. conditional 증폭 = TENTATIVE/격하(overlapping 보정 후 붕괴). quality·mom = REJECTED.
 
 # ── Hard-fail 4 (B C D I) self-check ──
 hard_fail_self_check:
@@ -203,19 +210,23 @@ hard_fail_self_check:
       무료부재(CRSP/Compustat 유료). → ★TENTATIVE 상한(CONFIRMED 금지). I축 PARTIAL.
 
 # ── verdict (small-n rule) ──
-verdict_label: PARTIAL          # ★전체 = PARTIAL (conditional 발현 but TENTATIVE)
+verdict_label: PARTIAL          # ★전체 = PARTIAL (value·low_vol PARTIAL_CONFIRMED, conditional 격하, 생존편향 상한)
 verdict_detail:
   value: >
-    PARTIAL — y_60d IC +0.104(wc_p 0, CI 0배제) + rate-extreme conditional + OOS +0.085(부호+magnitude 유지) + family-2
-    t=4.61. ★단 TENTATIVE(생존편향 PARTIAL + y_60d overlapping inflation + FDR 45셀 R4 미보정). value 단독 채택(결합은 희석).
+    ★PARTIAL_CONFIRMED (unconditional) — y_60d IC +0.104, ★NW-HAC overlapping 보정 후 y20 t=3.24/y60 t=2.73 유의 +
+    BY-FDR 생존 + pre-AI(rate_low p=0.003) robust + OOS +0.085. ★단 생존편향 I축 PARTIAL = CONFIRMED 불가(TENTATIVE 상한).
+    value 단독 채택(결합은 quality 무신호로 희석). ★conditional rate-extreme 증폭 = family-2 overlapping 보정 후 붕괴(t=1.31) = 격하.
   low_vol: >
-    PARTIAL — y_60d IC −0.118(wc_p 0) + credit_high + OOS −0.071(wc_p 0.10 경계) + family-2 t=−4.21. BAB 신규 발견. TENTATIVE.
-  quality: "REJECTED(무신호) — 전 horizon/regime/family-2 비유의. value+quality 결합 희석 원인."
-  mom_12_1: "conditional only — rate_high family-2 t=4.48 유의나 OOS 부호반전(IS−0.01/OOS+0.08) = unstable."
-  rev_1m: "conditional only — credit_high family-2 t=5.82 + y_60d −0.060이나 OOS 비유의."
+    ★PARTIAL_CONFIRMED (unconditional) — y_60d IC −0.118, NW-HAC y20 t=−3.11/y60 t=−2.83 + BY 생존 + pre-AI 방향유지.
+    BAB 신규 발견. ★생존편향 상한. conditional credit_high 증폭 = overlapping 보정 후 붕괴(t=−1.42) = 격하.
+  quality: "REJECTED(무신호) — 전 horizon/regime/family-2 비유의. value+quality 결합 희석 원인(Novy-Marx 통설 반증)."
+  mom_12_1: "REJECTED — uncond NW-HAC 비유의 + rate_high family-2 overlapping 보정 후 붕괴(t=1.38) + OOS 부호반전(unstable)."
+  rev_1m: "conditional only — y_60d −0.060(NW-HAC t=−2.52 유의) + credit_high family-2 block-cluster t=2.07(유일 잔존). 약."
 verdict_note: >
-  ★FREEZE 철회. 미국 반도체 within-sector value-selection = (D) 부분 정당(value + low_vol = conditional×horizon×OOS robust).
-  R3 unconditional 단일 horizon freeze 는 horizon 누락 오판(team-lead 지적 실증). ★자문 통설 2건 반증: (1) Novy-Marx
-  value+quality 결합강화 = 우리 데이터선 quality 무신호로 희석 (2) momentum 미국 작동 가설 = OOS 부호반전 unstable. ★tier
-  = TENTATIVE 전반(생존편향 PARTIAL + overlapping inflation + FDR R4 미보정 + small-n). ★data 라벨 정정(rate10y=nominal,
-  NOT DFII10 실질) = R4 DFII10 재fetch 의제. R4 = FDR BY 보정 + DFII10 재측정 + 15axis-audit + 생존편향 보강 후 tier 재판정.
+  ★FREEZE 철회 + R4 보정 후 tier 확정. 미국 반도체 within-sector value-selection = (D) 부분 정당: ★value·low_vol(BAB)
+  unconditional = PARTIAL_CONFIRMED (NW-HAC overlapping 보정 후 유의 t>2.7 + BY-FDR 10셀 생존 + pre-AI robust). ★단
+  생존편향 I축 PARTIAL(현 holdings only) = CONFIRMED 불가 = TENTATIVE 상한. ★conditional regime 증폭 = family-2
+  overlapping 보정 후 붕괴(day-cluster t4~6 = artifact) = 격하. ★자문 통설 2건 반증: Novy-Marx value+quality 결합강화(quality
+  희석) + momentum 미국 작동(OOS 부호반전). ★data-gate: DFII10 실질금리 재fetch=sandbox timeout(rate10y=nominal 유지) +
+  생존편향 보강(historical membership) = R5 unblock 후 tier 재판정(PARTIAL_CONFIRMED→CONFIRMED 승격 조건). R3 단일
+  horizon freeze = horizon 누락 오판(team-lead 지적 실증).
