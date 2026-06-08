@@ -3,22 +3,17 @@ tags: [type/candidate-ledger, domain/equity-us, sector/soxx_semi, purpose/easy-r
 date: 2026-06-08
 purpose: SOXX(미국 반도체) 자문·이론에서 거론된 지표 후보 전체 + 채택예정/이연/미채택/falsifier + 사유. 다음 세션이 "뭐가 왜 빠졌나" 한눈에.
 source_artifacts: round-1.md(H1~H5, 2026-06-08) + theory-notes.md(R1 학술 ground) + 기존 us_cyclical(prior 흡수)
-status: ★★SOXX 종결 (사용자 최종 코드화) — selection null result → **top 시총 동일가중 passive sleeve** 확정.
+status: ★R3 conditional 측정 완료 — FREEZE 철회, value/low_vol(BAB) 살아남(TENTATIVE). R4 = FDR+DFII10 재fetch+audit.
 ---
 
-# SOXX(미국 반도체) 지표 후보 원장 (★종결 — sleeve 확정)
+# SOXX(미국 반도체) 지표 후보 원장 (R3 conditional 측정 후)
 
-## 🏁 ★★최종 결론 (사용자 코드화 결정, 2026-06-08)
-
-★**반도체 sleeve = top 시총 동일가중 passive** (selection tilt 없음, 섹터 베타 노출).
-- **selection_signals = ALL_REJECTED** (value/quality/momentum/low_vol 전부 not-codifiable factor).
-- rule = `top_mcap_equal_weight` (universe=top-cap 반도체 12종, weight=EW, ⛔cap-weight 금지=NVDA 위장 회피, EW="골고루").
-- 근거: R6 G2 breadth FAIL(중소형 추가 시 value 소멸 IC 0.109→0.024, SMALL 단독 IC −0.009) + G4 null result(value=NVDA·AVGO 2-name position).
-- ⛔§방향보존: value "무효" 아님 = 현 측정 틀서 코드화 factor 아닌 ★범위한정. ★승격 잔여 = CRSP 생존편향-free + 딥밸류 소형 data unblock 후 selection 재검토(현 data-gate).
-
-> ★범위 = soxx_semi capsule 한정 (미국 섹터 granular 파일럿 1번). verdict 라벨 = small-n rule.
-> ★진화: R3 freeze → conditional 철회(horizon 누락) → R4 PARTIAL_CONFIRMED → R5b 강등(2-name/anti-BAB) → R6 코드화 불가(null) → 사용자 passive EW sleeve 확정.
-> ★자문/사용자 가설 3건 반증: Novy-Marx 결합강화(quality 희석) + momentum 작동(OOS 반전) + breadth가 value 살린다(중소형 소멸).
+> ★범위 = soxx_semi capsule 한정 (미국 섹터 granular 파일럿 1번).
+> ★verdict 라벨 = small-n rule (CONFIRMED/PARTIAL/TENTATIVE/INSUFFICIENT/REJECTED).
+> ★핵심 한 줄: 미국 반도체 within-sector value-selection(ρ) = (D) 부분 정당. ★R3 unconditional 단일 horizon freeze 는
+> horizon 누락 오판 → conditional×y_60d×OOS 로 **value(+0.104) + low_vol/BAB(−0.118) 살아남**(TENTATIVE). quality 무신호.
+> 한국과 차이 = KRW_weak 이식불가 → 미국 = nominal금리×credit regime. ★sub-industry 이질성 = 측정 1급 오염.
+> ★자문 통설 2건 반증: Novy-Marx value+quality 결합강화(quality 희석) + momentum 미국 작동(OOS 부호반전).
 
 ## 📊 R3+R4 측정 verdict (★R4 보정 후 확정, validation-conditional.md §5-bis)
 

@@ -123,25 +123,6 @@ collector_plan_industry:
     priority: low
 
 # ════════════════════════════════════════════════════════════════════
-# ── ★★SLEEVE RULE (사용자 최종 코드화 결정, 2026-06-08) ──
-# R6 null result 채택 → selection alpha 포기 → top 시총 동일가중 passive (섹터 베타 노출).
-# ════════════════════════════════════════════════════════════════════
-sleeve_rule:
-  rule: top_mcap_equal_weight        # ★사용자 결정: "반도체 = top 시총 순위 종목 골고루(동일가중)"
-  universe: "top-cap 반도체 (현 12종 large-cap 기준: NVDA/AVGO/AMD/QCOM/TXN/MU/ADI/LRCX/KLAC/AMAT/INTC/MCHP)"
-  weight: equal_weight               # ★EW = NVDA·AVGO 2종 집중 회피("골고루"). ⛔ cap-weight 아님(= NVDA 단일베팅 위장)
-  selection_tilt: none               # ★selection alpha 포기 (모든 신호 not-codifiable)
-  selection_signals: ALL_REJECTED    # value/quality/momentum/low_vol 전부 코드화 불가
-  rationale: >
-    ★R6 G2 breadth FAIL + G4 null result: value=대형주 NVDA·AVGO 2-name position(중소형 IC −0.009 진짜 부재) /
-    low_vol=anti-BAB REJECTED / quality·momentum=무신호. = systematic selection factor 부재 → alpha-selection 포기,
-    섹터 베타 노출만(top 시총 EW passive). ⛔ cap-weight 금지(NVDA 위장). EW = 종목 집중 회피.
-  scope_note: >
-    ⛔§방향보존: value "무효" 아님 = 현 측정 틀(대형주/광의 EW)서 코드화 factor 신호 아닌 범위한정. 대형주 2-name엔
-    position 존재. ★승격 잔여 = CRSP 생존편향-free + 딥밸류 소형(XSD보다 광의) data unblock 후 selection 재검토.
-  source_id: "validation-r6-g1.json + validation-r6-g2.json + raw/r6-g3-g4-verdict-20260608.txt"
-
-# ════════════════════════════════════════════════════════════════════
 # ── ★★CONDITIONAL IC SURFACE (한국 양식 복제, 2026-06-08) ──
 # IC(지표, regime, horizon) = "어느 국면에 어느 지표가 forward return 예측하나".
 # 측정: raw-v3/measure_conditional.py → validation-conditional-v1.json
@@ -246,7 +227,7 @@ hard_fail_self_check:
       무료부재(CRSP/Compustat 유료). → ★TENTATIVE 상한(CONFIRMED 금지). I축 PARTIAL.
 
 # ── verdict (small-n rule) ──
-verdict_label: SLEEVE_PASSIVE_EW   # ★사용자 최종 코드화: selection null result → top 시총 동일가중 passive(섹터 베타). selection_signals=ALL_REJECTED
+verdict_label: NULL_RESULT      # ★R6 최종 = 코드화 불가(매도신호 수준 미달). value=2-name position / low_vol=KILL. §방향보존: value 무효 아닌 범위한정
 verdict_detail:
   value: >
     ★R6 코드화 불가 (factor 미입증). core 12종 y_60d IC +0.109 t=2.25 modest BUT ★G2 breadth(33종) 확장 시 IC 0.024 t=0.36
