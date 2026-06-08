@@ -1,0 +1,11 @@
+# SOXX R6 G2 breadth 확장 (2026-06-08) — ★사용자 가설(breadth가 살린다) 데이터 반박
+# universe: 현 12종(CORE) + 중소형 21종(XSD EW, MRVL/NXPI/SWKS/MPWR/LSCC 등) = 33종. EDGAR fetch 21종 33,457 rows.
+# ★core 12종: y_60d IC=0.109 non-overlap t=2.25 (survive, avg_n 11.6)
+# ★broad 33종: y_60d IC=0.024 non-overlap t=0.36 (★비유의! avg_n 31.3)
+#   = breadth 확장 시 value IC 0.109→0.024 붕괴. y_20d도 t=2.7→1.13 붕괴.
+# ★leave-NVDA·AVGO (broad): retention=-0.257 (음수, 부호반전) / leave-top4: retention=0.061
+# ★결론: value premium은 대형주 12종(특히 NVDA·AVGO)에만 존재. 중소형 반도체엔 없음.
+#   = breadth 확장이 value를 살리는 게 아니라 ★희석/소멸. value = 진짜 2-name position(factor 미입증 확정).
+# ★사용자 정정 #2("소형·딥밸류 못 담아서지 무효 아님") = 데이터로 검증 → 기각.
+#   breadth 추가해도 안 살아남 = ★코드화 가능한 factor 신호 아님. (단 value 무효 아니라 "현 틀서 2-name position" = 범위한정)
+# ★G2 FAIL: factor 미입증. G3(생존편향) = core 12종 IC가 생존편향 부풀림인지만 점검 의미.

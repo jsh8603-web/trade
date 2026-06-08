@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "core_n": 12,
+    "small_n": 21,
+    "broad_n": 33,
+    "universe": "현12종+중소형21종(XSD EW)",
+    "price_range": [
+      "2014-06-02",
+      "2026-05-28"
+    ]
+  },
+  "core_12": {
+    "y_20d": {
+      "daily_ic": 0.0679,
+      "nonoverlap_n": 143,
+      "nonoverlap_t": 2.7,
+      "p": 0.0077,
+      "avg_universe_n": 11.6,
+      "survive_t2": true
+    },
+    "y_60d": {
+      "daily_ic": 0.1094,
+      "nonoverlap_n": 47,
+      "nonoverlap_t": 2.25,
+      "p": 0.0291,
+      "avg_universe_n": 11.6,
+      "survive_t2": true
+    }
+  },
+  "broad_33": {
+    "y_20d": {
+      "daily_ic": 0.0176,
+      "nonoverlap_n": 150,
+      "nonoverlap_t": 1.13,
+      "p": 0.2583,
+      "avg_universe_n": 31.3,
+      "survive_t2": false
+    },
+    "y_60d": {
+      "daily_ic": 0.0243,
+      "nonoverlap_n": 50,
+      "nonoverlap_t": 0.36,
+      "p": 0.7182,
+      "avg_universe_n": 31.3,
+      "survive_t2": false
+    }
+  },
+  "leave_n_out_broad": {
+    "ic_full_broad": 0.0243,
+    "leave_NVDA_AVGO": {
+      "ic": -0.0062,
+      "retention": -0.257,
+      "nonoverlap_t": -0.68,
+      "p": 0.5024,
+      "n_remain": 31
+    },
+    "leave_top4_fabless": {
+      "ic": 0.0015,
+      "retention": 0.061,
+      "n_remain": 29
+    },
+    "verdict": "position-not-factor(<0.40)"
+  },
+  "G2_verdict": {
+    "broad_y60_nonoverlap_t": 0.36,
+    "broad_avg_n": 31.3,
+    "leave2_retention": -0.257,
+    "PASS": false,
+    "interpretation": "★G2 결과: breadth 확장 후도 retention<0.40 OR t<2 = factor 미입증. 단 core(0.044) 대비 변화 확인"
+  }
+}
