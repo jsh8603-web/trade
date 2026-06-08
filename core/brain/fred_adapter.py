@@ -71,7 +71,9 @@ FRED_NBER_RECESSION = "USREC"
 # 이들은 시장가격 기반이라 revision≈0 (P2 독립 audit 2026-06-02: DFII10/T5YIE/T10Y2Y 2024 vintage
 # revised=0, max spread=0.0000 실측 입증 → latest==first_release). first_release 대신 get_series(latest)로
 # 직행해 vintage 호출 자체를 회피하되, as_of causal mask 는 observation-date 기준이라 PIT lookahead 없음.
-_MARKET_PRICED_DAILY = frozenset({"DFII10", "T5YIE", "T10Y2Y", "DGS10", "DGS2", "BAA10Y"})
+# ★VIXCLS 추가(W5, 2026-06-08): CBOE 변동성 지수 종가=market-priced 일별(revision≈0, DFII10 동성격).
+#   누락 시 first_release→vintage 3864>2000 한도 ValueError→source_missing(⑬ factor 공분산 vol 차원 결측).
+_MARKET_PRICED_DAILY = frozenset({"DFII10", "T5YIE", "T10Y2Y", "DGS10", "DGS2", "BAA10Y", "VIXCLS"})
 
 # first_release(ALFRED) 가 stale 에서 멈추는 군 — fredapi get_series_first_release 가 NFCI(1976-10)/
 # STLFSI4(2004-11) 에서 최신 미반환(실측 2026-06-02: stale 값이 "최신"으로 silent 오염). 실시간 추론은

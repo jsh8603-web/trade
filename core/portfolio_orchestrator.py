@@ -17,6 +17,7 @@ WHY: Phase 0~5 산출물(AssetTrack·RiskGate·regime_classifier·macro_reasonin
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -153,10 +154,12 @@ class PortfolioOrchestrator:
         # regime-conditional Σ_eff(belief-mix)를 BL 공분산으로 주입(동적 조건부 공분산). substrate
         # (sleeve_regime_ids) 부재 시 belief 만 전달돼도 기존 경로(graceful). 거시상황(macro_view)이
         # belief 를 통해 배분 공분산에 실제로 반영되는 connectivity 가 본 ④의 핵심.
-        import os
+        from core.study.study_register import is_r15_enabled
         r15_belief = None
-        r15_on = (os.environ.get("INV_R15_WEIGHTS", "false").lower() == "true"
-                  and macro_view is not None)
+        # ★게이트 통일(2026-06-08): is_r15_enabled()(on/true/1/yes 허용)와 동일 값집합.
+        #   기존 =="true" 단독 비교는 운영자가 "on"으로 켤 때 belief 동적 공분산 경로만
+        #   말없이 죽는 함정(coin_track_macro:75 macro_view 게이트는 "on" 통과 → 불일치).
+        r15_on = (is_r15_enabled() and macro_view is not None)
         if r15_on:
             try:
                 from core.brain.regime_belief_adapter import belief_from_macro_view

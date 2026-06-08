@@ -539,4 +539,5 @@ def infer_event_from_regime(regime: RegimeLabel) -> MacroEvent:
         RegimeLabel.STAGFLATION: MacroEvent.INFLATION_SHOCK,
         RegimeLabel.OVERHEAT: MacroEvent.INFLATION_SHOCK,
         RegimeLabel.RECOVERY: MacroEvent.RATE_HIKE_CYCLE,
+        RegimeLabel.SLOWDOWN: MacroEvent.RECESSION_ONSET,  # 둔화(저성장+modest물가)=침체축
     }[regime]

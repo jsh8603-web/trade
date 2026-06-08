@@ -75,7 +75,12 @@ REGIME_DIRECTION = {
     RegimeLabel.REFLATION:   {"stock": "down",    "commodity": "down",    "gold": "up",      "bond": "top",     "cash": "neutral", "coin": "down"},
     RegimeLabel.RECOVERY:    {"stock": "top",     "commodity": "neutral", "gold": "down",    "bond": "down",    "cash": "down",    "coin": "up"},
     RegimeLabel.OVERHEAT:    {"stock": "neutral", "commodity": "top",     "gold": "up",      "bond": "down",    "cash": "down",    "coin": "neutral"},
-    RegimeLabel.STAGFLATION: {"stock": "down",    "commodity": "neutral", "gold": "up",      "bond": "down",    "cash": "top",     "coin": "down"},
+    # ★진짜 스태그플레이션(절대 고물가 게이트 통과) = 실물 헤지. cash top→down(claude: 진짜 인플레선 현금 최악),
+    #   commodity neutral→top(인플레 1차 헤지). 2026-06-08 R1~4 자문+실측.
+    RegimeLabel.STAGFLATION: {"stock": "down",    "commodity": "top",     "gold": "up",      "bond": "down",    "cash": "down",    "coin": "down"},
+    # ★신규 SLOWDOWN(저성장+modest물가=late-cycle/연착륙). 거친 틸트(과적합 회피): 금리인하 기대로
+    #   bond up + gold up(ballast), 퀄리티주식 neutral, 현금 down, 실물 약간(neutral). cash-max 아님.
+    RegimeLabel.SLOWDOWN:    {"stock": "neutral", "commodity": "neutral", "gold": "up",      "bond": "up",      "cash": "down",    "coin": "neutral"},
 }
 
 

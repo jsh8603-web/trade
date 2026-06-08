@@ -79,6 +79,11 @@ class SelectionConfig:
     min_universe_n: int = 10              # n<10 = robust z 통계 무의미 → 경고
     # no-trade band (히스테리시스): 매수=top_k 진입 / 매도=top_k_exit 이탈까지 보유
     top_k_exit: int = 30                  # 보유 종목이 rank>top_k_exit 이탈 시에만 매도
+    # ★tercile 매수 (defensive 저빈도 가치/품질, default off=byte-identical, 2026-06-08):
+    #   top_k 고정(10) 대신 eligible 상위 1/3 균등 매수. forecasting(.p4-defensive-quality) 재현:
+    #   ttm+tercile EW+12M+sector-neutral 에서 value t+3.33/quality(DEF-2) t+3.41 = ETF 초과.
+    #   소표본·저신호 sleeve 분산(top_k 집중이 저빈도 신호 못 살림). off 시 기존 top_k 경로.
+    tercile_enabled: bool = False
     # ★sector-neutral demean (WIRE3 실측 추가, default off=byte-identical):
     #   multi-sector sleeve(cyclical 5 sector×12종)는 sleeve-level z 가 sector 간 valuation
     #   레벨차(financials 항상 저PBR 등)를 cheapness 로 오인 → within-sector value 신호 희석.
@@ -404,13 +409,19 @@ def select_cross_sectional(
                 return False, f"net-alpha<0 (E[a]={e_alpha:+.4f} < cost={rt_cost:.4f}, STT hard reject)"
         return True, ""
 
-    # 4. top-K ⊕ no-trade band
+    # 4. top-K(또는 tercile) ⊕ no-trade band
+    elig_map = {t: _eligible(t) for t in ranked}   # _eligible 1회 캐시(trap_veto 호출 절감)
+    # ★tercile opt-in: eligible 상위 1/3 매수(default off=byte-identical=top_k 경로).
+    buy_set: set[str] = set()
+    if config.tercile_enabled:
+        elig_ranked = [t for t in ranked if elig_map[t][0]]
+        k_cut = max(1, len(elig_ranked) // 3)
+        buy_set = set(elig_ranked[:k_cut])
     selected: list[str] = []
     for t in ranked:
-        ok, _ = _eligible(t)
-        if not ok:
+        if not elig_map[t][0]:
             continue
-        in_buy = rank_of[t] <= config.top_k
+        in_buy = (t in buy_set) if config.tercile_enabled else (rank_of[t] <= config.top_k)
         # 히스테리시스: 보유 중이면 top_k_exit 이탈 전까지 유지
         held = held_ranks is not None and t in held_ranks
         in_hold_band = held and rank_of[t] <= config.top_k_exit

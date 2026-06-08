@@ -38,12 +38,19 @@ class RegimeLabel(str, enum.Enum):
     - REFLATION : 성장↓·인플레↓ → 채권 최우위 (중앙은행 완화 기대).
     - RECOVERY  : 성장↑·인플레↓ → 주식 최우위 (골디락스).
     - OVERHEAT  : 성장↑·인플레↑ → 원자재 최우위.
-    - STAGFLATION: 성장↓·인플레↑ → 현금 최우위 (방어).
+    - STAGFLATION: 성장↓·인플레↑ AND **절대 고물가** → 실물/원자재/금 (진짜 스태그플레이션).
+    - SLOWDOWN  : 성장↓·인플레↑(상대 z) BUT **절대 물가 modest** → late-cycle/연착륙.
+
+    ★절대 CPI 게이트(2026-06-08, R1~4 자문+실측 검증): 상대 z 4분면만으로는 저물가 시대의
+    둔화기를 STAGFLATION 으로 오라벨(2017-26 "Stagflation" 실현 CPI +2.57%=고물가 아님,
+    진짜 고물가 2021-22는 이미 OVERHEAT). regime_classifier 가 STAGFLATION 분면에 절대 CPI
+    게이트를 걸어 미달 시 SLOWDOWN 분리. 임계=외부 수입(AQR 주식-채권 상관전환~3% / Neville>5%).
     """
     REFLATION = "Reflation"
     RECOVERY = "Recovery"
     OVERHEAT = "Overheat"
     STAGFLATION = "Stagflation"
+    SLOWDOWN = "Slowdown"
 
 
 class Bloc(str, enum.Enum):

@@ -122,6 +122,11 @@ def build_universe_candidates(
         state = track.collect_market_state()
         decision = track.generate_candidate(state)
         # selection 메타 병합 (risk_gate sizing 권고)
+        # ★ticker 명시 노출(2026-06-07): cheapness decision 은 종목을 trade_params.market/
+        #   _trigger_result.ticker 에만 담아, 소비자(construction 호출자·risk_gate)가 종목을
+        #   추측해야 했다(끊긴 계약). EW/ETF fallback(_candidate_to_decision)은 이미 "ticker"
+        #   를 넣으므로 동일 키로 통일 — 미통일 시 cheapness sleeve 종목이 소비단에서 누락.
+        decision["ticker"] = cand.ticker
         decision["target_weight"] = cand.target_weight
         decision["cheapness_z"] = cand.cheapness_z
         decision["rank"] = cand.rank

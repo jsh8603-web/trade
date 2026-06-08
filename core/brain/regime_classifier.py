@@ -56,6 +56,13 @@ from . import indicator_event_correlation as iec
 
 logger = logging.getLogger(__name__)
 
+# ★절대 CPI 게이트 임계 (2026-06-08, R1~4 자문+실측 검증). core CPI yoy(%).
+#   STAGFLATION 분면(상대 z: 성장<0·인플레>0)이 절대 고물가일 때만 진짜 스태그플레이션,
+#   미달이면 SLOWDOWN(late-cycle/연착륙). ★임계=외부 수입(import not estimate, n=13 과적합 회피):
+#   AQR/Ilmanen 주식-채권 상관 양전환 ~2.5-3.0%(채권 헤지 소멸 지점) / Neville et al.(2021) 인플레
+#   레짐 정의 peak>5%. core CPI 는 headline 보다 낮아 3.0% 채택(headline~3.5-4%=실무 stagflation 대역).
+STAGFLATION_ABS_CPI_GATE = 3.0
+
 
 class RegimeClassifier:
     """
@@ -151,6 +158,18 @@ class RegimeClassifier:
             bundle, regime_now, ic_conf, evidence, citations
         )
 
+        # --- (4b) ★절대 CPI 게이트: STAGFLATION 분면 절대 고물가 검증 (2026-06-08) ---
+        #   상대 z 4분면은 저물가 시대 둔화기를 STAGFLATION 오라벨(실측 +2.57%=고물가 아님).
+        #   절대 core CPI < 임계 → SLOWDOWN(late-cycle). 단 certain_recession(깊은 침체)은 제외
+        #   (deep recession 은 STAGFLATION/REFLATION 유지, SLOWDOWN=완만 둔화와 구분).
+        if regime_now == RegimeLabel.STAGFLATION and \
+                evidence.get("michez_state") != "certain_recession":
+            abs_cpi = self._abs_core_cpi_yoy(bundle)
+            if abs_cpi is not None:
+                evidence["cpi_yoy_abs"] = round(abs_cpi, 2)
+                if abs_cpi < STAGFLATION_ABS_CPI_GATE:
+                    regime_now = RegimeLabel.SLOWDOWN
+
         # --- (3) JM/SJM 2상태 stress 신호 → confidence 보정 + 발산 탐지 (§5.8-H) ---
         jm_conf_adj, jm_evidence = self._jump_model_overlay(bloc, bundle)
         evidence.update(jm_evidence)
@@ -199,6 +218,17 @@ class RegimeClassifier:
         if not signals:
             return None
         return float(np.average(signals, weights=weights))
+
+    def _abs_core_cpi_yoy(self, b: MacroFeatureBundle) -> Optional[float]:
+        """절대 core CPI yoy(%) — STAGFLATION 절대 게이트용 (z 아닌 실제 수준).
+        _inflation_signal 과 동일 시리즈(core_cpi→core_pce 폴백) 최신 yoy. None=데이터 부재."""
+        core = b.ts("core_cpi")
+        if core is None:
+            core = b.ts("core_pce")
+        if core is None or len(core) < 13:
+            return None
+        yoy = _yoy(core, 12).dropna()   # _yoy = 이미 percent(2.5=2.5%)
+        return float(yoy.iloc[-1]) if len(yoy) else None
 
     def _inflation_signal(self, b: MacroFeatureBundle) -> Optional[float]:
         """
