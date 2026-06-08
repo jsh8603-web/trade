@@ -1,0 +1,9 @@
+# SOXX R6 G1 lag 감사 (2026-06-08, 최우선)
+# ★브리핑 "t=3.24" 출처 = R4 nw_tstat(lag=20, y_20d). y_60d = NW-HAC lag=60 t=2.73 (별도, 라벨 명확화).
+# ★block 재보정 (R3 conditional block=20 < 60겹침 과소보정 의심):
+#   y_60d: block20 wcp=0.0 → block60 wcp=0.003 (낙관 보정됐으나 여전히 유의). block60 CI=[0.027,0.176] 0배제.
+# ★non-overlap (h거래일 간격):
+#   y_20d: n=143 IC=0.071 t=2.74 p=0.007 (survive)
+#   y_60d: n=47  IC=0.095 t=2.11 p=0.04  (survive, modest)
+# ★G1 PASS: non-overlap t>2 + block60 CI 0배제 = lag artifact 아님. value = fragile-but-real.
+# → G2(breadth) 진행. value 코드화 = t artifact 아니나 fragile(non-overlap 2.11) = breadth 검증 필요.

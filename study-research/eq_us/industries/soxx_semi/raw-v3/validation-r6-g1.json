@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "gate": "G1 lag 감사",
+    "horizon": "y_60d (59거래일 겹침)",
+    "brief_t324_source": "★브리핑 t=3.24 = R4 nw_tstat(lag=20, y_20d). y_60d = NW-HAC lag=60 t=2.73 (별도)",
+    "block20_issue": "★R3 conditional bootci/wcp block=20 < 60겹침 = 과소보정(CI 좁고 wc_p 낙관). G1 = block=60 재보정"
+  },
+  "y_20d": {
+    "daily_ic_mean": 0.068,
+    "daily_n": 2847,
+    "non_overlap": {
+      "n": 143,
+      "ic": 0.0707,
+      "t": 2.74,
+      "p": 0.0069,
+      "survive_t2": true
+    },
+    "block_recalib": {
+      "block20_ci": [
+        0.0257,
+        0.1054
+      ],
+      "block20_wcp": 0.0017,
+      "wcp_inflation": "block20=0.0003 → block20=0.0017",
+      "block20_ci_crosses0": false
+    },
+    "nw_hac": {
+      "lag": 20,
+      "nw_t": 3.24
+    }
+  },
+  "y_60d": {
+    "daily_ic_mean": 0.1036,
+    "daily_n": 2807,
+    "non_overlap": {
+      "n": 47,
+      "ic": 0.0951,
+      "t": 2.11,
+      "p": 0.04,
+      "survive_t2": true
+    },
+    "block_recalib": {
+      "block20_ci": [
+        0.0554,
+        0.1542
+      ],
+      "block20_wcp": 0.0,
+      "block60_ci": [
+        0.0273,
+        0.1762
+      ],
+      "block60_wcp": 0.003,
+      "wcp_inflation": "block20=0.0 → block60=0.003",
+      "block60_ci_crosses0": false
+    },
+    "nw_hac": {
+      "lag": 60,
+      "nw_t": 2.73
+    }
+  },
+  "G1_verdict": {
+    "value_y60_nonoverlap_t": 2.11,
+    "value_y60_block60_ci": [
+      0.0273,
+      0.1762
+    ],
+    "value_y60_block60_wcp": 0.003,
+    "PASS": true,
+    "interpretation": "G1 PASS: non-overlap t>2 + block60 CI 0배제 = lag artifact 아님, G2 진행"
+  }
+}
