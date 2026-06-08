@@ -32,6 +32,20 @@ SLEEVE_SIGNS: dict[str, dict[str, int]] = {
     # mega_tech: 11종 basket 통째 보유 = cross-sectional selection 대상 아님 (빈 preset).
     #   summary.yaml base_weight [0,0] + role diagnostic_no_verdict.
     "mega_tech": {},
+    # ── 한국 eq_kr 섹터 = ETF/EW 강등(자문 3R, 2026-06-09) ──────────────────────────
+    #   ★현 운용 틀(top-10 대형주 capped-EW 분기)에서 종목선택 폐기 = decision-grade(claude 3R).
+    #   10년 실측: semi 선택alpha +0.0037~−0.0147(t<1), aitech/steel 음수. horizon hold(24M/12M)는
+    #   오히려 악화 = 생존편향 인공물 의심. + 반도체는 성장주 섹터(PBR<1 단 12%)라 가치 줄자 미스매치.
+    #   ⛔"한국 가치 무효" 아님 — 이 비클이 가치 동네(소형·딥밸류)를 구조적 배제(claude: 포트폴리오
+    #   정의 불일치). 넓은 틀(소형 포함+cheapness 가중)에서 살아있는지는 별도 검증(보류). study 산물
+    #   사용처 강등(폐기 아님). within-residual-v2 부호(semi/aitech pbr−1·steel mom−1)는 SKIPPED 박제.
+}
+
+# ★한국 종목선택 강등 사유(이 틀서 폐기, 가치 무효 아님) — 넓은 틀 검증 후 부활 가능.
+SLEEVE_SIGNS_SKIPPED_KR: dict[str, str] = {
+    "semiconductor": "cs_pbr_z_24m IC−0.114 BY생존이나 성장주섹터(PBR<1 12%)+top10 capped-EW서 alpha 음/약(t<1). 가치 줄자 미스매치",
+    "aitech": "cs_pbr_z_y12m IC−0.183이나 성장주(PBR<1 27%)+이 틀서 음수(−0.0185~−0.0287)",
+    "steel": "cs_mom_12_1_reversal IC−0.181이나 운용 틀서 음수. 가치섹터(PBR<1 91%)나 소형·딥밸류 못담음",
 }
 
 # ★preset 제외 사유 박제 (consult-raw-output-mapping §3 = skip 사유 기재 의무).

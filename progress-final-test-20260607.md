@@ -1,5 +1,7 @@
 # progress — 최종 테스트 진입 정리 + e2e/테스트/자기진화 (2026-06-07)
 
+> 인계(2026-06-08): [handoff-rotation-vol-kr12-20260608.md](./handoff-rotation-vol-kr12-20260608.md) — 방어 ETF확정·rotation 예측폐기(US신호0/KR신호실재+study active 1M버그)·vol risk생존·★eq_kr 12산업 데이터완비·_KR_SUB 등록만 누락(5섹터 추가=즉시배선). 커밋 34aed37/02784ae.
+
 > # ⚑ 작업 분류 원칙 (사용자 명시 2026-06-08 — 모든 worker·phase 최우선 공통)
 > **문제(저조·손실) 발견 시, 코드 손대기 전 md/yaml(`README`·`CODEMAP`·`indicator-ledger`·`cross-regime-ledger`·`study_session`·`summary`) grep 우선 → 분류:**
 > 1. **스터디 있음 + 배선 안 됨 → 잇는다**(런타임 배선, 18축 ⑱). ⛔ 스터디한 걸 시총비례/EW로 **덮지 말 것** = **스터디 내용 기준 구현**.
@@ -77,8 +79,8 @@
 
 ## P8 — study↔런타임 미배선 전수 배선 (최종테스트=study대로 돌게, 사용자 2026-06-08 ★최우선)
 > ★사용자 재방향: 미배선 = "go-live 이연"이 아니라 **지금 최종테스트라 다 배선해야 함**. study의 "go-live 무접촉"은 라이브 매매 전제일 뿐, 백테스트는 study대로 측정해야 의미. **배선 안 된 채 도는 테스트 = study 미반영 = 무효**. 배선 최우선. ⛔불변식: production core 무단변경 금지 + off=byte-identical opt-in(W3 패턴=factor_z None이면 기존 경로) + study 덮어쓰기 금지(미국식 임의신호 X, study대로). 상세 SSOT=**handoff-wiring-gap-20260608.md**(7 subagent 배선 읽은 내용 박제).
-- [ ] **P8-A 즉시배선** (study+데이터 완비, 코드만 연결):
-  - **eq_kr rotation+selection**: `_sleeve_rotation_kr.py`(2층 업종간 rotation, active 11%, κ통과 chemical/steel/refining/telecom) + `within_industry_residual_kr.py`(3층 종목, 반도체/철강/aitech ρ0.26~0.34만 실효) → `_bt_kr_picks` 배선 + `sleeve_signals.py` 한국 부호 추가. ⛔study대로(거시 조건부 rotation: dgs2/fedfunds/jpykrw), 미국식 cheapness 임의정의 금지(=study 덮어쓰기). selection 9곳 약함=small market 구조 타당(study §3).
+- [~] **P8-A 즉시배선** ★eq_kr **배선 완료, 10년 측정 대기**(2026-06-09):
+  - **eq_kr rotation+selection** ✅배선: rotation=`_kr_rotation_apply`(`_sleeve_rotation_kr` import 복사0, PIT panel≤as_of+build_weights, 분기 3M=active 1M버그 회피, kappa 4산업 steel/chemical/telecom/refining) / selection=`_bt_kr_picks` cheapness 분기(semi/aitech cs_pbr_z·steel mom_12_1) + ★**W4 cheapness×quality(ROE)** 트랩 게이트(1년 smoke: semi −0.065→+0.0099·aitech −0.006→+0.0028 음→양) / `sleeve_signals.py` 한국 부호({pbr:-1,roe:+1}). 본체=`core/portfolio_decompose.py` SUB_SLEEVES 7→12(누락 fix). +★**⑮거래비용**(turnover×cost 한국STT0.25%/기타0.07%, §4-3 회전잠식). 채택게이트=10년 OOS(ledger §42 semi 우선/steel·aitech 위험). ⛔study대로(rotation panel=yaml §3 거시 cycle).
   - **eq_intl/reit SLEEVE_AGG 매핑**: factor β measured 완비(`factor_betas_seed.py` eq_intl/reit cell), SLEEVE_AGG 미등록만 → 매핑 추가하면 corr_prior roll-up 활성. 단 SLEEVES 차원 추가=portfolio 구성 결정(사용자).
 - [ ] **P8-B collector 구현** (데이터 게이트, 외부 수집 필요):
   - crypto 3: stablecoin_total_supply(DefiLlama)·etf_net_flow(Farside)·halving_phase(결정론 함수)

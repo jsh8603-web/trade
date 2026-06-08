@@ -361,7 +361,12 @@ from pathlib import Path as _Path
 _IND_US = _Path("study-research/eq_us/industries")
 _US_SUB = {"cyclical": "us_cyclical", "defensive": "us_defensive", "mega_tech": "us_mega_tech"}
 _IND_KR = _Path("study-research/eq_kr/industries")
-_KR_SUB = ["financial", "battery", "bio", "shipbuilding", "consumer", "chemical", "auto"]
+# ★12산업 전체 배선(2026-06-08): 데이터 12/12 완비(_bt_load_kr 검증). 직전 7섹터만 등록 = 단순
+#   누락 버그(근거 주석 부재)였음을 측정으로 정정. 추가 5: semiconductor/steel/aitech/refining/telecom.
+#   selection 등급(within-residual-v2): robust(BY생존+ρ≥0.25)=semiconductor/steel/aitech 3곳,
+#   나머지 9곳 ρ<0.25 약 → ETF/EW fallback 라우팅(_ETF_FALLBACK_ROUTING, semi/steel/aitech 미수록=.get EW).
+_KR_SUB = ["financial", "battery", "bio", "shipbuilding", "consumer", "chemical", "auto",
+           "semiconductor", "steel", "aitech", "refining", "telecom"]
 _KR_ETF_PICKS = {
     "financial": {"ticker": "091170", "aum": 6.143e11, "holdings_source": "FDR"},
     "battery": {"ticker": "305720", "aum": 2.045e12, "holdings_source": "FDR"},
@@ -491,7 +496,121 @@ def _bt_load_kr(name):
     px = pd.read_parquet(d / "prices.parquet"); px.index = pd.to_datetime(px.index)
     px.columns = [str(c) for c in px.columns]
     uni = pd.read_parquet(d / "universe.parquet"); uni["Code"] = uni["Code"].astype(str)
-    return px, uni
+    # ★study cheapness(pbr) selection 용 DART 재무(PIT key=rcept_dt). 부재 시 None=ETF/EW 경로.
+    dp = d / "dart_financials.parquet"
+    dart = None
+    if dp.exists():
+        dart = pd.read_parquet(dp); dart["code"] = dart["code"].astype(str)
+    return px, uni, dart
+
+
+def _kr_pit_equity(dart, code, as_of_ts):
+    """한국 종목 PIT 자본(book_value) — rcept_dt(공시일)≤as_of 중 최신 분기. lookahead 차단(L2b).
+
+    equity = 자본총계(시점 stock 변수, 분기 누적 무관). pbr = mktcap/equity 용. 결측 None.
+    """
+    import pandas as pd
+    if dart is None:
+        return None
+    m = dart[dart["code"] == code]
+    if m.empty:
+        return None
+    filed = pd.to_datetime(m["rcept_dt"].astype(str), format="%Y%m%d", errors="coerce")
+    vis = m[filed <= as_of_ts]
+    if vis.empty:
+        return None
+    fvis = pd.to_datetime(vis["rcept_dt"].astype(str), format="%Y%m%d", errors="coerce")
+    eq = vis.loc[fvis.idxmax(), "equity"]
+    return float(eq) if pd.notna(eq) and float(eq) > 0 else None
+
+
+def _kr_pit_roe(dart, code, as_of_ts):
+    """PIT ROE(quality) = 최신 공시 net_income/equity. ★plan W4: cheapness×quality 게이트 —
+    한국 저PBR 코리아 디스카운트(거버넌스 영구할인) 트랩 방어. 저PBR+저ROE=영구할인 자동 하위 랭크.
+    """
+    import pandas as pd
+    if dart is None:
+        return None
+    m = dart[dart["code"] == code]
+    if m.empty:
+        return None
+    filed = pd.to_datetime(m["rcept_dt"].astype(str), format="%Y%m%d", errors="coerce")
+    vis = m[filed <= as_of_ts]
+    if vis.empty:
+        return None
+    fvis = pd.to_datetime(vis["rcept_dt"].astype(str), format="%Y%m%d", errors="coerce")
+    row = vis.loc[fvis.idxmax()]
+    ni = row.get("net_income"); eq = row.get("equity")
+    if pd.notna(ni) and pd.notna(eq) and float(eq) > 0:
+        return float(ni) / float(eq)
+    return None
+
+
+def _kr_mom_12_1(px, code, as_of_ts):
+    """12-1개월 momentum(최근 1개월 skip) — steel cs_mom_12_1_reversal selection 용. 가격 PIT.
+
+    p[t-21d]/p[t-252d]-1. reversal 신호이므로 sleeve_signals 부호 −1(낮을수록 쌈). 결측 None.
+    """
+    if code not in px.columns:
+        return None
+    s = px[code][px.index <= as_of_ts].dropna()
+    if len(s) < 252:
+        return None
+    p_recent = float(s.iloc[-21]); p_base = float(s.iloc[-252])
+    return (p_recent / p_base - 1.0) if p_base > 0 else None
+
+
+_KR_ROT_CACHE = None
+
+
+def _kr_rotation_apply(subw, as_of_ts):
+    """산업간 비중 tilt — ★자문 3R 수렴: 분기 동시 신호 tilt → **정적 틸트**(회전 0).
+
+    자문(claude 3R): 거시 타이밍 로테이션은 표본외 소멸 → 시클리컬 구조 프리미엄을 정적 OW 로
+    재표현. 신호 z 제거(분기 변동 X). kappa(수축 IC robust, _sleeve_rotation_kr) 비례 고정 OW.
+    위험기여 근사: 시클리컬 묶음(steel/chemical/refining=경기민감 1베팅, 상관 高 합산 한도 +2.5%p)
+    + telecom(방어 1베팅 +1.5%p). ⚠️자문 경고 박제: 타이밍-순진(불경기 드로다운 집중), 전표본 vol
+    이 수축 조건부위험 과소(경기민감 상관은 아플 때 치솟음). 폐기조건=확장패널 재추정 무너지면.
+    """
+    global _KR_ROT_CACHE
+    import pandas as pd
+    try:
+        if _KR_ROT_CACHE is None:
+            import sys
+            import json
+            rd = str((_IND_KR / "_rotation").resolve())
+            if rd not in sys.path:
+                sys.path.insert(0, rd)
+            import _sleeve_rotation_kr as ROT
+            res = json.load(open(_IND_KR / "_rotation" / "_sleeve_rotation_kr_results.json",
+                                 encoding="utf-8"))
+            _KR_ROT_CACHE = (ROT, res["kappa"], float(res["meta"]["s_rot_calib"]))
+        _ROT, kappa, _s = _KR_ROT_CACHE
+        base_w = pd.Series(subw)
+        if base_w.sum() <= 0:
+            return subw
+        base_w = base_w / base_w.sum()
+        w = base_w.copy()
+        for grp, ow in ((["steel", "chemical", "refining"], 0.025), (["telecom"], 0.015)):
+            kpos = {i: kappa.get(i, 0.0) for i in grp if kappa.get(i, 0.0) > 0 and i in base_w.index}
+            ks = sum(kpos.values())
+            if ks <= 0:
+                continue
+            for i, k in kpos.items():
+                w[i] = base_w[i] + ow * (k / ks)   # 정적 OW(신호 z 무관), kappa 비례 배분
+        w = w.clip(lower=0.0); w = w / w.sum()
+        return {i: float(w[i]) for i in w.index if w[i] > 1e-9}
+    except Exception as exc:
+        logger.warning("kr static tilt: %r", exc)
+        return subw
+
+
+# ★study horizon holding(개월): selection 신호의 forward horizon(within-residual capsule 측정).
+#   semi pbr_z__24M_value(BY 생존 유일, 3M/6M/12M 미생존) → 24M / aitech·steel cs_*_y12m → 12M.
+#   종목 집합을 그 기간 유지(분기 리밸런싱해도 동일) = study 장기 신호를 단기로 평가하던 mismatch 해소
+#   (rotation 1M/3M 버그 §4-3 와 동형). _KR_SEL_CACHE = run_backtest 시작 시 clear(시계열 상태).
+_KR_SEL_HORIZON = {"semiconductor": 24, "aitech": 12, "steel": 12}
+_KR_SEL_CACHE: dict = {}
 
 
 def _bt_fundamentals(ed_t, tk, as_of):
@@ -640,16 +759,22 @@ def _bt_us_picks(as_of, ind_data, etf_on, real_rate_z=None):
 
 
 def _bt_kr_picks(as_of, kr_data):
-    """kr_stock 내부 종목/ETF 비중(Σ=1, gate 전) — ETF/EW fallback + 시총 시점일치."""
+    """kr_stock 내부 종목/ETF 비중(Σ=1, gate 전).
+
+    ★robust 섹터(sleeve_signals 한국 부호 등록=semi/aitech, within-residual-v2 BY생존+ρ≥0.25)
+      = study cheapness(pbr z rank) selection 경로. 약섹터 9곳 = ETF/EW fallback(미국 defensive
+      교훈: 약팩터는 capped-EW 에서 죽음). PIT pbr=mktcap/_kr_pit_equity(rcept_dt≤as_of).
+    """
     import pandas as pd
     from stock.construction import build_sleeve_decisions, _ETF_FALLBACK_ROUTING
+    from stock.sleeve_signals import signs_for
     from core.portfolio_decompose import decompose_weight
     as_of_ts = pd.Timestamp(as_of)
     mktcaps, sleeve_picks, ind_universe = {}, {}, {}
     for name in _KR_SUB:
         if name not in kr_data:
             continue
-        px, uni = kr_data[name]
+        px, uni, dart = kr_data[name]
         mcap_by = {}
         for _, row in uni.iterrows():
             code = str(row["Code"])
@@ -667,13 +792,41 @@ def _bt_kr_picks(as_of, kr_data):
             sleeve_picks[name] = {}; mktcaps[name] = 0.0; ind_universe[name] = []; continue
         mktcaps[name] = sum(mcap_by.values())
         ind_universe[name] = list(mcap_by.keys())   # ★W6: 업종 전체 유효 universe(선택 전) = 선택alpha 분모
-        routing = _ETF_FALLBACK_ROUTING.get(name, "EW")
-        etf_pk = {name: _KR_ETF_PICKS[name]} if (routing == "ETF" and name in _KR_ETF_PICKS) else None
-        try:
-            decs = build_sleeve_decisions(name, {}, mcap_by, {}, {}, deterministic_no_llm=True,
-                                          etf_fallback_routing={name: routing}, etf_picks=etf_pk)
-        except Exception as exc:
-            logger.warning("bt kr/%s build_sleeve_decisions: %r", name, exc); decs = []
+        signs = signs_for(name)   # ★study 부호 등록된 robust 섹터 = cheapness 경로
+        if signs and dart is not None:
+            _h = _KR_SEL_HORIZON.get(name, 3)
+            _prev = _KR_SEL_CACHE.get(name)
+            if _prev is not None and (as_of_ts - _prev[0]).days < _h * 30 - 10:
+                decs = _prev[1]   # ★study horizon holding(24M/12M): 종목 유지(장기 신호 단기평가 회피)
+            else:
+                panel = {m: {} for m in signs}
+                for code in mcap_by:
+                    if "pbr" in panel:
+                        eq = _kr_pit_equity(dart, code, as_of_ts)
+                        if eq:
+                            panel["pbr"][code] = mcap_by[code] / eq
+                    if "mom_12_1" in panel:
+                        mom = _kr_mom_12_1(px, code, as_of_ts)
+                        if mom is not None:
+                            panel["mom_12_1"][code] = mom
+                    if "roe" in panel:
+                        roe = _kr_pit_roe(dart, code, as_of_ts)
+                        if roe is not None:
+                            panel["roe"][code] = roe
+                try:
+                    # etf_fallback_routing 미주입 → env ETF_FALLBACK off → cheapness(횡단면 pbr z rank)
+                    decs = build_sleeve_decisions(name, panel, mcap_by, {}, {}, deterministic_no_llm=True)
+                    _KR_SEL_CACHE[name] = (as_of_ts, decs)
+                except Exception as exc:
+                    logger.warning("bt kr/%s cheapness: %r", name, exc); decs = []
+        else:
+            routing = _ETF_FALLBACK_ROUTING.get(name, "EW")
+            etf_pk = {name: _KR_ETF_PICKS[name]} if (routing == "ETF" and name in _KR_ETF_PICKS) else None
+            try:
+                decs = build_sleeve_decisions(name, {}, mcap_by, {}, {}, deterministic_no_llm=True,
+                                              etf_fallback_routing={name: routing}, etf_picks=etf_pk)
+            except Exception as exc:
+                logger.warning("bt kr/%s build_sleeve_decisions: %r", name, exc); decs = []
         picks = {}
         for dd in decs:
             tk = dd.get("ticker") or (dd.get("trade_params") or {}).get("ticker")
@@ -682,6 +835,7 @@ def _bt_kr_picks(as_of, kr_data):
                 picks[tk] = tw
         sleeve_picks[name] = picks
     subw = decompose_weight("kr_stock", 1.0, mktcaps, method="cap")
+    subw = _kr_rotation_apply(subw, as_of_ts)   # ★rotation 신호 산업간 tilt(분기 3M, PIT)
     holdings, ind_holdings = {}, {}
     for name, picks in sleeve_picks.items():
         sw = subw.get(name, 0.0); tot = sum(picks.values())
@@ -775,6 +929,7 @@ def run_backtest(start="2017-01-01", end="2026-03-31", *, etf_on=True, kr_on=Tru
           f"(allocate→업종분해→construction→종목 gate/judge 경유→회계)")
     ind_data = {n: _bt_load_us(n) for n in ("cyclical", "defensive", "mega_tech")}
     kr_data = {}
+    _KR_SEL_CACHE.clear()   # ★horizon holding 캐시 초기화(이전 run 상태 격리)
     if kr_on:
         for n in _KR_SUB:
             try:
@@ -841,6 +996,7 @@ def run_backtest(start="2017-01-01", end="2026-03-31", *, etf_on=True, kr_on=Tru
         n_judge += 1
         return {"size_mult": 1.0, "l1_size": l1_size}   # 결정론 baseline(향후 regime down-only)
 
+    prev_w: dict = {}   # ⑮거래비용 turnover 기준(직전 분기 종목/sleeve 비중)
     for i in range(len(rebal) - 1):
         d, nxt = rebal[i], rebal[i + 1]
         # ★거시배분 = 프로덕션 경로 coin_track_macro.collect_market_state(내부 allocate 호출,
@@ -968,6 +1124,20 @@ def run_backtest(start="2017-01-01", end="2026-03-31", *, etf_on=True, kr_on=Tru
                 sleeve_ret_hist[s].append(use)     # 자산군별 분기수익(Sharpe)
         if not w:
             port = float(np.mean(list(sret.values()))) if sret else 0.0
+        # ★⑮거래비용: 분기 turnover × 자산군 cost(한국 STT+수수료 ≈0.25% / 미국·ETF·coin ≈0.07%,
+        #   편도 근사). rotation 산업 tilt + selection 종목교체 회전 잠식 반영 → 진짜 순 alpha(§4-3).
+        cur_w = {}
+        for tk, x in gated.items():
+            cur_w[("us", tk)] = w_us * x
+        for tk, x in kgated.items():
+            cur_w[("kr", tk)] = w_kr * x
+        for s in sret:
+            if s not in ("us_stock", "kr_stock"):
+                cur_w[("sl", s)] = float(w.get(s, 0))
+        tcost = sum(abs(cur_w.get(k, 0.0) - prev_w.get(k, 0.0)) * (0.0025 if k[0] == "kr" else 0.0007)
+                    for k in set(cur_w) | set(prev_w))
+        port -= tcost
+        prev_w = cur_w
         nav *= (1 + port)
         navs.append(nav)
         port_seq.append(port)

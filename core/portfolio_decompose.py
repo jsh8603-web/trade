@@ -63,11 +63,13 @@ _MODULATED_FACTOR = {"defensive": "real_rate"}
 #   (us_cyclical)은 호출자(드라이버)가 "us_"+name 으로 매핑.
 SUB_SLEEVES: Dict[str, List[str]] = {
     "us_stock": ["cyclical", "defensive", "mega_tech"],
-    # kr_stock 업종(eq_kr study). etf-picks kr_picks 있는 7업종 우선 — ETF/EW fallback 위주
-    #   (sleeve_signals 한국 cheapness 부호 미정의). _ETF_FALLBACK_ROUTING: financial/battery/
-    #   shipbuilding/auto→ETF(KODEX), bio/consumer/chemical→EW(구성종목). 확장=semiconductor/telecom/
-    #   refining/steel/aitech (etf-picks 부재→EW 강등).
-    "kr_stock": ["financial", "battery", "bio", "shipbuilding", "consumer", "chemical", "auto"],
+    # kr_stock 업종(eq_kr study) = 12산업 전수 배선(2026-06-08). 직전 7업종 = 미완 배선(데이터
+    #   12/12 완비인데 SUB_SLEEVES 미등록으로 decompose_weight 가 5섹터 비중=0 처리 = ⑱축 누락).
+    #   _ETF_FALLBACK_ROUTING: financial/battery/shipbuilding/auto→ETF(KODEX), 나머지→EW(구성종목,
+    #   semiconductor/steel/aitech 는 .get fallback=EW). selection 부호(within-residual-v2)는 robust
+    #   3곳(semi/steel/aitech, BY생존+ρ≥0.25)만 후속 배선 — 현 단계 = 12산업 ETF/EW 배분.
+    "kr_stock": ["financial", "battery", "bio", "shipbuilding", "consumer", "chemical", "auto",
+                 "semiconductor", "steel", "aitech", "refining", "telecom"],
 }
 
 
