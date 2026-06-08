@@ -1,5 +1,5 @@
 ---
-next-action: "eq_kr 완결 후 잔여 배선·데이터게이트 과제 모두 자율 진행: (1)eq_intl/reit SLEEVE_AGG 매핑(배분 sleeve 신설=portfolio 구성, 사용자 결정 필요) (2)P8-B collector 데이터게이트 구현(crypto 3·commodity 10·bond 5) (3)P8-C eq_us _sleeve_rotation base/조절(예측 STATIC 종결+W3 real_rate 조절 배선됨, inverse-vol base는 W1) (4)W5 VIXCLS vintage first_release fallback (5)P7 17축 분기별 손실 attribution (6)refining 부호충돌 확정(study results +0.30 vs deep −0.249 측정방식 대조). ⛔production core/stock 무단변경+off=byte-identical+push·go-live 미접촉."
+next-action: "★잔여 6과제 중 4개 완료(2026-06-09): refining 부호충돌 확정(517e11e)·W5 VIXCLS vintage 검증(f2cf157)·P8-C eq_us rotation 종결(f2cf157)·P7 분기별 손실 attribution 완결(6f6ffc9, NAV4.647 worst 3분기 L1 베타귀속). ▸**사용자 결정 대기 2건**(번호텍스트 Q1/Q2 발송): (Q1) eq_intl/reit SLEEVE_AGG=배분 sleeve 신설 여부(SLEEVES 7→9 portfolio 결정, 권고 현행유지) (Q2) P8-B collector 빌드 시점(3-tier 분류 박제 f038c63, 신호 미채택이라 권고 보류). 답 수신 시 진행. ⛔production core/stock 무단변경+off=byte-identical+push·go-live 미접촉."
 session: btn-Inv (opus, long-mode ON2 750k)
 date: 2026-06-09
 tags: [type/handoff, topic/eq-kr-residual, domain/multiasset]
