@@ -1,0 +1,17 @@
+# SOXX R6 G3 생존편향 + G4 판정 (2026-06-08)
+# ★G3 생존편향: 피인수·상폐 반도체(XLNX/MXIM/ALTR/MLNX/IDTI 등) 가격 = yfinance "delisted, no data" (CAVM 1종만 가용).
+#   = 생존편향 보정 historical 가격 무료 부재(CRSP/Compustat 유료) = I축 data-gate 확정(R2~R4 기박제).
+# ★G3 간접 답: "core 12종 value IC(t=2.25)가 생존편향 부풀림인가?" → G2가 답.
+#   breadth 확장(중소형 21종 추가, 일부 부진 종목)서 value 0.109→0.024 소멸 = value는 "살아남은 우량 대형주" 집중 신호
+#   = 생존편향과 같은 방향(승자 집중). 상폐 부진종목 추가하면 IC 더 약화 명백(G2 패턴).
+#
+# ★★G4 최종 판정 (3관문):
+#   G1 PASS (lag artifact 아님, non-overlap t>2 + block60 CI 0배제)
+#   G2 FAIL (breadth 확장 value 소멸 = NVDA·AVGO 2-name position, factor 미입증)
+#   G3 data-gate (생존편향 보정 불가 + G2가 같은 방향 시사)
+#   → ★value 코드화 불가 확정 (factor 미입증, 2-name position). low_vol = REJECTED-as-constructed (R5b).
+#   → ★SOXX selection = 코드화 가능 매도신호 수준 미달 = null result.
+#
+# ★§방향보존: "value 무효" 아님. 현 측정 가능 틀(대형주 12종 / 광의 33종 EW)에서 코드화 factor 신호 아님 = 범위한정.
+#   value 자체는 대형주 2-name(NVDA·AVGO)에 존재하나 = position이지 systematic factor 아님 = ledger/yaml 채택 불가.
+#   ★승격 잔여 경로(미래): CRSP/Compustat 생존편향-free + 딥밸류 소형(현 XSD보다 더 광의) universe = 별도 data unblock.

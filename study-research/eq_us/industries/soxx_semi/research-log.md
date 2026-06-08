@@ -28,13 +28,21 @@ purpose: SOXX 반도체 granular 파일럿 R1~R5 작업 로그 + 8파일 체계 
 - **R4** (보정): overlapping NW-HAC + family-2 block-cluster + BY-FDR + AI episode. tier 확정 = value·low_vol PARTIAL_CONFIRMED. 커밋 6a7c459.
 - **R5** (마무리): candidate-ledger 6분류 최종 + GUIDE §12 교훈 명문화 + research-log.
 
-## ★핵심 결과
+- **R5b** (자문 4게이트): value over-claim 정정 — leave-NVDA·AVGO retention 0.044 = 2-name position. low_vol = anti-BAB misspec KILL. 커밋 8786a1f.
+- **R6** (코드화 확정): G1 lag PASS → ★G2 breadth FAIL(중소형 21종 추가 시 value IC 0.109→0.024 소멸) → G3 생존편향 data-gate → ★G4 value 코드화 불가(null result). 커밋 0b158a8/71a9c16.
 
-- **value (저PBR/저EV-EBITDA)** = PARTIAL_CONFIRMED (NW-HAC y60 t=2.73 + BY 생존 + pre-AI robust, 생존편향 상한).
-- **low_vol/BAB** = PARTIAL_CONFIRMED (신규 발견, NW-HAC t=−2.8~−3.1 + BY 생존).
-- quality·momentum = REJECTED. value+quality 결합 = REJECTED(Novy-Marx 통설 반증).
-- conditional 증폭 = TENTATIVE/격하(overlapping 보정 후 붕괴).
-- ★SOXX = PARTIAL_CONFIRMED 확정(freeze 아님). CONFIRMED 승격 = 생존편향 historical + DFII10 unblock 후.
+## ★핵심 결과 (R6 최종)
+
+- **value (저PBR/저EV-EBITDA)** = ★**코드화 불가 / NVDA·AVGO 2-name position** (factor 미입증). G1 lag artifact 아님(non-overlap t>2) BUT G2 breadth 확장 시 소멸(IC 0.109→0.024, retention −0.257). ⛔§방향보존: value 무효 아닌 범위한정.
+- **low_vol/BAB** = REJECTED-as-constructed (anti-BAB misspec, KILL).
+- quality·momentum·value+quality 결합 = REJECTED.
+- ★SOXX selection = **null result** (코드화 가능 매도신호 수준 미달). ★사용자 가설(breadth 확장하면 살아난다) = 데이터 반박.
+- ★승격 잔여 = CRSP 생존편향-free + 딥밸류 소형(XSD보다 광의) data unblock 후 재측정.
+
+## ★자산화 교훈 (자문/사용자 가설 3건 falsify)
+1. Novy-Marx value+quality 결합 강화 → quality 무신호로 희석(반증).
+2. momentum 미국 작동 → OOS 부호반전(반증).
+3. ★breadth 확장하면 value 살아난다 → 중소형 추가 시 소멸(반증). = value는 대형주 2-name position.
 
 ## data-gate (unblock 대기)
 

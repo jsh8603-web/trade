@@ -204,8 +204,16 @@ conditional_ic_surface:
     tier_final: >
       ★R5 게이트 최종 정정 (PARTIAL_CONFIRMED 2건 강등): value = ★weak/2-name-concentration(NVDA·AVGO bet, factor 아님 —
       retention 0.044). low_vol = ★REJECTED-as-constructed(anti-BAB misspec, KILL). quality·mom·결합 = REJECTED.
-      conditional 증폭 = 격하(overlapping 붕괴). ★자문 정정 채택(falsify 적중) = value over-claim(2-name) + low_vol over-claim(misspec).
-      not-artifact 단서(value): 단조 항기간구조 + pre-AI p=0.003 = 신호 존재하나 factor 아닌 2-name 집중.
+  r6_gates:  # ★R6 코드화 가능/불가 확정 (사용자 "코드화 못 가면 더 봐", validation-r6-g1/g2.json)
+    g1_lag: "★PASS — IC=daily(gap1d), block20→block60 wcp 0.0→0.003(낙관 보정, 여전 유의), non-overlap y20 t=2.74/y60 t=2.11(>2 생존). lag artifact 아님"
+    g2_breadth: >
+      ★FAIL — XSD 광의 33종(현12+중소형21, EDGAR fetch 33,457rows): core 12종 y60 IC=0.109 t=2.25 → ★broad 33종 IC=0.024 t=0.36(비유의 붕괴).
+      leave-NVDA·AVGO retention(broad)=−0.257(부호반전). = ★breadth 확장이 value 살리는 게 아니라 소멸 = value는 대형주 2-name position(중소형 반도체엔 value premium 부재).
+    g3_survivorship: "data-gate — 피인수·상폐(XLNX/MXIM/ALTR/MLNX) 가격 yfinance 부재(CRSP 유료). G2가 같은 방향 시사(상폐 추가시 IC 더 약화)"
+    g4_verdict: >
+      ★★value 코드화 불가 확정 (factor 미입증, NVDA·AVGO 2-name position). low_vol = REJECTED-as-constructed. = SOXX selection
+      코드화 가능 매도신호 수준 미달 = ★null result. ⛔§방향보존: "value 무효" 아님 — 현 측정 틀(대형주/광의 EW)서 코드화 factor
+      신호 아님 = 범위한정. 대형주 2-name엔 존재하나 position이지 systematic factor 아님. 승격 잔여 = CRSP 생존편향-free + 딥밸류 소형 data unblock.
 
 # ── Hard-fail 4 (B C D I) self-check ──
 hard_fail_self_check:
@@ -219,23 +227,25 @@ hard_fail_self_check:
       무료부재(CRSP/Compustat 유료). → ★TENTATIVE 상한(CONFIRMED 금지). I축 PARTIAL.
 
 # ── verdict (small-n rule) ──
-verdict_label: PARTIAL          # ★전체 = PARTIAL (value·low_vol PARTIAL_CONFIRMED, conditional 격하, 생존편향 상한)
+verdict_label: NULL_RESULT      # ★R6 최종 = 코드화 불가(매도신호 수준 미달). value=2-name position / low_vol=KILL. §방향보존: value 무효 아닌 범위한정
 verdict_detail:
   value: >
-    ★PARTIAL_CONFIRMED (unconditional) — y_60d IC +0.104, ★NW-HAC overlapping 보정 후 y20 t=3.24/y60 t=2.73 유의 +
-    BY-FDR 생존 + pre-AI(rate_low p=0.003) robust + OOS +0.085. ★단 생존편향 I축 PARTIAL = CONFIRMED 불가(TENTATIVE 상한).
-    value 단독 채택(결합은 quality 무신호로 희석). ★conditional rate-extreme 증폭 = family-2 overlapping 보정 후 붕괴(t=1.31) = 격하.
+    ★R6 코드화 불가 (factor 미입증). core 12종 y_60d IC +0.109 t=2.25 modest BUT ★G2 breadth(33종) 확장 시 IC 0.024 t=0.36
+    소멸 + leave-NVDA·AVGO retention −0.257 = ★NVDA·AVGO 2-name position(중소형 반도체엔 value premium 부재). G1 lag artifact
+    아님(non-overlap t>2) but G2 factor 미입증 → ledger/yaml 채택 불가. ⛔§방향보존: "value 무효" 아님 = 현 측정 틀(대형주/광의
+    EW)서 코드화 factor 신호 아닌 범위한정. 대형주 2-name엔 존재(position). 승격 잔여 = CRSP 생존편향-free + 딥밸류 소형 data unblock.
   low_vol: >
-    ★PARTIAL_CONFIRMED (unconditional) — y_60d IC −0.118, NW-HAC y20 t=−3.11/y60 t=−2.83 + BY 생존 + pre-AI 방향유지.
-    BAB 신규 발견. ★생존편향 상한. conditional credit_high 증폭 = overlapping 보정 후 붕괴(t=−1.42) = 격하.
+    ★REJECTED-as-constructed (R5b 확정) — raw IC −0.118 = anti-BAB(고변동 outperform=BAB 반대 부호) + pre-AI t=−1.33 +
+    직교(beta·mom) t=1.71 SAVE 미달. = AI 고베타를 저변동으로 misspec 포장. KILL.
   quality: "REJECTED(무신호) — 전 horizon/regime/family-2 비유의. value+quality 결합 희석 원인(Novy-Marx 통설 반증)."
   mom_12_1: "REJECTED — uncond NW-HAC 비유의 + rate_high family-2 overlapping 보정 후 붕괴(t=1.38) + OOS 부호반전(unstable)."
   rev_1m: "conditional only — y_60d −0.060(NW-HAC t=−2.52 유의) + credit_high family-2 block-cluster t=2.07(유일 잔존). 약."
 verdict_note: >
-  ★FREEZE 철회 + R4 보정 후 tier 확정. 미국 반도체 within-sector value-selection = (D) 부분 정당: ★value·low_vol(BAB)
-  unconditional = PARTIAL_CONFIRMED (NW-HAC overlapping 보정 후 유의 t>2.7 + BY-FDR 10셀 생존 + pre-AI robust). ★단
-  생존편향 I축 PARTIAL(현 holdings only) = CONFIRMED 불가 = TENTATIVE 상한. ★conditional regime 증폭 = family-2
-  overlapping 보정 후 붕괴(day-cluster t4~6 = artifact) = 격하. ★자문 통설 2건 반증: Novy-Marx value+quality 결합강화(quality
-  희석) + momentum 미국 작동(OOS 부호반전). ★data-gate: DFII10 실질금리 재fetch=sandbox timeout(rate10y=nominal 유지) +
-  생존편향 보강(historical membership) = R5 unblock 후 tier 재판정(PARTIAL_CONFIRMED→CONFIRMED 승격 조건). R3 단일
-  horizon freeze = horizon 누락 오판(team-lead 지적 실증).
+  ★★R6 최종 = SOXX selection 코드화 불가 (null result). 진화 경로: R3 freeze → conditional 철회(horizon 누락) → R4 보정
+  PARTIAL_CONFIRMED → R5b 게이트 강등(value 2-name/low_vol KILL) → ★R6 3관문(G1 lag PASS / G2 breadth FAIL / G3 생존편향
+  data-gate) = value 코드화 불가 확정. ★G2 핵심: XSD 광의 33종(중소형 21종 추가) 확장 시 value IC 0.109→0.024 소멸 +
+  leave-NVDA·AVGO retention −0.257 = ★value premium은 대형주 NVDA·AVGO 2-name position이지 systematic factor 아님(중소형
+  반도체엔 부재). = 사용자 "breadth 확장하면 살아난다" 가설 데이터 반박. ⛔§방향보존: "value 무효" 단정 아님 = 현 측정 틀에서
+  코드화 가능 factor 신호 아닌 ★범위한정. ★자문 통설 3건 반증: Novy-Marx 결합강화(quality 희석) + momentum 미국 작동(OOS
+  반전) + breadth가 value 살린다(소멸). ★승격 잔여 경로: CRSP 생존편향-free universe + 딥밸류 소형(XSD보다 광의) data unblock
+  후 재측정. 그 전엔 ledger/yaml 채택 금지(null result 박제). quality·mom·low_vol·결합 = REJECTED.

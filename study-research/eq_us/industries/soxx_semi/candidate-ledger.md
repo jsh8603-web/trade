@@ -27,14 +27,16 @@ status: ★R3 conditional 측정 완료 — FREEZE 철회, value/low_vol(BAB) �
 | quality(ROIC) | 무 | 비유의 | 미생존 | — | ★REJECTED(무신호) = 결합 희석 원인 |
 | value+quality 결합 | +0.030 | — | — | — | ★REJECTED(Novy-Marx 통설 반증) |
 
-## 🟡 약신호 / 조건부 (R5 게이트 후 — ★PARTIAL_CONFIRMED 강등, factor 미입증)
+## 🚫 코드화 불가 / null result (★R6 3관문 확정 — 사용자 "코드화 못 가면 더 봐")
 
-| 지표 | family | tier | 근거 (R5 4게이트, validation-conditional.md §5-ter) |
+| 지표 | family | ★최종 verdict | 근거 (R6 G1~G4, validation-r6-g1/g2.json) |
 |---|---|---|---|
-| **value** (저PBR/저EV-EBITDA z) | value | ★**weak / 2-name-concentration** (PROVISIONAL, R4 PARTIAL_CONFIRMED 강등) | non-overlap t=2.11 p=0.04 modest BUT ★leave-NVDA·AVGO retention=**0.044**(<0.40) = position-not-factor. 두 종목 빼면 IC 0.104→0.005 소멸. ★factor 아닌 2-name bet. not-artifact 단서(단조 항기간구조+pre-AI p=0.003)이나 breadth 부재 |
+| **value** (저PBR/저EV-EBITDA z) | value | ★**코드화 불가 / NVDA·AVGO 2-name position** (factor 미입증) | G1 lag PASS(non-overlap y60 t=2.11, block60 CI 0배제 = artifact 아님) BUT ★G2 breadth FAIL: 광의 33종(중소형 21 추가) 확장 시 IC 0.109→**0.024**(t=0.36 소멸) + leave-NVDA·AVGO retention(broad)=**−0.257**(부호반전). G3 생존편향 data-gate. = ★value premium은 대형주 2-name(NVDA·AVGO)에만, 중소형엔 부재 |
 
-> ★value = 신호 존재하나 **NVDA·AVGO 2-name 집중**(factor 미입증). DOWNGRADE 트리거 충족(leave-2-out retention<0.70).
-> ★승격 = 생존편향 historical universe 확장(breadth↑) 후 retention 재측정. 현 = PROVISIONAL-weak, ⛔ factor 채택 금지.
+> ★value = 코드화 가능 systematic factor **아님**(2-name position). ⛔§방향보존: "value 무효" 단정 **아님** = 현 측정 틀
+> (대형주 12종 / 광의 33종 EW)서 코드화 factor 신호 아닌 **범위한정**. 대형주 2-name엔 존재(position). ★사용자 "breadth
+> 확장하면 살아난다" 가설 = 데이터 반박(중소형 추가 시 소멸). ★승격 잔여 = CRSP 생존편향-free + 딥밸류 소형(XSD보다 광의)
+> data unblock 후 재측정. 그 전 ⛔ ledger/yaml 채택 금지(null result).
 
 ## ❌ 측정했으나 미달 / KILL (R3~R5 forward-IC 박제, 정직)
 
