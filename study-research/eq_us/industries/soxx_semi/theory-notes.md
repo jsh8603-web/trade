@@ -221,3 +221,21 @@ ssot_prior: [eq_us/industries/us_cyclical/theory-notes.md (peak-EPS / asset-grow
 - ⛔ R2 검증 전 박제 금지: Asness-Porter-Stevens(2000 WP), Cohen-Polk-Vuolteenaho(2003 Value Spread) — within-industry value
   핵심 근거이나 미확인 → R2 cross-verify 통과 전 yaml prior 박제 금지.
 - AQR Fact/Fiction(2014) = ★학술저널 아님(운용사 WP) 명시 = within-industry value 주장의 peer-review weight 낮음.
+
+---
+
+## 7. ★R1 15축 자가체크 (R1 적용 축 = A 이론실재 / E 환각 / F 반증조건)
+
+> R1 = 이론·가설 정련. B(실데이터)·C(추적성)·D(PIT)·I(생존편향)·J~O = R3/R4 실측·wire 단계 축 = R1 적용 N/A
+> (단 round-1 §5~6 에 사전 hazard 박제). R1 판정 가능 축만 self-check. ⛔ self-audit 는 참고, R4 독립 audit 가 최종.
+
+| 축 | R1 적용 | 판정 | 근거 |
+|---|---|---|---|
+| **A 이론 학습 실재성** | ✅ | **PASS** | §1·§4 모든 신호 저자·연도·저널 명시(FF1992/93, Novy-Marx2013 JFE, QMJ2019 JFE, Cooper-Gulen-Schill2008, Jegadeesh-Titman1993, Frazzini-Pedersen2014 JFE, Fama-French1989). 자문 복붙 아님=본인 종합(value-trap·peak-EPS·sub-industry 오염). ⚠️ 미검증 4건 R2 cross-verify 전 박제 금지 명시 |
+| **E 환각 cross-verify** | ✅ | **PASS (적발 실효)** | §6.1 FRED id 11건 실존검증(curl http) → ★3건 날조 적발(404) + UMCSENT 라벨오류 + NAPM discontinued → collector_plan 제거. §6.2 학술인용 환각상태 분류(CONFIRMED 7 / R2확인 3 / 박제금지 2) |
+| **F 반증가능 + 기각** | ✅ | **PASS** | §4.2 사전등록 반증조건 4종 + round-1 H1~H5 predicted_sign 사전고정. ★기각 ≥1건 발생: book-to-bill(κ) drop(데이터 사망+주가선행) + dollar 단독신호 기각(Bruno-Shin 도달약) = p-hacking 냄새 회피 |
+| **G effective-N** | ⚠️부분 | tier 인지 | §4.3 N=12 단월 IC SE≈0.30 → 검정력 시계열에서. R3 fixed-b eff_N 선행 의무 |
+| **H 미해결 의문** | ✅ | **PASS** | round-1 §6 = sub-industry 이질성/생존편향/미검증인용/AI reflexivity/eff_N 솔직 기재(공란 아님) |
+
+★**R1 self-check 결론**: A/E/F PASS. ★E축 = 환각 적발 실효(FRED id 3건 날조 제거) + F축 = 기각 2건(book-to-bill / dollar
+단독) = 동어반복 가설 회피. B·C·D·I hard-fail 축은 R3/R4 실측 시 평가(R1 사전 hazard = round-1 §5~6 박제 완료).
