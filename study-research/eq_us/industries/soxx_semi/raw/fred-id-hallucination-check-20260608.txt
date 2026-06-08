@@ -1,0 +1,15 @@
+# FRED series id 실존검증 로그 (2026-06-08, E축 환각검증)
+# method: curl https://fred.stlouisfed.org/graph/fredgraph.csv?id=ID → http code
+TWNEXPCESEMIT  404  날조(환각)
+KORXTOTLSEMISME 404  날조(환각)
+SINI           404  날조(환각)
+UMCSENT        200  실존하나 = Univ Michigan Consumer Sentiment (라벨오류 환각)
+NAPM           404  discontinued(환각)
+BAMLH0A0HYM2   200  실존 (HY OAS, 2023-05~ 37mo)
+BAA            200  실존 (Baa corp yield)
+AAA            200  실존 (Aaa corp yield) → Baa-Aaa 장기 proxy
+ISRATIO        200  실존 (전 제조 재고/출하, 반도체 비특정)
+PCU33443344    200  실존 (반도체 PPI, regime conditioner 후보)
+A34SNO         200  실존 (일반 제조 신규주문, 반도체 비특정)
+DFII10         000  timeout(404 아님)=실존, 일별 대용량. macro.parquet rate10y
+DTWEXBGS       000  timeout(404 아님)=실존, 일별 대용량. macro.parquet dollar
