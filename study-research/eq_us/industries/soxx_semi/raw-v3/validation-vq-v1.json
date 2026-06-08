@@ -1,0 +1,253 @@
+{
+  "meta": {
+    "universe": [
+      "NVDA",
+      "AVGO",
+      "AMD",
+      "QCOM",
+      "TXN",
+      "MU",
+      "ADI",
+      "LRCX",
+      "KLAC",
+      "AMAT",
+      "INTC",
+      "MCHP"
+    ],
+    "n_stocks": 12,
+    "split": "IS 2015-2021 / OOS 2022-2026",
+    "survivor_bias": "PARTIAL — 현 holdings only, historical membership 무료부재. TENTATIVE 상한",
+    "note": "value=저PBR/저EV-EBITDA z 평균, quality=ROIC z, vq=value+quality 결합"
+  },
+  "full": {
+    "value": {
+      "label": "value__full",
+      "ic_mean": 0.075,
+      "ci_95": [
+        0.0184,
+        0.132
+      ],
+      "wc_p": 0.0035,
+      "n_months": 136,
+      "eff_n": 124.3,
+      "t_fixedb": 2.5,
+      "avg_universe_n": 11.7
+    },
+    "quality": {
+      "label": "quality__full",
+      "ic_mean": 0.0195,
+      "ci_95": [
+        -0.0389,
+        0.0771
+      ],
+      "wc_p": 0.4715,
+      "n_months": 136,
+      "eff_n": 95.6,
+      "t_fixedb": 0.63,
+      "avg_universe_n": 11.7
+    },
+    "value+quality": {
+      "label": "value+quality__full",
+      "ic_mean": 0.0302,
+      "ci_95": [
+        -0.0226,
+        0.0805
+      ],
+      "wc_p": 0.233,
+      "n_months": 136,
+      "eff_n": 117.4,
+      "t_fixedb": 1.1,
+      "avg_universe_n": 11.7
+    },
+    "momentum_12_1": {
+      "label": "momentum_12_1__full",
+      "ic_mean": 0.0089,
+      "ci_95": [
+        -0.0504,
+        0.0629
+      ],
+      "wc_p": 0.7595,
+      "n_months": 124,
+      "eff_n": 124.0,
+      "t_fixedb": 0.29,
+      "avg_universe_n": 12.0
+    }
+  },
+  "IS": {
+    "value": {
+      "label": "value__IS",
+      "ic_mean": 0.0623,
+      "ci_95": [
+        -0.0058,
+        0.1414
+      ],
+      "wc_p": 0.0795,
+      "n_months": 84,
+      "eff_n": 70.9,
+      "t_fixedb": 1.59,
+      "avg_universe_n": 11.5
+    },
+    "quality": {
+      "label": "quality__IS",
+      "ic_mean": 0.0358,
+      "ci_95": [
+        -0.0313,
+        0.1157
+      ],
+      "wc_p": 0.347,
+      "n_months": 84,
+      "eff_n": 50.7,
+      "t_fixedb": 0.82,
+      "avg_universe_n": 11.5
+    },
+    "value+quality": {
+      "label": "value+quality__IS",
+      "ic_mean": 0.0371,
+      "ci_95": [
+        -0.0263,
+        0.1107
+      ],
+      "wc_p": 0.309,
+      "n_months": 84,
+      "eff_n": 70.9,
+      "t_fixedb": 1.04,
+      "avg_universe_n": 11.5
+    },
+    "momentum_12_1": {
+      "label": "momentum_12_1__IS",
+      "ic_mean": -0.03,
+      "ci_95": [
+        -0.1,
+        0.0487
+      ],
+      "wc_p": 0.4495,
+      "n_months": 72,
+      "eff_n": 56.3,
+      "t_fixedb": -0.7,
+      "avg_universe_n": 12.0
+    }
+  },
+  "OOS": {
+    "value": {
+      "label": "value__OOS",
+      "ic_mean": 0.0955,
+      "ci_95": [
+        -0.0097,
+        0.166
+      ],
+      "wc_p": 0.0185,
+      "n_months": 52,
+      "eff_n": 51.0,
+      "t_fixedb": 1.97,
+      "avg_universe_n": 12.0
+    },
+    "quality": {
+      "label": "quality__OOS",
+      "ic_mean": -0.0067,
+      "ci_95": [
+        -0.1077,
+        0.0705
+      ],
+      "wc_p": 0.882,
+      "n_months": 52,
+      "eff_n": 34.3,
+      "t_fixedb": -0.13,
+      "avg_universe_n": 12.0
+    },
+    "value+quality": {
+      "label": "value+quality__OOS",
+      "ic_mean": 0.0191,
+      "ci_95": [
+        -0.0733,
+        0.0937
+      ],
+      "wc_p": 0.6055,
+      "n_months": 52,
+      "eff_n": 46.9,
+      "t_fixedb": 0.44,
+      "avg_universe_n": 12.0
+    },
+    "momentum_12_1": {
+      "label": "momentum_12_1__OOS",
+      "ic_mean": 0.0628,
+      "ci_95": [
+        -0.0185,
+        0.1393
+      ],
+      "wc_p": 0.021,
+      "n_months": 52,
+      "eff_n": 52.0,
+      "t_fixedb": 1.2,
+      "avg_universe_n": 12.0
+    }
+  },
+  "sub_industry_neutral": {
+    "value+quality": {
+      "label": "vq__sub_neutral_full",
+      "ic_mean": 0.0587,
+      "ci_95": [
+        0.0108,
+        0.1091
+      ],
+      "wc_p": 0.0125,
+      "n_months": 136,
+      "eff_n": 125.3,
+      "t_fixedb": 2.32,
+      "avg_universe_n": 10.7
+    },
+    "note": "memory(MU) n=1 = demean시 신호소실(NaN). N_eff=8 MDE 0.091. ★robustness only"
+  },
+  "decomposition": {
+    "value+quality": {
+      "gamma": 0.00281,
+      "t_clustered": 0.71,
+      "n_obs": 1591,
+      "n_months": 136
+    },
+    "note": "within-month demean = within-sector 예측성분 γ. null(CI 0 or t<2) → (C) freeze"
+  },
+  "value_clean": {
+    "note": "PBR 자본잠식(equity<0, MCHP 3mo) 제외 + EV/EBITDA 평균. value premium robustness.",
+    "full": {
+      "ic_mean": 0.0679,
+      "ci_95": [
+        0.0141,
+        0.1202
+      ],
+      "wc_p": 0.008,
+      "n_months": 136,
+      "pos_ratio": 0.57
+    },
+    "IS_2015_2021": {
+      "ic_mean": 0.0508,
+      "n_months": 84,
+      "pos_ratio": 0.52
+    },
+    "OOS_2022_2026": {
+      "ic_mean": 0.0955,
+      "n_months": 52,
+      "pos_ratio": 0.63
+    },
+    "components": {
+      "PBR_clean_IC": 0.059,
+      "EV_EBITDA_IC": 0.0599,
+      "note": "두 컴포넌트 일관(양, 유사 크기)"
+    }
+  },
+  "freeze_verdict": {
+    "value_clean_full_IC": 0.0679,
+    "full_MDE": 0.072,
+    "value_clean_vs_MDE": "경계 미달(약, 0.068<0.072)",
+    "value_quality_combined_IC": 0.0302,
+    "team_lead_MDE": 0.107,
+    "combined_vs_MDE": "★미달(0.030<0.107) = freeze 조건 충족",
+    "quality_ROIC_IC": 0.0195,
+    "quality_status": "무신호(wc_p 0.47) = value 희석 원인",
+    "decomposition_gamma": 0.00281,
+    "gamma_t": 0.71,
+    "gamma_status": "null(t<2) = (C) freeze 트리거",
+    "momentum_status": "부호 불안정(IS -0.03 / OOS +0.063, 둘다 비유의) = reversal도 momentum도 미입증",
+    "VERDICT": "★(C) FREEZE 권고: value+quality 결합 MDE 미달 + decomposition γ null. 단 value 단독 약 robust(wc_p 0.008) → value-selection 부분 근거. ★자문 통설(결합 강화) 우리 데이터 falsify(quality 희석).",
+    "tier": "TENTATIVE 상한(생존편향 I축 PARTIAL: 현 holdings only, historical membership 무료부재) + small-n + value 단독만 marginal"
+  }
+}
