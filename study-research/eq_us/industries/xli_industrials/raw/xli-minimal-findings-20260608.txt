@@ -1,0 +1,12 @@
+# XLI(산업재) minimal selection 검증 (2026-06-08, §13 VERIFY 2순위, 마지막 early-stop 체크)
+# universe: XLI top-cap 39종(현 holdings, EW, breadth 큼). EDGAR 64,776 rows.
+# factor: value=EV/EBITDA·FCF-yield / quality=ROIC·gross profitability.
+# ★측정 (non-overlap t primary, y60):
+#   value 결합 IC=0.033 t=1.21 (결합 비유의) BUT value_fcfy t=2.05(y20 2.91) + value_evebitda t=2.02 = ★단독 t>2 생존
+#   quality(ROIC -0.012/gpa 0.002) = 무신호
+# ★leave-top2(CAT·GE) retention y60=0.52 = kill PASS, 의미 있음(XLF IC~0 무의미와 달리 value 일부 실재).
+# ★sub-sector sign-cancel(자문 R3 적중): machinery +0.043 / multi +0.040 / services +0.030 (양) vs aero_def -0.005 / transport ~0
+#   = 결합 value 약화는 cyclical-β bleed 탓.
+# ★판정: minimal 게이트 PASSIVE(결합 t<2)이나 ⛔완전 dead 아님 — FCF-yield 단독 t>2 + sub-sector split 잠재.
+#   = XLF(완전 부재 t=0.45)와 차이. main 판단: early-stop 확정 vs XLI deeper(sub-sector-neutralize FCF-yield).
+# ⛔§방향보존: 산업재 value 영구 무효 아님 = 범위한정. Reopen = CRSP + sub-sector FCF-yield deeper.

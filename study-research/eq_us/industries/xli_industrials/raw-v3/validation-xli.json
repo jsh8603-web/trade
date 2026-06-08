@@ -1,0 +1,173 @@
+{
+  "meta": {
+    "universe": "XLI top-cap 39종(현 holdings, EW, breadth 큼)",
+    "factors": "value=EV/EBITDA·FCF-yield / quality=ROIC·gross profitability",
+    "survivor_flag": "★XLI survivorship 낮은 편(M&A 적음)이나 명시 — 현-holdings-only = 부진 편출 종목 누락 = value-IC 약 upper-bound"
+  },
+  "value": {
+    "y_20d": {
+      "daily_ic": 0.0291,
+      "nonoverlap_n": 150,
+      "nonoverlap_t": 1.68,
+      "p": 0.095,
+      "block_ci": [
+        0.0047,
+        0.0524
+      ],
+      "survive_t2": false
+    },
+    "y_60d": {
+      "daily_ic": 0.0333,
+      "nonoverlap_n": 50,
+      "nonoverlap_t": 1.21,
+      "p": 0.2332,
+      "block_ci": [
+        -0.002,
+        0.0735
+      ],
+      "survive_t2": false
+    }
+  },
+  "value_evebitda": {
+    "y_20d": {
+      "daily_ic": 0.0278,
+      "nonoverlap_n": 150,
+      "nonoverlap_t": 1.72,
+      "p": 0.087,
+      "block_ci": [
+        0.0046,
+        0.0515
+      ],
+      "survive_t2": false
+    },
+    "y_60d": {
+      "daily_ic": 0.0408,
+      "nonoverlap_n": 50,
+      "nonoverlap_t": 2.02,
+      "p": 0.0485,
+      "block_ci": [
+        0.01,
+        0.0773
+      ],
+      "survive_t2": true
+    }
+  },
+  "value_fcfy": {
+    "y_20d": {
+      "daily_ic": 0.047,
+      "nonoverlap_n": 150,
+      "nonoverlap_t": 2.91,
+      "p": 0.0042,
+      "block_ci": [
+        0.0239,
+        0.0728
+      ],
+      "survive_t2": true
+    },
+    "y_60d": {
+      "daily_ic": 0.0562,
+      "nonoverlap_n": 50,
+      "nonoverlap_t": 2.05,
+      "p": 0.0457,
+      "block_ci": [
+        0.0189,
+        0.0966
+      ],
+      "survive_t2": true
+    }
+  },
+  "quality_roic": {
+    "y_20d": {
+      "daily_ic": -0.0024,
+      "nonoverlap_n": 150,
+      "nonoverlap_t": -0.4,
+      "p": 0.6927,
+      "block_ci": [
+        -0.0263,
+        0.0237
+      ],
+      "survive_t2": false
+    },
+    "y_60d": {
+      "daily_ic": -0.0118,
+      "nonoverlap_n": 50,
+      "nonoverlap_t": -0.19,
+      "p": 0.8496,
+      "block_ci": [
+        -0.0535,
+        0.0338
+      ],
+      "survive_t2": false
+    }
+  },
+  "quality_gpa": {
+    "y_20d": {
+      "daily_ic": 0.005,
+      "nonoverlap_n": 150,
+      "nonoverlap_t": 0.06,
+      "p": 0.9535,
+      "block_ci": [
+        -0.0269,
+        0.0374
+      ],
+      "survive_t2": false
+    },
+    "y_60d": {
+      "daily_ic": 0.0017,
+      "nonoverlap_n": 50,
+      "nonoverlap_t": -0.25,
+      "p": 0.7998,
+      "block_ci": [
+        -0.048,
+        0.0552
+      ],
+      "survive_t2": false
+    }
+  },
+  "leave_top2_y20": {
+    "ic_full": 0.0291,
+    "ic_leave_top2": 0.0164,
+    "retention": 0.562,
+    "nonoverlap_t_lo2": 0.86,
+    "kill_gate": "PASS(≥0.5)"
+  },
+  "leave_top2_y60": {
+    "ic_full": 0.0333,
+    "ic_leave_top2": 0.0171,
+    "retention": 0.515,
+    "nonoverlap_t_lo2": 0.56,
+    "kill_gate": "PASS(≥0.5)"
+  },
+  "subsector_sign_check": {
+    "by_subsector": {
+      "multi": {
+        "n_stocks": 5,
+        "value_ic": 0.0402
+      },
+      "services": {
+        "n_stocks": 9,
+        "value_ic": 0.0298
+      },
+      "machinery": {
+        "n_stocks": 12,
+        "value_ic": 0.0429
+      },
+      "aero_def": {
+        "n_stocks": 6,
+        "value_ic": -0.0046
+      },
+      "transport": {
+        "n_stocks": 7,
+        "value_ic": 0.0046
+      }
+    },
+    "note": "★cyclical-β bleed: sub-sector별 value IC 부호 엇갈리면 sign-cancellation(자문 R3 경고). 부호 일관성 점검"
+  },
+  "VERDICT": {
+    "value_y60_nonoverlap_t": 1.21,
+    "leave_top2_retention_y60": 0.515,
+    "kill": "PASS(≥0.5)",
+    "PASS": false,
+    "interpretation": "★PASSIVE → XLF+XLI 둘 다 dead = 미국 GICS selection 무료데이터 전 섹터 early-stop 확정. null result"
+  }
+}

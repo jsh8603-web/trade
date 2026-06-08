@@ -1,0 +1,63 @@
+# summary.yaml — XLI(산업재) minimal selection 검증 (1장, GUIDE §13 VERIFY 2순위, 마지막 early-stop 체크)
+# ⛔ 점추정 박제 금지. small-N rigor. ledger/yaml만(production 미수정). raw 재현: raw-v3/{fetch_xli,measure_xli}.py → validation-xli.json
+
+industry: us_xli_industrials
+asset_scope: [equity.us]
+study_type: minimal_verify
+as_of: "2026-05-28"
+
+universe:
+  rule: "XLI top-cap 39종(현 holdings, 2016이전 장기, EW). ★breadth 큼(메가캡 비지배 = XLF/SOXX와 차이)."
+  tickers_n: 39
+
+factors: "value=EV/EBITDA·FCF-yield / quality=ROIC·gross profitability. (산업재=실물자본, EV 계열 우선. P/B 무의미 아니나 미적용)"
+
+# ── ★측정 결과 (non-overlap t primary, 점추정 박제 금지) ──
+indicators:
+  - {id: value_evebitda_fcfy, family: value, horizon: y_60d, daily_ic: 0.0333, nonoverlap_t: 1.21, block_ci_95: [-0.002, 0.0735], verdict: "결합 비유의(t<2, 두 value 약간 상쇄)"}
+  - {id: value_fcfy, family: value, horizon: y_60d, daily_ic: 0.0562, nonoverlap_t: 2.05, block_ci_95: [0.0189, 0.0966], verdict: "★t>2 생존(y20 t=2.91/y60 t=2.05). CI 0배제"}
+  - {id: value_evebitda, family: value, horizon: y_60d, daily_ic: 0.0408, nonoverlap_t: 2.02, block_ci_95: [0.01, 0.0773], verdict: "★t>2 생존(간발). CI 0배제"}
+  - {id: quality_roic, family: quality, horizon: y_60d, daily_ic: -0.0118, nonoverlap_t: -0.19, verdict: "무신호(음)"}
+  - {id: quality_gpa, family: quality, horizon: y_60d, daily_ic: 0.0017, nonoverlap_t: -0.25, verdict: "무신호"}
+
+# ── ★leave-top2-out (CAT·GE) 1차 kill 게이트 ──
+leave_top2_out:
+  y_60d: {ic_full: 0.0333, ic_leave_top2: 0.0171, retention: 0.515, kill_gate: "PASS(≥0.5)"}
+  y_20d: {retention: 0.562, kill_gate: "PASS(≥0.5)"}
+  note: "★retention 0.52 = kill PASS, XLF(IC~0 무의미)와 달리 의미 있는 수준 = value 신호 일부 실재(2-name 위장 아님). 단 결합 t<2."
+
+# ── ★cyclical-β sub-sector sign-cancel 점검 (자문 R3 경고) ──
+subsector_sign_check:
+  machinery: {n: 12, value_ic: 0.0429}
+  multi: {n: 5, value_ic: 0.0402}
+  services: {n: 9, value_ic: 0.0298}
+  transport: {n: 7, value_ic: 0.0046}      # ★거의 0
+  aero_def: {n: 6, value_ic: -0.0046}       # ★음 (역방향)
+  finding: >
+    ★sub-sector 부호 엇갈림 확인(자문 R3 cyclical-β bleed 경고 적중): machinery/multi/services = value 양(+0.03~0.04) /
+    aero_def = 음(−0.005) / transport ≈ 0. = ★결합 value(t=1.21) 약화는 sign-cancellation 탓. sub-sector-conditional 하게
+    FCF-yield(t>2)·기계/복합 value 신호 존재 가능성 = ★완전 dead 아님(XLF와 차이).
+
+survivor_bias:
+  status: PARTIAL
+  note: "XLI survivorship 낮은 편(M&A 적음)이나 현-holdings-only = 부진 편출 누락 = value-IC 약 upper-bound. CRSP 유료=무료 부재."
+
+hard_fail_self_check:
+  B_real_data: {status: PASS, note: "합성 0%. yfinance 39종 + EDGAR 64,776 rows. raw-v3 .py 재현."}
+  C_traceability: {status: PASS, note: "validation-xli.json 매핑."}
+  D_pit: {status: PASS, note: "EDGAR 최초 filed + forward shift."}
+  I_survivor_bias: {status: PARTIAL, note: "현-holdings (XLI는 낮은 편)."}
+
+# ── verdict ──
+verdict_label: PASSIVE_BUT_SIGNAL_TRACE   # ★minimal 판정 PASSIVE(결합 t<2)이나 FCF-yield 단독 t>2 + sub-sector 이질성 = main 판단 필요
+verdict: >
+  ★minimal 게이트 판정 = PASSIVE: value 결합(EV/EBITDA·FCF-yield) y60 non-overlap t=1.21(<2) = 게이트 미달. quality 무신호.
+  ★단 ⛔단정 금지 — 완전 dead 아님: (a) ★FCF-yield 단독 t>2 생존(y20 2.91/y60 2.05, CI 0배제) (b) EV/EBITDA 단독 t=2.02
+  (c) leave-top2 retention 0.52(XLF IC~0 무의미와 달리 의미 있음, 2-name 위장 아님) (d) ★sub-sector sign-cancel(기계/복합 양
+  +0.04 / 방산 음 −0.005) = 결합 약화는 cyclical-β bleed 탓(자문 R3 적중). = ★sub-sector-conditional FCF-yield 신호 잠재.
+  → ★main 판단 필요: (1) minimal 게이트 엄격 적용 → PASSIVE 확정 + early-stop / (2) FCF-yield 단독 t>2 + sub-sector split
+  잠재 = XLI deeper study(sub-sector neutralize FCF-yield) 1건 여지. ★XLF는 완전 부재(t=0.45)였으나 XLI는 trace 존재 = 차이.
+sleeve_rule:
+  rule: top_mcap_equal_weight    # minimal 게이트 PASSIVE = 잠정 passive (단 FCF-yield deeper 여지는 main 판단)
+  selection_tilt: none
+  rationale: "결합 value t<2 = minimal 게이트 미달 → 잠정 passive. ★단 FCF-yield 단독 t>2 + sub-sector split = deeper study 시 selection 여지(main 결정)."
