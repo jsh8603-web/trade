@@ -1,0 +1,11 @@
+# XLF(금융) minimal selection 검증 (2026-06-08, §13 VERIFY 1순위, early-stop 게이트)
+# universe: XLF top-cap 29종(현 holdings, 2016이전 장기, EW). EDGAR 29,073 rows + 가격 29종.
+# factor: value=P/B·P/TBV / quality=ROE·ROIC (EV/EBITDA 금융 무의미 미사용).
+# ★측정 (non-overlap t primary, y60):
+#   value(P/B·P/TBV) IC=0.019 t=0.45 CI[-0.038,0.071] / value_ptbv t=0.63 / quality_roic t=0.84 = ★전 factor 비유의(t<2)
+# ★leave-top2-out(BRK-B·JPM) retention y60=0.55 = kill 게이트 PASS이나 IC 자체 ~0이라 무의미.
+#   (SOXX: IC 0.10 컸으나 retention 0.04 2-name / XLF: IC 0.019 부재 = t<2로 죽음 = 다른 방식)
+# ★생존편향 upper-bound: 2023 파산은행(SVB/Signature/FRC) 누락 = value-IC 부풀려진 상태인데도 t=0.45 = 진짜 IC 더 낮/음 = value 확실 부재.
+# ★판정: PASSIVE 확정(null result). §13 VERIFY 1순위(양 모델 유일 진짜 후보)조차 무너짐 = 미국 GICS selection 무료데이터 early-stop 후보.
+#   (XLI 2순위 미검증 = 최종 early-stop은 main 판단). sleeve = top 시총 EW passive(SOXX 동형).
+# ⛔§방향보존: 금융 value 영구 무효 아님 = 범위한정. Reopen = 생존편향-free CRSP universe(파산은행 포함).

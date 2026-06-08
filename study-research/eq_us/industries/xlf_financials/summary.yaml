@@ -1,0 +1,63 @@
+# summary.yaml — XLF(금융) minimal selection 검증 (1장, GUIDE §13 VERIFY 1순위)
+# ⛔ 점추정 박제 금지. small-N rigor. ledger/yaml만(production 코드 미수정).
+# raw 재현: raw-v3/{fetch_xlf, measure_xlf}.py → validation-xlf.json
+
+industry: us_xlf_financials
+asset_scope: [equity.us]
+study_type: minimal_verify       # ★풀 R1~R6 아님. §13 트리아지 VERIFY 1순위 싼 판별
+as_of: "2026-05-28"
+
+# ── universe (사전등록) ──
+universe:
+  rule: "XLF top-cap 29종 (현 holdings 기준, 2016 이전 장기). EW 기준(cap-weight 금지)."
+  tickers: [BRK-B,JPM,V,MA,BAC,GS,MS,WFC,C,AXP,SPGI,BLK,SCHW,CB,PGR,AON,ICE,CME,PNC,USB,TFC,COF,MET,AIG,TRV,PRU,AFL,ALL,BK]
+  subindustry_caveat: >
+    ★sub-industry 이질성: 은행(JPM/BAC/WFC/C/PNC/USB/TFC/COF/BK)=P/B 유효 / 보험(BRK-B/CB/PGR/MET/AIG/TRV/PRU/AFL/ALL)=P/TBV 유효 /
+    결제네트워크(V/MA/AXP)=자본경량 P/B 무의미 / 자본시장(GS/MS/SCHW/BLK/SPGI/ICE/CME)=book 일부. minimal=전체 적용 + flag.
+
+# ── 섹터-적합 factor (사후탐색 금지) ──
+factors: "value=P/B·P/TBV / quality=ROE·ROIC. ⛔EV/EBITDA 금융 무의미(쓰지 않음)"
+
+# ── ★측정 결과 (non-overlap t primary, 점추정 박제 금지) ──
+indicators:
+  - {id: value_pb_ptbv, family: value, horizon: y_60d, daily_ic: 0.0193, nonoverlap_t: 0.45, block_ci_95: [-0.0379, 0.0709], verdict: "비유의(CI 0포함)"}
+  - {id: value_pb, family: value, horizon: y_60d, daily_ic: 0.0105, nonoverlap_t: 0.06, verdict: "비유의"}
+  - {id: value_ptbv, family: value, horizon: y_60d, daily_ic: 0.0275, nonoverlap_t: 0.63, verdict: "비유의(P/TBV 최강이나 t<2)"}
+  - {id: quality_roe, family: quality, horizon: y_60d, daily_ic: 0.0161, nonoverlap_t: 0.28, verdict: "비유의"}
+  - {id: quality_roic, family: quality, horizon: y_60d, daily_ic: 0.0611, nonoverlap_t: 0.84, verdict: "비유의(최대 IC이나 t<2)"}
+
+# ── ★leave-top2-out (BRK-B·JPM) 1차 kill 게이트 ──
+leave_top2_out:
+  y_60d: {ic_full: 0.0193, ic_leave_top2: 0.0106, retention: 0.546, kill_gate: "PASS(≥0.5)"}
+  y_20d: {retention: 0.517, kill_gate: "PASS(≥0.5)"}
+  note: >
+    ★retention 게이트는 PASS(0.55)이나 = "IC 자체가 거의 0(0.019)이라 2-name 의존조차 안 보이는 것". SOXX(IC 0.10 컸으나 retention 0.04 2-name)와
+    다른 방식 = XLF는 ★IC 자체 부재(t=0.45)로 죽음. retention 무의미(분자분모 둘 다 ~0).
+
+# ── ★생존편향 (의무 flag) ──
+survivor_bias:
+  status: PARTIAL
+  upper_bound_flag: >
+    ★현-holdings-only = 2023 SVB·Signature·First Republic 파산은행 누락 = deep-value 실패자 빠짐 → value-IC **upward bias = upper-bound**.
+    그런데도 t=0.45 비유의 = 진짜 IC는 더 낮거나 음 = ★value 신호 확실히 부재(upper-bound조차 미달). SOXX·XLE 동일 게이트. CRSP 유료=무료 부재.
+
+# ── Hard-fail 4 self-check (B C D I) ──
+hard_fail_self_check:
+  B_real_data: {status: PASS, note: "합성 0%. yfinance 29종 + EDGAR companyfacts 29,073 rows 실측. raw-v3 .py 재현."}
+  C_traceability: {status: PASS, note: "모든 IC = validation-xlf.json 매핑."}
+  D_pit: {status: PASS, note: "EDGAR 최초 filed + forward shift."}
+  I_survivor_bias: {status: PARTIAL, note: "파산은행 누락 = upper-bound flag(위). value 부재 결론은 오히려 강화(upper-bound도 미달)."}
+
+# ── verdict ──
+verdict_label: PASSIVE          # ★PASSIVE 확정 (value/quality 전 factor 비유의, non-overlap t<2)
+verdict: >
+  ★★XLF selection = PASSIVE 확정 (null result). value(P/B·P/TBV) + quality(ROE·ROIC) 전 factor non-overlap t<2(최대 0.84) =
+  signal 부재. leave-top2 kill 게이트는 PASS(retention 0.55)이나 IC 자체가 ~0이라 무의미. ★생존편향 upper-bound(파산은행 누락으로
+  value-IC 부풀려진 상태)인데도 비유의 = value 신호 확실 부재. = ★§13 VERIFY 1순위(양 모델 유일 진짜 후보)조차 무너짐 =
+  미국 GICS selection 무료데이터 전멸 ★early-stop 후보(단 XLI 2순위 미검증 = 최종 early-stop은 main 판단).
+  ⛔§방향보존: "금융 value 영구 무효" 아님 = 현 무료-데이터 틀(현-holdings, 파산은행 누락) 코드화 불가 = 범위한정.
+  ★Reopen 트리거(§13) = 생존편향-free CRSP universe(파산은행 포함) 확보 시 재검토.
+sleeve_rule:
+  rule: top_mcap_equal_weight   # ★SOXX 동형 — selection 포기, 섹터 베타 passive
+  selection_tilt: none
+  rationale: "value/quality 전 factor 비유의(t<2) + 생존편향 upper-bound 미달 = selection alpha 부재 → passive EW."

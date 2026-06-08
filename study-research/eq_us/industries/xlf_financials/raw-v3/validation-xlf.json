@@ -1,0 +1,149 @@
+{
+  "meta": {
+    "universe": "XLF top-cap 29종(현 holdings, EW 기준)",
+    "factors": "value=P/B·P/TBV / quality=ROE·ROIC",
+    "survivor_flag": "★현-holdings-only = 2023 SVB/Signature/FRC 파산은행 누락 = value-IC upward bias = ★upper-bound",
+    "subindustry_caveat": "★V/MA(결제네트워크)=자본경량 P/B 무의미 / 은행(JPM/BAC/WFC/C)=P/B 유효 / 보험=P/TBV 유효 = 이질성"
+  },
+  "value": {
+    "y_20d": {
+      "daily_ic": 0.0118,
+      "nonoverlap_n": 150,
+      "nonoverlap_t": 0.54,
+      "p": 0.5874,
+      "block_ci": [
+        -0.0162,
+        0.042
+      ],
+      "survive_t2": false
+    },
+    "y_60d": {
+      "daily_ic": 0.0193,
+      "nonoverlap_n": 50,
+      "nonoverlap_t": 0.45,
+      "p": 0.6534,
+      "block_ci": [
+        -0.0379,
+        0.0709
+      ],
+      "survive_t2": false
+    }
+  },
+  "value_pb": {
+    "y_20d": {
+      "daily_ic": 0.0052,
+      "nonoverlap_n": 150,
+      "nonoverlap_t": 0.27,
+      "p": 0.7864,
+      "block_ci": [
+        -0.0266,
+        0.0353
+      ],
+      "survive_t2": false
+    },
+    "y_60d": {
+      "daily_ic": 0.0105,
+      "nonoverlap_n": 50,
+      "nonoverlap_t": 0.06,
+      "p": 0.9537,
+      "block_ci": [
+        -0.0485,
+        0.0634
+      ],
+      "survive_t2": false
+    }
+  },
+  "value_ptbv": {
+    "y_20d": {
+      "daily_ic": 0.0217,
+      "nonoverlap_n": 150,
+      "nonoverlap_t": 1.05,
+      "p": 0.2948,
+      "block_ci": [
+        -0.0069,
+        0.0508
+      ],
+      "survive_t2": false
+    },
+    "y_60d": {
+      "daily_ic": 0.0275,
+      "nonoverlap_n": 50,
+      "nonoverlap_t": 0.63,
+      "p": 0.5322,
+      "block_ci": [
+        -0.0133,
+        0.073
+      ],
+      "survive_t2": false
+    }
+  },
+  "quality_roe": {
+    "y_20d": {
+      "daily_ic": 0.0123,
+      "nonoverlap_n": 150,
+      "nonoverlap_t": 0.19,
+      "p": 0.8465,
+      "block_ci": [
+        -0.0209,
+        0.0446
+      ],
+      "survive_t2": false
+    },
+    "y_60d": {
+      "daily_ic": 0.0161,
+      "nonoverlap_n": 50,
+      "nonoverlap_t": 0.28,
+      "p": 0.7801,
+      "block_ci": [
+        -0.0331,
+        0.0734
+      ],
+      "survive_t2": false
+    }
+  },
+  "quality_roic": {
+    "y_20d": {
+      "daily_ic": 0.0438,
+      "nonoverlap_n": 150,
+      "nonoverlap_t": 1.53,
+      "p": 0.1277,
+      "block_ci": [
+        0.001,
+        0.0888
+      ],
+      "survive_t2": false
+    },
+    "y_60d": {
+      "daily_ic": 0.0611,
+      "nonoverlap_n": 50,
+      "nonoverlap_t": 0.84,
+      "p": 0.4055,
+      "block_ci": [
+        -0.0201,
+        0.1426
+      ],
+      "survive_t2": false
+    }
+  },
+  "leave_top2_y20": {
+    "ic_full": 0.0118,
+    "ic_leave_top2": 0.0061,
+    "retention": 0.517,
+    "nonoverlap_t_lo2": 0.23,
+    "kill_gate": "PASS(≥0.5)"
+  },
+  "leave_top2_y60": {
+    "ic_full": 0.0193,
+    "ic_leave_top2": 0.0106,
+    "retention": 0.546,
+    "nonoverlap_t_lo2": 0.27,
+    "kill_gate": "PASS(≥0.5)"
+  },
+  "VERDICT": {
+    "value_y60_nonoverlap_t": 0.45,
+    "leave_top2_retention_y60": 0.546,
+    "kill_gate": "PASS(≥0.5)",
+    "PASS": false,
+    "interpretation": "★PASSIVE 확정(retention<0.5 OR t<2) = XLF도 position 위장/무신호 = early-stop 후보. null result"
+  }
+}
